@@ -109,8 +109,15 @@ public final class AstralServer {
         if (target == null) target = server.overworld();
         double y;
         if (target.dimension().equals(Level.OVERWORLD) || r == null) {
-            // surface at the mirrored X/Z (this loads the chunk)
-            y = target.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(p.getX()), (int) Math.floor(p.getZ()));
+            // Surface at the mirrored X/Z. The chunk MUST be loaded first: for an unloaded chunk Minecraft's
+            // getHeight returns the bottom of the world, which dropped players into the void.
+            int bx = (int) Math.floor(p.getX()), bz = (int) Math.floor(p.getZ());
+            target.getChunk(bx >> 4, bz >> 4); // loads (or generates) the chunk
+            y = target.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, bx, bz);
+            if (y <= target.getMinBuildHeight() + 1) {
+                // nothing but air in that column: fall back to where they came from, or the world spawn
+                y = r != null ? r.y() : target.getSharedSpawnPos().getY();
+            }
         } else {
             y = r.y(); // Nether/End etc. have no safe "surface": use the height they left from
         }
