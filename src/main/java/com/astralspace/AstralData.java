@@ -26,6 +26,8 @@ public class AstralData extends SavedData {
     public final Map<UUID, Integer> seenStage = new HashMap<>();
     /** Every player ever seen at Seq 0 (kept while offline). */
     public final Map<UUID, String> seq0 = new HashMap<>();
+    /** Which pathway (LOTM id) each known Seq 0 has. */
+    public final Map<UUID, String> seq0Paths = new HashMap<>();
     /** The last Sequence seen for each player, to notice when someone reaches Seq 0. */
     public final Map<UUID, Integer> lastSeq = new HashMap<>();
     /** Where each player left from when they entered the Astral World. */
@@ -48,6 +50,8 @@ public class AstralData extends SavedData {
         for (String k : st.getAllKeys()) d.seenStage.put(UUID.fromString(k), st.getInt(k));
         CompoundTag s = tag.getCompound("seq0");
         for (String k : s.getAllKeys()) d.seq0.put(UUID.fromString(k), s.getString(k));
+        CompoundTag sp = tag.getCompound("seq0Paths");
+        for (String k : sp.getAllKeys()) d.seq0Paths.put(UUID.fromString(k), sp.getString(k));
         CompoundTag l = tag.getCompound("lastSeq");
         for (String k : l.getAllKeys()) d.lastSeq.put(UUID.fromString(k), l.getInt(k));
         CompoundTag r = tag.getCompound("returns");
@@ -72,6 +76,9 @@ public class AstralData extends SavedData {
         CompoundTag s = new CompoundTag();
         seq0.forEach((k, v) -> s.putString(k.toString(), v));
         tag.put("seq0", s);
+        CompoundTag sp = new CompoundTag();
+        seq0Paths.forEach((k, v) -> sp.putString(k.toString(), v));
+        tag.put("seq0Paths", sp);
         CompoundTag l = new CompoundTag();
         lastSeq.forEach((k, v) -> l.putInt(k.toString(), v));
         tag.put("lastSeq", l);

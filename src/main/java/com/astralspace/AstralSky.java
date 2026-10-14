@@ -93,21 +93,7 @@ public final class AstralSky extends DimensionSpecialEffects {
 
         // no stars: the swirling colours and symbols of the Astral World are drawn by AstralSymbols
 
-        // the moon, straight overhead, as big as LOTM draws it (2.5 x vanilla), crimson texture when LOTM's crimson moon is up
-        boolean crimson = crimsonMoon();
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderTexture(0, crimson ? CRIMSON_MOON : MOON);
-        if (crimson) RenderSystem.setShaderColor(1f, 0.35f, 0.3f, 1f); else RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-        int phase = level.getMoonPhase();
-        float u0 = (phase % 4) / 4f, u1 = u0 + 0.25f, v0 = ((phase / 4) % 2) / 2f, v1 = v0 + 0.5f;
-        BufferBuilder m = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        float mr = 50f;
-        m.addVertex(modelView, -mr, 100f, -mr).setUv(u0, v0);
-        m.addVertex(modelView, -mr, 100f, mr).setUv(u0, v1);
-        m.addVertex(modelView, mr, 100f, mr).setUv(u1, v1);
-        m.addVertex(modelView, mr, 100f, -mr).setUv(u1, v0);
-        BufferUploader.drawWithShader(m.buildOrThrow());
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+        // no moon and no sun here: they only appear once a Moon god / Sun god exists (see AstralGods)
 
         RenderSystem.depthMask(true);
         RenderSystem.enableCull();

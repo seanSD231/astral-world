@@ -189,6 +189,13 @@ public final class AstralServer {
     }
 
     /** Once a second: track Seq 0s, ascension teleport, barrier regeneration, HUD. */
+    /** The pathways that have a Seq 0, as ",id,id," (what the sky of the Astral World shows). */
+    private static String godsList(AstralData d) {
+        StringBuilder sb = new StringBuilder(",");
+        for (String v : new java.util.TreeSet<>(d.seq0Paths.values())) sb.append(v).append(',');
+        return sb.toString();
+    }
+
     private static double regenAccum = 0.0;
 
     private static void secondPass(MinecraftServer server) {
@@ -205,11 +212,14 @@ public final class AstralServer {
             Integer prev = d.lastSeq.put(id, seq);
             if (prev == null || prev != seq) dirty = true;
             if (seq == 0) {
+                String pid = Lotm.pathwayId(p);
+                if (!pid.isEmpty() && !pid.equals(d.seq0Paths.put(id, pid))) dirty = true;
                 if (d.seq0.put(id, name(p)) == null) {
                     dirty = true;
                     if (d.stage == 0) Stage.set(server, 1); // the first Seq 0 ever: the Outer Gods take notice
                 }
             } else if (d.seq0.remove(id) != null) {
+                d.seq0Paths.remove(id);
                 dirty = true;
             }
             if (prev != null && prev > 0 && seq == 0 && ascensionReady(id)) { // at most once per 10 minutes per player
@@ -251,7 +261,7 @@ public final class AstralServer {
         }
 
         // the sky barrier everyone can see (its cracks = missing HP)
-        Net.BarrierPayload barrier = new Net.BarrierPayload(d.stage >= 1 && max > 0, d.hp, max, Settings.barrierY, Settings.barrierYOverworld);
+        Net.BarrierPayload barrier = new Net.BarrierPayload(d.stage >= 1 && max > 0, d.hp, max, Settings.barrierY, Settings.barrierYOverworld, godsList(d));
         for (ServerPlayer p : players) PacketDistributor.sendToPlayer(p, barrier);
     }
 

@@ -69,6 +69,17 @@ public final class Lotm {
         return p == null ? "unknown" : p.getClass().getSimpleName();
     }
 
+    private static final String[] PATH_IDS = {"seer", "marauder", "apprentice", "spectator", "bard", "sailor", "reader", "secrets_supplicant",
+            "sleepless", "corpse_collector", "warrior", "assassin", "hunter", "mystery_pryer", "savant", "monster", "planter",
+            "apothecary", "criminal", "prisoner", "lawyer", "arbiter"};
+
+    /** The LOTM pathway id of a player ("sailor" = Tyrant, "bard" = Sun, "apothecary" = Moon ...), or "" if unknown. */
+    public static String pathwayId(ServerPlayer player) {
+        String n = pathwayName(player).toLowerCase().replace("_", "");
+        for (String id : PATH_IDS) if (n.contains(id.replace("_", ""))) return id;
+        return "";
+    }
+
     /** Door is the Apprentice pathway in LOTM. */
     public static boolean isDoor(ServerPlayer player) {
         Object p = pathway(player);

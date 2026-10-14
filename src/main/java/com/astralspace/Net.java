@@ -55,7 +55,7 @@ public final class Net {
     }
 
     /** Server -> every player: the sky barrier (its health decides how many cracks it has). */
-    public record BarrierPayload(boolean show, int hp, int max, int y, int yOverworld) implements CustomPacketPayload {
+    public record BarrierPayload(boolean show, int hp, int max, int y, int yOverworld, String gods) implements CustomPacketPayload {
         public static final Type<BarrierPayload> TYPE =
                 new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "barrier"));
         public static final StreamCodec<RegistryFriendlyByteBuf, BarrierPayload> CODEC = StreamCodec.composite(
@@ -64,6 +64,7 @@ public final class Net {
                 ByteBufCodecs.VAR_INT, BarrierPayload::max,
                 ByteBufCodecs.VAR_INT, BarrierPayload::y,
                 ByteBufCodecs.VAR_INT, BarrierPayload::yOverworld,
+                ByteBufCodecs.STRING_UTF8, BarrierPayload::gods,
                 BarrierPayload::new);
 
         @Override
@@ -82,6 +83,8 @@ public final class Net {
         public static volatile int stageFrom = 0x000000, stageTo = 0xDC143C;
         public static volatile boolean barrierShow;
         public static volatile int barrierHp, barrierMax, barrierY = 1000, barrierYOverworld = 1000;
+        /** Pathway ids that have a Seq 0 (a "god"), as ",id,id,". */
+        public static volatile String gods = ",";
     }
 
     public static void register(RegisterPayloadHandlersEvent event) {
@@ -98,6 +101,7 @@ public final class Net {
             ClientState.barrierMax = payload.max();
             ClientState.barrierY = payload.y();
             ClientState.barrierYOverworld = payload.yOverworld();
+            ClientState.gods = payload.gods();
         }));
         registrar.playToClient(FlashPayload.TYPE, FlashPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             ClientState.flashAlpha = payload.alpha();
