@@ -116,22 +116,38 @@ public final class GodCurse {
         p.fallDistance = 0;
     }
 
-    /** Anywhere inside the world border, on the ground of the overworld band. */
+    private static final double SUPERNOVA_MIN = 500;
+
+    /** Anywhere inside the world border, at least 500 blocks from where the player stands (less only if the border is tiny). */
     private static void supernovaJump(ServerPlayer p) {
         ServerLevel level = p.serverLevel();
         var border = level.getWorldBorder();
         ThreadLocalRandom r = ThreadLocalRandom.current();
-        for (int attempt = 0; attempt < 6; attempt++) {
-            int x = (int) (border.getMinX() + 1 + r.nextDouble() * (border.getMaxX() - border.getMinX() - 2));
-            int z = (int) (border.getMinZ() + 1 + r.nextDouble() * (border.getMaxZ() - border.getMinZ() - 2));
+        double minX = border.getMinX() + 2, maxX = border.getMaxX() - 2, minZ = border.getMinZ() + 2, maxZ = border.getMaxZ() - 2;
+        double need = Math.min(SUPERNOVA_MIN, Math.min(maxX - minX, maxZ - minZ) * 0.4);
+        for (int attempt = 0; attempt < 40; attempt++) {
+            int x = (int) (minX + r.nextDouble() * (maxX - minX));
+            int z = (int) (minZ + r.nextDouble() * (maxZ - minZ));
+            double dx = x - p.getX(), dz = z - p.getZ();
+            if (dx * dx + dz * dz < need * need) continue;
             int y = Surface.find(level, x, z, true);
             if (y < 0) continue;
             jump(p, new Vec3(x + 0.5, y, z + 0.5));
+            OuterGods.log("[astral] supernova: {} teleported {} blocks to {}, {} (border size {})", p.getGameProfile().getName(),
+                    (int) Math.sqrt(dx * dx + dz * dz), x, z, (int) (maxX - minX));
             return;
         }
+        OuterGods.log("[astral] supernova: no valid destination found (border {} x {}, needed {} blocks)",
+                (int) (maxX - minX), (int) (maxZ - minZ), (int) need);
+    }
+
+    /** A white screen flash, half strength by default (so it never whites the screen out completely). */
+    private static void flash(ServerPlayer p, int alpha, int ms) {
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.FlashPayload(alpha, ms));
     }
 
     private static void burst(ServerPlayer p, Kind kind) {
+        flash(p, 128, 700);
         p.serverLevel().sendParticles(ParticleTypes.EXPLOSION_EMITTER, p.getX(), p.getY() + 1, p.getZ(), 1, 0, 0, 0, 0);
         OuterGods.playAt(p, "entity.generic.explode", p.getX(), p.getY(), p.getZ(), 1.5f, 0.7f);
     }
@@ -183,7 +199,7 @@ public final class GodCurse {
     private static void begin(ServerPlayer p, Curse c, int ticks) {
         int a = c.stage >= 3 ? 1 : 0;
         switch (c.kind) {
-            case SUPERNOVA -> fx(p, lotm("flash", MobEffects.BLINDNESS), 40, 0);
+            case SUPERNOVA -> { }
             case DEPRAVITY -> {
                 fx(p, MobEffects.WITHER, ticks, 1 + a);
                 fx(p, MobEffects.WEAKNESS, ticks, 2);
@@ -252,6 +268,7 @@ public final class GodCurse {
             }
             case FATE -> {
                 fx(p, MobEffects.UNLUCK, ticks, 9);
+                Lotm.addMisfortune(p, 200.0 * c.stage); // LOTM's own misfortune (what Misfortune Bestowal gives)
                 fx(p, MobEffects.WEAKNESS, ticks, 1);
                 fx(p, lotm("noregeneration", MobEffects.WITHER), ticks, 0);
                 fx(p, lotm("beneficialeffectsblocker", MobEffects.WEAKNESS), ticks, 0);
@@ -329,8 +346,8 @@ public final class GodCurse {
                 boolean light = (c.step++ % 2) == 0;
                 p.removeEffect(MobEffects.BLINDNESS);
                 p.removeEffect(MobEffects.GLOWING);
-                fx(p, light ? lotm("flash", MobEffects.GLOWING) : MobEffects.BLINDNESS, 40, 0);
-                if (light) fx(p, MobEffects.GLOWING, 40, 0);
+                if (light) { fx(p, MobEffects.GLOWING, 40, 0); flash(p, 128, 600); }
+                else fx(p, MobEffects.BLINDNESS, 40, 0);
                 hurt(p, 2f * k, true);
                 p.serverLevel().sendParticles(light ? ParticleTypes.END_ROD : ParticleTypes.SQUID_INK, p.getX(), p.getY() + 1, p.getZ(), 20, 0.5, 0.8, 0.5, 0.05);
                 c.nextAct = now + 20;

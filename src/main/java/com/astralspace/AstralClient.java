@@ -95,6 +95,18 @@ public final class AstralClient {
     private static void registerLayers(RegisterGuiLayersEvent event) {
         event.registerAboveAll(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "hud"), AstralClient::render);
         event.registerAboveAll(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "stage_text"), AstralClient::renderStageText);
+        event.registerAboveAll(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "flash"), AstralClient::renderFlash);
+    }
+
+    /** A white flash over the whole screen that fades out (the explosions of the Outer Gods; at most ~50% white). */
+    private static void renderFlash(GuiGraphics g, DeltaTracker delta) {
+        long age = System.currentTimeMillis() - Net.ClientState.flashStart;
+        int ms = Net.ClientState.flashMs;
+        if (age < 0 || age >= ms) return;
+        float t = 1f - age / (float) ms;
+        int alpha = (int) (Net.ClientState.flashAlpha * t * t);
+        if (alpha < 2) return;
+        g.fill(0, 0, g.guiWidth(), g.guiHeight(), (alpha << 24) | 0xFFFFFF);
     }
 
     private static void render(GuiGraphics g, DeltaTracker delta) {

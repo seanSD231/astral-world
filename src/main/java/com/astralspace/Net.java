@@ -26,6 +26,19 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -> client: a white screen flash at the given strength (0-255, 128 = half white) that fades out over ms. */
+    public record FlashPayload(int alpha, int ms) implements CustomPacketPayload {
+        public static final Type<FlashPayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "flash"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, FlashPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, FlashPayload::alpha,
+                ByteBufCodecs.VAR_INT, FlashPayload::ms,
+                FlashPayload::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** Server -> client: a story message to show in the animated horror text. */
     public record StagePayload(String text, int from, int to) implements CustomPacketPayload {
         public static final Type<StagePayload> TYPE =
@@ -62,6 +75,8 @@ public final class Net {
         public static volatile String coords = "";
         public static volatile String stageText = "";
         public static volatile long stageStart = 0L;
+        public static volatile int flashAlpha = 0, flashMs = 1;
+        public static volatile long flashStart = 0L;
         public static volatile int stageFrom = 0x000000, stageTo = 0xDC143C;
         public static volatile boolean barrierShow;
         public static volatile int barrierHp, barrierMax, barrierY = 400;
@@ -80,6 +95,11 @@ public final class Net {
             ClientState.barrierHp = payload.hp();
             ClientState.barrierMax = payload.max();
             ClientState.barrierY = payload.y();
+        }));
+        registrar.playToClient(FlashPayload.TYPE, FlashPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            ClientState.flashAlpha = payload.alpha();
+            ClientState.flashMs = Math.max(50, payload.ms());
+            ClientState.flashStart = System.currentTimeMillis();
         }));
         registrar.playToClient(StagePayload.TYPE, StagePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             ClientState.stageText = payload.text();

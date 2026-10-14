@@ -317,6 +317,8 @@ public final class OuterGods {
         LOGGER.info("[astral] {} was struck with deadly corruption", p.getGameProfile().getName());
     }
 
+    static void log(String fmt, Object... args) { LOGGER.info(fmt, args); }
+
     private static boolean chatHookLogged = false;
 
     // Highest priority and receiveCanceled: a chat-formatting mod in this pack cancels the normal chat event and sends

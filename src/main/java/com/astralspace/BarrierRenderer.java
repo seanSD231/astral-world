@@ -19,8 +19,7 @@ import java.util.Random;
 
 /**
  * Client only: the Astral Barrier in the sky of the Astral World (never drawn in the overworld).
- * A huge, very translucent purple dome that curves down at the edges like the surface of a planet, with a faint grid,
- * fading out toward the horizon. One crack per missing HP, in 6 different looks (colour, width, jaggedness, branching),
+ * A huge, very translucent flat purple square with a faint grid. One crack per missing HP, in 6 different looks (colour, width, jaggedness, branching),
  * every crack always looks the same for everyone. The dome follows the player and the cracks repeat every TILE blocks.
  */
 public final class BarrierRenderer {
@@ -99,15 +98,14 @@ public final class BarrierRenderer {
     /** Height of the barrier at x/z: it curves down away from the player like a planet's surface. */
     private static float yAt(float x, float z) {
         float dx = x - cx, dz = z - cz;
-        return baseY - (dx * dx + dz * dz) / (2f * CURVE);
+        return baseY; // flat again (CURVE kept so a curved version is a one-line change)
     }
 
     /** Fades to nothing toward the edge of the drawn area (also hides where the mesh ends). */
     private static float fade(float x, float z) {
         float dx = x - cx, dz = z - cz;
         float d = (float) Math.sqrt(dx * dx + dz * dz) / HALF;
-        float f = 1f - d * d;
-        return f <= 0f ? 0f : f;
+        return 1f; // a plain square: no fading toward the edge
     }
 
     private static void vert(VertexConsumer vc, Matrix4f m, float x, float z, int r, int g, int b, int a) {

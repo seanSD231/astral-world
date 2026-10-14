@@ -141,4 +141,19 @@ public final class Lotm {
             return false;
         }
     }
+
+    /** Adds LOTM "misfortune" to a player (the same stat Misfortune Bestowal raises; Bestowal itself adds 200). */
+    public static boolean addMisfortune(ServerPlayer player, double amount) {
+        try {
+            Class<?> h = Class.forName("net.swimmingtuna.lotm.util.CorruptionAndLuckHandler");
+            net.minecraft.nbt.CompoundTag tag = player.getPersistentData();
+            double cur = (Double) h.getMethod("getMisfortune", CompoundTag.class).invoke(null, tag);
+            h.getMethod("setMisfortune", net.minecraft.world.entity.LivingEntity.class, CompoundTag.class, double.class)
+                    .invoke(null, player, tag, cur + amount);
+            return true;
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not add misfortune: {}", t.toString());
+            return false;
+        }
+    }
 }
