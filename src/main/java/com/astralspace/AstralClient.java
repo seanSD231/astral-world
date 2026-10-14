@@ -60,6 +60,7 @@ public final class AstralClient {
         modBus.addListener(AstralClient::registerLayers);
         modBus.addListener(AstralClient::registerSky);
         NeoForge.EVENT_BUS.addListener(AstralClient::registerCommands);
+        NeoForge.EVENT_BUS.addListener(AstralClient::registerGfxCommand);
     }
 
     private static void registerCommands(RegisterClientCommandsEvent event) {
@@ -89,6 +90,27 @@ public final class AstralClient {
                     ctx.getSource().sendSuccess(() -> Component.literal(
                             "Astral HUD: scale " + hudScale + ", offset " + hudOffsetX + " left / " + hudOffsetY
                                     + " up.  /astralhud scale <0.3-2.0>   /astralhud move <left> <up>   /astralhud reset"), false);
+                    return 1;
+                }));
+    }
+
+    private static void registerGfxCommand(RegisterClientCommandsEvent event) {
+        event.getDispatcher().register(Commands.literal("astralgfx")
+                .then(Commands.literal("cracks").then(Commands.argument("mode", IntegerArgumentType.integer(0, 3)).executes(ctx -> {
+                    BarrierRenderer.crackMode = IntegerArgumentType.getInteger(ctx, "mode");
+                    BarrierRenderer.saveGfx();
+                    ctx.getSource().sendSuccess(() -> Component.literal("Astral barrier: " + BarrierRenderer.describe()), false);
+                    return 1;
+                })))
+                .then(Commands.literal("plane").then(Commands.argument("mode", IntegerArgumentType.integer(0, 3)).executes(ctx -> {
+                    BarrierRenderer.planeMode = IntegerArgumentType.getInteger(ctx, "mode");
+                    BarrierRenderer.saveGfx();
+                    ctx.getSource().sendSuccess(() -> Component.literal("Astral barrier: " + BarrierRenderer.describe()), false);
+                    return 1;
+                })))
+                .executes(ctx -> {
+                    ctx.getSource().sendSuccess(() -> Component.literal("Astral barrier: " + BarrierRenderer.describe()
+                            + "   (0 flat, 1 lit like an entity, 2 gui, 3 additive glow)   /astralgfx cracks <0-3>   /astralgfx plane <0-3>"), false);
                     return 1;
                 }));
     }

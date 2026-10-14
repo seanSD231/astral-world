@@ -58,9 +58,51 @@ public final class BarrierRenderer {
 
     private static float cx, cz, baseY, half;
 
+    /** Which vanilla render type draws the cracks / the dome. Shader packs (Photon) treat each one differently: try them with /astralgfx. */
+    public static volatile int crackMode = 0, planeMode = 3;
+    private static final String[] MODES = {"debugQuads (flat colour)", "leash (lit like an entity)", "gui (flat, translucent)", "lightning (additive glow)"};
+
+    private static RenderType renderType(int mode) {
+        return switch (mode) {
+            case 1 -> RenderType.leash();
+            case 2 -> RenderType.gui();
+            case 3 -> RenderType.lightning();
+            default -> RenderType.debugQuads();
+        };
+    }
+
+    public static String describe() {
+        return "cracks: " + crackMode + " = " + MODES[crackMode] + ",  dome: " + planeMode + " = " + MODES[planeMode];
+    }
+
+    private static java.nio.file.Path gfxFile() {
+        return net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve("astral_world_gfx.properties");
+    }
+
+    public static void loadGfx() {
+        try {
+            java.nio.file.Path f = gfxFile();
+            if (!java.nio.file.Files.exists(f)) return;
+            java.util.Properties p = new java.util.Properties();
+            try (java.io.Reader r = java.nio.file.Files.newBufferedReader(f)) { p.load(r); }
+            crackMode = Math.max(0, Math.min(3, Integer.parseInt(p.getProperty("cracks", "0"))));
+            planeMode = Math.max(0, Math.min(3, Integer.parseInt(p.getProperty("plane", "3"))));
+        } catch (java.io.IOException | NumberFormatException ignored) { }
+    }
+
+    public static void saveGfx() {
+        try {
+            java.util.Properties p = new java.util.Properties();
+            p.setProperty("cracks", String.valueOf(crackMode));
+            p.setProperty("plane", String.valueOf(planeMode));
+            try (java.io.Writer w = java.nio.file.Files.newBufferedWriter(gfxFile())) { p.store(w, "Astral barrier render types (change with /astralgfx)"); }
+        } catch (java.io.IOException ignored) { }
+    }
+
     private BarrierRenderer() {}
 
     public static void init() {
+        loadGfx();
         NeoForge.EVENT_BUS.addListener(BarrierRenderer::onRender);
     }
 
@@ -114,7 +156,7 @@ public final class BarrierRenderer {
 
     private static void vert(VertexConsumer vc, Matrix4f m, float x, float z, float yOff, int r, int g, int b, int a) {
         int alpha = Math.round(a * fade(x, z));
-        vc.addVertex(m, x, yAt(x, z) + yOff, z).setColor(r, g, b, alpha);
+        vc.addVertex(m, x, yAt(x, z) + yOff, z).setColor(r, g, b, alpha).setLight(15728880);
     }
 
     /** One quad, drawn from both sides (the render types may cull back faces). */
@@ -197,7 +239,8 @@ public final class BarrierRenderer {
         float minX = cx - half, maxX = cx + half, minZ = cz - half, maxZ = cz + half;
 
         // 1) the dome and its grid (additive, glows a little against the dark sky)
-        VertexConsumer vc = buffers.getBuffer(RenderType.lightning());
+        RenderType planeType = renderType(planeMode);
+        VertexConsumer vc = buffers.getBuffer(planeType);
         int[] purple = {170, 90, 255}, lilac = {210, 150, 255};
         for (float x = minX; x < maxX; x += CELL)
             for (float z = minZ; z < maxZ; z += CELL)
@@ -206,11 +249,12 @@ public final class BarrierRenderer {
             segment(vc, m, 0f, gx, minZ, gx, maxZ, 1.6f * lineScale, lilac, lilac, GRID_ALPHA, 0f);
         for (float gz = (float) Math.floor(minZ / GRID) * GRID; gz <= maxZ; gz += GRID)
             segment(vc, m, 0f, minX, gz, maxX, gz, 1.6f * lineScale, lilac, lilac, GRID_ALPHA, 0f);
-        buffers.endBatch(RenderType.lightning());
+        buffers.endBatch(planeType);
 
         // 2) cracks: solid, one per missing HP, repeated in every tile around the player
         if (cracks > 0) {
-            VertexConsumer cv = buffers.getBuffer(RenderType.debugQuads());
+            RenderType crackType = renderType(crackMode);
+            VertexConsumer cv = buffers.getBuffer(crackType);
             int tx0 = (int) Math.floor(minX / TILE), tx1 = (int) Math.floor(maxX / TILE);
             int tz0 = (int) Math.floor(minZ / TILE), tz1 = (int) Math.floor(maxZ / TILE);
             for (int i = 0; i < cracks; i++) {
@@ -231,7 +275,7 @@ public final class BarrierRenderer {
                     }
                 }
             }
-            buffers.endBatch(RenderType.debugQuads());
+            buffers.endBatch(crackType);
         }
 
         ps.popPose();
