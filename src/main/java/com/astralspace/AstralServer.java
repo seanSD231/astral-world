@@ -183,7 +183,10 @@ public final class AstralServer {
             Integer prev = d.lastSeq.put(id, seq);
             if (prev == null || prev != seq) dirty = true;
             if (seq == 0) {
-                if (d.seq0.put(id, name(p)) == null) dirty = true;
+                if (d.seq0.put(id, name(p)) == null) {
+                    dirty = true;
+                    if (d.stage == 0) Stage.set(server, 1); // the first Seq 0 ever: the Outer Gods take notice
+                }
             } else if (d.seq0.remove(id) != null) {
                 dirty = true;
             }
@@ -205,6 +208,8 @@ public final class AstralServer {
         else if (hp > max) hp = max; // fewer Seq 0s than before
         if (hp != d.hp) { d.hp = hp; dirty = true; }
         if (dirty) d.setDirty();
+
+        Stage.notifyPass(server);
 
         // HUD: every Seq 0 sees the barrier; anyone who stopped being Seq 0 gets it hidden once
         for (ServerPlayer p : players) {

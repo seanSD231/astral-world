@@ -26,11 +26,25 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -> client: a story message to show in the animated horror text. */
+    public record StagePayload(String text) implements CustomPacketPayload {
+        public static final Type<StagePayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "stage"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, StagePayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.STRING_UTF8, StagePayload::text,
+                StagePayload::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** What the client currently knows. Plain fields, safe to load on a server. */
     public static final class ClientState {
         public static volatile boolean show;
         public static volatile int hp, max;
         public static volatile String coords = "";
+        public static volatile String stageText = "";
+        public static volatile long stageStart = 0L;
     }
 
     public static void register(RegisterPayloadHandlersEvent event) {
@@ -40,6 +54,10 @@ public final class Net {
             ClientState.hp = payload.hp();
             ClientState.max = payload.max();
             ClientState.coords = payload.coords();
+        }));
+        registrar.playToClient(StagePayload.TYPE, StagePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            ClientState.stageText = payload.text();
+            ClientState.stageStart = System.currentTimeMillis();
         }));
     }
 }

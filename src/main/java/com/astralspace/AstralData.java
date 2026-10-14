@@ -14,6 +14,10 @@ public class AstralData extends SavedData {
     public record Return(String dim, double x, double y, double z) {}
 
     public int hp = 0;
+    /** The story stage of the world (0 = nothing has happened yet). */
+    public int stage = 0;
+    /** The newest stage message each player has already seen. */
+    public final Map<UUID, Integer> seenStage = new HashMap<>();
     /** Every player ever seen at Seq 0 (kept while offline). */
     public final Map<UUID, String> seq0 = new HashMap<>();
     /** The last Sequence seen for each player, to notice when someone reaches Seq 0. */
@@ -29,6 +33,9 @@ public class AstralData extends SavedData {
     public static AstralData load(CompoundTag tag, HolderLookup.Provider registries) {
         AstralData d = new AstralData();
         d.hp = tag.getInt("hp");
+        d.stage = tag.getInt("stage");
+        CompoundTag st = tag.getCompound("seenStage");
+        for (String k : st.getAllKeys()) d.seenStage.put(UUID.fromString(k), st.getInt(k));
         CompoundTag s = tag.getCompound("seq0");
         for (String k : s.getAllKeys()) d.seq0.put(UUID.fromString(k), s.getString(k));
         CompoundTag l = tag.getCompound("lastSeq");
@@ -44,6 +51,10 @@ public class AstralData extends SavedData {
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.putInt("hp", hp);
+        tag.putInt("stage", stage);
+        CompoundTag st = new CompoundTag();
+        seenStage.forEach((k, v) -> st.putInt(k.toString(), v));
+        tag.put("seenStage", st);
         CompoundTag s = new CompoundTag();
         seq0.forEach((k, v) -> s.putString(k.toString(), v));
         tag.put("seq0", s);
