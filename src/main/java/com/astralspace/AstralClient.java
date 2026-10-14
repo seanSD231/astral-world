@@ -58,6 +58,7 @@ public final class AstralClient {
         loadHud();
         BarrierRenderer.init();
         modBus.addListener(AstralClient::registerLayers);
+        modBus.addListener(AstralClient::registerSky);
         NeoForge.EVENT_BUS.addListener(AstralClient::registerCommands);
     }
 
@@ -90,6 +91,10 @@ public final class AstralClient {
                                     + " up.  /astralhud scale <0.3-2.0>   /astralhud move <left> <up>   /astralhud reset"), false);
                     return 1;
                 }));
+    }
+
+    private static void registerSky(net.neoforged.neoforge.client.event.RegisterDimensionSpecialEffectsEvent event) {
+        event.register(ResourceLocation.fromNamespaceAndPath("astral_space", "astral_world"), new AstralSky());
     }
 
     private static void registerLayers(RegisterGuiLayersEvent event) {

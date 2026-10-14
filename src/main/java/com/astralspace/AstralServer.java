@@ -230,7 +230,7 @@ public final class AstralServer {
         }
 
         // the sky barrier everyone can see (its cracks = missing HP)
-        Net.BarrierPayload barrier = new Net.BarrierPayload(d.stage >= 1 && max > 0, d.hp, max, Settings.barrierY);
+        Net.BarrierPayload barrier = new Net.BarrierPayload(d.stage >= 1 && max > 0, d.hp, max, Settings.barrierY, Settings.barrierYOverworld);
         for (ServerPlayer p : players) PacketDistributor.sendToPlayer(p, barrier);
     }
 
