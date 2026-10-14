@@ -2,6 +2,7 @@ package com.astralspace;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -10,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.neoforged.bus.api.EventPriority;
@@ -160,14 +162,64 @@ public final class OuterGods {
         for (String token : text.toLowerCase(Locale.ROOT).split("[^a-z0-9]+")) {
             if (token.length() < 2) continue;
             if (abbreviations.contains(token)) return token;
-            // plural: "mgods"
-            if (token.endsWith("s") && abbreviations.contains(token.substring(0, token.length() - 1))) return token;
+            // plural: "mgods" -> "mgod"
+            if (token.endsWith("s") && abbreviations.contains(token.substring(0, token.length() - 1))) return token.substring(0, token.length() - 1);
         }
         return null;
     }
 
     @SubscribeEvent
     public static void onServerStarting(ServerStartingEvent event) { loadNames(); }
+
+    // ------------------------------------------------------------------ stage 2+: the name echoes to people nearby
+
+    /** An Outer God: the names and abbreviations (normalized) that belong to it, and the lasting effect it leaves. */
+    private record God(String[] aliases, Holder<MobEffect> effect, int amplifier) {}
+
+    private static final God[] GODS = {
+            new God(new String[]{"mothergoddessofdepravity", "broodhiveoffilth", "mgod"}, MobEffects.WEAKNESS, 1),
+            new God(new String[]{"mothertreeofdesire", "fatherofdevils", "lordofdeviants", "perpetualblatherer", "mtod", "fod"}, MobEffects.UNLUCK, 1),
+            new God(new String[]{"sonofchaos", "everuncertainmist", "uncertainmist", "bridgeoflightanddarkness"}, MobEffects.CONFUSION, 0),
+            new God(new String[]{"primordialhunger"}, MobEffects.HUNGER, 2),
+            new God(new String[]{"circleofinevitability"}, MobEffects.MOVEMENT_SLOWDOWN, 1),
+            new God(new String[]{"supernovadominator"}, MobEffects.DIG_SLOWDOWN, 1),
+            new God(new String[]{"inextinguishableravings"}, MobEffects.DARKNESS, 0),
+            new God(new String[]{"monarchofdecay"}, MobEffects.POISON, 0),
+            new God(new String[]{"highdimensionaloverseer", "hdo"}, MobEffects.GLOWING, 0),
+            new God(new String[]{"goddessoffate"}, MobEffects.UNLUCK, 2),
+    };
+    /** Used for names added to the names file that are not in the table above. */
+    private static final God UNKNOWN_GOD = new God(new String[0], MobEffects.DARKNESS, 0);
+
+    private static God godFor(String match) {
+        for (God g : GODS) for (String a : g.aliases()) if (a.equals(match)) return g;
+        return UNKNOWN_GOD;
+    }
+
+    /**
+     * Stage 2: when someone names an Outer God, everyone nearby gets half the corruption and a lasting effect of that
+     * god. Stage 3 makes it stronger: 75% corruption, twice the range, a longer and stronger effect.
+     */
+    private static void spillover(MinecraftServer server, ServerPlayer speaker, String match) {
+        boolean strong = Stage.atLeast(server, 3);
+        double radius = Settings.nearbyRadius * (strong ? 2.0 : 1.0);
+        double percent = strong ? 75 : 50;
+        God god = godFor(match);
+        int duration = (strong ? 20 : 10) * 60 * 20; // 10 minutes, 20 in stage 3
+        int amplifier = god.amplifier() + (strong ? 1 : 0);
+        for (ServerPlayer q : server.getPlayerList().getPlayers()) {
+            if (q == speaker || q.isCreative() || q.isSpectator()) continue;
+            if (q.level() != speaker.level() || q.distanceToSqr(speaker) > radius * radius) continue;
+            if (Lotm.sequence(q) >= 0) {
+                Object pathway = Lotm.pathway(q);
+                if (pathway != null) Lotm.addCorruptionPercent(q, pathway, percent);
+            }
+            q.addEffect(new MobEffectInstance(god.effect(), duration, amplifier, false, true));
+            q.displayClientMessage(Component.literal("A name was spoken nearby...").withStyle(ChatFormatting.DARK_RED), true);
+        }
+        LOGGER.info("[astral] {} named an Outer God ('{}'): nearby players were affected (radius {}, {}% corruption)",
+                speaker.getGameProfile().getName(), match, radius, percent);
+    }
 
     // ------------------------------------------------------------------ the punishment
 
@@ -220,6 +272,7 @@ public final class OuterGods {
         String match = findMention(event.getRawText());
         if (match == null) return;
         String reason = exemptReason(server, p);
+        if (Stage.atLeast(server, 2) && !p.isSpectator()) server.execute(() -> spillover(server, p, match)); // stage 2+: the name echoes
         if (reason != null) { tellOp(p, match, reason); return; }
         LOGGER.info("[astral] {} named an Outer God ('{}') in chat", p.getGameProfile().getName(), match);
         event.setCanceled(true); // the words never reach anyone (unless another mod already sent them)
@@ -240,6 +293,7 @@ public final class OuterGods {
         String match = findMention(lower);
         if (match == null) return;
         String reason = exemptReason(server, p);
+        if (Stage.atLeast(server, 2) && !p.isSpectator()) spillover(server, p, match);
         if (reason != null) { tellOp(p, match, reason); return; }
         event.setCanceled(true);
         punish(server, p);
@@ -252,23 +306,32 @@ public final class OuterGods {
                 p.connection.send(new ClientboundSoundPacket(h, SoundSource.AMBIENT, x, y, z, volume, pitch, p.getRandom().nextLong())));
     }
 
-    private static void hallucinate(ServerPlayer p) {
+    private static void hallucinate(MinecraftServer server, ServerPlayer p) {
+        boolean strong = Stage.atLeast(server, 3); // stage 3: closer, louder, more obvious
         ThreadLocalRandom r = ThreadLocalRandom.current();
         String id = SOUNDS[r.nextInt(SOUNDS.length)];
         double angle = r.nextDouble() * Math.PI * 2;
-        double dist = 4 + r.nextDouble() * 8;
+        double dist = strong ? 2 + r.nextDouble() * 5 : 4 + r.nextDouble() * 8;
         playAt(p, id,
                 p.getX() + Math.cos(angle) * dist,
                 p.getY() + r.nextDouble() * 3 - 1,
                 p.getZ() + Math.sin(angle) * dist,
-                0.7f + r.nextFloat() * 0.5f,
-                0.5f + r.nextFloat() * 0.3f); // 0.5 is the lowest pitch Minecraft allows
+                strong ? 1.4f + r.nextFloat() * 0.8f : 0.7f + r.nextFloat() * 0.5f,
+                0.5f + r.nextFloat() * (strong ? 0.15f : 0.3f)); // 0.5 is the lowest pitch Minecraft allows
     }
 
     public static void startHallucination(MinecraftServer server, ServerPlayer p) {
         long now = server.getTickCount();
-        long len = ThreadLocalRandom.current().nextInt(MIN_LEN_TICKS, MAX_LEN_TICKS + 1);
+        boolean strong = Stage.atLeast(server, 3);
+        int min = strong ? MIN_LEN_TICKS * 2 : MIN_LEN_TICKS, max = strong ? MAX_LEN_TICKS * 2 : MAX_LEN_TICKS; // 10-20 s in stage 3
+        long len = ThreadLocalRandom.current().nextInt(min, max + 1);
         active.add(new Hallucination(p.getUUID(), now + len, now));
+        // Stage 3: Seq 1 and Seq 2 lose 25% of their max sanity whenever a distortion plays on them (Seq 0 is spared)
+        int seq = Lotm.sequence(p);
+        if (strong && (seq == 1 || seq == 2)) {
+            boolean ok = Lotm.loseSanityPercent(p, 25);
+            LOGGER.info("[astral] {} (Seq {}) lost 25% max sanity to a distortion: {}", p.getGameProfile().getName(), seq, ok);
+        }
     }
 
     @SubscribeEvent
@@ -295,8 +358,8 @@ public final class OuterGods {
                 ServerPlayer p = server.getPlayerList().getPlayer(h.id);
                 if (p == null || now > h.end) { it.remove(); continue; }
                 if (now >= h.nextSound) {
-                    hallucinate(p);
-                    h.nextSound = now + 10 + ThreadLocalRandom.current().nextInt(30);
+                    hallucinate(server, p);
+                    h.nextSound = now + (Stage.atLeast(server, 3) ? 5 + ThreadLocalRandom.current().nextInt(15) : 10 + ThreadLocalRandom.current().nextInt(30));
                 }
             }
         }
@@ -309,11 +372,14 @@ public final class OuterGods {
                 if (seq < 0 || seq > HALLUCINATE_AT_OR_STRONGER) continue;
                 UUID id = p.getUUID();
                 Long next = nextHallucination.get(id);
+                boolean strong = Stage.atLeast(server, 3);
+                int minGap = strong ? MIN_GAP_TICKS / 2 : MIN_GAP_TICKS; // stage 3: every 10-20 minutes
+                int maxGap = strong ? MAX_GAP_TICKS / 2 : MAX_GAP_TICKS;
                 if (next == null) {
-                    nextHallucination.put(id, now + ThreadLocalRandom.current().nextInt(0, MAX_GAP_TICKS));
+                    nextHallucination.put(id, now + ThreadLocalRandom.current().nextInt(0, maxGap));
                 } else if (now >= next) {
                     startHallucination(server, p);
-                    nextHallucination.put(id, now + ThreadLocalRandom.current().nextInt(MIN_GAP_TICKS, MAX_GAP_TICKS + 1));
+                    nextHallucination.put(id, now + ThreadLocalRandom.current().nextInt(minGap, maxGap + 1));
                 }
             }
         }

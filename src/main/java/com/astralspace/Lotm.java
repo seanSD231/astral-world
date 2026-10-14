@@ -15,6 +15,8 @@ public final class Lotm {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static boolean loaded;
     private static Method getPathway, addCorruption, getMaxCorruption, getRandomWorkingPathway;
+    private static boolean sanityLoaded;
+    private static Method getMaxSanity, decreaseSanityUnresisted;
 
     private Lotm() {}
 
@@ -94,6 +96,36 @@ public final class Lotm {
             return true;
         } catch (Throwable t) {
             LOGGER.warn("[astral] could not add corruption: {}", t.toString());
+            return false;
+        }
+    }
+
+    private static synchronized void initSanity() {
+        if (sanityLoaded) return;
+        sanityLoaded = true;
+        try {
+            Class<?> util = Class.forName("net.swimmingtuna.lotm.capabilities.sanity_data.SanityUtil");
+            for (Method m : util.getMethods()) {
+                if (m.getName().equals("getMaxSanity") && m.getParameterCount() == 1) getMaxSanity = m;
+                if (m.getName().equals("decreaseSanityUnresisted") && m.getParameterCount() == 2) decreaseSanityUnresisted = m;
+            }
+            LOGGER.info("[astral] LOTM sanity found. getMaxSanity={} decreaseSanityUnresisted={}", getMaxSanity != null, decreaseSanityUnresisted != null);
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] LOTM sanity not readable, sanity loss is off: {}", t.toString());
+        }
+    }
+
+    /** Takes `percent` of the player's MAX sanity away (ignoring their sanity-loss resistance). Returns false if LOTM could not be called. */
+    public static boolean loseSanityPercent(ServerPlayer player, double percent) {
+        initSanity();
+        if (getMaxSanity == null || decreaseSanityUnresisted == null) return false;
+        try {
+            int max = (Integer) getMaxSanity.invoke(null, player);
+            int amount = (int) Math.max(1, Math.round(max * percent / 100.0));
+            decreaseSanityUnresisted.invoke(null, player, amount);
+            return true;
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not lower sanity: {}", t.toString());
             return false;
         }
     }

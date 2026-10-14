@@ -17,19 +17,28 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import java.util.ArrayDeque;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * The story stage of the world. Stage 0 = nothing yet. Stage 1 starts automatically when the first player ever
- * reaches Seq 0 (see AstralServer). Each stage can have a message that EVERY player sees once: online players
- * right away, offline players when they next log in. Effects of a stage are checked with Stage.atLeast(server, n).
+ * The story stage of the world. 0 = nothing yet.
+ *   1  starts when the first player ever reaches Seq 0 (AstralServer).
+ *   2  starts when two Seq 0 players are online at the same time.
+ *   3  starts stage3_days (default 7) real days after stage 2 began. The barrier takes 5 damage, then slow damage.
+ *   5  starts when the barrier is destroyed in stage 3 (stage 4 comes later; nothing happens in 5 yet).
+ * Every stage can have a message every player sees once (online players right away, offline players on their next
+ * login, in order), plus a follow-up message for some players (e.g. "Protect the barrier" for Seq 0s).
+ * Other code asks Stage.atLeast(server, n).
  */
 @EventBusSubscriber(modid = AstralMod.MOD_ID)
 public final class Stage {
-    public static final Map<Integer, String> MESSAGES = Map.of(
-            1, "You feel a strange gaze from above."
-    );
+    private static final int GAP_TICKS = 9 * 20;       // delay before a follow-up message
+    private static final int NEXT_TICKS = 11 * 20;     // delay before the next stage's message
+
+    private record Queued(String text, long due) {}
+    private static final Map<UUID, ArrayDeque<Queued>> queues = new HashMap<>();
 
     private Stage() {}
 
@@ -37,27 +46,98 @@ public final class Stage {
 
     public static boolean atLeast(MinecraftServer server, int stage) { return current(server) >= stage; }
 
-    /** Moves the world to a stage (up or down). Players see the new stage's message once. */
+    // ------------------------------------------------------------------ messages
+
+    /** The message every player sees for a stage, or null if the stage has none. */
+    private static String globalMessage(AstralData d, int stage) {
+        return switch (stage) {
+            case 1 -> "You feel a strange gaze from above.";
+            case 2 -> "It's coming";
+            case 3 -> d.stage3Text.isEmpty() ? "They're watching, they're waiting" : d.stage3Text;
+            default -> null;
+        };
+    }
+
+    /** A second message that only some players get, after the global one. Null if this player gets none. */
+    private static String followUp(int stage, int seq) {
+        if (stage == 2 && seq == 0) return "Protect the barrier";
+        if (stage == 3 && seq >= 0 && seq <= 1) return "The barrier is at risk"; // Seq 1 and stronger
+        return null;
+    }
+
+    // ------------------------------------------------------------------ changing stage
+
+    /** Moves the world to a stage (up or down) and applies that stage's one-time effects. */
     public static void set(MinecraftServer server, int stage) {
         AstralData d = AstralData.get(server);
         d.stage = Math.max(0, stage);
+        d.stageSince = System.currentTimeMillis();
+        d.damageAccum = 0.0;
         // lowering the stage lets players see the later messages again when the stage comes back
         d.seenStage.replaceAll((k, v) -> Math.min(v, d.stage));
         d.setDirty();
+        if (d.stage == 3) {
+            // the message depends on how healthy the barrier is right now, then the barrier takes 5 damage
+            d.stage3Text = AstralBarrier.get(server) > 5 ? "They're watching, they're waiting" : "It's too late";
+            d.setDirty();
+            AstralBarrier.damage(server, 5);
+        }
     }
 
-    /** Once a second: show the current stage's message to every online player who has not seen it. */
+    /** Called when the barrier drops to 0 HP. */
+    public static void onBarrierBroken(MinecraftServer server) {
+        if (current(server) == 3) set(server, 5);
+    }
+
+    /**
+     * Once a second. seq0Online = how many Seq 0 players are online right now (any dimension, any game mode).
+     */
+    public static void tick(MinecraftServer server, int seq0Online) {
+        AstralData d = AstralData.get(server);
+        long nowMs = System.currentTimeMillis();
+        if (d.stage == 1) {
+            if (seq0Online >= 2) set(server, 2);
+        } else if (d.stage == 2) {
+            if (nowMs - d.stageSince >= (long) (Settings.stage3Days * 86_400_000.0)) set(server, 3);
+        } else if (d.stage == 3) {
+            // 1 damage per period; halved with no Seq 0 online; doubled for every Seq 0 online beyond the first
+            double perHour = 60.0 / Settings.barrierDamageMinutes;
+            double multiplier = seq0Online == 0 ? 0.5 : Math.pow(2.0, seq0Online - 1);
+            d.damageAccum += perHour * multiplier / 3600.0; // this runs once a second
+            d.setDirty();
+            while (d.damageAccum >= 1.0 && d.stage == 3) {
+                d.damageAccum -= 1.0;
+                AstralBarrier.damage(server, 1); // reaching 0 moves the world to stage 5
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ showing messages
+
+    /** Once a second: queue the messages a player has not seen, and show the ones that are due. */
     public static void notifyPass(MinecraftServer server) {
         AstralData d = AstralData.get(server);
-        if (d.stage <= 0) return;
-        String message = MESSAGES.get(d.stage);
-        if (message == null) return;
+        long now = server.getTickCount();
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             UUID id = p.getUUID();
-            if (d.seenStage.getOrDefault(id, 0) >= d.stage) continue;
-            d.seenStage.put(id, d.stage);
-            d.setDirty();
-            show(p, message);
+            int seen = d.seenStage.getOrDefault(id, 0);
+            if (seen < d.stage) {
+                ArrayDeque<Queued> q = queues.computeIfAbsent(id, k -> new ArrayDeque<>());
+                long t = now;
+                int seq = Lotm.sequence(p);
+                for (int st = seen + 1; st <= d.stage; st++) {
+                    String m = globalMessage(d, st);
+                    if (m == null) continue;
+                    q.add(new Queued(m, t));
+                    String f = followUp(st, seq);
+                    if (f != null) { t += GAP_TICKS; q.add(new Queued(f, t)); }
+                    t += NEXT_TICKS;
+                }
+                d.seenStage.put(id, d.stage);
+                d.setDirty();
+            }
+            ArrayDeque<Queued> q = queues.get(id);
+            while (q != null && !q.isEmpty() && q.peek().due() <= now) show(p, q.poll().text());
         }
     }
 
@@ -86,8 +166,12 @@ public final class Stage {
         event.getDispatcher().register(Commands.literal("astralstage")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("get").executes(ctx -> {
-                    int s = current(ctx.getSource().getServer());
-                    ctx.getSource().sendSuccess(() -> Component.literal("Astral World stage: " + s).withStyle(ChatFormatting.LIGHT_PURPLE), false);
+                    MinecraftServer s = ctx.getSource().getServer();
+                    AstralData d = AstralData.get(s);
+                    double days = (System.currentTimeMillis() - d.stageSince) / 86_400_000.0;
+                    String msg = "Astral World stage: " + d.stage + " (for " + String.format("%.2f", days) + " days, barrier "
+                            + AstralBarrier.get(s) + "/" + AstralBarrier.getMax(s) + ")";
+                    ctx.getSource().sendSuccess(() -> Component.literal(msg).withStyle(ChatFormatting.LIGHT_PURPLE), false);
                     return 1;
                 }))
                 .then(Commands.literal("set").then(Commands.argument("stage", IntegerArgumentType.integer(0)).executes(ctx -> {

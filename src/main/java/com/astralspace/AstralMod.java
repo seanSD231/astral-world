@@ -11,6 +11,7 @@ public class AstralMod {
 
     public AstralMod(IEventBus modBus) {
         modBus.addListener(Net::register);
+        AstralBarrier.onBreak(Stage::onBarrierBroken);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             AstralClient.init(modBus);
         }

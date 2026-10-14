@@ -38,6 +38,21 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -> every player: the sky barrier (its health decides how many cracks it has). */
+    public record BarrierPayload(boolean show, int hp, int max, int y) implements CustomPacketPayload {
+        public static final Type<BarrierPayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "barrier"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, BarrierPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.BOOL, BarrierPayload::show,
+                ByteBufCodecs.VAR_INT, BarrierPayload::hp,
+                ByteBufCodecs.VAR_INT, BarrierPayload::max,
+                ByteBufCodecs.VAR_INT, BarrierPayload::y,
+                BarrierPayload::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** What the client currently knows. Plain fields, safe to load on a server. */
     public static final class ClientState {
         public static volatile boolean show;
@@ -45,6 +60,8 @@ public final class Net {
         public static volatile String coords = "";
         public static volatile String stageText = "";
         public static volatile long stageStart = 0L;
+        public static volatile boolean barrierShow;
+        public static volatile int barrierHp, barrierMax, barrierY = 400;
     }
 
     public static void register(RegisterPayloadHandlersEvent event) {
@@ -54,6 +71,12 @@ public final class Net {
             ClientState.hp = payload.hp();
             ClientState.max = payload.max();
             ClientState.coords = payload.coords();
+        }));
+        registrar.playToClient(BarrierPayload.TYPE, BarrierPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            ClientState.barrierShow = payload.show();
+            ClientState.barrierHp = payload.hp();
+            ClientState.barrierMax = payload.max();
+            ClientState.barrierY = payload.y();
         }));
         registrar.playToClient(StagePayload.TYPE, StagePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             ClientState.stageText = payload.text();

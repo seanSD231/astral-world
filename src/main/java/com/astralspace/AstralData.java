@@ -16,6 +16,12 @@ public class AstralData extends SavedData {
     public int hp = 0;
     /** The story stage of the world (0 = nothing has happened yet). */
     public int stage = 0;
+    /** Real time (epoch millis) when the current stage began. */
+    public long stageSince = 0L;
+    /** Stage 3 only: damage that has built up towards the next whole point of barrier damage. */
+    public double damageAccum = 0.0;
+    /** Stage 3's global message, chosen from the barrier's HP when the stage began. */
+    public String stage3Text = "";
     /** The newest stage message each player has already seen. */
     public final Map<UUID, Integer> seenStage = new HashMap<>();
     /** Every player ever seen at Seq 0 (kept while offline). */
@@ -34,6 +40,9 @@ public class AstralData extends SavedData {
         AstralData d = new AstralData();
         d.hp = tag.getInt("hp");
         d.stage = tag.getInt("stage");
+        d.stageSince = tag.getLong("stageSince");
+        d.damageAccum = tag.getDouble("damageAccum");
+        d.stage3Text = tag.getString("stage3Text");
         CompoundTag st = tag.getCompound("seenStage");
         for (String k : st.getAllKeys()) d.seenStage.put(UUID.fromString(k), st.getInt(k));
         CompoundTag s = tag.getCompound("seq0");
@@ -52,6 +61,9 @@ public class AstralData extends SavedData {
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.putInt("hp", hp);
         tag.putInt("stage", stage);
+        tag.putLong("stageSince", stageSince);
+        tag.putDouble("damageAccum", damageAccum);
+        tag.putString("stage3Text", stage3Text);
         CompoundTag st = new CompoundTag();
         seenStage.forEach((k, v) -> st.putInt(k.toString(), v));
         tag.put("seenStage", st);

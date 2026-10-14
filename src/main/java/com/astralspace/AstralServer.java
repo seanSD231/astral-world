@@ -46,7 +46,7 @@ public final class AstralServer {
 
     private static final int DOOR_SURVIVES_AT_OR_BELOW = 3;
     private static final int REGEN_NORMAL = 1;
-    private static final int REGEN_DOOR = 3;
+    private static final int REGEN_DOOR = 2; // a Door Seq 0 counts as two Seq 0s for healing the barrier
     /** Seconds until corruption is maxed, by Sequence. */
     private static final Map<Integer, Double> SECONDS_TO_MAX = Map.of(
             1, 3.0, 2, 2.5, 3, 2.0, 4, 2.0, 5, 1.5, 6, 1.5, 7, 1.0, 8, 1.0, 9, 0.5);
@@ -179,10 +179,12 @@ public final class AstralServer {
         AstralData d = AstralData.get(server);
         List<ServerPlayer> players = server.getPlayerList().getPlayers();
         boolean dirty = false;
+        int seq0Online = 0;
 
         for (ServerPlayer p : players) {
             int seq = Lotm.sequence(p);
             if (seq < 0) continue;
+            if (seq == 0) seq0Online++;
             UUID id = p.getUUID();
             Integer prev = d.lastSeq.put(id, seq);
             if (prev == null || prev != seq) dirty = true;
@@ -213,6 +215,7 @@ public final class AstralServer {
         if (hp != d.hp) { d.hp = hp; dirty = true; }
         if (dirty) d.setDirty();
 
+        Stage.tick(server, seq0Online); // stage changes (2 Seq 0s online, the 7 day timer, hourly barrier damage)
         Stage.notifyPass(server);
 
         // HUD: every Seq 0 sees the barrier; anyone who stopped being Seq 0 gets it hidden once
@@ -225,6 +228,10 @@ public final class AstralServer {
                 PacketDistributor.sendToPlayer(p, new Net.HudPayload(false, 0, 0, ""));
             }
         }
+
+        // the sky barrier everyone can see (its cracks = missing HP)
+        Net.BarrierPayload barrier = new Net.BarrierPayload(d.stage >= 1 && max > 0, d.hp, max, Settings.barrierY);
+        for (ServerPlayer p : players) PacketDistributor.sendToPlayer(p, barrier);
     }
 
     @SubscribeEvent

@@ -56,6 +56,7 @@ public final class AstralClient {
 
     public static void init(IEventBus modBus) {
         loadHud();
+        BarrierRenderer.init();
         modBus.addListener(AstralClient::registerLayers);
         NeoForge.EVENT_BUS.addListener(AstralClient::registerCommands);
     }
