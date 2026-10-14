@@ -6,7 +6,7 @@ license = "All Rights Reserved"
 modId = "${mod_id}"
 version = "${mod_version}"
 displayName = "${mod_name}"
-description = '''The Astral Space dimension for a Lord of the Mysteries server.'''
+description = '''The Astral World dimension for a Lord of the Mysteries server.'''
 
 [[dependencies.${mod_id}]]
 modId = "neoforge"
@@ -20,4 +20,11 @@ modId = "minecraft"
 type = "required"
 versionRange = "[${minecraft_version}]"
 ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "lotm"
+type = "optional"
+versionRange = "[2.5,)"
+ordering = "AFTER"
 side = "BOTH"
