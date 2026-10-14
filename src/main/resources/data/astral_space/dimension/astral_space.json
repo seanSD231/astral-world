@@ -8,7 +8,7 @@
       "lakes": false,
       "layers": [
         {
-          "block": "minecraft:barrier",
+          "block": "astral_space:astral_floor",
           "height": 1
         }
       ],
