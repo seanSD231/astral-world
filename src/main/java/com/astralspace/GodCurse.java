@@ -55,6 +55,8 @@ public final class GodCurse {
         final UUID id; final Kind kind; final int stage; final long end; final Runnable onEnd;
         long nextAct; int step;
         final List<Mob> summoned = new ArrayList<>();
+        final List<int[]> pending = new ArrayList<>(); // supernova: far spots whose chunks are still being generated {x, z}
+        ServerLevel pendingLevel;
         final ArrayDeque<Vec3> history = new ArrayDeque<>();
         Curse(UUID id, Kind kind, int stage, long end, Runnable onEnd) {
             this.id = id; this.kind = kind; this.stage = stage; this.end = end; this.onEnd = onEnd;
@@ -118,8 +120,12 @@ public final class GodCurse {
 
     private static final double SUPERNOVA_MIN = 500;
 
-    /** Anywhere inside the world border, at least 500 blocks from where the player stands (less only if the border is tiny). */
-    private static void supernovaJump(ServerPlayer p) {
+    /**
+     * Picks a random spot inside the world border at least 500 blocks away (less only if the border is tiny) and starts
+     * loading its chunk in the BACKGROUND (a forced chunk loads and generates without blocking the server). The player is
+     * only teleported once the chunk is ready, so the server never freezes waiting for world generation.
+     */
+    private static void requestTarget(ServerPlayer p, Curse c) {
         ServerLevel level = p.serverLevel();
         var border = level.getWorldBorder();
         ThreadLocalRandom r = ThreadLocalRandom.current();
@@ -130,15 +136,39 @@ public final class GodCurse {
             int z = (int) (minZ + r.nextDouble() * (maxZ - minZ));
             double dx = x - p.getX(), dz = z - p.getZ();
             if (dx * dx + dz * dz < need * need) continue;
-            int y = Surface.find(level, x, z, true);
-            if (y < 0) continue;
-            jump(p, new Vec3(x + 0.5, y, z + 0.5));
-            OuterGods.log("[astral] supernova: {} teleported {} blocks to {}, {} (border size {})", p.getGameProfile().getName(),
-                    (int) Math.sqrt(dx * dx + dz * dz), x, z, (int) (maxX - minX));
+            c.pendingLevel = level;
+            level.setChunkForced(x >> 4, z >> 4, true);
+            c.pending.add(new int[]{x, z});
             return;
         }
-        OuterGods.log("[astral] supernova: no valid destination found (border {} x {}, needed {} blocks)",
-                (int) (maxX - minX), (int) (maxZ - minZ), (int) need);
+    }
+
+    /** Teleports to the first requested spot whose chunk is ready. Returns false if none is ready yet. */
+    private static boolean supernovaJump(ServerPlayer p, Curse c) {
+        ServerLevel level = c.pendingLevel;
+        if (level == null || level != p.serverLevel()) { releaseTargets(c); requestTarget(p, c); return false; }
+        for (int[] t : c.pending) {
+            if (level.getChunkSource().getChunkNow(t[0] >> 4, t[1] >> 4) == null) continue; // still generating
+            c.pending.remove(t);
+            int y = Surface.find(level, t[0], t[1], false);
+            level.setChunkForced(t[0] >> 4, t[1] >> 4, false); // the player's own presence keeps it loaded from now on
+            if (y >= 0) {
+                double dx = t[0] - p.getX(), dz = t[1] - p.getZ();
+                jump(p, new Vec3(t[0] + 0.5, y, t[1] + 0.5));
+                OuterGods.log("[astral] supernova: {} teleported {} blocks to {}, {}", p.getGameProfile().getName(),
+                        (int) Math.sqrt(dx * dx + dz * dz), t[0], t[1]);
+                requestTarget(p, c);
+                return true;
+            }
+            requestTarget(p, c); // no ground there: try another spot
+            return false;
+        }
+        return false;
+    }
+
+    private static void releaseTargets(Curse c) {
+        if (c.pendingLevel != null) for (int[] t : c.pending) c.pendingLevel.setChunkForced(t[0] >> 4, t[1] >> 4, false);
+        c.pending.clear();
     }
 
     /** A white screen flash, half strength by default (so it never whites the screen out completely). */
@@ -147,8 +177,8 @@ public final class GodCurse {
     }
 
     private static void burst(ServerPlayer p, Kind kind) {
-        flash(p, 128, 700);
-        p.serverLevel().sendParticles(ParticleTypes.EXPLOSION_EMITTER, p.getX(), p.getY() + 1, p.getZ(), 1, 0, 0, 0, 0);
+        p.serverLevel().sendParticles(ParticleTypes.LARGE_SMOKE, p.getX(), p.getY() + 1, p.getZ(), 40, 1.2, 1.0, 1.2, 0.05);
+        p.serverLevel().sendParticles(ParticleTypes.FLAME, p.getX(), p.getY() + 1, p.getZ(), 40, 1.2, 1.0, 1.2, 0.15);
         OuterGods.playAt(p, "entity.generic.explode", p.getX(), p.getY(), p.getZ(), 1.5f, 0.7f);
     }
 
@@ -199,7 +229,7 @@ public final class GodCurse {
     private static void begin(ServerPlayer p, Curse c, int ticks) {
         int a = c.stage >= 3 ? 1 : 0;
         switch (c.kind) {
-            case SUPERNOVA -> { }
+            case SUPERNOVA -> { for (int i = 0; i < 3; i++) requestTarget(p, c); } // chunks start generating now, in the background
             case DEPRAVITY -> {
                 fx(p, MobEffects.WITHER, ticks, 1 + a);
                 fx(p, MobEffects.WEAKNESS, ticks, 2);
@@ -299,11 +329,15 @@ public final class GodCurse {
         float k = 1.0f + 0.5f * (c.stage - 1); // 1.0 / 1.5 / 2.0
         switch (c.kind) {
             case SUPERNOVA -> {
-                supernovaJump(p);
-                burst(p, c.kind);
-                hurt(p, 6f * k, false);
-                p.setRemainingFireTicks(100);
-                c.nextAct = now + 20;
+                if (supernovaJump(p, c)) {
+                    burst(p, c.kind);
+                    hurt(p, 6f * k, false);
+                    p.setRemainingFireTicks(100);
+                    c.nextAct = now + 20;
+                } else {
+                    p.setRemainingFireTicks(40);
+                    c.nextAct = now + 5; // the next spot is still generating: check again very soon
+                }
             }
             case DEPRAVITY -> c.nextAct = now + 40;
             case DESIRE -> {
@@ -346,10 +380,10 @@ public final class GodCurse {
                 boolean light = (c.step++ % 2) == 0;
                 p.removeEffect(MobEffects.BLINDNESS);
                 p.removeEffect(MobEffects.GLOWING);
-                if (light) { fx(p, MobEffects.GLOWING, 40, 0); flash(p, 128, 600); }
+                if (light) fx(p, MobEffects.GLOWING, 40, 0);
                 else fx(p, MobEffects.BLINDNESS, 40, 0);
                 hurt(p, 2f * k, true);
-                p.serverLevel().sendParticles(light ? ParticleTypes.END_ROD : ParticleTypes.SQUID_INK, p.getX(), p.getY() + 1, p.getZ(), 20, 0.5, 0.8, 0.5, 0.05);
+                p.serverLevel().sendParticles(light ? ParticleTypes.SOUL_FIRE_FLAME : ParticleTypes.SQUID_INK, p.getX(), p.getY() + 1, p.getZ(), 20, 0.5, 0.8, 0.5, 0.05);
                 c.nextAct = now + 20;
             }
             case HUNGER -> {
@@ -398,6 +432,12 @@ public final class GodCurse {
         }
     }
 
+    /** Never leave forced chunks behind when the server stops mid-curse. */
+    @SubscribeEvent
+    public static void onServerStopping(net.neoforged.neoforge.event.server.ServerStoppingEvent event) {
+        for (Curse c : active) releaseTargets(c);
+    }
+
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         if (active.isEmpty()) return;
@@ -425,6 +465,7 @@ public final class GodCurse {
     }
 
     private static void cleanup(Curse c) {
+        releaseTargets(c);
         for (Mob m : c.summoned) if (m.isAlive()) m.discard();
         c.summoned.clear();
     }

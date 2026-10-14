@@ -57,8 +57,8 @@ public final class AstralClient {
     public static void init(IEventBus modBus) {
         loadHud();
         BarrierRenderer.init();
+        AstralSymbols.init();
         modBus.addListener(AstralClient::registerLayers);
-        modBus.addListener(AstralClient::registerSky);
         NeoForge.EVENT_BUS.addListener(AstralClient::registerCommands);
         NeoForge.EVENT_BUS.addListener(AstralClient::registerGfxCommand);
     }
@@ -108,15 +108,16 @@ public final class AstralClient {
                     ctx.getSource().sendSuccess(() -> Component.literal("Astral barrier: " + BarrierRenderer.describe()), false);
                     return 1;
                 })))
+                .then(Commands.literal("symbols").then(Commands.argument("on", com.mojang.brigadier.arguments.BoolArgumentType.bool()).executes(ctx -> {
+                    AstralSymbols.enabled = com.mojang.brigadier.arguments.BoolArgumentType.getBool(ctx, "on");
+                    ctx.getSource().sendSuccess(() -> Component.literal("Astral sky symbols: " + (AstralSymbols.enabled ? "on" : "off")), false);
+                    return 1;
+                })))
                 .executes(ctx -> {
                     ctx.getSource().sendSuccess(() -> Component.literal("Astral barrier: " + BarrierRenderer.describe()
                             + "   (0 flat, 1 lit like an entity, 2 gui, 3 additive glow)   /astralgfx cracks <0-3>   /astralgfx plane <0-3>"), false);
                     return 1;
                 }));
-    }
-
-    private static void registerSky(net.neoforged.neoforge.client.event.RegisterDimensionSpecialEffectsEvent event) {
-        event.register(ResourceLocation.fromNamespaceAndPath("astral_space", "astral_world"), new AstralSky());
     }
 
     private static void registerLayers(RegisterGuiLayersEvent event) {
