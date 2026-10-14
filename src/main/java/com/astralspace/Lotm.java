@@ -222,7 +222,8 @@ public final class Lotm {
 
     /** Spawns one of LOTM's entities (like /summon would), with a short life. Returns it, or null. */
     public static net.minecraft.world.entity.Entity spawn(net.minecraft.server.level.ServerLevel level, String id,
-                                                         double x, double y, double z, net.minecraft.world.phys.Vec3 motion, int life) {
+                                                         double x, double y, double z, net.minecraft.world.phys.Vec3 motion, int life,
+                                                         net.minecraft.world.entity.Entity owner, float scale) {
         try {
             var type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
                     .getOptional(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("lotm", id)).orElse(null);
@@ -230,6 +231,11 @@ public final class Lotm {
             net.minecraft.world.entity.Entity e = type.create(level);
             if (e == null) return null;
             e.setPos(x, y, z);
+            if (owner != null) {
+                for (Method m : e.getClass().getMethods())
+                    if (m.getName().equals("setOwner") && m.getParameterCount() == 1) { m.invoke(e, owner); break; }
+            }
+            util("setScale", e, scale);
             if (motion != null) e.setDeltaMovement(motion);
             for (Method m : e.getClass().getMethods()) {
                 if (m.getName().equals("setMaxLife") && m.getParameterCount() == 1) m.invoke(e, life);

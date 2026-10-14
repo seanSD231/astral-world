@@ -21,6 +21,8 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -187,6 +189,51 @@ public final class GodCurse {
         c.pending.clear();
     }
 
+    /** Opens a LOTM black hole and a spatial tear beside the player, drags the player around and burns them. Removed with the curse. */
+    private static void collapse(ServerPlayer p, Curse c) {
+        ServerLevel lv = p.serverLevel();
+        Vec3 at = p.position();
+        var hole = Lotm.spawn(lv, "black_hole_entity", at.x + 5, at.y + 3, at.z, null, 120, p, 1.0f);
+        if (hole != null) c.summoned.add(hole);
+        Vec3 from = new Vec3(at.x - 9, at.y + 1.5, at.z);
+        var tear = Lotm.spawn(lv, "space_rift_entity", from.x, from.y, from.z, at.subtract(from).normalize().scale(0.6), 100, p, 1.0f);
+        if (tear != null) c.summoned.add(tear);
+        lv.sendParticles(ParticleTypes.REVERSE_PORTAL, at.x + 5, at.y + 3, at.z, 80, 1.5, 1.5, 1.5, 0.3);
+        lv.sendParticles(ParticleTypes.END_ROD, at.x, at.y + 1, at.z, 60, 2.0, 2.0, 2.0, 0.2);
+        // the pull toward the hole, in case the entity does nothing on its own
+        Vec3 pull = new Vec3(at.x + 5, at.y + 3, at.z).subtract(at).normalize().scale(0.7);
+        p.setDeltaMovement(p.getDeltaMovement().add(pull));
+        p.hurtMarked = true;
+    }
+
+    /** Vexes made far stronger than normal ones: lots of health, hard-hitting, fast, armed and burning. */
+    private static void spawnVexes(ServerPlayer p, Curse c, int count) {
+        ServerLevel level = p.serverLevel();
+        ThreadLocalRandom r = ThreadLocalRandom.current();
+        for (int i = 0; i < count; i++) {
+            net.minecraft.world.entity.monster.Vex v = EntityType.VEX.create(level);
+            if (v == null) continue;
+            double ang = r.nextDouble() * Math.PI * 2;
+            v.moveTo(p.getX() + Math.cos(ang) * 2, p.getY() + 1, p.getZ() + Math.sin(ang) * 2, r.nextFloat() * 360f, 0f);
+            try {
+                v.getAttribute(Attributes.MAX_HEALTH).setBaseValue(80);
+                v.setHealth(80f);
+                v.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(14 + 3 * c.stage);
+                var fly = v.getAttribute(Attributes.FLYING_SPEED);
+                if (fly != null) fly.setBaseValue(1.2);
+                v.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.9);
+                v.getAttribute(Attributes.ARMOR).setBaseValue(12);
+            } catch (Throwable ignored) { }
+            v.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.NETHERITE_SWORD));
+            v.setBoundOrigin(p.blockPosition());
+            v.setTarget(p);
+            v.addEffect(new MobEffectInstance(MobEffects.GLOWING, 400, 0, false, false));
+            v.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 400, 1, false, false));
+            level.addFreshEntity(v);
+            c.summoned.add(v);
+        }
+    }
+
     /** A white screen flash, half strength by default (so it never whites the screen out completely). */
     private static void flash(ServerPlayer p, int alpha, int ms) {
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.FlashPayload(alpha, ms));
@@ -234,6 +281,8 @@ public final class GodCurse {
     public static void start(MinecraftServer server, ServerPlayer p, Kind kind, int stage, Runnable onEnd) {
         int s = Math.max(1, Math.min(3, stage));
         int seconds = Math.min(12, 4 + 2 * s); // 6 / 8 / 10 seconds
+        if (kind == Kind.CIRCLE) seconds = Math.min(24, seconds * 2); // the Circle lasts twice as long
+        if (kind == Kind.SUPERNOVA) seconds = Math.min(16, seconds + 4); // time for the far chunks to be ready
         long now = server.getTickCount();
         Curse c = new Curse(p.getUUID(), kind, s, now + seconds * 20L, onEnd);
         c.nextAct = now;
@@ -245,10 +294,14 @@ public final class GodCurse {
     private static void begin(ServerPlayer p, Curse c, int ticks) {
         int a = c.stage >= 3 ? 1 : 0;
         switch (c.kind) {
-            case SUPERNOVA -> { for (int i = 0; i < 3; i++) requestTarget(p, c); } // chunks start generating now, in the background
+            case SUPERNOVA -> {
+                for (int i = 0; i < 2; i++) requestTarget(p, c); // far chunks start generating now, in the background
+                fx(p, MobEffects.GLOWING, ticks, 0);
+                collapse(p, c); // a black hole and a spatial tear open right away, whether or not a far spot is ready yet
+            }
             case DEPRAVITY -> {
-                fx(p, MobEffects.WITHER, ticks, 1 + a);
-                fx(p, MobEffects.WEAKNESS, ticks, 2);
+                fx(p, MobEffects.WITHER, ticks, 2 + a);
+                fx(p, MobEffects.WEAKNESS, ticks, 3);
                 fx(p, MobEffects.CONFUSION, ticks, 0);
                 fx(p, MobEffects.HUNGER, ticks, 4);
                 fx(p, lotm("mentalplague", MobEffects.POISON), ticks, 0);
@@ -261,6 +314,12 @@ public final class GodCurse {
                 fx(p, MobEffects.MOVEMENT_SLOWDOWN, ticks, 6);
                 fx(p, MobEffects.WITHER, ticks, 1 + a);
                 fx(p, MobEffects.HUNGER, ticks, 4);
+                fx(p, MobEffects.POISON, ticks, 1);
+                fx(p, MobEffects.WEAKNESS, ticks, 2);
+                fx(p, MobEffects.CONFUSION, ticks, 0);
+                fx(p, MobEffects.DIG_SLOWDOWN, ticks, 3);
+                fx(p, lotm("mentalplague", MobEffects.POISON), ticks, 0);
+                util("applyMentalPlague", p, ticks);
                 util("applyParalysis", p, ticks); // Mother: roots hold the body
             }
             case DEVILS -> {
@@ -269,10 +328,10 @@ public final class GodCurse {
                 fx(p, lotm("frenzy", MobEffects.WEAKNESS), ticks, 0);
                 p.setRemainingFireTicks(ticks);
                 util("applyBleeding", p, ticks, 1); // Abyss: devils tear at you
-                spawn(p, c, EntityType.VEX, 3 + 2 * c.stage);
+                spawnVexes(p, c, 4 + 2 * c.stage);
             }
             case BLATHERER -> {
-                Lotm.loseSanityPercent(p, 50);
+                Lotm.loseSanityPercent(p, 100); // all of it
                 fx(p, MobEffects.CONFUSION, ticks, 2);
                 fx(p, MobEffects.BLINDNESS, ticks, 0);
                 fx(p, lotm("mentalplague", MobEffects.POISON), ticks, 0);
@@ -285,11 +344,21 @@ public final class GodCurse {
             }
             case MIST -> {
                 util("applyAwe", p, 60);
-                fx(p, MobEffects.BLINDNESS, ticks, 0);
-                fx(p, MobEffects.DARKNESS, ticks, 0);
+                fx(p, MobEffects.DARKNESS, ticks, 0); // no blindness, so you can watch it happen
                 fx(p, MobEffects.MOVEMENT_SLOWDOWN, ticks, 2 + a);
             }
-            case BRIDGE -> { }
+            case BRIDGE -> {
+                fx(p, MobEffects.MOVEMENT_SLOWDOWN, ticks, 2);
+                fx(p, MobEffects.WEAKNESS, ticks, 2);
+                fx(p, MobEffects.WITHER, ticks, 1 + a);
+                fx(p, MobEffects.CONFUSION, ticks, 0);
+                fx(p, MobEffects.HUNGER, ticks, 4);
+                fx(p, lotm("mentalplague", MobEffects.POISON), ticks, 0);
+                fx(p, lotm("bleeding", MobEffects.POISON), ticks, 1);
+                util("applyBleeding", p, ticks, 1);
+                util("applyFrenzy", p, ticks);
+                util("applyNoRegeneration", p, ticks);
+            }
             case HUNGER -> {
                 fx(p, MobEffects.HUNGER, ticks, 9);
                 fx(p, MobEffects.WITHER, ticks, 1 + a);
@@ -310,11 +379,10 @@ public final class GodCurse {
                 fx(p, lotm("frenzy", MobEffects.WEAKNESS), ticks, 0);
             }
             case DECAY -> {
-                fx(p, MobEffects.WITHER, ticks, 2 + a);
+                fx(p, MobEffects.WITHER, ticks, 1);
                 fx(p, MobEffects.WEAKNESS, ticks, 1);
                 fx(p, lotm("bleeding", MobEffects.POISON), ticks, 0);
-                fx(p, lotm("armor_weakness", MobEffects.WEAKNESS), ticks, 0);
-                fx(p, lotm("handsofdeath", MobEffects.WITHER), ticks, 0); // Death: the hands of death
+                fx(p, lotm("handsofdeath", MobEffects.WITHER), 60, 0); // Death: the hands of death, only for 3 seconds
             }
             case OVERSEER -> {
                 int lev = (3 + c.stage) * 20; // 4 / 5 / 6 seconds of rising, roughly 40-60 blocks
@@ -358,38 +426,36 @@ public final class GodCurse {
             case SUPERNOVA -> {
                 if (supernovaJump(p, c)) {
                     burst(p, c.kind);
-                    hurt(p, 6f * k, "explosion");
+                    hurt(p, 8f * k, "explosion");
                     p.setRemainingFireTicks(100);
                     util("applyStun", p, 10);
-                    // a black hole and a spatial tear open next to where the player lands (short-lived, removed with the curse)
-                    ServerLevel lv = p.serverLevel();
-                    Vec3 at = p.position();
-                    var hole = Lotm.spawn(lv, "black_hole_entity", at.x + 6, at.y + 2, at.z, null, 80);
-                    if (hole != null) c.summoned.add(hole);
-                    Vec3 from = new Vec3(at.x - 10, at.y + 1.5, at.z);
-                    var tear = Lotm.spawn(lv, "space_rift_entity", from.x, from.y, from.z, at.subtract(from).normalize().scale(0.6), 60);
-                    if (tear != null) c.summoned.add(tear);
+                    collapse(p, c);
                     c.nextAct = now + 20;
                 } else {
                     p.setRemainingFireTicks(40);
-                    c.nextAct = now + 5; // the next spot is still generating: check again very soon
+                    hurt(p, 2f * k, "explosion"); // still burning while the next far spot is being made
+                    if (c.step++ % 4 == 0)
+                        OuterGods.log("[astral] supernova: waiting for {} far chunk(s) to be ready for {}", c.pending.size(), p.getGameProfile().getName());
+                    c.nextAct = now + 10;
                 }
             }
             case DEPRAVITY -> {
                 Lotm.whisper(p);
-                hurt(p, 1.5f * k, "magic");
+                hurt(p, 3f * k, "magic");
                 c.nextAct = now + 20;
             }
             case DESIRE -> {
                 p.setDeltaMovement(0, Math.min(0, p.getDeltaMovement().y), 0);
                 p.hurtMarked = true;
-                hurt(p, 2f * k, "crush");
-                util("applyBleeding", p, 40, 1); // thorns cut
+                hurt(p, 3f * k, "crush");
+                util("applyBleeding", p, 60, 2); // thorns cut
+                util("applyNoRegeneration", p, 40);
                 p.serverLevel().sendParticles(ParticleTypes.COMPOSTER, p.getX(), p.getY() + 0.5, p.getZ(), 12, 0.4, 0.6, 0.4, 0.0);
                 c.nextAct = now + 20;
             }
             case DEVILS -> {
-                p.setRemainingFireTicks(60);
+                p.setRemainingFireTicks(80);
+                hurt(p, 3f * k, "holyFire");
                 for (net.minecraft.world.entity.Entity m : c.summoned) if (m instanceof Mob mob && mob.isAlive()) mob.setTarget(p);
                 c.nextAct = now + 20;
             }
@@ -397,8 +463,9 @@ public final class GodCurse {
                 OuterGods.playAt(p, r.nextBoolean() ? "entity.ghast.scream" : "entity.elder_guardian.curse",
                         p.getX() + r.nextInt(7) - 3, p.getY(), p.getZ() + r.nextInt(7) - 3, 1.6f, 0.5f);
                 Lotm.whisper(p); // the babble: LOTM's own corrupted whispers
-                hurt(p, 1.5f * k, "magic");
-                c.nextAct = now + 20;
+                Lotm.loseSanityPercent(p, 100);
+                hurt(p, 6f * k, "magic");
+                c.nextAct = now + 10;
             }
             case CHAOS -> {
                 fx(p, randomChaosEffect(r), 60, 1 + (c.stage >= 3 ? 1 : 0));
@@ -411,6 +478,7 @@ public final class GodCurse {
                 }
                 p.setDeltaMovement((r.nextDouble() - 0.5) * 2.2, 0.3 + r.nextDouble() * 0.5, (r.nextDouble() - 0.5) * 2.2);
                 p.hurtMarked = true;
+                hurt(p, 5f * k, r.nextBoolean() ? "lightning" : "generic"); // raw damage
                 if (c.step++ % 2 == 0) { // once a second: shuffle the whole inventory
                     Inventory inv = p.getInventory();
                     Collections.shuffle(inv.items, r);
@@ -420,11 +488,12 @@ public final class GodCurse {
                 c.nextAct = now + 10;
             }
             case MIST -> {
-                Vec3 to = nearbySpot(p, 20, 60);
+                Vec3 to = nearbySpot(p, 20, 70);
                 if (to != null) jump(p, to);
                 util("applyAwe", p, 20);
-                hurt(p, 1.5f * k, "magic");
-                c.nextAct = now + 20;
+                hurt(p, 5f * k, "magic");
+                p.serverLevel().sendParticles(ParticleTypes.CLOUD, p.getX(), p.getY() + 1, p.getZ(), 30, 0.6, 0.9, 0.6, 0.05);
+                c.nextAct = now + 8; // teleports about 2.5 times a second
             }
             case BRIDGE -> {
                 boolean light = (c.step++ % 2) == 0;
@@ -432,9 +501,11 @@ public final class GodCurse {
                 p.removeEffect(MobEffects.GLOWING);
                 if (light) fx(p, MobEffects.GLOWING, 40, 0);
                 else fx(p, MobEffects.BLINDNESS, 40, 0);
-                hurt(p, 2f * k, light ? "holyFire" : "magic"); // light burns with holy fire, dark with plain magic
+                hurt(p, 6f * k, light ? "holyFire" : "magic"); // light burns with holy fire, dark with plain magic
+                if (light) p.setRemainingFireTicks(60);
+                else util("applyStun", p, 8);
                 p.serverLevel().sendParticles(light ? ParticleTypes.SOUL_FIRE_FLAME : ParticleTypes.SQUID_INK, p.getX(), p.getY() + 1, p.getZ(), 20, 0.5, 0.8, 0.5, 0.05);
-                c.nextAct = now + 20;
+                c.nextAct = now + 10;
             }
             case HUNGER -> {
                 p.getFoodData().setFoodLevel(0);
@@ -448,7 +519,7 @@ public final class GodCurse {
                     Vec3 back = c.history.peekFirst();
                     if (back != null && back.distanceToSqr(p.position()) > 1.0) {
                         jump(p, back);
-                        hurt(p, 2f * k, true);
+                        hurt(p, 4f * k, true);
                         OuterGods.playAt(p, "block.portal.travel", p.getX(), p.getY(), p.getZ(), 0.8f, 0.5f);
                     }
                 }
@@ -456,12 +527,15 @@ public final class GodCurse {
             }
             case RAVINGS -> {
                 p.setRemainingFireTicks(80); // water cannot put this out: it is lit again every second
-                hurt(p, 1.5f * k, "lava");
+                hurt(p, 4f * k, "lava");
+                // lots of random corruption, each time into a different random pathway
+                Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 4 + r.nextInt(7) * k);
+                if (r.nextInt(3) == 0) Lotm.whisper(p);
                 c.nextAct = now + 10;
             }
             case DECAY -> {
-                wearDown(p, 0.25);
-                util("applyBleeding", p, 40, 2);
+                wearDown(p, 0.12);
+                util("applyBleeding", p, 40, 1);
                 Inventory inv = p.getInventory();
                 for (int i = 0; i < inv.items.size(); i++) {
                     ItemStack s = inv.items.get(i);
@@ -472,14 +546,18 @@ public final class GodCurse {
                 c.nextAct = now + 20;
             }
             case OVERSEER -> {
-                p.fallDistance = Math.max(p.fallDistance, 0f);
-                Lotm.loseSanityPercent(p, 6); // seeing too much at once
+                Lotm.loseSanityPercent(p, 12); // seeing too much at once
+                hurt(p, 5f * k, "magic");       // fall damage does nothing to high sequences, so it burns the mind and body directly
+                util("applyAwe", p, 30);
                 Lotm.whisper(p);
-                c.nextAct = now + 20;
+                c.nextAct = now + 10;
             }
             case FATE -> {
-                hurt(p, 4f * k, true);
-                c.nextAct = now + 20;
+                hurt(p, 8f * k, true);
+                Lotm.addMisfortune(p, 60.0 * c.stage); // the calamities keep stacking
+                fx(p, randomChaosEffect(r), 60, 1);
+                util("applyBleeding", p, 40, 1);
+                c.nextAct = now + 10;
             }
             default -> c.nextAct = now + 40;
         }
@@ -508,12 +586,22 @@ public final class GodCurse {
                 while (c.history.size() > 13) c.history.pollFirst();
             }
             if (now >= c.end) {
+                finish(c, p);
                 cleanup(c);
                 it.remove();
                 if (c.onEnd != null) c.onEnd.run();
                 continue;
             }
             if (now >= c.nextAct) act(server, p, c, now);
+        }
+    }
+
+    /** What a curse leaves behind on the player is taken off again (the hands of death go away). */
+    private static void finish(Curse c, ServerPlayer p) {
+        if (c.kind == Kind.DECAY) {
+            BuiltInRegistries.MOB_EFFECT.getHolder(ResourceLocation.fromNamespaceAndPath("lotm", "handsofdeath")).ifPresent(h -> p.removeEffect(h));
+            var tag = p.getPersistentData();
+            tag.remove("handsOfDeathDuration"); tag.remove("handsOfDeathCeiling"); tag.remove("handsOfDeathCaster");
         }
     }
 
