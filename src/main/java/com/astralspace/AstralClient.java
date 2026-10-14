@@ -59,6 +59,7 @@ public final class AstralClient {
         BarrierRenderer.init();
         AstralSymbols.init();
         modBus.addListener(AstralClient::registerLayers);
+        modBus.addListener(AstralClient::registerSky);
         NeoForge.EVENT_BUS.addListener(AstralClient::registerCommands);
         NeoForge.EVENT_BUS.addListener(AstralClient::registerGfxCommand);
     }
@@ -108,6 +109,16 @@ public final class AstralClient {
                     ctx.getSource().sendSuccess(() -> Component.literal("Astral barrier: " + BarrierRenderer.describe()), false);
                     return 1;
                 })))
+                .then(Commands.literal("sky").then(Commands.argument("mode", com.mojang.brigadier.arguments.StringArgumentType.word())
+                        .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(java.util.List.of("auto", "custom", "vanilla"), b))
+                        .executes(ctx -> {
+                            String m = com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "mode");
+                            AstralSky.skyMode = m.equals("custom") ? 1 : m.equals("vanilla") ? 2 : 0;
+                            BarrierRenderer.saveGfx();
+                            ctx.getSource().sendSuccess(() -> Component.literal("Astral sky: " + (AstralSky.skyMode == 1 ? "custom (always)"
+                                    : AstralSky.skyMode == 2 ? "vanilla / shader pack" : "auto (custom unless a shader pack is on)")), false);
+                            return 1;
+                        })))
                 .then(Commands.literal("symbols").then(Commands.argument("on", com.mojang.brigadier.arguments.BoolArgumentType.bool()).executes(ctx -> {
                     AstralSymbols.enabled = com.mojang.brigadier.arguments.BoolArgumentType.getBool(ctx, "on");
                     ctx.getSource().sendSuccess(() -> Component.literal("Astral sky symbols: " + (AstralSymbols.enabled ? "on" : "off")), false);
@@ -118,6 +129,10 @@ public final class AstralClient {
                             + "   (0 flat, 1 lit like an entity, 2 gui, 3 additive glow)   /astralgfx cracks <0-3>   /astralgfx plane <0-3>"), false);
                     return 1;
                 }));
+    }
+
+    private static void registerSky(net.neoforged.neoforge.client.event.RegisterDimensionSpecialEffectsEvent event) {
+        event.register(ResourceLocation.fromNamespaceAndPath("astral_space", "astral_world"), new AstralSky());
     }
 
     private static void registerLayers(RegisterGuiLayersEvent event) {

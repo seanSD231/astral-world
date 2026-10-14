@@ -87,6 +87,7 @@ public final class BarrierRenderer {
             try (java.io.Reader r = java.nio.file.Files.newBufferedReader(f)) { p.load(r); }
             crackMode = Math.max(0, Math.min(3, Integer.parseInt(p.getProperty("cracks", "0"))));
             planeMode = Math.max(0, Math.min(3, Integer.parseInt(p.getProperty("plane", "3"))));
+            AstralSky.skyMode = Math.max(0, Math.min(2, Integer.parseInt(p.getProperty("sky", "0"))));
         } catch (java.io.IOException | NumberFormatException ignored) { }
     }
 
@@ -95,6 +96,7 @@ public final class BarrierRenderer {
             java.util.Properties p = new java.util.Properties();
             p.setProperty("cracks", String.valueOf(crackMode));
             p.setProperty("plane", String.valueOf(planeMode));
+            p.setProperty("sky", String.valueOf(AstralSky.skyMode));
             try (java.io.Writer w = java.nio.file.Files.newBufferedWriter(gfxFile())) { p.store(w, "Astral barrier render types (change with /astralgfx)"); }
         } catch (java.io.IOException ignored) { }
     }

@@ -15,6 +15,6 @@
   "min_y": 0,
   "height": 256,
   "infiniburn": "#minecraft:infiniburn_overworld",
-  "effects": "minecraft:overworld",
+  "effects": "astral_space:astral_world",
   "fixed_time": 18000
 }
