@@ -158,9 +158,8 @@ public final class BarrierRenderer {
     }
 
     /**
-     * Cracks in a pane of glass hit by something: a few long radial cracks of very different lengths running from the
-     * impact, kinking sharply and tapering to points; acute forks off them; a few short hairlines and a chipped centre;
-     * and faint triangular fragments between some neighbouring cracks. No regular rings (that looks like a web).
+     * The original look: one long crack that wanders across the barrier (turning a little at every step), with now and then
+     * a short branch off it. Colour, width and length differ per variant. Drawn as continuous translucent ribbons.
      */
     private static Crack crack(int index) {
         return CRACKS.computeIfAbsent(index, i -> {
@@ -168,55 +167,34 @@ public final class BarrierRenderer {
             Crack c = new Crack();
             c.variant = r.nextInt(VARIANTS.length);
             float[] v = VARIANTS[c.variant];
-            float scale = 0.7f + r.nextFloat() * 0.6f;
             float w0 = v[6] * (0.8f + r.nextFloat() * 0.5f);
-            float ox = r.nextFloat() * TILE, oz = r.nextFloat() * TILE;
-            int radials = (int) v[3] + r.nextInt((int) (v[4] - v[3]) + 1);
-
-            // uneven directions: some neighbours close together, some far apart
-            double[] angles = new double[radials];
-            double a = r.nextDouble() * Math.PI * 2;
-            double total = 0;
-            double[] gap = new double[radials];
-            for (int k = 0; k < radials; k++) { gap[k] = 0.4 + r.nextDouble() * 1.4; total += gap[k]; }
-            for (int k = 0; k < radials; k++) { angles[k] = a; a += gap[k] / total * Math.PI * 2; }
-
-            float[][][] radial = new float[radials][][];
-            float[] length = new float[radials];
-            for (int k = 0; k < radials; k++) {
-                // lengths vary a lot: a couple of long ones, the rest short
-                float f = r.nextFloat();
-                length[k] = (v[1] * 0.45f + (v[2] - v[1] * 0.45f) * f * f) * scale;
-                radial[k] = jagged(r, ox, oz, angles[k], length[k], w0, 0f, 1f, v[0]);
-                c.lines.add(radial[k]);
-                // acute forks
-                int forks = r.nextInt(3);
-                for (int q = 0; q < forks; q++) {
-                    float[] p = pointAt(radial[k], 0.25f + r.nextFloat() * 0.5f);
-                    double fa = angles[k] + (r.nextBoolean() ? 1 : -1) * (0.35 + r.nextDouble() * 0.4);
-                    float fl = length[k] * (0.2f + r.nextFloat() * 0.3f);
-                    c.lines.add(jagged(r, p[0], p[1], fa, fl, p[2] * 0.7f, p[3], Math.min(1f, p[3] + 0.2f), v[0]));
+            float x = r.nextFloat() * TILE, z = r.nextFloat() * TILE;
+            double angle = r.nextDouble() * Math.PI * 2;
+            int n = 8 + r.nextInt(6);
+            List<float[]> main = new ArrayList<>();
+            main.add(new float[]{x, z, w0, 0f});
+            for (int k = 0; k < n; k++) {
+                float len = 30 + r.nextFloat() * 40;
+                angle += r.nextGaussian() * 0.45;
+                float nx = x + (float) Math.cos(angle) * len, nz = z + (float) Math.sin(angle) * len;
+                float t = (k + 1) / (float) n;
+                main.add(new float[]{nx, nz, w0 * (1f - 0.35f * t), t});
+                if (r.nextFloat() < 0.35f) { // a short branch
+                    List<float[]> br = new ArrayList<>();
+                    br.add(new float[]{nx, nz, w0 * 0.6f, t});
+                    float bx = nx, bz = nz;
+                    double ba = angle + (r.nextBoolean() ? 1 : -1) * (0.6 + r.nextDouble() * 0.6);
+                    for (int q = 0; q < 3; q++) {
+                        float bl = 18 + r.nextFloat() * 22;
+                        ba += r.nextGaussian() * 0.35;
+                        bx += (float) Math.cos(ba) * bl; bz += (float) Math.sin(ba) * bl;
+                        br.add(new float[]{bx, bz, w0 * 0.6f * (1f - (q + 1) / 3.5f), Math.min(1f, t + 0.1f * (q + 1))});
+                    }
+                    c.lines.add(resample(br.toArray(new float[0][])));
                 }
+                x = nx; z = nz;
             }
-            // short hairlines and a chipped centre
-            for (int q = 0; q < 3 + r.nextInt(4); q++)
-                c.lines.add(jagged(r, ox, oz, r.nextDouble() * Math.PI * 2, 8 + r.nextFloat() * 14, w0 * 0.6f, 0f, 0.1f, v[0]));
-            // a couple of partial chord cracks joining neighbouring radials (irregular, not rings)
-            for (int q = 0; q < 2; q++) {
-                int k = r.nextInt(radials), k2 = (k + 1) % radials;
-                float f = 0.3f + r.nextFloat() * 0.4f;
-                float[] p1 = pointAt(radial[k], f), p2 = pointAt(radial[k2], f * (0.8f + r.nextFloat() * 0.4f));
-                if (Math.hypot(p1[0] - p2[0], p1[1] - p2[1]) > 90 * scale) continue;
-                c.lines.add(new float[][]{{p1[0], p1[1], w0 * 0.3f, f}, {(p1[0] + p2[0]) * 0.5f + (r.nextFloat() - 0.5f) * 10, (p1[1] + p2[1]) * 0.5f + (r.nextFloat() - 0.5f) * 10, w0 * 0.2f, f}, {p2[0], p2[1], w0 * 0.3f, f}});
-            }
-            // faint fragments between some neighbouring cracks
-            for (int k = 0; k < radials; k++) {
-                if (r.nextFloat() < 0.4f) continue;
-                int k2 = (k + 1) % radials;
-                float f = 0.35f + r.nextFloat() * 0.45f;
-                float[] p1 = pointAt(radial[k], f), p2 = pointAt(radial[k2], f);
-                c.shards.add(new float[]{ox, oz, p1[0], p1[1], p2[0], p2[1], r.nextFloat()});
-            }
+            c.lines.add(resample(main.toArray(new float[0][])));
             return c;
         });
     }
