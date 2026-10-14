@@ -55,7 +55,7 @@ public final class GodCurse {
 
     private static final class Curse {
         final UUID id; final Kind kind; final int stage; final long end; final Runnable onEnd;
-        long nextAct; int step;
+        long nextAct; int step; long startTick;
         final List<net.minecraft.world.entity.Entity> summoned = new ArrayList<>();
         final List<int[]> pending = new ArrayList<>(); // supernova: far spots whose chunks are still being generated {x, z}
         ServerLevel pendingLevel;
@@ -286,6 +286,7 @@ public final class GodCurse {
         long now = server.getTickCount();
         Curse c = new Curse(p.getUUID(), kind, s, now + seconds * 20L, onEnd);
         c.nextAct = now;
+        c.startTick = now;
         active.add(c);
         begin(p, c, seconds * 20);
     }
@@ -331,7 +332,6 @@ public final class GodCurse {
                 spawnVexes(p, c, 4 + 2 * c.stage);
             }
             case BLATHERER -> {
-                Lotm.loseSanityPercent(p, 100); // all of it
                 fx(p, MobEffects.CONFUSION, ticks, 2);
                 fx(p, MobEffects.BLINDNESS, ticks, 0);
                 fx(p, lotm("mentalplague", MobEffects.POISON), ticks, 0);
@@ -463,7 +463,8 @@ public final class GodCurse {
                 OuterGods.playAt(p, r.nextBoolean() ? "entity.ghast.scream" : "entity.elder_guardian.curse",
                         p.getX() + r.nextInt(7) - 3, p.getY(), p.getZ() + r.nextInt(7) - 3, 1.6f, 0.5f);
                 Lotm.whisper(p); // the babble: LOTM's own corrupted whispers
-                Lotm.loseSanityPercent(p, 100);
+                // 95% of max sanity in total, spread evenly over the curse (one hit every half second)
+                Lotm.loseSanityPercent(p, 95.0 / Math.max(1.0, (c.end - c.startTick) / 10.0));
                 hurt(p, 6f * k, "magic");
                 c.nextAct = now + 10;
             }
