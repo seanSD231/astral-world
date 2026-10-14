@@ -308,6 +308,10 @@ public final class AstralServer {
             src.sendFailure(Component.literal("Only a Seq 0, or a Door Seq 3 or stronger, can walk the Astral World."));
             return 0;
         }
+        if (Lotm.inCombat(p)) {
+            src.sendFailure(Component.literal("You cannot cross between worlds while your combat timer is running.").withStyle(ChatFormatting.RED));
+            return 0;
+        }
         if (inAstral(p)) {
             leaveAstral(server, p);
             title(p, "Returned", "You leave the Astral World", ChatFormatting.GRAY);

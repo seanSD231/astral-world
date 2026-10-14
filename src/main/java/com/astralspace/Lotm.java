@@ -156,4 +156,14 @@ public final class Lotm {
             return false;
         }
     }
+
+    /** True while LOTM's combat timer is running for this player (the same check LOTM uses). */
+    public static boolean inCombat(ServerPlayer player) {
+        try {
+            Class<?> util = Class.forName("net.swimmingtuna.lotm.util.BeyonderUtil");
+            return (Boolean) util.getMethod("inCombat", net.minecraft.world.entity.LivingEntity.class).invoke(null, player);
+        } catch (Throwable t) {
+            return player.getPersistentData().getInt("LOTMinCombat") > 0; // what LOTM stores it in
+        }
+    }
 }
