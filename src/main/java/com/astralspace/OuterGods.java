@@ -270,13 +270,19 @@ public final class OuterGods {
 
     // ------------------------------------------------------------------ the punishment
 
+    /** Stage 1: Seq 3-9 die. Each stage adds one more sequence (stage 2: Seq 2-9), but Seq 1 and Seq 0 are never killed. */
+    private static int punishLine(MinecraftServer server) {
+        return Math.max(2, PUNISH_AT_OR_WEAKER - (Math.max(1, Stage.current(server)) - 1));
+    }
+
     /** Why this player is NOT punished for naming an Outer God, or null if they would be. */
     private static String exemptReason(MinecraftServer server, ServerPlayer p) {
         if (!Stage.atLeast(server, 1)) return "the stage is 0 (run /astralstage set 1)";
         if (p.isCreative() || p.isSpectator()) return "creative and spectator players are exempt (switch to survival)";
         int seq = Lotm.sequence(p);
         if (seq < 0) return "you are not a Beyonder (no LOTM sequence found)";
-        if (seq < PUNISH_AT_OR_WEAKER) return "Seq " + seq + " is Seq 2 or stronger, which is safe";
+        int line = punishLine(server);
+        if (seq < line) return "Seq " + seq + " is stronger than the current kill line (Seq " + line + " and weaker die in stage " + Stage.current(server) + "; Seq 1 and 0 are never killed)";
         return null;
     }
 
