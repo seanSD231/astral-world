@@ -27,7 +27,7 @@ public final class AstralSymbols {
             "apothecary", "criminal", "prisoner", "lawyer", "arbiter"
     };
     private static final int SYMBOLS = 14;
-    private static final ResourceLocation ASTRAL = ResourceLocation.fromNamespaceAndPath("astral_space", "astral_space");
+    private static final ResourceLocation ASTRAL = ResourceLocation.fromNamespaceAndPath("astral_world", "astral_world");
 
     public static volatile boolean enabled = true;
     private static final float[][] symbols = new float[SYMBOLS][]; // {size, phase, speed}

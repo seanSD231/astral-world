@@ -1,14 +1,14 @@
 {
-  "type": "astral_space:astral_space",
+  "type": "astral_world:astral_world",
   "generator": {
     "type": "minecraft:flat",
     "settings": {
-      "biome": "astral_space:astral_void",
+      "biome": "astral_world:astral_void",
       "features": false,
       "lakes": false,
       "layers": [
         {
-          "block": "astral_space:astral_floor",
+          "block": "astral_world:astral_floor",
           "height": 1
         }
       ],

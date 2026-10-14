@@ -41,7 +41,7 @@ import java.util.UUID;
  */
 @EventBusSubscriber(modid = AstralMod.MOD_ID)
 public final class AstralServer {
-    public static final ResourceLocation ASTRAL_ID = ResourceLocation.fromNamespaceAndPath("astral_space", "astral_space");
+    public static final ResourceLocation ASTRAL_ID = ResourceLocation.fromNamespaceAndPath("astral_world", "astral_world");
     public static final ResourceKey<Level> ASTRAL = ResourceKey.create(Registries.DIMENSION, ASTRAL_ID);
 
     private static final int DOOR_SURVIVES_AT_OR_BELOW = 3;

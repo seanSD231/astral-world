@@ -32,7 +32,7 @@ public final class BarrierRenderer {
     private static final float PIECE = 24f;     // lines are cut into pieces this long so they follow the curve
     private static final int MAX_CRACKS = 120;
     private static final net.minecraft.resources.ResourceLocation ASTRAL =
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("astral_space", "astral_space");
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("astral_world", "astral_world");
 
     private static final int BASE_ALPHA = 38, GRID_ALPHA = 60;
 
