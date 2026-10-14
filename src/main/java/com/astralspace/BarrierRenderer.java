@@ -52,6 +52,7 @@ public final class BarrierRenderer {
     private static final class Crack {
         int variant;
         final List<float[][]> lines = new ArrayList<>(); // polylines of {x, z, width, t}  (t = 0 at the impact, 1 at the tips)
+        final List<float[]> shards = new ArrayList<>();  // faint glass fragments: triangles {x0, z0, x1, z1, x2, z2, brightness}
     }
     private static final Map<Integer, Crack> CRACKS = new HashMap<>();
 
@@ -135,10 +136,31 @@ public final class BarrierRenderer {
         return out.toArray(new float[0][]);
     }
 
+    /** One jagged crack line from (x, z) heading `ang`: sharp kinks now and then, tapering to a point. */
+    private static float[][] jagged(Random r, float x, float z, double ang, float length, float w0, float t0, float t1, float jitter) {
+        List<float[]> pts = new ArrayList<>();
+        float d = 0;
+        pts.add(new float[]{x, z, w0, t0});
+        while (d < length) {
+            float step = Math.min(length - d, 8 + r.nextFloat() * 22);
+            ang += r.nextGaussian() * jitter * 0.4;
+            if (r.nextFloat() < 0.28f) ang += (r.nextBoolean() ? 1 : -1) * (0.45 + r.nextDouble() * 0.5); // a sharp kink, like glass
+            x += (float) Math.cos(ang) * step; z += (float) Math.sin(ang) * step; d += step;
+            float f = Math.min(1f, d / length);
+            pts.add(new float[]{x, z, Math.max(0.12f, w0 * (float) Math.pow(1f - f, 1.2)), t0 + (t1 - t0) * f});
+        }
+        return pts.toArray(new float[0][]);
+    }
+
+    private static float[] pointAt(float[][] line, float f) { // roughly f (0..1) of the way along a polyline
+        int i = Math.max(0, Math.min(line.length - 1, Math.round(f * (line.length - 1))));
+        return line[i];
+    }
+
     /**
-     * A crack like shattered glass: an impact point, jagged radial cracks running out of it (thick at the centre, thin at
-     * the tips) and jagged rings joining neighbouring radials, with some links missing so it looks broken, not drawn.
-     * Every crack is a few continuous polylines, so it can be drawn as smooth strips with no overlaps.
+     * Cracks in a pane of glass hit by something: a few long radial cracks of very different lengths running from the
+     * impact, kinking sharply and tapering to points; acute forks off them; a few short hairlines and a chipped centre;
+     * and faint triangular fragments between some neighbouring cracks. No regular rings (that looks like a web).
      */
     private static Crack crack(int index) {
         return CRACKS.computeIfAbsent(index, i -> {
@@ -146,57 +168,54 @@ public final class BarrierRenderer {
             Crack c = new Crack();
             c.variant = r.nextInt(VARIANTS.length);
             float[] v = VARIANTS[c.variant];
-            float scale = 0.75f + r.nextFloat() * 0.5f;
+            float scale = 0.7f + r.nextFloat() * 0.6f;
             float w0 = v[6] * (0.8f + r.nextFloat() * 0.5f);
             float ox = r.nextFloat() * TILE, oz = r.nextFloat() * TILE;
             int radials = (int) v[3] + r.nextInt((int) (v[4] - v[3]) + 1);
-            int rings = (int) v[5];
-            double base = r.nextDouble() * Math.PI * 2;
 
-            List<List<float[]>> radialPts = new ArrayList<>();
-            float[] lengths = new float[radials];
+            // uneven directions: some neighbours close together, some far apart
+            double[] angles = new double[radials];
+            double a = r.nextDouble() * Math.PI * 2;
+            double total = 0;
+            double[] gap = new double[radials];
+            for (int k = 0; k < radials; k++) { gap[k] = 0.4 + r.nextDouble() * 1.4; total += gap[k]; }
+            for (int k = 0; k < radials; k++) { angles[k] = a; a += gap[k] / total * Math.PI * 2; }
+
+            float[][][] radial = new float[radials][][];
+            float[] length = new float[radials];
             for (int k = 0; k < radials; k++) {
-                double ang = base + Math.PI * 2 * k / radials + r.nextGaussian() * 0.18;
-                float total = (v[1] + r.nextFloat() * (v[2] - v[1])) * scale;
-                lengths[k] = total;
-                List<float[]> pts = new ArrayList<>();
-                pts.add(new float[]{ox, oz, 0f});
-                float x = ox, z = oz, d = 0;
-                while (d < total) {
-                    float step = Math.min(total - d, 18 + r.nextFloat() * 22);
-                    ang += r.nextGaussian() * v[0] * 0.5;
-                    x += (float) Math.cos(ang) * step; z += (float) Math.sin(ang) * step; d += step;
-                    pts.add(new float[]{x, z, d});
-                }
-                radialPts.add(pts);
-                float[][] line = new float[pts.size()][];
-                for (int q = 0; q < pts.size(); q++) { // thick at the centre, thin at the tip
-                    float[] p = pts.get(q);
-                    line[q] = new float[]{p[0], p[1], w0 * (1f - 0.8f * p[2] / total), p[2] / total};
-                }
-                c.lines.add(resample(line));
-                if (r.nextFloat() < 0.5f && pts.size() > 3) { // a small fork off the radial
-                    float[] f = pts.get(2 + r.nextInt(pts.size() - 3));
-                    double fa = ang + (r.nextBoolean() ? 1 : -1) * (0.5 + r.nextDouble() * 0.5);
-                    float fl = 25 + r.nextFloat() * 45;
-                    float t = f[2] / total;
-                    c.lines.add(resample(new float[][]{
-                            {f[0], f[1], w0 * 0.4f, t},
-                            {f[0] + (float) Math.cos(fa) * fl * 0.5f + (r.nextFloat() - 0.5f) * 6f, f[1] + (float) Math.sin(fa) * fl * 0.5f + (r.nextFloat() - 0.5f) * 6f, w0 * 0.25f, Math.min(1f, t + 0.08f)},
-                            {f[0] + (float) Math.cos(fa) * fl, f[1] + (float) Math.sin(fa) * fl, w0 * 0.1f, Math.min(1f, t + 0.15f)}}));
+                // lengths vary a lot: a couple of long ones, the rest short
+                float f = r.nextFloat();
+                length[k] = (v[1] * 0.45f + (v[2] - v[1] * 0.45f) * f * f) * scale;
+                radial[k] = jagged(r, ox, oz, angles[k], length[k], w0, 0f, 1f, v[0]);
+                c.lines.add(radial[k]);
+                // acute forks
+                int forks = r.nextInt(3);
+                for (int q = 0; q < forks; q++) {
+                    float[] p = pointAt(radial[k], 0.25f + r.nextFloat() * 0.5f);
+                    double fa = angles[k] + (r.nextBoolean() ? 1 : -1) * (0.35 + r.nextDouble() * 0.4);
+                    float fl = length[k] * (0.2f + r.nextFloat() * 0.3f);
+                    c.lines.add(jagged(r, p[0], p[1], fa, fl, p[2] * 0.7f, p[3], Math.min(1f, p[3] + 0.2f), v[0]));
                 }
             }
-            // rings of broken glass between neighbouring radials
-            for (int j = 1; j <= rings; j++) {
-                float radius = (30 + j * 45 + r.nextFloat() * 20) * scale;
-                for (int k = 0; k < radials; k++) {
-                    if (r.nextFloat() < 0.3f) continue;               // a missing link
-                    float[] a = along(radialPts.get(k), radius), b = along(radialPts.get((k + 1) % radials), radius);
-                    if (a == null || b == null) continue;
-                    float mx = (a[0] + b[0]) * 0.5f + (r.nextFloat() - 0.5f) * 18f, mz = (a[1] + b[1]) * 0.5f + (r.nextFloat() - 0.5f) * 18f;
-                    float t = Math.min(1f, radius / ((lengths[k] + lengths[(k + 1) % radials]) * 0.5f));
-                    c.lines.add(resample(new float[][]{{a[0], a[1], w0 * 0.4f, t}, {mx, mz, w0 * 0.3f, t}, {b[0], b[1], w0 * 0.4f, t}}));
-                }
+            // short hairlines and a chipped centre
+            for (int q = 0; q < 3 + r.nextInt(4); q++)
+                c.lines.add(jagged(r, ox, oz, r.nextDouble() * Math.PI * 2, 8 + r.nextFloat() * 14, w0 * 0.6f, 0f, 0.1f, v[0]));
+            // a couple of partial chord cracks joining neighbouring radials (irregular, not rings)
+            for (int q = 0; q < 2; q++) {
+                int k = r.nextInt(radials), k2 = (k + 1) % radials;
+                float f = 0.3f + r.nextFloat() * 0.4f;
+                float[] p1 = pointAt(radial[k], f), p2 = pointAt(radial[k2], f * (0.8f + r.nextFloat() * 0.4f));
+                if (Math.hypot(p1[0] - p2[0], p1[1] - p2[1]) > 90 * scale) continue;
+                c.lines.add(new float[][]{{p1[0], p1[1], w0 * 0.3f, f}, {(p1[0] + p2[0]) * 0.5f + (r.nextFloat() - 0.5f) * 10, (p1[1] + p2[1]) * 0.5f + (r.nextFloat() - 0.5f) * 10, w0 * 0.2f, f}, {p2[0], p2[1], w0 * 0.3f, f}});
+            }
+            // faint fragments between some neighbouring cracks
+            for (int k = 0; k < radials; k++) {
+                if (r.nextFloat() < 0.4f) continue;
+                int k2 = (k + 1) % radials;
+                float f = 0.35f + r.nextFloat() * 0.45f;
+                float[] p1 = pointAt(radial[k], f), p2 = pointAt(radial[k2], f);
+                c.shards.add(new float[]{ox, oz, p1[0], p1[1], p2[0], p2[1], r.nextFloat()});
             }
             return c;
         });
@@ -347,6 +366,17 @@ public final class BarrierRenderer {
             for (int i = 0; i < cracks; i++) {
                 Crack c = crack(i);
                 float[] v = VARIANTS[c.variant];
+                int[] fill = {(int) v[7] / 2 + 100, (int) v[8] / 2 + 100, (int) v[9] / 2 + 105};
+                for (float[] sh : c.shards) { // faint glass fragments under the cracks
+                    for (int tx = tx0; tx <= tx1; tx++) {
+                        for (int tz = tz0; tz <= tz1; tz++) {
+                            float ox = tx * TILE, oz = tz * TILE;
+                            if (sh[0] + ox < minX - 150 || sh[0] + ox > maxX + 150 || sh[1] + oz < minZ - 150 || sh[1] + oz > maxZ + 150) continue;
+                            quad(cv, m, -0.2f, sh[0] + ox, sh[1] + oz, fill, sh[2] + ox, sh[3] + oz, fill, sh[4] + ox, sh[5] + oz, fill,
+                                    sh[4] + ox, sh[5] + oz, fill, 8 + (int) (sh[6] * 20));
+                        }
+                    }
+                }
                 for (float[][] line : c.lines) {
                     for (int tx = tx0; tx <= tx1; tx++) {
                         for (int tz = tz0; tz <= tz1; tz++) {
