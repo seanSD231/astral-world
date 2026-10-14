@@ -174,6 +174,18 @@ public final class AstralServer {
         }
     }
 
+    private static final long ASCEND_COOLDOWN_MS = 10 * 60 * 1000L;
+    private static final java.util.Map<UUID, Long> lastAscend = new java.util.HashMap<>();
+
+    /** True (and starts the cooldown) if this player has not had the ascension teleport in the last 10 minutes. */
+    private static boolean ascensionReady(UUID id) {
+        long now = System.currentTimeMillis();
+        Long last = lastAscend.get(id);
+        if (last != null && now - last < ASCEND_COOLDOWN_MS) return false;
+        lastAscend.put(id, now);
+        return true;
+    }
+
     /** Once a second: track Seq 0s, ascension teleport, barrier regeneration, HUD. */
     private static void secondPass(MinecraftServer server) {
         AstralData d = AstralData.get(server);
@@ -196,8 +208,7 @@ public final class AstralServer {
             } else if (d.seq0.remove(id) != null) {
                 dirty = true;
             }
-            if (prev != null && prev > 0 && seq == 0 && d.ascended.add(id)) { // only once per player, ever
-                dirty = true;
+            if (prev != null && prev > 0 && seq == 0 && ascensionReady(id)) { // at most once per 10 minutes per player
                 goToAstral(server, p);
                 title(p, "Ascension", "The Astral World calls. Use /astral to travel", ChatFormatting.LIGHT_PURPLE);
             }
