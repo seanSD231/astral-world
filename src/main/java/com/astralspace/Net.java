@@ -40,13 +40,14 @@ public final class Net {
     }
 
     /** Server -> client: a story message to show in the animated horror text. */
-    public record StagePayload(String text, int from, int to) implements CustomPacketPayload {
+    public record StagePayload(String text, int from, int to, String sub) implements CustomPacketPayload {
         public static final Type<StagePayload> TYPE =
                 new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "stage"));
         public static final StreamCodec<RegistryFriendlyByteBuf, StagePayload> CODEC = StreamCodec.composite(
                 ByteBufCodecs.STRING_UTF8, StagePayload::text,
                 ByteBufCodecs.INT, StagePayload::from,
                 ByteBufCodecs.INT, StagePayload::to,
+                ByteBufCodecs.STRING_UTF8, StagePayload::sub,
                 StagePayload::new);
 
         @Override
@@ -74,7 +75,7 @@ public final class Net {
         public static volatile boolean show;
         public static volatile int hp, max;
         public static volatile String coords = "";
-        public static volatile String stageText = "";
+        public static volatile String stageText = "", stageSub = "";
         public static volatile long stageStart = 0L;
         public static volatile int flashAlpha = 0, flashMs = 1;
         public static volatile long flashStart = 0L;
@@ -107,6 +108,7 @@ public final class Net {
             ClientState.stageText = payload.text();
             ClientState.stageFrom = payload.from();
             ClientState.stageTo = payload.to();
+            ClientState.stageSub = payload.sub();
             ClientState.stageStart = System.currentTimeMillis();
         }));
     }

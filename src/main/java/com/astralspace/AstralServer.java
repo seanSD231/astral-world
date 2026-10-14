@@ -36,7 +36,7 @@ import java.util.UUID;
  *     corruption). Exempt: Seq 0, Door (Apprentice) Seq 3 and stronger, creative and spectator players.
  *  2. Reaching Seq 0 teleports you to the Astral World. /astral travels between the worlds (Seq 0, or Door Seq 3+).
  *     Positions are mirrored: you arrive at the same X/Z you left from.
- *  3. The Astral Barrier's HP only rises, +1 per second per Seq 0 in the Astral World (+3 for Door).
+ *  3. The Astral Barrier's HP only rises, +5 per minute per Seq 0 in the Astral World (+10 for Door).
  *     Max HP = 10 x the number of Seq 0 players. Every Seq 0 sees it on the HUD.
  */
 @EventBusSubscriber(modid = AstralMod.MOD_ID)
@@ -45,8 +45,9 @@ public final class AstralServer {
     public static final ResourceKey<Level> ASTRAL = ResourceKey.create(Registries.DIMENSION, ASTRAL_ID);
 
     private static final int DOOR_SURVIVES_AT_OR_BELOW = 3;
-    private static final int REGEN_NORMAL = 1;
-    private static final int REGEN_DOOR = 2; // a Door Seq 0 counts as two Seq 0s for healing the barrier
+    // barrier HP healed PER MINUTE for each Seq 0 in the Astral World
+    private static final int REGEN_NORMAL = 5;
+    private static final int REGEN_DOOR = 10; // a Door Seq 0 counts as two Seq 0s for healing the barrier
     /** Seconds until corruption is maxed, by Sequence. */
     private static final Map<Integer, Double> SECONDS_TO_MAX = Map.of(
             1, 3.0, 2, 2.5, 3, 2.0, 4, 2.0, 5, 1.5, 6, 1.5, 7, 1.0, 8, 1.0, 9, 0.5);
@@ -71,9 +72,10 @@ public final class AstralServer {
     }
 
     private static void title(ServerPlayer p, String title, String subtitle, ChatFormatting color) {
-        p.connection.send(new ClientboundSetTitlesAnimationPacket(10, 70, 20));
-        p.connection.send(new ClientboundSetSubtitleTextPacket(Component.literal(subtitle).withStyle(ChatFormatting.GRAY)));
-        p.connection.send(new ClientboundSetTitleTextPacket(Component.literal(title).withStyle(color, ChatFormatting.BOLD)));
+        // shown by the client as a moving-gradient text (see AstralClient.renderStageText)
+        int to = color.getColor() == null ? 0xFFFFFF : color.getColor();
+        int from = ((to >> 16 & 255) / 5 << 16) | ((to >> 8 & 255) / 5 << 8) | (to & 255) / 5;
+        PacketDistributor.sendToPlayer(p, new Net.StagePayload(title, from, to, subtitle));
     }
 
     private static ServerLevel levelOf(MinecraftServer server, String dim) {
@@ -187,6 +189,8 @@ public final class AstralServer {
     }
 
     /** Once a second: track Seq 0s, ascension teleport, barrier regeneration, HUD. */
+    private static double regenAccum = 0.0;
+
     private static void secondPass(MinecraftServer server) {
         AstralData d = AstralData.get(server);
         List<ServerPlayer> players = server.getPlayerList().getPlayers();
@@ -222,7 +226,12 @@ public final class AstralServer {
         }
         int max = AstralBarrier.getMax(server);
         int hp = d.hp;
-        if (gain > 0) hp = Math.min(max, hp + gain);
+        if (gain > 0) {
+            regenAccum += gain / 60.0; // gain is HP per minute; this runs once a second
+            int whole = (int) regenAccum;
+            regenAccum -= whole;
+            hp = Math.min(max, hp + whole);
+        }
         else if (hp > max) hp = max; // fewer Seq 0s than before
         if (hp != d.hp) { d.hp = hp; dirty = true; }
         if (dirty) d.setDirty();
@@ -283,7 +292,7 @@ public final class AstralServer {
                     String msg = "dimension=" + p.level().dimension().location() + " inAstral=" + inAstral(p)
                             + " seq=" + seq + " gamemode=" + p.gameMode.getGameModeForPlayer()
                             + " pathway=" + Lotm.pathwayName(p) + " door=" + Lotm.isDoor(p)
-                            + " | counts for regen=" + counts + (counts ? " (+" + (Lotm.isDoor(p) ? REGEN_DOOR : REGEN_NORMAL) + "/s)" : "")
+                            + " | counts for regen=" + counts + (counts ? " (+" + (Lotm.isDoor(p) ? REGEN_DOOR : REGEN_NORMAL) + "/min)" : "")
                             + " | hp=" + AstralBarrier.get(s) + "/" + AstralBarrier.getMax(s)
                             + " seq0Known=" + AstralData.get(s).seq0.size() + " stage=" + Stage.current(s);
                     ctx.getSource().sendSuccess(() -> Component.literal(msg).withStyle(ChatFormatting.LIGHT_PURPLE), false);

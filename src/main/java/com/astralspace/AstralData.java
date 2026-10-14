@@ -39,6 +39,7 @@ public class AstralData extends SavedData {
     public static AstralData load(CompoundTag tag, HolderLookup.Provider registries) {
         AstralData d = new AstralData();
         d.hp = tag.getInt("hp");
+        if (!tag.contains("hpScale")) d.hp *= 10; // barrier HP became 10x bigger: keep a full barrier full
         d.stage = tag.getInt("stage");
         d.stageSince = tag.getLong("stageSince");
         d.damageAccum = tag.getDouble("damageAccum");
@@ -60,6 +61,7 @@ public class AstralData extends SavedData {
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.putInt("hp", hp);
+        tag.putInt("hpScale", 10);
         tag.putInt("stage", stage);
         tag.putLong("stageSince", stageSince);
         tag.putDouble("damageAccum", damageAccum);

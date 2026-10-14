@@ -26,7 +26,7 @@ import java.util.UUID;
  * The story stage of the world. 0 = nothing yet.
  *   1  starts when the first player ever reaches Seq 0 (AstralServer).
  *   2  starts when two Seq 0 players are online at the same time.
- *   3  starts stage3_days (default 7) real days after stage 2 began. The barrier takes 5 damage, then slow damage.
+ *   3  starts stage3_days (default 7) real days after stage 2 began. The barrier takes 50 damage, then slow damage (10 per period).
  *   5  starts when the barrier is destroyed in stage 3 (stage 4 comes later; nothing happens in 5 yet).
  * Every stage can have a message every player sees once (online players right away, offline players on their next
  * login, in order), plus a follow-up message for some players (e.g. "Protect the barrier" for Seq 0s).
@@ -96,10 +96,10 @@ public final class Stage {
         d.seenStage.replaceAll((k, v) -> Math.min(v, d.stage));
         d.setDirty();
         if (d.stage == 3) {
-            // the message depends on how healthy the barrier is right now, then the barrier takes 5 damage
-            d.stage3Text = AstralBarrier.get(server) > 5 ? "They're watching, they're waiting" : "It's too late";
+            // the message depends on how healthy the barrier is right now, then the barrier takes 50 damage
+            d.stage3Text = AstralBarrier.get(server) > 50 ? "They're watching, they're waiting" : "It's too late";
             d.setDirty();
-            AstralBarrier.damage(server, 5);
+            AstralBarrier.damage(server, 50);
         }
     }
 
@@ -129,7 +129,7 @@ public final class Stage {
             d.setDirty();
             while (d.damageAccum >= 1.0 && d.stage == 3) {
                 d.damageAccum -= 1.0;
-                AstralBarrier.damage(server, 1); // reaching 0 moves the world to stage 5
+                AstralBarrier.damage(server, 10); // reaching 0 moves the world to stage 5
             }
         }
     }
@@ -171,7 +171,7 @@ public final class Stage {
 
     private static void show(ServerPlayer p, String message) {
         int[] th = theme(message);
-        PacketDistributor.sendToPlayer(p, new Net.StagePayload(message, th[0], th[1]));
+        PacketDistributor.sendToPlayer(p, new Net.StagePayload(message, th[0], th[1], ""));
         p.sendSystemMessage(gradient(message, th[0], th[1])); // a copy in chat, so it can be re-read
         BuiltInRegistries.SOUND_EVENT.getHolder(ResourceLocation.withDefaultNamespace("entity.warden.heartbeat")).ifPresent(h ->
                 p.connection.send(new ClientboundSoundPacket(h, SoundSource.MASTER, p.getX(), p.getY(), p.getZ(), 1.0f, 0.6f, p.getRandom().nextLong())));

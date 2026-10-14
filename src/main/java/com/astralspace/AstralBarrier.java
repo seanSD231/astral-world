@@ -13,7 +13,7 @@ import java.util.function.Consumer;
  * HP never changes by itself; AstralServer regenerates it while a Seq 0 is in the Astral World.
  */
 public final class AstralBarrier {
-    public static final int HP_PER_SEQ0 = 10;
+    public static final int HP_PER_SEQ0 = 100;
     private static final List<Consumer<MinecraftServer>> BREAK_LISTENERS = new ArrayList<>();
 
     private AstralBarrier() {}

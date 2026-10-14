@@ -30,7 +30,16 @@ public final class BarrierRenderer {
     private static final float TILE = 1024f;    // the crack pattern repeats every TILE blocks
     private static final float GRID = 128f;     // faint grid lines every GRID blocks
     private static final float PIECE = 24f;     // lines are cut into pieces this long so they follow the curve
-    private static final int MAX_CRACKS = 120;
+    private static final float CRACK_CELL = 64f;   // every crack gets its own 64 x 64 square, so cracks can never overlap
+    private static final int CELLS = (int) (TILE / CRACK_CELL);   // 16 x 16 squares per tile
+    private static final int MAX_CRACKS = CELLS * CELLS;          // 256 per tile (about one per 4 x 4 chunks)
+    private static final float CRACK_RANGE = 420f;  // cracks further than this from the player are not drawn
+    private static final int[] CELL_ORDER = new int[MAX_CRACKS]; // the order the squares fill up in (shuffled, but the same for everyone)
+    static {
+        for (int i = 0; i < MAX_CRACKS; i++) CELL_ORDER[i] = i;
+        Random r = new Random(0xA57A1CE11L);
+        for (int i = MAX_CRACKS - 1; i > 0; i--) { int j = r.nextInt(i + 1); int t = CELL_ORDER[i]; CELL_ORDER[i] = CELL_ORDER[j]; CELL_ORDER[j] = t; }
+    }
     private static final net.minecraft.resources.ResourceLocation ASTRAL =
             net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("astral_world", "astral_world");
 
@@ -51,6 +60,7 @@ public final class BarrierRenderer {
 
     private static final class Crack {
         int variant;
+        float centerX, centerZ;
         final List<float[][]> lines = new ArrayList<>(); // polylines of {x, z, width, t}  (t = 0 at the impact, 1 at the tips)
         final List<float[]> shards = new ArrayList<>();  // faint glass fragments: triangles {x0, z0, x1, z1, x2, z2, brightness}
     }
@@ -158,8 +168,8 @@ public final class BarrierRenderer {
     }
 
     /**
-     * The original look: one long crack that wanders across the barrier (turning a little at every step), with now and then
-     * a short branch off it. Colour, width and length differ per variant. Drawn as continuous translucent ribbons.
+     * A small crack: a short wandering line with a few tiny branches, squeezed into its own CRACK_CELL square (index i uses
+     * square CELL_ORDER[i]). Because every crack stays inside its own square, two cracks never overlap.
      */
     private static Crack crack(int index) {
         return CRACKS.computeIfAbsent(index, i -> {
@@ -167,34 +177,55 @@ public final class BarrierRenderer {
             Crack c = new Crack();
             c.variant = r.nextInt(VARIANTS.length);
             float[] v = VARIANTS[c.variant];
-            float w0 = v[6] * (0.8f + r.nextFloat() * 0.5f);
-            float x = r.nextFloat() * TILE, z = r.nextFloat() * TILE;
+            float w0 = v[6] * 0.55f * (0.8f + r.nextFloat() * 0.5f);
+
+            List<float[][]> raw = new ArrayList<>();
             double angle = r.nextDouble() * Math.PI * 2;
-            int n = 8 + r.nextInt(6);
+            float x = 0, z = 0;
+            int n = 4 + r.nextInt(4);
             List<float[]> main = new ArrayList<>();
             main.add(new float[]{x, z, w0, 0f});
             for (int k = 0; k < n; k++) {
-                float len = 30 + r.nextFloat() * 40;
-                angle += r.nextGaussian() * 0.45;
-                float nx = x + (float) Math.cos(angle) * len, nz = z + (float) Math.sin(angle) * len;
+                float len = 5 + r.nextFloat() * 6;
+                angle += r.nextGaussian() * 0.5;
+                x += (float) Math.cos(angle) * len; z += (float) Math.sin(angle) * len;
                 float t = (k + 1) / (float) n;
-                main.add(new float[]{nx, nz, w0 * (1f - 0.35f * t), t});
-                if (r.nextFloat() < 0.35f) { // a short branch
+                main.add(new float[]{x, z, w0 * (1f - 0.4f * t), t});
+                if (r.nextFloat() < 0.4f) { // a tiny branch
                     List<float[]> br = new ArrayList<>();
-                    br.add(new float[]{nx, nz, w0 * 0.6f, t});
-                    float bx = nx, bz = nz;
+                    br.add(new float[]{x, z, w0 * 0.6f, t});
+                    float bx = x, bz = z;
                     double ba = angle + (r.nextBoolean() ? 1 : -1) * (0.6 + r.nextDouble() * 0.6);
                     for (int q = 0; q < 3; q++) {
-                        float bl = 18 + r.nextFloat() * 22;
+                        float bl = 3 + r.nextFloat() * 3;
                         ba += r.nextGaussian() * 0.35;
                         bx += (float) Math.cos(ba) * bl; bz += (float) Math.sin(ba) * bl;
                         br.add(new float[]{bx, bz, w0 * 0.6f * (1f - (q + 1) / 3.5f), Math.min(1f, t + 0.1f * (q + 1))});
                     }
-                    c.lines.add(resample(br.toArray(new float[0][])));
+                    raw.add(br.toArray(new float[0][]));
                 }
-                x = nx; z = nz;
             }
-            c.lines.add(resample(main.toArray(new float[0][])));
+            raw.add(main.toArray(new float[0][]));
+
+            // fit into the square (with a margin for the line width) and centre it there
+            float minX = 1e9f, maxX = -1e9f, minZ = 1e9f, maxZ = -1e9f;
+            for (float[][] line : raw) for (float[] p : line) {
+                minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]); minZ = Math.min(minZ, p[1]); maxZ = Math.max(maxZ, p[1]);
+            }
+            float size = Math.max(0.001f, Math.max(maxX - minX, maxZ - minZ));
+            float fit = Math.min(1f, (CRACK_CELL - 10f) / size);
+            int cell = CELL_ORDER[i % MAX_CRACKS];
+            c.centerX = (cell % CELLS + 0.5f) * CRACK_CELL;
+            c.centerZ = (cell / CELLS + 0.5f) * CRACK_CELL;
+            float mx = (minX + maxX) * 0.5f, mz = (minZ + maxZ) * 0.5f;
+            for (float[][] line : raw) {
+                float[][] out = new float[line.length][];
+                for (int k = 0; k < line.length; k++) {
+                    float[] p = line[k];
+                    out[k] = new float[]{c.centerX + (p[0] - mx) * fit, c.centerZ + (p[1] - mz) * fit, p[2], p[3]};
+                }
+                c.lines.add(out);
+            }
             return c;
         });
     }
@@ -296,7 +327,9 @@ public final class BarrierRenderer {
         else return;
 
         int missing = Math.max(0, Net.ClientState.barrierMax - Net.ClientState.barrierHp);
-        int cracks = Math.min(missing, MAX_CRACKS);
+        int cracks = 0; // the share of the barrier that is missing, as a share of the squares that can hold a crack
+        if (missing > 0 && Net.ClientState.barrierMax > 0)
+            cracks = Math.min(MAX_CRACKS, Math.max(1, Math.round(MAX_CRACKS * (float) missing / Net.ClientState.barrierMax)));
 
         Vec3 cam = event.getCamera().getPosition();
         // as high as the game can still draw it: the far clip plane is about 4 x render distance away
@@ -341,27 +374,17 @@ public final class BarrierRenderer {
             VertexConsumer cv = buffers.getBuffer(crackType);
             int tx0 = (int) Math.floor(minX / TILE), tx1 = (int) Math.floor(maxX / TILE);
             int tz0 = (int) Math.floor(minZ / TILE), tz1 = (int) Math.floor(maxZ / TILE);
+            float camX = (float) cam.x, camZ = (float) cam.z;
             for (int i = 0; i < cracks; i++) {
                 Crack c = crack(i);
                 float[] v = VARIANTS[c.variant];
-                int[] fill = {(int) v[7] / 2 + 100, (int) v[8] / 2 + 100, (int) v[9] / 2 + 105};
-                for (float[] sh : c.shards) { // faint glass fragments under the cracks
-                    for (int tx = tx0; tx <= tx1; tx++) {
-                        for (int tz = tz0; tz <= tz1; tz++) {
-                            float ox = tx * TILE, oz = tz * TILE;
-                            if (sh[0] + ox < minX - 150 || sh[0] + ox > maxX + 150 || sh[1] + oz < minZ - 150 || sh[1] + oz > maxZ + 150) continue;
-                            quad(cv, m, -0.2f, sh[0] + ox, sh[1] + oz, fill, sh[2] + ox, sh[3] + oz, fill, sh[4] + ox, sh[5] + oz, fill,
-                                    sh[4] + ox, sh[5] + oz, fill, 8 + (int) (sh[6] * 20));
-                        }
-                    }
-                }
-                for (float[][] line : c.lines) {
-                    for (int tx = tx0; tx <= tx1; tx++) {
-                        for (int tz = tz0; tz <= tz1; tz++) {
-                            float ox = tx * TILE, oz = tz * TILE;
-                            if (line[0][0] + ox < minX - 150 || line[0][0] + ox > maxX + 150
-                                    || line[0][1] + oz < minZ - 150 || line[0][1] + oz > maxZ + 150) continue;
-                            ribbon(cv, m, -0.4f, line, ox, oz, lineScale, 1.2f * lineScale, v, true, OUTLINE_ALPHA); // dim edge underneath
+                for (int tx = tx0; tx <= tx1; tx++) {
+                    for (int tz = tz0; tz <= tz1; tz++) {
+                        float ox = tx * TILE, oz = tz * TILE;
+                        float dx = c.centerX + ox - camX, dz = c.centerZ + oz - camZ;
+                        if (dx * dx + dz * dz > CRACK_RANGE * CRACK_RANGE) continue; // only the few nearby cracks are drawn
+                        for (float[][] line : c.lines) {
+                            ribbon(cv, m, -0.4f, line, ox, oz, lineScale, 0.8f * lineScale, v, true, OUTLINE_ALPHA); // dim edge underneath
                             ribbon(cv, m, -0.9f, line, ox, oz, lineScale, 0f, v, false, CORE_ALPHA);                 // the crack itself, semi-translucent
                         }
                     }
