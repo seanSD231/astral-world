@@ -16,7 +16,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.levelgen.Heightmap;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -109,15 +108,14 @@ public final class AstralServer {
         if (target == null) target = server.overworld();
         double y;
         if (target.dimension().equals(Level.OVERWORLD) || r == null) {
-            // Surface at the mirrored X/Z. The chunk MUST be loaded first: for an unloaded chunk Minecraft's
-            // getHeight returns the bottom of the world, which dropped players into the void.
-            int bx = (int) Math.floor(p.getX()), bz = (int) Math.floor(p.getZ());
-            target.getChunk(bx >> 4, bz >> 4); // loads (or generates) the chunk
-            y = target.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, bx, bz);
-            if (y <= target.getMinBuildHeight() + 1) {
+            // Ground at the mirrored X/Z, searched only inside the overworld's height band (see Settings), because
+            // with OneDimension the overworld, Nether and End are stacked in one dimension. Loads the chunk.
+            int found = Surface.find(target, (int) Math.floor(p.getX()), (int) Math.floor(p.getZ()), true);
+            if (found < 0) {
                 // nothing but air in that column: fall back to where they came from, or the world spawn
-                y = r != null ? r.y() : target.getSharedSpawnPos().getY();
+                found = r != null ? (int) r.y() : target.getSharedSpawnPos().getY();
             }
+            y = found;
         } else {
             y = r.y(); // Nether/End etc. have no safe "surface": use the height they left from
         }
@@ -132,14 +130,13 @@ public final class AstralServer {
         String dim = r == null ? "minecraft:overworld" : r.dim();
         ServerLevel target = levelOf(server, dim);
         String y = "~";
-        if (target != null && target.hasChunk(x >> 4, z >> 4)) {
+        if (target != null) {
             if (target.dimension().equals(Level.OVERWORLD) || r == null) {
-                y = String.valueOf(target.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z));
+                int found = Surface.find(target, x, z, false); // never loads chunks just for the display
+                if (found >= 0) y = String.valueOf(found);
             } else {
                 y = String.valueOf((int) r.y());
             }
-        } else if (r != null && !dim.equals("minecraft:overworld")) {
-            y = String.valueOf((int) r.y());
         }
         return "To " + dimLabel(dim) + ": " + x + ", " + y + ", " + z;
     }

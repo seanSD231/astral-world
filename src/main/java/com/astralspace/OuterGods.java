@@ -83,6 +83,12 @@ public final class OuterGods {
             "Monarch of Decay",
             "High-Dimensional Overseer",
             "Goddess of Fate",
+            "# Abbreviations: a line starting with @ is matched only as a whole word (so it never fires inside another word).",
+            "# These are built in already (mgod = Mother Goddess of Depravity, mtod = Mother Tree of Desire, fod = Father of",
+            "# Devils, hdo = High-Dimensional Overseer). Add more like this, or remove the # to use the extras below:",
+            "#@SOCH",
+            "#@SCHAOS",
+            "#@PHUNGER",
             "# The collective names. Remove the # to punish these too:",
             "#Outer God",
             "#Outer Deity",
@@ -90,7 +96,11 @@ public final class OuterGods {
             "#Great Old Ones",
             "");
 
+    /** Abbreviations that are always active (matched as whole words, so "mgod" never triggers inside another word). */
+    private static final String[] BUILTIN_ABBREVIATIONS = { "mgod", "mtod", "fod", "hdo" };
+
     private static List<String> names = new ArrayList<>();
+    private static java.util.Set<String> abbreviations = new java.util.HashSet<>();
     private static final Map<UUID, Long> nextHallucination = new HashMap<>();
 
     private static final class Hallucination {
@@ -122,23 +132,37 @@ public final class OuterGods {
                 Files.writeString(file, DEFAULT_NAMES);
             }
             List<String> loaded = new ArrayList<>();
+            java.util.Set<String> abbr = new java.util.HashSet<>(java.util.Arrays.asList(BUILTIN_ABBREVIATIONS));
             for (String line : Files.readAllLines(file)) {
                 String t = line.trim();
                 if (t.isEmpty() || t.startsWith("#")) continue;
+                if (t.startsWith("@")) {
+                    String a = normalize(t.substring(1));
+                    if (a.length() >= 2) abbr.add(a);
+                    continue;
+                }
                 String n = normalize(t);
                 if (n.length() >= 4) loaded.add(n);
             }
             names = loaded;
-            LOGGER.info("[astral] loaded {} Outer God names from {}", names.size(), file);
+            abbreviations = abbr;
+            LOGGER.info("[astral] loaded {} Outer God names and {} abbreviations from {}", names.size(), abbreviations.size(), file);
         } catch (IOException e) {
             LOGGER.warn("[astral] could not read the Outer God names file: {}", e.toString());
         }
     }
 
-    private static boolean mentionsOuterGod(String text) {
+    /** The name or abbreviation that was found in the text, or null. */
+    private static String findMention(String text) {
         String n = normalize(text);
-        for (String name : names) if (n.contains(name)) return true;
-        return false;
+        for (String name : names) if (n.contains(name)) return name;
+        for (String token : text.toLowerCase(Locale.ROOT).split("[^a-z0-9]+")) {
+            if (token.length() < 2) continue;
+            if (abbreviations.contains(token)) return token;
+            // plural: "mgods"
+            if (token.endsWith("s") && abbreviations.contains(token.substring(0, token.length() - 1))) return token;
+        }
+        return null;
     }
 
     @SubscribeEvent
@@ -146,10 +170,22 @@ public final class OuterGods {
 
     // ------------------------------------------------------------------ the punishment
 
-    private static boolean punishable(MinecraftServer server, ServerPlayer p) {
-        if (!Stage.atLeast(server, 1) || p.isCreative() || p.isSpectator()) return false;
+    /** Why this player is NOT punished for naming an Outer God, or null if they would be. */
+    private static String exemptReason(MinecraftServer server, ServerPlayer p) {
+        if (!Stage.atLeast(server, 1)) return "the stage is 0 (run /astralstage set 1)";
+        if (p.isCreative() || p.isSpectator()) return "creative and spectator players are exempt (switch to survival)";
         int seq = Lotm.sequence(p);
-        return seq >= PUNISH_AT_OR_WEAKER;
+        if (seq < 0) return "you are not a Beyonder (no LOTM sequence found)";
+        if (seq < PUNISH_AT_OR_WEAKER) return "Seq " + seq + " is Seq 2 or stronger, which is safe";
+        return null;
+    }
+
+    /** Ops are told why nothing happened, so testing is not guesswork. */
+    private static void tellOp(ServerPlayer p, String match, String reason) {
+        if (p.hasPermissions(2)) {
+            p.sendSystemMessage(Component.literal("[astral] Outer God name '" + match + "' noticed, but nothing happens: " + reason)
+                    .withStyle(ChatFormatting.GRAY));
+        }
     }
 
     private static void punish(MinecraftServer server, ServerPlayer p) {
@@ -171,8 +207,11 @@ public final class OuterGods {
     public static void onChat(ServerChatEvent event) {
         ServerPlayer p = event.getPlayer();
         MinecraftServer server = p.getServer();
-        if (server == null || !punishable(server, p)) return;
-        if (!mentionsOuterGod(event.getRawText())) return;
+        if (server == null) return;
+        String match = findMention(event.getRawText());
+        if (match == null) return;
+        String reason = exemptReason(server, p);
+        if (reason != null) { tellOp(p, match, reason); return; }
         event.setCanceled(true); // the words never reach anyone
         server.execute(() -> punish(server, p));
     }
@@ -187,7 +226,11 @@ public final class OuterGods {
         if (!first.equals("msg") && !first.equals("tell") && !first.equals("w") && !first.equals("say")
                 && !first.equals("me") && !first.equals("teammsg") && !first.equals("tm")) return;
         MinecraftServer server = p.getServer();
-        if (server == null || !punishable(server, p) || !mentionsOuterGod(lower)) return;
+        if (server == null) return;
+        String match = findMention(lower);
+        if (match == null) return;
+        String reason = exemptReason(server, p);
+        if (reason != null) { tellOp(p, match, reason); return; }
         event.setCanceled(true);
         punish(server, p);
     }
@@ -274,10 +317,24 @@ public final class OuterGods {
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("reload").executes(ctx -> {
                     loadNames();
-                    int n = names.size();
-                    ctx.getSource().sendSuccess(() -> Component.literal("Loaded " + n + " Outer God names."), true);
+                    int n = names.size(), a = abbreviations.size();
+                    ctx.getSource().sendSuccess(() -> Component.literal("Loaded " + n + " Outer God names and " + a + " abbreviations."), true);
                     return 1;
-                })));
+                }))
+                .then(Commands.literal("test").then(Commands.argument("text", com.mojang.brigadier.arguments.StringArgumentType.greedyString()).executes(ctx -> {
+                    String text = com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "text");
+                    String match = findMention(text);
+                    String msg = match == null ? "No Outer God name found in that text."
+                            : "Found '" + match + "'. Whether you would be punished: ";
+                    var src = ctx.getSource();
+                    if (match != null && src.getEntity() instanceof ServerPlayer p) {
+                        String reason = exemptReason(src.getServer(), p);
+                        msg += reason == null ? "YES" : "no (" + reason + ")";
+                    }
+                    String out = msg;
+                    src.sendSuccess(() -> Component.literal(out), false);
+                    return 1;
+                }))));
 
         event.getDispatcher().register(Commands.literal("astralhallucinate")
                 .requires(src -> src.hasPermission(2))
