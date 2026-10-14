@@ -75,6 +75,18 @@ public final class Lotm {
         return p != null && p.getClass().getSimpleName().toLowerCase().contains("apprentice");
     }
 
+    /** A LOTM pathway by its id ("planter" = Mother, "assassin" = Demoness, "criminal" = Abyss ...), or null. */
+    public static Object pathwayById(String id) {
+        try {
+            Class<?> init = Class.forName("net.swimmingtuna.lotm.init.BeyonderClassInit");
+            Object opt = init.getMethod("getBeyonderClassByName", String.class).invoke(null, id);
+            return ((java.util.Optional<?>) opt).orElse(null);
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not look up pathway '{}': {}", id, t.toString());
+            return null;
+        }
+    }
+
     public static Object randomPathway() {
         init();
         if (getRandomWorkingPathway == null) return null;

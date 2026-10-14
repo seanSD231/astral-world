@@ -31,7 +31,7 @@ public final class Settings {
     static {
         KEYS.put("surface_top", new String[]{"320", "Height band of the REAL overworld. When a player leaves the Astral World the ground is searched from\n# surface_top DOWN to surface_bottom, so with a stacked dimension (OneDimension) the Nether/End layers are never\n# mistaken for the overworld's ground."});
         KEYS.put("surface_bottom", new String[]{"-64", null});
-        KEYS.put("barrier_y", new String[]{"400", "The Y level of the Astral Barrier in the overworld sky (what players see). Put it above the overworld band."});
+        KEYS.put("astral_barrier_y", new String[]{"200", "The Y level of the Astral Barrier in the sky of the Astral World (players only see it there). The Astral World is 0-255 high."});
         KEYS.put("stage3_days", new String[]{"7", "Real-life days from the start of stage 2 until stage 3 begins (decimals allowed, e.g. 0.01 to test)."});
         KEYS.put("barrier_damage_minutes", new String[]{"60", "Stage 3: one barrier damage every this many minutes, before the online-Seq-0 multiplier (halved with no Seq 0\n# online, doubled for every Seq 0 online beyond the first)."});
         KEYS.put("nearby_radius", new String[]{"32", "Stage 2+: how close (blocks) players must be to someone who names an Outer God to be affected. Doubled in stage 3."});
@@ -39,7 +39,7 @@ public final class Settings {
 
     public static volatile int surfaceTop = 320;
     public static volatile int surfaceBottom = -64;
-    public static volatile int barrierY = 400;
+    public static volatile int barrierY = 200;
     public static volatile double stage3Days = 7.0;
     public static volatile double barrierDamageMinutes = 60.0;
     public static volatile int nearbyRadius = 32;
@@ -73,11 +73,11 @@ public final class Settings {
 
             surfaceTop = Integer.parseInt(p.getProperty("surface_top").trim());
             surfaceBottom = Integer.parseInt(p.getProperty("surface_bottom").trim());
-            barrierY = Integer.parseInt(p.getProperty("barrier_y").trim());
+            barrierY = Integer.parseInt(p.getProperty("astral_barrier_y").trim());
             stage3Days = Double.parseDouble(p.getProperty("stage3_days").trim());
             barrierDamageMinutes = Math.max(0.01, Double.parseDouble(p.getProperty("barrier_damage_minutes").trim()));
             nearbyRadius = Integer.parseInt(p.getProperty("nearby_radius").trim());
-            LOGGER.info("[astral] settings: surface {} down to {}, barrier_y {}, stage3_days {}, damage every {} min, nearby_radius {}",
+            LOGGER.info("[astral] settings: surface {} down to {}, astral_barrier_y {}, stage3_days {}, damage every {} min, nearby_radius {}",
                     surfaceTop, surfaceBottom, barrierY, stage3Days, barrierDamageMinutes, nearbyRadius);
         } catch (IOException | NumberFormatException e) {
             LOGGER.warn("[astral] could not read settings.properties, using defaults: {}", e.toString());
@@ -85,7 +85,7 @@ public final class Settings {
     }
 
     public static String summary() {
-        return "surface " + surfaceTop + " down to " + surfaceBottom + ", barrier_y " + barrierY + ", stage3_days " + stage3Days
+        return "surface " + surfaceTop + " down to " + surfaceBottom + ", astral_barrier_y " + barrierY + ", stage3_days " + stage3Days
                 + ", barrier damage every " + barrierDamageMinutes + " min, nearby_radius " + nearbyRadius;
     }
 

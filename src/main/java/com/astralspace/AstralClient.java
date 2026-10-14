@@ -162,9 +162,12 @@ public final class AstralClient {
             String s = String.valueOf(text.charAt(i));
             float t = n > 1 ? i / (float) (n - 1) : 0f;
             t = Math.max(0f, Math.min(1f, t + 0.10f * (float) Math.sin(time * 2.0 - i * 0.5)));
-            int r = (int) (220 * t), gr = (int) (20 * t), b = (int) (60 * t);
+            int f = Net.ClientState.stageFrom, e = Net.ClientState.stageTo;
+            int r = (int) (((f >> 16) & 255) + (((e >> 16) & 255) - ((f >> 16) & 255)) * t);
+            int gr = (int) (((f >> 8) & 255) + (((e >> 8) & 255) - ((f >> 8) & 255)) * t);
+            int b = (int) ((f & 255) + ((e & 255) - (f & 255)) * t);
             int color = (alpha << 24) | (r << 16) | (gr << 8) | b;
-            int glow = (glowAlpha << 24) | 0x7A0A1E;
+            int glow = (glowAlpha << 24) | (((e >> 16) & 255) / 2 << 16) | (((e >> 8) & 255) / 2 << 8) | ((e & 255) / 2);
             int px = Math.round(x);
             int py = Math.round(baseY + (float) Math.sin(time * 3.0 + i * 0.6) * 2.0f);
             g.drawString(font, s, px - 1, py, glow, false);

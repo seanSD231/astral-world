@@ -6,7 +6,6 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -19,7 +18,7 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * Client only: the Astral Barrier in the overworld sky. A huge, mostly transparent purple plane at barrier_y with a
+ * Client only: the Astral Barrier in the sky of the Astral World (never drawn in the overworld). A huge, mostly transparent purple plane at barrier_y with a
  * faint grid, and one crimson crack for every missing HP (healing removes cracks again).
  * The plane follows the player and the crack pattern repeats every TILE blocks, so cracks are visible wherever you are.
  * Cracks are identical for everyone: crack number i always looks the same.
@@ -29,6 +28,8 @@ public final class BarrierRenderer {
     private static final float TILE = 1024f;    // the crack pattern repeats every TILE blocks
     private static final float GRID = 128f;     // faint grid lines every GRID blocks
     private static final int MAX_CRACKS = 120;
+    private static final net.minecraft.resources.ResourceLocation ASTRAL =
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("astral_space", "astral_space");
 
     /** crack index -> segments {x0, z0, x1, z1, width} inside one tile */
     private static final Map<Integer, List<float[]>> CRACKS = new HashMap<>();
@@ -96,7 +97,7 @@ public final class BarrierRenderer {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;
         if (!Net.ClientState.barrierShow) return;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null || !mc.level.dimension().equals(Level.OVERWORLD)) return;
+        if (mc.level == null || mc.player == null || !mc.level.dimension().location().equals(ASTRAL)) return;
 
         int missing = Math.max(0, Net.ClientState.barrierMax - Net.ClientState.barrierHp);
         int cracks = Math.min(missing, MAX_CRACKS);
@@ -120,13 +121,13 @@ public final class BarrierRenderer {
         float minX = cx - HALF, maxX = cx + HALF, minZ = cz - HALF, maxZ = cz + HALF;
 
         // the barrier itself: mostly transparent purple
-        quad(vc, m, y, minX, minZ, maxX, minZ, maxX, maxZ, minX, maxZ, 150, 60, 255, 20);
+        quad(vc, m, y, minX, minZ, maxX, minZ, maxX, maxZ, minX, maxZ, 170, 90, 255, 70);
 
         // faint grid so it reads as a surface
         for (float gx = (float) Math.floor(minX / GRID) * GRID; gx <= maxX; gx += GRID)
-            segment(vc, m, y, gx, minZ, gx, maxZ, 1.6f, 190, 120, 255, 38);
+            segment(vc, m, y, gx, minZ, gx, maxZ, 1.6f, 210, 150, 255, 120);
         for (float gz = (float) Math.floor(minZ / GRID) * GRID; gz <= maxZ; gz += GRID)
-            segment(vc, m, y, minX, gz, maxX, gz, 1.6f, 190, 120, 255, 38);
+            segment(vc, m, y, minX, gz, maxX, gz, 1.6f, 210, 150, 255, 120);
 
         // cracks: one per missing HP, repeated in every tile around the player
         if (cracks > 0) {

@@ -102,7 +102,24 @@ public final class OuterGods {
     /** Abbreviations that are always active (matched as whole words, so "mgod" never triggers inside another word). */
     private static final String[] BUILTIN_ABBREVIATIONS = { "mgod", "mtod", "fod", "hdo" };
 
+    private static final String DEFAULT_PATHWAYS = String.join("\n",
+            "# Which LOTM pathway's corruption each Outer God inflicts. Format:  name = pathway",
+            "# Pathway ids: seer(Fool) marauder(Error) apprentice(Door) spectator(Visionary) bard(Sun) sailor(Tyrant)",
+            "# reader(White Tower) secrets_supplicant(Hanged Man) sleepless(Darkness) corpse_collector(Death)",
+            "# warrior(Twilight Giant) assassin(Demoness) hunter(Red Priest) mystery_pryer(Hermit) savant(Paragon)",
+            "# monster(Wheel of Fortune) planter(Mother) apothecary(Moon) criminal(Abyss) prisoner(Chained)",
+            "# lawyer(Black Emperor) arbiter(Justiciar)",
+            "# Any god (or abbreviation) not listed here inflicts the Mother pathway (planter).",
+            "Mother Goddess of Depravity = assassin",
+            "MGOD = assassin",
+            "Father of Devils = criminal",
+            "FOD = criminal",
+            "Mother Tree of Desire = planter",
+            "MTOD = planter",
+            "");
+
     private static List<String> names = new ArrayList<>();
+    private static Map<String, String> godPathways = new HashMap<>(); // normalized name -> pathway id
     private static java.util.Set<String> abbreviations = new java.util.HashSet<>();
     private static final Map<UUID, Long> nextHallucination = new HashMap<>();
 
@@ -149,10 +166,40 @@ public final class OuterGods {
             }
             names = loaded;
             abbreviations = abbr;
+            loadPathways();
             LOGGER.info("[astral] loaded {} Outer God names and {} abbreviations from {}", names.size(), abbreviations.size(), file);
         } catch (IOException e) {
             LOGGER.warn("[astral] could not read the Outer God names file: {}", e.toString());
         }
+    }
+
+    private static void loadPathways() {
+        Path file = FMLPaths.CONFIGDIR.get().resolve("astral_world").resolve("outer_god_pathways.txt");
+        try {
+            if (!Files.exists(file)) {
+                Files.createDirectories(file.getParent());
+                Files.writeString(file, DEFAULT_PATHWAYS);
+            }
+            Map<String, String> map = new HashMap<>();
+            for (String line : Files.readAllLines(file)) {
+                String t = line.trim();
+                int eq = t.indexOf('=');
+                if (t.isEmpty() || t.startsWith("#") || eq < 1) continue;
+                String key = normalize(t.substring(0, eq));
+                String id = t.substring(eq + 1).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+                if (!key.isEmpty() && !id.isEmpty()) map.put(key, id);
+            }
+            godPathways = map;
+        } catch (IOException e) {
+            LOGGER.warn("[astral] could not read outer_god_pathways.txt: {}", e.toString());
+        }
+    }
+
+    /** The pathway whose corruption this Outer God inflicts: the one listed for it, otherwise Mother (planter). */
+    private static Object godPathway(String match) {
+        Object p = Lotm.pathwayById(godPathways.getOrDefault(match, "planter"));
+        if (p == null) p = Lotm.pathwayById("planter");
+        return p;
     }
 
     /** The name or abbreviation that was found in the text, or null. */
@@ -211,7 +258,7 @@ public final class OuterGods {
             if (q == speaker || q.isCreative() || q.isSpectator()) continue;
             if (q.level() != speaker.level() || q.distanceToSqr(speaker) > radius * radius) continue;
             if (Lotm.sequence(q) >= 0) {
-                Object pathway = Lotm.pathway(q);
+                Object pathway = godPathway(match); // the god's own pathway (Mother if it has none)
                 if (pathway != null) Lotm.addCorruptionPercent(q, pathway, percent);
             }
             q.addEffect(new MobEffectInstance(god.effect(), duration, amplifier, false, true));
@@ -241,8 +288,9 @@ public final class OuterGods {
         }
     }
 
-    private static void punish(MinecraftServer server, ServerPlayer p) {
-        Object pathway = Lotm.pathway(p);
+    private static void punish(MinecraftServer server, ServerPlayer p, String match) {
+        Object pathway = godPathway(match); // the god's own pathway (Mother if it has none)
+        if (pathway == null) pathway = Lotm.pathway(p);
         if (pathway == null) pathway = Lotm.randomPathway();
         if (pathway == null) {
             LOGGER.warn("[astral] {} named an Outer God but LOTM corruption could not be applied", p.getGameProfile().getName());
@@ -276,7 +324,7 @@ public final class OuterGods {
         if (reason != null) { tellOp(p, match, reason); return; }
         LOGGER.info("[astral] {} named an Outer God ('{}') in chat", p.getGameProfile().getName(), match);
         event.setCanceled(true); // the words never reach anyone (unless another mod already sent them)
-        server.execute(() -> punish(server, p));
+        server.execute(() -> punish(server, p, match));
     }
 
     @SubscribeEvent
@@ -296,7 +344,7 @@ public final class OuterGods {
         if (Stage.atLeast(server, 2) && !p.isSpectator()) spillover(server, p, match);
         if (reason != null) { tellOp(p, match, reason); return; }
         event.setCanceled(true);
-        punish(server, p);
+        punish(server, p, match);
     }
 
     // ------------------------------------------------------------------ hallucinations

@@ -37,6 +37,24 @@ public final class Stage {
     private static final int GAP_TICKS = 9 * 20;       // delay before a follow-up message
     private static final int NEXT_TICKS = 11 * 20;     // delay before the next stage's message
 
+    static final String SHATTERED = "The barrier has shattered";
+    private static final int SHATTER_DELAY_TICKS = 10 * 20; // the message comes 10 seconds after the barrier breaks
+
+    /** Message colors {from, to}: each message is coloured to fit what it says. */
+    private static final Map<String, int[]> THEMES = new HashMap<>();
+    static {
+        THEMES.put("You feel a strange gaze from above.", new int[]{0x000000, 0xC8D8FF});   // black to a cold, watching pale blue
+        THEMES.put("It's coming", new int[]{0x1A0000, 0xFF6A00});                           // black to ember orange: something rising
+        THEMES.put("Protect the barrier", new int[]{0x3A0A80, 0xD9A8FF});                    // the barrier's own purple
+        THEMES.put("They're watching, they're waiting", new int[]{0x000000, 0x6BFF8A});     // black to sickly eerie green
+        THEMES.put("It's too late", new int[]{0x000000, 0xFF1010});                         // black to blood red
+        THEMES.put("The barrier is at risk", new int[]{0x7A3CFF, 0xFF3050});                // barrier purple turning to danger red
+        THEMES.put(SHATTERED, new int[]{0xFFFFFF, 0x5A1090});                               // bright shards fading into dark violet
+    }
+    private static final int[] DEFAULT_THEME = {0x000000, 0xDC143C};
+
+    private static int[] theme(String message) { return THEMES.getOrDefault(message, DEFAULT_THEME); }
+
     private record Queued(String text, long due) {}
     private static final Map<UUID, ArrayDeque<Queued>> queues = new HashMap<>();
 
@@ -54,6 +72,7 @@ public final class Stage {
             case 1 -> "You feel a strange gaze from above.";
             case 2 -> "It's coming";
             case 3 -> d.stage3Text.isEmpty() ? "They're watching, they're waiting" : d.stage3Text;
+            case 5 -> SHATTERED;
             default -> null;
         };
     }
@@ -86,8 +105,11 @@ public final class Stage {
 
     /** Called when the barrier drops to 0 HP. */
     public static void onBarrierBroken(MinecraftServer server) {
-        if (current(server) == 3) set(server, 5);
+        if (current(server) == 3) { set(server, 5); return; } // the stage 5 message is "The barrier has shattered", 10 s later
+        shatterAtTick = server.getTickCount() + SHATTER_DELAY_TICKS; // a break in any other stage: 10 s later, to everyone online
     }
+
+    private static long shatterAtTick = -1;
 
     /**
      * Once a second. seq0Online = how many Seq 0 players are online right now (any dimension, any game mode).
@@ -118,6 +140,10 @@ public final class Stage {
     public static void notifyPass(MinecraftServer server) {
         AstralData d = AstralData.get(server);
         long now = server.getTickCount();
+        if (shatterAtTick >= 0 && now >= shatterAtTick) {
+            shatterAtTick = -1;
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) show(p, SHATTERED);
+        }
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             UUID id = p.getUUID();
             int seen = d.seenStage.getOrDefault(id, 0);
@@ -128,7 +154,9 @@ public final class Stage {
                 for (int st = seen + 1; st <= d.stage; st++) {
                     String m = globalMessage(d, st);
                     if (m == null) continue;
-                    q.add(new Queued(m, t));
+                    long delay = 0;
+                    if (st == 5) delay = Math.max(0, SHATTER_DELAY_TICKS - (System.currentTimeMillis() - d.stageSince) / 50); // already counted for late joiners
+                    q.add(new Queued(m, t + delay));
                     String f = followUp(st, seq);
                     if (f != null) { t += GAP_TICKS; q.add(new Queued(f, t)); }
                     t += NEXT_TICKS;
@@ -142,21 +170,28 @@ public final class Stage {
     }
 
     private static void show(ServerPlayer p, String message) {
-        PacketDistributor.sendToPlayer(p, new Net.StagePayload(message));
-        p.sendSystemMessage(gradient(message)); // a copy in chat, so it can be re-read
+        int[] th = theme(message);
+        PacketDistributor.sendToPlayer(p, new Net.StagePayload(message, th[0], th[1]));
+        p.sendSystemMessage(gradient(message, th[0], th[1])); // a copy in chat, so it can be re-read
         BuiltInRegistries.SOUND_EVENT.getHolder(ResourceLocation.withDefaultNamespace("entity.warden.heartbeat")).ifPresent(h ->
                 p.connection.send(new ClientboundSoundPacket(h, SoundSource.MASTER, p.getX(), p.getY(), p.getZ(), 1.0f, 0.6f, p.getRandom().nextLong())));
     }
 
-    /** Dark red to crimson in chat (pure black would be unreadable on the chat background). */
-    private static MutableComponent gradient(String text) {
+    /** A gradient in chat in the message's colours (very dark colours are lifted, black would be unreadable on the chat background). */
+    private static MutableComponent gradient(String text, int from, int to) {
         MutableComponent out = Component.empty();
         int n = text.length();
         for (int i = 0; i < n; i++) {
             float t = n > 1 ? i / (float) (n - 1) : 0f;
-            int r = (int) (60 + (220 - 60) * t), g = (int) (20 * t), b = (int) (10 + 50 * t);
-            out.append(Component.literal(String.valueOf(text.charAt(i)))
-                    .withStyle(Style.EMPTY.withColor((r << 16) | (g << 8) | b)));
+            int rgb = 0;
+            for (int shift = 16; shift >= 0; shift -= 8) {
+                int a = (from >> shift) & 255, b = (to >> shift) & 255;
+                rgb |= (int) (a + (b - a) * t) << shift;
+            }
+            int r = (rgb >> 16) & 255, g = (rgb >> 8) & 255, b = rgb & 255;
+            int lift = Math.max(0, 90 - Math.max(r, Math.max(g, b))); // keep at least some brightness
+            rgb = (Math.min(255, r + lift) << 16) | (Math.min(255, g + lift / 3) << 8) | Math.min(255, b + lift / 2);
+            out.append(Component.literal(String.valueOf(text.charAt(i))).withStyle(Style.EMPTY.withColor(rgb)));
         }
         return out;
     }
