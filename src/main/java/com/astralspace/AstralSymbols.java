@@ -84,10 +84,12 @@ public final class AstralSymbols {
             float ul = (float) Math.sqrt(ux * ux + uy * uy + uz * uz);
             ux /= ul; uy /= ul; uz /= ul;
             float vx = d[1] * uz - d[2] * uy, vy = d[2] * ux - d[0] * uz, vz = d[0] * uy - d[1] * ux;
+            if (vy < 0) { vx = -vx; vy = -vy; vz = -vz; } // "up" on the symbol points up in the world
+            ux = d[1] * vz - d[2] * vy; uy = d[2] * vx - d[0] * vz; uz = d[0] * vy - d[1] * vx; // right-hand side, so it is not mirrored
 
             BufferBuilder q = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
             float cx = d[0] * 100f, cy = d[1] * 100f, cz = d[2] * 100f, size = s[0];
-            float[][] c = {{-1, -1, 0, 0}, {-1, 1, 0, 1}, {1, 1, 1, 1}, {1, -1, 1, 0}};
+            float[][] c = {{-1, -1, 0, 1}, {-1, 1, 0, 0}, {1, 1, 1, 0}, {1, -1, 1, 1}};
             for (float[] k : c) {
                 q.addVertex(modelView, cx + (ux * k[0] + vx * k[1]) * size, cy + (uy * k[0] + vy * k[1]) * size,
                         cz + (uz * k[0] + vz * k[1]) * size).setUv(k[2], k[3]).setColor(215, 190, 255, (int) (alpha * 255));

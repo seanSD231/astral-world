@@ -28,6 +28,8 @@ public class AstralData extends SavedData {
     public final Map<UUID, String> seq0 = new HashMap<>();
     /** The last Sequence seen for each player, to notice when someone reaches Seq 0. */
     public final Map<UUID, Integer> lastSeq = new HashMap<>();
+    /** Players who already got the one-time ascension teleport (never repeated). */
+    public final java.util.Set<UUID> ascended = new java.util.HashSet<>();
     /** Where each player left from when they entered the Astral World. */
     public final Map<UUID, Return> returns = new HashMap<>();
 
@@ -49,6 +51,8 @@ public class AstralData extends SavedData {
         for (String k : s.getAllKeys()) d.seq0.put(UUID.fromString(k), s.getString(k));
         CompoundTag l = tag.getCompound("lastSeq");
         for (String k : l.getAllKeys()) d.lastSeq.put(UUID.fromString(k), l.getInt(k));
+        CompoundTag asc = tag.getCompound("ascended");
+        for (String k : asc.getAllKeys()) d.ascended.add(UUID.fromString(k));
         CompoundTag r = tag.getCompound("returns");
         for (String k : r.getAllKeys()) {
             CompoundTag e = r.getCompound(k);
@@ -73,6 +77,9 @@ public class AstralData extends SavedData {
         CompoundTag l = new CompoundTag();
         lastSeq.forEach((k, v) -> l.putInt(k.toString(), v));
         tag.put("lastSeq", l);
+        CompoundTag asc = new CompoundTag();
+        ascended.forEach(k -> asc.putBoolean(k.toString(), true));
+        tag.put("ascended", asc);
         CompoundTag r = new CompoundTag();
         returns.forEach((k, v) -> {
             CompoundTag e = new CompoundTag();

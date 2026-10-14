@@ -196,7 +196,8 @@ public final class AstralServer {
             } else if (d.seq0.remove(id) != null) {
                 dirty = true;
             }
-            if (prev != null && prev > 0 && seq == 0) {
+            if (prev != null && prev > 0 && seq == 0 && d.ascended.add(id)) { // only once per player, ever
+                dirty = true;
                 goToAstral(server, p);
                 title(p, "Ascension", "The Astral World calls. Use /astral to travel", ChatFormatting.LIGHT_PURPLE);
             }
