@@ -203,7 +203,7 @@ public final class AstralServer {
         // regeneration: only while a Seq 0 is in the Astral World
         int gain = 0;
         for (ServerPlayer p : players) {
-            if (exempt(p) || !inAstral(p) || Lotm.sequence(p) != 0) continue;
+            if (p.isSpectator() || !inAstral(p) || Lotm.sequence(p) != 0) continue; // creative Seq 0s count too, for testing
             gain += Lotm.isDoor(p) ? REGEN_DOOR : REGEN_NORMAL;
         }
         int max = AstralBarrier.getMax(server);
@@ -255,6 +255,21 @@ public final class AstralServer {
 
         event.getDispatcher().register(Commands.literal("astralbarrier")
                 .requires(src -> src.hasPermission(2))
+                .then(Commands.literal("debug").executes(ctx -> {
+                    // Everything the barrier looks at for YOU, so "it doesn't go up" can be answered in one line
+                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                    MinecraftServer s = ctx.getSource().getServer();
+                    int seq = Lotm.sequence(p);
+                    boolean counts = !p.isSpectator() && inAstral(p) && seq == 0;
+                    String msg = "dimension=" + p.level().dimension().location() + " inAstral=" + inAstral(p)
+                            + " seq=" + seq + " gamemode=" + p.gameMode.getGameModeForPlayer()
+                            + " pathway=" + Lotm.pathwayName(p) + " door=" + Lotm.isDoor(p)
+                            + " | counts for regen=" + counts + (counts ? " (+" + (Lotm.isDoor(p) ? REGEN_DOOR : REGEN_NORMAL) + "/s)" : "")
+                            + " | hp=" + AstralBarrier.get(s) + "/" + AstralBarrier.getMax(s)
+                            + " seq0Known=" + AstralData.get(s).seq0.size() + " stage=" + Stage.current(s);
+                    ctx.getSource().sendSuccess(() -> Component.literal(msg).withStyle(ChatFormatting.LIGHT_PURPLE), false);
+                    return 1;
+                }))
                 .then(Commands.literal("info").executes(ctx -> {
                     MinecraftServer s = ctx.getSource().getServer();
                     String msg = "Astral Barrier: " + AstralBarrier.get(s) + " / " + AstralBarrier.getMax(s)

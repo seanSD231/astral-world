@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.loading.FMLPaths;
@@ -203,16 +204,25 @@ public final class OuterGods {
         LOGGER.info("[astral] {} named an Outer God and was struck with deadly corruption", p.getGameProfile().getName());
     }
 
-    @SubscribeEvent
+    private static boolean chatHookLogged = false;
+
+    // Highest priority and receiveCanceled: a chat-formatting mod in this pack cancels the normal chat event and sends
+    // the message itself, so a normal listener never saw the text.
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public static void onChat(ServerChatEvent event) {
         ServerPlayer p = event.getPlayer();
         MinecraftServer server = p.getServer();
         if (server == null) return;
+        if (!chatHookLogged) {
+            chatHookLogged = true;
+            LOGGER.info("[astral] chat hook is working (first chat message seen, already cancelled by another mod: {})", event.isCanceled());
+        }
         String match = findMention(event.getRawText());
         if (match == null) return;
         String reason = exemptReason(server, p);
         if (reason != null) { tellOp(p, match, reason); return; }
-        event.setCanceled(true); // the words never reach anyone
+        LOGGER.info("[astral] {} named an Outer God ('{}') in chat", p.getGameProfile().getName(), match);
+        event.setCanceled(true); // the words never reach anyone (unless another mod already sent them)
         server.execute(() -> punish(server, p));
     }
 
