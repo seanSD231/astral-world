@@ -1,0 +1,18 @@
+{
+  "type": "astral_space:astral_space",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "astral_space:astral_void",
+      "features": false,
+      "lakes": false,
+      "layers": [
+        {
+          "block": "minecraft:barrier",
+          "height": 1
+        }
+      ],
+      "structure_overrides": []
+    }
+  }
+}

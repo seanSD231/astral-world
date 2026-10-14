@@ -1,0 +1,28 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.78'
+}
+
+version = mod_version
+group = mod_group_id
+base { archivesName = mod_id }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = neo_version
+    runs {
+        server { server() }
+        client { client() }
+    }
+    mods {
+        "${mod_id}" { sourceSet sourceSets.main }
+    }
+}
+
+// fill in gradle.properties values inside neoforge.mods.toml
+tasks.withType(ProcessResources).configureEach {
+    var props = [mod_id: mod_id, mod_name: mod_name, mod_version: mod_version, minecraft_version: minecraft_version, neo_version: neo_version]
+    inputs.properties props
+    filesMatching('META-INF/neoforge.mods.toml') { expand props }
+}
