@@ -1,5 +1,12 @@
 package com.astralspace;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
@@ -403,5 +410,40 @@ public final class GodCurse {
     private static void cleanup(Curse c) {
         for (Mob m : c.summoned) if (m.isAlive()) m.discard();
         c.summoned.clear();
+    }
+
+    // ------------------------------------------------------------------ test command (ops)
+
+    private static int test(CommandSourceStack src, String god, int stage) {
+        ServerPlayer p;
+        try { p = src.getPlayerOrException(); } catch (Exception e) { src.sendFailure(Component.literal("Run this as a player.")); return 0; }
+        if (god.equalsIgnoreCase("stop")) {
+            active.removeIf(c -> { if (c.id.equals(p.getUUID())) { cleanup(c); return true; } return false; });
+            p.removeAllEffects();
+            src.sendSuccess(() -> Component.literal("Your curse was stopped."), false);
+            return 1;
+        }
+        Kind kind;
+        try { kind = Kind.valueOf(god.toUpperCase(java.util.Locale.ROOT)); }
+        catch (IllegalArgumentException e) { src.sendFailure(Component.literal("Unknown curse. Use tab to see the list.")); return 0; }
+        start(src.getServer(), p, kind, stage, null); // no corruption death afterwards: this is only a test
+        src.sendSuccess(() -> Component.literal("Curse " + kind.name().toLowerCase(java.util.Locale.ROOT) + " (stage " + stage
+                + ") on you. Seq 1 and 0 cannot die from it, anyone weaker can. /astralcurse stop ends it."), false);
+        return 1;
+    }
+
+    @SubscribeEvent
+    public static void onRegisterCommands(RegisterCommandsEvent event) {
+        List<String> names = new ArrayList<>();
+        for (Kind k : Kind.values()) names.add(k.name().toLowerCase(java.util.Locale.ROOT));
+        names.add("stop");
+        event.getDispatcher().register(Commands.literal("astralcurse")
+                .requires(src -> src.hasPermission(2))
+                .then(Commands.argument("god", StringArgumentType.word())
+                        .suggests((ctx, b) -> SharedSuggestionProvider.suggest(names, b))
+                        .executes(ctx -> test(ctx.getSource(), StringArgumentType.getString(ctx, "god"), 2))
+                        .then(Commands.argument("stage", IntegerArgumentType.integer(1, 3))
+                                .executes(ctx -> test(ctx.getSource(), StringArgumentType.getString(ctx, "god"),
+                                        IntegerArgumentType.getInteger(ctx, "stage"))))));
     }
 }
