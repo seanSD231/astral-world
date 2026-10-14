@@ -220,27 +220,29 @@ public final class OuterGods {
 
     // ------------------------------------------------------------------ stage 2+: the name echoes to people nearby
 
-    /** An Outer God: the names and abbreviations (normalized) that belong to it, and the lasting effect it leaves. */
-    private record God(String[] aliases, Holder<MobEffect> effect, int amplifier) {}
+    /** An Outer God: the names and abbreviations (normalized) that belong to it, and the curse it brings. */
+    private record God(String[] aliases, GodCurse.Kind kind) {}
 
     private static final God[] GODS = {
-            new God(new String[]{"mothergoddessofdepravity", "broodhiveoffilth", "mgod"}, MobEffects.WEAKNESS, 1),
-            new God(new String[]{"mothertreeofdesire", "fatherofdevils", "lordofdeviants", "perpetualblatherer", "mtod", "fod"}, MobEffects.UNLUCK, 1),
-            new God(new String[]{"sonofchaos", "everuncertainmist", "uncertainmist", "bridgeoflightanddarkness"}, MobEffects.CONFUSION, 0),
-            new God(new String[]{"primordialhunger"}, MobEffects.HUNGER, 2),
-            new God(new String[]{"circleofinevitability"}, MobEffects.MOVEMENT_SLOWDOWN, 1),
-            new God(new String[]{"supernovadominator"}, MobEffects.DIG_SLOWDOWN, 1),
-            new God(new String[]{"inextinguishableravings"}, MobEffects.DARKNESS, 0),
-            new God(new String[]{"monarchofdecay"}, MobEffects.POISON, 0),
-            new God(new String[]{"highdimensionaloverseer", "hdo"}, MobEffects.GLOWING, 0),
-            new God(new String[]{"goddessoffate"}, MobEffects.UNLUCK, 2),
+            new God(new String[]{"mothergoddessofdepravity", "broodhiveoffilth", "mgod"}, GodCurse.Kind.DEPRAVITY),
+            new God(new String[]{"mothertreeofdesire", "mtod"}, GodCurse.Kind.DESIRE),
+            new God(new String[]{"fatherofdevils", "lordofdeviants", "fod"}, GodCurse.Kind.DEVILS),
+            new God(new String[]{"perpetualblatherer"}, GodCurse.Kind.BLATHERER),
+            new God(new String[]{"sonofchaos"}, GodCurse.Kind.CHAOS),
+            new God(new String[]{"everuncertainmist", "uncertainmist"}, GodCurse.Kind.MIST),
+            new God(new String[]{"bridgeoflightanddarkness"}, GodCurse.Kind.BRIDGE),
+            new God(new String[]{"primordialhunger"}, GodCurse.Kind.HUNGER),
+            new God(new String[]{"circleofinevitability"}, GodCurse.Kind.CIRCLE),
+            new God(new String[]{"supernovadominator"}, GodCurse.Kind.SUPERNOVA),
+            new God(new String[]{"inextinguishableravings"}, GodCurse.Kind.RAVINGS),
+            new God(new String[]{"monarchofdecay"}, GodCurse.Kind.DECAY),
+            new God(new String[]{"highdimensionaloverseer", "hdo"}, GodCurse.Kind.OVERSEER),
+            new God(new String[]{"goddessoffate"}, GodCurse.Kind.FATE),
     };
-    /** Used for names added to the names file that are not in the table above. */
-    private static final God UNKNOWN_GOD = new God(new String[0], MobEffects.DARKNESS, 0);
 
-    private static God godFor(String match) {
-        for (God g : GODS) for (String a : g.aliases()) if (a.equals(match)) return g;
-        return UNKNOWN_GOD;
+    private static GodCurse.Kind kindFor(String match) {
+        for (God g : GODS) for (String a : g.aliases()) if (a.equals(match)) return g.kind();
+        return GodCurse.Kind.UNKNOWN; // a name added to the names file that has no curse of its own
     }
 
     /**
@@ -251,9 +253,8 @@ public final class OuterGods {
         boolean strong = Stage.atLeast(server, 3);
         double radius = Settings.nearbyRadius * (strong ? 2.0 : 1.0);
         double percent = strong ? 75 : 50;
-        God god = godFor(match);
-        int duration = (strong ? 20 : 10) * 60 * 20; // 10 minutes, 20 in stage 3
-        int amplifier = god.amplifier() + (strong ? 1 : 0);
+        GodCurse.Kind kind = kindFor(match);
+        int stage = Stage.current(server);
         for (ServerPlayer q : server.getPlayerList().getPlayers()) {
             if (q == speaker || q.isCreative() || q.isSpectator()) continue;
             if (q.level() != speaker.level() || q.distanceToSqr(speaker) > radius * radius) continue;
@@ -261,10 +262,10 @@ public final class OuterGods {
                 Object pathway = godPathway(match); // the god's own pathway (Mother if it has none)
                 if (pathway != null) Lotm.addCorruptionPercent(q, pathway, percent);
             }
-            q.addEffect(new MobEffectInstance(god.effect(), duration, amplifier, false, true));
+            GodCurse.start(server, q, kind, stage, null); // the god's curse, short and brutal; they can die from it
             q.displayClientMessage(Component.literal("A name was spoken nearby...").withStyle(ChatFormatting.DARK_RED), true);
         }
-        LOGGER.info("[astral] {} named an Outer God ('{}'): nearby players were affected (radius {}, {}% corruption)",
+        LOGGER.info("[astral] {} named an Outer God ('{}'): nearby players were cursed (radius {}, {}% corruption)",
                 speaker.getGameProfile().getName(), match, radius, percent);
     }
 
@@ -295,6 +296,15 @@ public final class OuterGods {
     }
 
     private static void punish(MinecraftServer server, ServerPlayer p, String match) {
+        p.displayClientMessage(Component.literal("Something heard you.").withStyle(ChatFormatting.DARK_RED), true);
+        playAt(p, "entity.warden.heartbeat", p.getX(), p.getY(), p.getZ(), 1.0f, 0.5f);
+        LOGGER.info("[astral] {} named an Outer God ('{}'): the curse starts, then deadly corruption", p.getGameProfile().getName(), match);
+        // the god's curse first; when it is over the corruption finishes the speaker
+        GodCurse.start(server, p, kindFor(match), Stage.current(server), () -> finishPunish(server, p, match));
+    }
+
+    private static void finishPunish(MinecraftServer server, ServerPlayer p, String match) {
+        if (!p.isAlive()) return;
         Object pathway = godPathway(match); // the god's own pathway (Mother if it has none)
         if (pathway == null) pathway = Lotm.pathway(p);
         if (pathway == null) pathway = Lotm.randomPathway();
@@ -304,10 +314,7 @@ public final class OuterGods {
         }
         Lotm.addCorruptionPercent(p, pathway, 100); // straight to max; LOTM's own handler then kills them
         doomed.put(p.getUUID(), new Doom(pathway, server.getTickCount() + 20 * 60));
-        p.displayClientMessage(Component.literal("Something heard you.").withStyle(ChatFormatting.DARK_RED), true);
-        p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 200, 0, false, false));
-        playAt(p, "entity.warden.heartbeat", p.getX(), p.getY(), p.getZ(), 1.0f, 0.5f);
-        LOGGER.info("[astral] {} named an Outer God and was struck with deadly corruption", p.getGameProfile().getName());
+        LOGGER.info("[astral] {} was struck with deadly corruption", p.getGameProfile().getName());
     }
 
     private static boolean chatHookLogged = false;
@@ -355,7 +362,7 @@ public final class OuterGods {
 
     // ------------------------------------------------------------------ hallucinations
 
-    private static void playAt(ServerPlayer p, String soundId, double x, double y, double z, float volume, float pitch) {
+    static void playAt(ServerPlayer p, String soundId, double x, double y, double z, float volume, float pitch) {
         BuiltInRegistries.SOUND_EVENT.getHolder(ResourceLocation.withDefaultNamespace(soundId)).ifPresent(h ->
                 p.connection.send(new ClientboundSoundPacket(h, SoundSource.AMBIENT, x, y, z, volume, pitch, p.getRandom().nextLong())));
     }
