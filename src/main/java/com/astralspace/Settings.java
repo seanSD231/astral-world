@@ -31,7 +31,7 @@ public final class Settings {
     static {
         KEYS.put("surface_top", new String[]{"320", "Height band of the REAL overworld. When a player leaves the Astral World the ground is searched from\n# surface_top DOWN to surface_bottom, so with a stacked dimension (OneDimension) the Nether/End layers are never\n# mistaken for the overworld's ground."});
         KEYS.put("surface_bottom", new String[]{"-64", null});
-        KEYS.put("astral_barrier_level", new String[]{"320", "The height (Y) of the Astral Barrier in the sky of the Astral World. Lower number = closer. It is never drawn higher than the game\n# can still render it (about 2.4 x the player's render distance above them)."});
+        KEYS.put("astral_barrier_level", new String[]{"170", "The height (Y) of the Astral Barrier in the sky of the Astral World. Lower number = closer. It is never drawn higher than the game\n# can still render it (about 2.4 x the player's render distance above them)."});
         KEYS.put("overworld_barrier_y", new String[]{"1000", "The same for the overworld sky. It is always drawn at least as high as the game allows, never below this height unless the render distance is too small."});
         KEYS.put("stage3_days", new String[]{"7", "Real-life days from the start of stage 2 until stage 3 begins (decimals allowed, e.g. 0.01 to test)."});
         KEYS.put("barrier_damage_minutes", new String[]{"60", "Stage 3: one barrier damage every this many minutes, before the online-Seq-0 multiplier (halved with no Seq 0\n# online, doubled for every Seq 0 online beyond the first)."});
@@ -40,7 +40,7 @@ public final class Settings {
 
     public static volatile int surfaceTop = 320;
     public static volatile int surfaceBottom = -64;
-    public static volatile int barrierY = 320;
+    public static volatile int barrierY = 170;
     public static volatile int barrierYOverworld = 1000;
     public static volatile double stage3Days = 7.0;
     public static volatile double barrierDamageMinutes = 60.0;
@@ -73,6 +73,11 @@ public final class Settings {
             }
             if (add.length() > 0) Files.writeString(file, add.toString(), java.nio.file.StandardOpenOption.APPEND);
 
+            // the old default (320) is moved to the new default (170); any other value you set yourself is kept
+            if ("320".equals(p.getProperty("astral_barrier_level").trim())) {
+                Files.writeString(file, Files.readString(file).replaceAll("(?m)^astral_barrier_level\\s*=\\s*320\\s*$", "astral_barrier_level=170"));
+                p.setProperty("astral_barrier_level", "170");
+            }
             surfaceTop = Integer.parseInt(p.getProperty("surface_top").trim());
             surfaceBottom = Integer.parseInt(p.getProperty("surface_bottom").trim());
             barrierY = Integer.parseInt(p.getProperty("astral_barrier_level").trim());

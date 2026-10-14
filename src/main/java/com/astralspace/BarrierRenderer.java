@@ -42,11 +42,11 @@ public final class BarrierRenderer {
      * Dark, muted colours (black, dark red, grey-white, navy). Drawn semi-translucent, like cracks in glass.
      */
     private static final float[][] VARIANTS = {
-            {0.35f, 120, 260, 6, 10, 3, 2.6f, 105, 15, 25, 0, 0, 0, 45, 0, 0},          // black fading to dark red, dim red edge
-            {0.25f, 180, 320, 5, 8, 2, 1.8f, 140, 140, 150, 0, 0, 0, 95, 0, 10},        // long hairline, black to dark red, grey edge
-            {0.55f, 100, 220, 6, 10, 3, 2.4f, 105, 15, 25, 120, 0, 10, 0, 0, 0},        // dark red to black, jagged
-            {0.60f, 80, 180, 8, 12, 3, 2.0f, 30, 30, 40, 225, 225, 232, 190, 190, 200}, // pale glass white, dark edge, very jagged
-            {0.30f, 140, 260, 4, 6, 2, 3.4f, 20, 35, 90, 10, 25, 85, 0, 0, 0},          // dark navy to black
+            {0.35f, 120, 260, 6, 10, 3, 2.4f, 40, 40, 48, 235, 235, 240, 175, 175, 185}, // pale white fading to light grey, dark edge
+            {0.25f, 180, 320, 5, 8, 2, 1.8f, 90, 90, 100, 205, 205, 212, 120, 120, 130}, // long hairline, light grey to mid grey
+            {0.55f, 100, 220, 6, 10, 3, 2.2f, 30, 30, 38, 245, 245, 248, 150, 150, 160}, // bright white to grey, jagged
+            {0.60f, 80, 180, 8, 12, 3, 2.0f, 30, 30, 40, 225, 225, 232, 190, 190, 200},  // pale glass white, dark edge, very jagged
+            {0.30f, 140, 260, 4, 6, 2, 3.0f, 55, 55, 65, 170, 170, 180, 95, 95, 105},    // thicker mid grey fading darker
     };
 
     private static final class Crack {
