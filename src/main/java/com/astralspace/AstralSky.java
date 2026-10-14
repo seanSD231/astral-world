@@ -30,20 +30,26 @@ public final class AstralSky extends DimensionSpecialEffects {
     private static final int SYMBOLS = 14;       // how many symbols hang in the sky
     private static final ResourceLocation MOON = ResourceLocation.withDefaultNamespace("textures/environment/moon_phases.png");
 
-    private final float[][] stars = new float[1400][];   // {x, y, z, size, brightness}
-    private final float[][] symbols = new float[SYMBOLS][]; // {x, y, z, size, phase, speed, pathwayIndex}
+    /** Star colours, like real stars: mostly white, some blue, yellow, orange and red ones. {r, g, b, weight} */
+    private static final int[][] STAR_COLORS = {
+            {255, 255, 255, 55}, {170, 200, 255, 15}, {255, 240, 180, 12}, {255, 190, 130, 10}, {255, 160, 170, 8}
+    };
+
+    private final float[][] stars = new float[1600][];      // {x, y, z, size, alpha, r, g, b}
+    private final float[][] symbols = new float[SYMBOLS][]; // {size, phase, speed}
 
     public AstralSky() {
         super(Float.NaN, true, SkyType.NORMAL, false, false);
         Random r = new Random(0xA57A15CAL);
         for (int i = 0; i < stars.length; i++) {
-            float[] d = direction(r, -0.15f);
-            stars[i] = new float[]{d[0], d[1], d[2], 0.25f + r.nextFloat() * 0.45f, 0.45f + r.nextFloat() * 0.55f};
+            float[] d = direction(r, -1.0f); // the whole sky, under the player too
+            int pick = r.nextInt(100), acc = 0, ci = 0;
+            for (int k = 0; k < STAR_COLORS.length; k++) { acc += STAR_COLORS[k][3]; if (pick < acc) { ci = k; break; } }
+            stars[i] = new float[]{d[0], d[1], d[2], 0.15f + r.nextFloat() * 0.12f, 0.5f + r.nextFloat() * 0.5f,
+                    STAR_COLORS[ci][0], STAR_COLORS[ci][1], STAR_COLORS[ci][2]};
         }
         for (int i = 0; i < SYMBOLS; i++) {
-            float[] d = direction(r, 0.15f);
-            symbols[i] = new float[]{d[0], d[1], d[2], 7f + r.nextFloat() * 6f, r.nextFloat() * 6.283f, 0.15f + r.nextFloat() * 0.25f,
-                    (i * 5 + r.nextInt(3)) % PATHWAYS.length};
+            symbols[i] = new float[]{7f + r.nextFloat() * 6f, r.nextFloat() * 6.283f, 0.12f + r.nextFloat() * 0.2f};
         }
     }
 
@@ -77,7 +83,7 @@ public final class AstralSky extends DimensionSpecialEffects {
         // stars
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         BufferBuilder b = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        for (float[] s : stars) quadFacing(b, modelView, s[0], s[1], s[2], s[3], 255, 255, 255, (int) (s[4] * 255), 0);
+        for (float[] s : stars) quadFacing(b, modelView, s[0], s[1], s[2], s[3], (int) s[5], (int) s[6], (int) s[7], (int) (s[4] * 255), 0);
         BufferUploader.drawWithShader(b.buildOrThrow());
 
         // the moon, straight overhead (phase 0 = the top-left tile of the moon texture)
@@ -95,13 +101,20 @@ public final class AstralSky extends DimensionSpecialEffects {
         // pathway symbols fading in and out
         double t = System.currentTimeMillis() / 1000.0;
         RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-        for (float[] s : symbols) {
-            float wave = (float) (0.5 + 0.5 * Math.sin(t * s[5] + s[4]));
-            float alpha = wave * wave * wave * 0.75f; // mostly invisible, slowly glows, slowly goes again
+        for (int i = 0; i < SYMBOLS; i++) {
+            float[] s = symbols[i];
+            double angle = t * s[2] + s[1];
+            long cycle = (long) Math.floor(angle / (Math.PI * 2));
+            float wave = (float) (0.5 - 0.5 * Math.cos(angle));        // 0 at the start and end of a cycle: invisible
+            float alpha = wave * wave * 0.8f;
             if (alpha < 0.02f) continue;
-            RenderSystem.setShaderTexture(0, ResourceLocation.fromNamespaceAndPath("lotm", "textures/pathway/" + PATHWAYS[(int) s[6]] + ".png"));
+            // every time a symbol fades in again it is somewhere else, and may be another pathway
+            Random pr = new Random(i * 7919L + cycle * 104729L + 17L);
+            float[] d = direction(pr, -0.6f);
+            String path = PATHWAYS[(int) ((i * 5 + cycle * 3 + (cycle < 0 ? 22 * 1000L : 0)) % PATHWAYS.length)];
+            RenderSystem.setShaderTexture(0, ResourceLocation.fromNamespaceAndPath("lotm", "textures/pathway/" + path + ".png"));
             BufferBuilder q = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-            texturedFacing(q, modelView, s[0], s[1], s[2], s[3], 215, 190, 255, (int) (alpha * 255));
+            texturedFacing(q, modelView, d[0], d[1], d[2], s[0], 215, 190, 255, (int) (alpha * 255));
             BufferUploader.drawWithShader(q.buildOrThrow());
         }
 

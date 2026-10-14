@@ -37,17 +37,17 @@ public final class BarrierRenderer {
     private static final int BASE_ALPHA = 38, GRID_ALPHA = 60;
 
     /**
-     * Six crack looks: {angleJitter, segLenMin, segLenMax, segMin, segMax, branchChance, width,
+     * Six crack looks: {angleJitter, lengthMin, lengthMax, radialsMin, radialsMax, rings, width,
      *                   outlineR, outlineG, outlineB, coreStartR, G, B, coreEndR, G, B}
      * All cracks are solid (no gaps). Colours: black, red, blue, white, as dark gradients only.
      */
     private static final float[][] VARIANTS = {
-            {0.45f, 30, 70, 8, 13, 0.35f, 3.2f, 170, 20, 30, 0, 0, 0, 40, 0, 0},            // black, thin red outline
-            {0.25f, 50, 110, 8, 12, 0.10f, 2.2f, 225, 225, 235, 0, 0, 0, 100, 0, 10},       // long black to dark red, white outline
-            {0.60f, 15, 35, 10, 16, 0.60f, 4.0f, 55, 95, 225, 0, 0, 0, 0, 8, 70},           // black to deep blue, blue outline, many branches
-            {0.80f, 20, 50, 8, 12, 0.40f, 3.0f, 170, 20, 30, 120, 0, 10, 0, 0, 0},          // dark red to black, jagged
-            {0.90f, 14, 34, 10, 16, 0.45f, 2.6f, 15, 15, 25, 238, 238, 248, 238, 238, 248}, // solid white with a black outline, very jagged
-            {0.30f, 40, 80, 4, 7, 0.20f, 6.0f, 55, 95, 225, 10, 30, 135, 0, 0, 0},          // wide deep blue to black, blue outline
+            {0.35f, 120, 260, 6, 10, 3, 3.2f, 170, 20, 30, 0, 0, 0, 40, 0, 0},            // black, thin red outline
+            {0.25f, 180, 320, 5, 8, 2, 2.2f, 225, 225, 235, 0, 0, 0, 100, 0, 10},       // long black to dark red, white outline
+            {0.50f, 90, 200, 8, 13, 4, 4.0f, 55, 95, 225, 0, 0, 0, 0, 8, 70},           // black to deep blue, blue outline, many branches
+            {0.55f, 100, 220, 6, 10, 3, 3.0f, 170, 20, 30, 120, 0, 10, 0, 0, 0},          // dark red to black, jagged
+            {0.60f, 80, 180, 8, 12, 3, 2.6f, 15, 15, 25, 238, 238, 248, 238, 238, 248}, // solid white with a black outline, very jagged
+            {0.30f, 140, 260, 4, 6, 2, 6.0f, 55, 95, 225, 10, 30, 135, 0, 0, 0},          // wide deep blue to black, blue outline
     };
 
     private static final class Crack {
@@ -106,36 +106,76 @@ public final class BarrierRenderer {
         NeoForge.EVENT_BUS.addListener(BarrierRenderer::onRender);
     }
 
+    /** A point at distance `dist` along a polyline of {x, z, distanceFromCenter} points. */
+    private static float[] along(List<float[]> pts, float dist) {
+        for (int k = 1; k < pts.size(); k++) {
+            float[] p0 = pts.get(k - 1), p1 = pts.get(k);
+            if (dist <= p1[2]) {
+                float f = (dist - p0[2]) / Math.max(0.001f, p1[2] - p0[2]);
+                return new float[]{p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f};
+            }
+        }
+        return null; // the radial is shorter than that
+    }
+
+    /**
+     * A crack like shattered glass: an impact point, jagged radial cracks running out of it (thick at the centre, thin at
+     * the tips) and jagged rings joining neighbouring radials, with some links missing so it looks broken, not drawn.
+     */
     private static Crack crack(int index) {
         return CRACKS.computeIfAbsent(index, i -> {
             Random r = new Random(0x9E3779B97F4A7C15L * (i + 1) ^ 0xA57A1L);
             Crack c = new Crack();
             c.variant = r.nextInt(VARIANTS.length);
             float[] v = VARIANTS[c.variant];
-            float widthMul = 0.8f + r.nextFloat() * 0.5f;
-            float scale = 0.8f + r.nextFloat() * 0.5f;
-            float x = r.nextFloat() * TILE, z = r.nextFloat() * TILE;
-            double angle = r.nextDouble() * Math.PI * 2;
-            int n = (int) v[3] + r.nextInt((int) (v[4] - v[3]) + 1);
-            for (int k = 0; k < n; k++) {
-                float len = (v[1] + r.nextFloat() * (v[2] - v[1])) * scale;
-                angle += r.nextGaussian() * v[0];
-                float nx = x + (float) Math.cos(angle) * len, nz = z + (float) Math.sin(angle) * len;
-                float t0 = k / (float) n, t1 = (k + 1) / (float) n;
-                c.segs.add(new float[]{x, z, nx, nz, v[6] * widthMul, t0, t1});
-                if (r.nextFloat() < v[5]) { // a branch
-                    float bx = nx, bz = nz;
-                    double ba = angle + (r.nextBoolean() ? 1 : -1) * (0.6 + r.nextDouble() * 0.6);
-                    int bn = 2 + r.nextInt(3);
-                    for (int b = 0; b < bn; b++) {
-                        float bl = (v[1] * 0.6f + r.nextFloat() * v[2] * 0.4f) * scale;
-                        ba += r.nextGaussian() * v[0] * 0.8;
-                        float ex = bx + (float) Math.cos(ba) * bl, ez = bz + (float) Math.sin(ba) * bl;
-                        c.segs.add(new float[]{bx, bz, ex, ez, v[6] * widthMul * 0.6f, t1, Math.min(1f, t1 + 0.08f)});
-                        bx = ex; bz = ez;
-                    }
+            float scale = 0.75f + r.nextFloat() * 0.5f;
+            float w0 = v[6] * (0.8f + r.nextFloat() * 0.5f);
+            float ox = r.nextFloat() * TILE, oz = r.nextFloat() * TILE;
+            int radials = (int) v[3] + r.nextInt((int) (v[4] - v[3]) + 1);
+            int rings = (int) v[5];
+            double base = r.nextDouble() * Math.PI * 2;
+
+            List<List<float[]>> lines = new ArrayList<>();
+            float[] lengths = new float[radials];
+            for (int k = 0; k < radials; k++) {
+                double ang = base + Math.PI * 2 * k / radials + r.nextGaussian() * 0.18;
+                float total = (v[1] + r.nextFloat() * (v[2] - v[1])) * scale;
+                lengths[k] = total;
+                List<float[]> pts = new ArrayList<>();
+                pts.add(new float[]{ox, oz, 0f});
+                float x = ox, z = oz, d = 0;
+                while (d < total) {
+                    float step = Math.min(total - d, 18 + r.nextFloat() * 22);
+                    ang += r.nextGaussian() * v[0] * 0.5;
+                    x += (float) Math.cos(ang) * step; z += (float) Math.sin(ang) * step; d += step;
+                    pts.add(new float[]{x, z, d});
                 }
-                x = nx; z = nz;
+                lines.add(pts);
+                for (int q = 1; q < pts.size(); q++) { // thick at the centre, thin at the tip
+                    float[] p0 = pts.get(q - 1), p1 = pts.get(q);
+                    float wa = w0 * (1f - 0.75f * p0[2] / total), wb = w0 * (1f - 0.75f * p1[2] / total);
+                    c.segs.add(new float[]{p0[0], p0[1], p1[0], p1[1], (wa + wb) * 0.5f, p0[2] / total, p1[2] / total});
+                }
+                if (r.nextFloat() < 0.5f && pts.size() > 3) { // a small fork off the radial
+                    float[] f = pts.get(2 + r.nextInt(pts.size() - 3));
+                    double fa = ang + (r.nextBoolean() ? 1 : -1) * (0.5 + r.nextDouble() * 0.5);
+                    float fx = f[0], fz = f[1], fl = 25 + r.nextFloat() * 45;
+                    float fx2 = fx + (float) Math.cos(fa) * fl, fz2 = fz + (float) Math.sin(fa) * fl;
+                    c.segs.add(new float[]{fx, fz, fx2, fz2, w0 * 0.35f, f[2] / total, Math.min(1f, f[2] / total + 0.15f)});
+                }
+            }
+            // rings of broken glass between neighbouring radials
+            for (int j = 1; j <= rings; j++) {
+                float radius = (30 + j * 45 + r.nextFloat() * 20) * scale;
+                for (int k = 0; k < radials; k++) {
+                    if (r.nextFloat() < 0.3f) continue;               // a missing link
+                    float[] a = along(lines.get(k), radius), b = along(lines.get((k + 1) % radials), radius);
+                    if (a == null || b == null) continue;
+                    float mx = (a[0] + b[0]) * 0.5f + (r.nextFloat() - 0.5f) * 18f, mz = (a[1] + b[1]) * 0.5f + (r.nextFloat() - 0.5f) * 18f;
+                    float t = Math.min(1f, radius / ((lengths[k] + lengths[(k + 1) % radials]) * 0.5f));
+                    c.segs.add(new float[]{a[0], a[1], mx, mz, w0 * 0.45f, t, t});
+                    c.segs.add(new float[]{mx, mz, b[0], b[1], w0 * 0.45f, t, t});
+                }
             }
             return c;
         });
