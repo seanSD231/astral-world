@@ -21,7 +21,7 @@ import java.util.Random;
  * Client only: the Astral Barrier. A huge, very translucent purple dome that curves down at the edges like the surface of a
  * planet, with a faint grid, fading out toward the horizon. Drawn in the Astral World and in the overworld sky (not in the
  * Nether/End dimensions). It hangs as high as the game can still draw it (the far clip plane is about 4 x render distance).
- * One crack per missing HP, in 6 solid looks (dark gradients in black, red, blue and white, with an outline).
+ * One crack per missing HP, in 6 solid looks (dark, muted, semi-translucent, with a dim edge).
  * Every crack always looks the same for everyone. The dome follows the player and the cracks repeat every TILE blocks.
  */
 public final class BarrierRenderer {
@@ -34,25 +34,24 @@ public final class BarrierRenderer {
     private static final net.minecraft.resources.ResourceLocation ASTRAL =
             net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("astral_world", "astral_world");
 
-    private static final int BASE_ALPHA = 38, GRID_ALPHA = 60;
+    private static final int BASE_ALPHA = 38, GRID_ALPHA = 60, CORE_ALPHA = 170, OUTLINE_ALPHA = 90;
 
     /**
-     * Six crack looks: {angleJitter, lengthMin, lengthMax, radialsMin, radialsMax, rings, width,
-     *                   outlineR, outlineG, outlineB, coreStartR, G, B, coreEndR, G, B}
-     * All cracks are solid (no gaps). Colours: black, red, blue, white, as dark gradients only.
+     * Five crack looks: {angleJitter, lengthMin, lengthMax, radialsMin, radialsMax, rings, width,
+     *                    outlineR, outlineG, outlineB, coreStartR, G, B, coreEndR, G, B}
+     * Dark, muted colours (black, dark red, grey-white, navy). Drawn semi-translucent, like cracks in glass.
      */
     private static final float[][] VARIANTS = {
-            {0.35f, 120, 260, 6, 10, 3, 3.2f, 170, 20, 30, 0, 0, 0, 40, 0, 0},            // black, thin red outline
-            {0.25f, 180, 320, 5, 8, 2, 2.2f, 225, 225, 235, 0, 0, 0, 100, 0, 10},       // long black to dark red, white outline
-            {0.50f, 90, 200, 8, 13, 4, 4.0f, 55, 95, 225, 0, 0, 0, 0, 8, 70},           // black to deep blue, blue outline, many branches
-            {0.55f, 100, 220, 6, 10, 3, 3.0f, 170, 20, 30, 120, 0, 10, 0, 0, 0},          // dark red to black, jagged
-            {0.60f, 80, 180, 8, 12, 3, 2.6f, 15, 15, 25, 238, 238, 248, 238, 238, 248}, // solid white with a black outline, very jagged
-            {0.30f, 140, 260, 4, 6, 2, 6.0f, 55, 95, 225, 10, 30, 135, 0, 0, 0},          // wide deep blue to black, blue outline
+            {0.35f, 120, 260, 6, 10, 3, 2.6f, 105, 15, 25, 0, 0, 0, 45, 0, 0},          // black fading to dark red, dim red edge
+            {0.25f, 180, 320, 5, 8, 2, 1.8f, 140, 140, 150, 0, 0, 0, 95, 0, 10},        // long hairline, black to dark red, grey edge
+            {0.55f, 100, 220, 6, 10, 3, 2.4f, 105, 15, 25, 120, 0, 10, 0, 0, 0},        // dark red to black, jagged
+            {0.60f, 80, 180, 8, 12, 3, 2.0f, 30, 30, 40, 225, 225, 232, 190, 190, 200}, // pale glass white, dark edge, very jagged
+            {0.30f, 140, 260, 4, 6, 2, 3.4f, 20, 35, 90, 10, 25, 85, 0, 0, 0},          // dark navy to black
     };
 
     private static final class Crack {
         int variant;
-        final List<float[]> segs = new ArrayList<>(); // {x0, z0, x1, z1, width, t0, t1}  (t = position along the crack, 0..1)
+        final List<float[][]> lines = new ArrayList<>(); // polylines of {x, z, width, t}  (t = 0 at the impact, 1 at the tips)
     }
     private static final Map<Integer, Crack> CRACKS = new HashMap<>();
 
@@ -120,9 +119,26 @@ public final class BarrierRenderer {
         return null; // the radial is shorter than that
     }
 
+    /** Cuts a polyline into pieces of at most PIECE blocks so it can follow the curve of the dome. */
+    private static float[][] resample(float[][] pts) {
+        List<float[]> out = new ArrayList<>();
+        out.add(pts[0]);
+        for (int k = 1; k < pts.length; k++) {
+            float[] a = pts[k - 1], b = pts[k];
+            float len = (float) Math.hypot(b[0] - a[0], b[1] - a[1]);
+            int n = Math.max(1, (int) Math.ceil(len / PIECE));
+            for (int j = 1; j <= n; j++) {
+                float f = j / (float) n;
+                out.add(new float[]{a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f, a[3] + (b[3] - a[3]) * f});
+            }
+        }
+        return out.toArray(new float[0][]);
+    }
+
     /**
      * A crack like shattered glass: an impact point, jagged radial cracks running out of it (thick at the centre, thin at
      * the tips) and jagged rings joining neighbouring radials, with some links missing so it looks broken, not drawn.
+     * Every crack is a few continuous polylines, so it can be drawn as smooth strips with no overlaps.
      */
     private static Crack crack(int index) {
         return CRACKS.computeIfAbsent(index, i -> {
@@ -137,7 +153,7 @@ public final class BarrierRenderer {
             int rings = (int) v[5];
             double base = r.nextDouble() * Math.PI * 2;
 
-            List<List<float[]>> lines = new ArrayList<>();
+            List<List<float[]>> radialPts = new ArrayList<>();
             float[] lengths = new float[radials];
             for (int k = 0; k < radials; k++) {
                 double ang = base + Math.PI * 2 * k / radials + r.nextGaussian() * 0.18;
@@ -152,18 +168,22 @@ public final class BarrierRenderer {
                     x += (float) Math.cos(ang) * step; z += (float) Math.sin(ang) * step; d += step;
                     pts.add(new float[]{x, z, d});
                 }
-                lines.add(pts);
-                for (int q = 1; q < pts.size(); q++) { // thick at the centre, thin at the tip
-                    float[] p0 = pts.get(q - 1), p1 = pts.get(q);
-                    float wa = w0 * (1f - 0.75f * p0[2] / total), wb = w0 * (1f - 0.75f * p1[2] / total);
-                    c.segs.add(new float[]{p0[0], p0[1], p1[0], p1[1], (wa + wb) * 0.5f, p0[2] / total, p1[2] / total});
+                radialPts.add(pts);
+                float[][] line = new float[pts.size()][];
+                for (int q = 0; q < pts.size(); q++) { // thick at the centre, thin at the tip
+                    float[] p = pts.get(q);
+                    line[q] = new float[]{p[0], p[1], w0 * (1f - 0.8f * p[2] / total), p[2] / total};
                 }
+                c.lines.add(resample(line));
                 if (r.nextFloat() < 0.5f && pts.size() > 3) { // a small fork off the radial
                     float[] f = pts.get(2 + r.nextInt(pts.size() - 3));
                     double fa = ang + (r.nextBoolean() ? 1 : -1) * (0.5 + r.nextDouble() * 0.5);
-                    float fx = f[0], fz = f[1], fl = 25 + r.nextFloat() * 45;
-                    float fx2 = fx + (float) Math.cos(fa) * fl, fz2 = fz + (float) Math.sin(fa) * fl;
-                    c.segs.add(new float[]{fx, fz, fx2, fz2, w0 * 0.35f, f[2] / total, Math.min(1f, f[2] / total + 0.15f)});
+                    float fl = 25 + r.nextFloat() * 45;
+                    float t = f[2] / total;
+                    c.lines.add(resample(new float[][]{
+                            {f[0], f[1], w0 * 0.4f, t},
+                            {f[0] + (float) Math.cos(fa) * fl * 0.5f + (r.nextFloat() - 0.5f) * 6f, f[1] + (float) Math.sin(fa) * fl * 0.5f + (r.nextFloat() - 0.5f) * 6f, w0 * 0.25f, Math.min(1f, t + 0.08f)},
+                            {f[0] + (float) Math.cos(fa) * fl, f[1] + (float) Math.sin(fa) * fl, w0 * 0.1f, Math.min(1f, t + 0.15f)}}));
                 }
             }
             // rings of broken glass between neighbouring radials
@@ -171,16 +191,41 @@ public final class BarrierRenderer {
                 float radius = (30 + j * 45 + r.nextFloat() * 20) * scale;
                 for (int k = 0; k < radials; k++) {
                     if (r.nextFloat() < 0.3f) continue;               // a missing link
-                    float[] a = along(lines.get(k), radius), b = along(lines.get((k + 1) % radials), radius);
+                    float[] a = along(radialPts.get(k), radius), b = along(radialPts.get((k + 1) % radials), radius);
                     if (a == null || b == null) continue;
                     float mx = (a[0] + b[0]) * 0.5f + (r.nextFloat() - 0.5f) * 18f, mz = (a[1] + b[1]) * 0.5f + (r.nextFloat() - 0.5f) * 18f;
                     float t = Math.min(1f, radius / ((lengths[k] + lengths[(k + 1) % radials]) * 0.5f));
-                    c.segs.add(new float[]{a[0], a[1], mx, mz, w0 * 0.45f, t, t});
-                    c.segs.add(new float[]{mx, mz, b[0], b[1], w0 * 0.45f, t, t});
+                    c.lines.add(resample(new float[][]{{a[0], a[1], w0 * 0.4f, t}, {mx, mz, w0 * 0.3f, t}, {b[0], b[1], w0 * 0.4f, t}}));
                 }
             }
             return c;
         });
+    }
+
+    /**
+     * One continuous ribbon along a polyline of {x, z, width, t}: each point gets a left and a right edge, and every pair of
+     * neighbouring points makes one quad, so nothing overlaps (which matters because the ribbon is translucent).
+     * widthScale multiplies the width, extra adds to it (the outline is the same ribbon, a little wider).
+     */
+    private static void ribbon(VertexConsumer vc, Matrix4f m, float yOff, float[][] pts, float ox, float oz,
+                               float widthScale, float extra, float[] v, boolean outline, int alpha) {
+        int n = pts.length;
+        float[] lx = new float[n], lz = new float[n], rx = new float[n], rz = new float[n];
+        int[][] col = new int[n][];
+        for (int i = 0; i < n; i++) {
+            float[] p = pts[i], pa = pts[Math.max(0, i - 1)], pb = pts[Math.min(n - 1, i + 1)];
+            float dx = pb[0] - pa[0], dz = pb[1] - pa[1];
+            float len = (float) Math.hypot(dx, dz);
+            if (len < 0.0001f) { dx = 1; dz = 0; len = 1; }
+            float nx = -dz / len, nz = dx / len;
+            float h = (p[2] * widthScale + extra) * 0.5f;
+            lx[i] = p[0] + ox + nx * h; lz[i] = p[1] + oz + nz * h;
+            rx[i] = p[0] + ox - nx * h; rz[i] = p[1] + oz - nz * h;
+            col[i] = outline ? new int[]{(int) v[7], (int) v[8], (int) v[9]} : mix(v, 10, 13, p[3]);
+        }
+        for (int i = 0; i + 1 < n; i++) {
+            quad(vc, m, yOff, lx[i], lz[i], col[i], lx[i + 1], lz[i + 1], col[i + 1], rx[i + 1], rz[i + 1], col[i + 1], rx[i], rz[i], col[i], alpha);
+        }
     }
 
     private static float yAt(float x, float z) {
@@ -293,7 +338,7 @@ public final class BarrierRenderer {
             segment(vc, m, 0f, minX, gz, maxX, gz, 1.6f * lineScale, lilac, lilac, GRID_ALPHA, 0f);
         buffers.endBatch(planeType);
 
-        // 2) cracks: solid, one per missing HP, repeated in every tile around the player
+        // 2) cracks: semi-translucent ribbons, one per missing HP, repeated in every tile around the player
         if (cracks > 0) {
             RenderType crackType = renderType(crackMode);
             VertexConsumer cv = buffers.getBuffer(crackType);
@@ -302,17 +347,14 @@ public final class BarrierRenderer {
             for (int i = 0; i < cracks; i++) {
                 Crack c = crack(i);
                 float[] v = VARIANTS[c.variant];
-                int[] outline = {(int) v[7], (int) v[8], (int) v[9]};
-                for (float[] s : c.segs) {
-                    int[] c0 = mix(v, 10, 13, s[5]), c1 = mix(v, 10, 13, s[6]);
-                    float w = s[4] * lineScale;
+                for (float[][] line : c.lines) {
                     for (int tx = tx0; tx <= tx1; tx++) {
                         for (int tz = tz0; tz <= tz1; tz++) {
                             float ox = tx * TILE, oz = tz * TILE;
-                            float x0 = s[0] + ox, z0 = s[1] + oz, x1 = s[2] + ox, z1 = s[3] + oz;
-                            if (x0 < minX - 100 || x0 > maxX + 100 || z0 < minZ - 100 || z0 > maxZ + 100) continue;
-                            segment(cv, m, -0.4f, x0, z0, x1, z1, w * 1.8f, outline, outline, 255, w * 0.9f); // outline underneath
-                            segment(cv, m, -0.9f, x0, z0, x1, z1, w, c0, c1, 255, w * 0.5f);                  // the solid core on top
+                            if (line[0][0] + ox < minX - 150 || line[0][0] + ox > maxX + 150
+                                    || line[0][1] + oz < minZ - 150 || line[0][1] + oz > maxZ + 150) continue;
+                            ribbon(cv, m, -0.4f, line, ox, oz, lineScale, 1.2f * lineScale, v, true, OUTLINE_ALPHA); // dim edge underneath
+                            ribbon(cv, m, -0.9f, line, ox, oz, lineScale, 0f, v, false, CORE_ALPHA);                 // the crack itself, semi-translucent
                         }
                     }
                 }
