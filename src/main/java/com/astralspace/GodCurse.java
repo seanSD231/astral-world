@@ -54,7 +54,7 @@ public final class GodCurse {
     private static final class Curse {
         final UUID id; final Kind kind; final int stage; final long end; final Runnable onEnd;
         long nextAct; int step;
-        final List<Mob> summoned = new ArrayList<>();
+        final List<net.minecraft.world.entity.Entity> summoned = new ArrayList<>();
         final List<int[]> pending = new ArrayList<>(); // supernova: far spots whose chunks are still being generated {x, z}
         ServerLevel pendingLevel;
         final ArrayDeque<Vec3> history = new ArrayDeque<>();
@@ -89,6 +89,22 @@ public final class GodCurse {
         if (amount <= 0) return;
         DamageSource src = magic ? p.level().damageSources().magic() : p.level().damageSources().explosion(null, null);
         p.hurt(src, amount);
+    }
+
+    /** Damage with one of LOTM's own damage sources ("magic", "explosion", "lava", "holyFire", "crush" ...); vanilla magic if LOTM has none. */
+    private static void hurt(ServerPlayer p, float amount, String kind) {
+        if (unkillable(p)) amount = Math.min(amount, p.getHealth() - 1.0f);
+        if (amount <= 0) return;
+        DamageSource src = Lotm.source(kind, p);
+        if (src == null) src = kind.equals("explosion") ? p.level().damageSources().explosion(null, null) : p.level().damageSources().magic();
+        p.hurt(src, amount);
+    }
+
+    private static void util(String name, ServerPlayer p, Object... extra) {
+        Object[] args = new Object[extra.length + 1];
+        args[0] = p;
+        System.arraycopy(extra, 0, args, 1, extra.length);
+        Lotm.util(name, args);
     }
 
     private static boolean standable(ServerLevel level, BlockPos feet) {
@@ -236,6 +252,7 @@ public final class GodCurse {
                 fx(p, MobEffects.CONFUSION, ticks, 0);
                 fx(p, MobEffects.HUNGER, ticks, 4);
                 fx(p, lotm("mentalplague", MobEffects.POISON), ticks, 0);
+                util("applyFrenzy", p, ticks); util("applyMentalPlague", p, ticks); // Demoness: depravity eats the mind
                 spawn(p, c, EntityType.ENDERMITE, 4 + 2 * c.stage);
                 spawn(p, c, EntityType.SILVERFISH, 4 + 2 * c.stage);
             }
@@ -244,12 +261,14 @@ public final class GodCurse {
                 fx(p, MobEffects.MOVEMENT_SLOWDOWN, ticks, 6);
                 fx(p, MobEffects.WITHER, ticks, 1 + a);
                 fx(p, MobEffects.HUNGER, ticks, 4);
+                util("applyParalysis", p, ticks); // Mother: roots hold the body
             }
             case DEVILS -> {
                 fx(p, MobEffects.BLINDNESS, ticks, 0);
                 fx(p, MobEffects.WITHER, ticks, 1 + a);
                 fx(p, lotm("frenzy", MobEffects.WEAKNESS), ticks, 0);
                 p.setRemainingFireTicks(ticks);
+                util("applyBleeding", p, ticks, 1); // Abyss: devils tear at you
                 spawn(p, c, EntityType.VEX, 3 + 2 * c.stage);
             }
             case BLATHERER -> {
@@ -260,8 +279,12 @@ public final class GodCurse {
                 fx(p, lotm("deafness", MobEffects.DARKNESS), ticks, 0);
                 fx(p, lotm("screen_shake", MobEffects.CONFUSION), ticks, 0);
             }
-            case CHAOS -> fx(p, lotm("screen_shake", MobEffects.CONFUSION), ticks, 0);
+            case CHAOS -> {
+                fx(p, lotm("screen_shake", MobEffects.CONFUSION), ticks, 0);
+                Lotm.addMisfortune(p, 150.0 * c.stage); // Wheel of Fortune: LOTM's own misfortune calamities
+            }
             case MIST -> {
+                util("applyAwe", p, 60);
                 fx(p, MobEffects.BLINDNESS, ticks, 0);
                 fx(p, MobEffects.DARKNESS, ticks, 0);
                 fx(p, MobEffects.MOVEMENT_SLOWDOWN, ticks, 2 + a);
@@ -272,12 +295,15 @@ public final class GodCurse {
                 fx(p, MobEffects.WITHER, ticks, 1 + a);
                 p.getFoodData().setFoodLevel(0);
                 p.getFoodData().setSaturation(0f);
+                util("applyNoRegeneration", p, ticks);
             }
             case CIRCLE -> {
+                util("applyNoRegeneration", p, ticks);
                 fx(p, MobEffects.MOVEMENT_SLOWDOWN, ticks, 3);
                 fx(p, lotm("hobbled", MobEffects.MOVEMENT_SLOWDOWN), ticks, 0);
             }
             case RAVINGS -> {
+                util("applyFrenzy", p, ticks); // the ravings drive you mad
                 Lotm.loseSanityPercent(p, 50);
                 fx(p, MobEffects.CONFUSION, ticks, 1);
                 fx(p, MobEffects.DIG_SLOWDOWN, ticks, 2);
@@ -288,6 +314,7 @@ public final class GodCurse {
                 fx(p, MobEffects.WEAKNESS, ticks, 1);
                 fx(p, lotm("bleeding", MobEffects.POISON), ticks, 0);
                 fx(p, lotm("armor_weakness", MobEffects.WEAKNESS), ticks, 0);
+                fx(p, lotm("handsofdeath", MobEffects.WITHER), ticks, 0); // Death: the hands of death
             }
             case OVERSEER -> {
                 int lev = (3 + c.stage) * 20; // 4 / 5 / 6 seconds of rising, roughly 40-60 blocks
@@ -331,35 +358,57 @@ public final class GodCurse {
             case SUPERNOVA -> {
                 if (supernovaJump(p, c)) {
                     burst(p, c.kind);
-                    hurt(p, 6f * k, false);
+                    hurt(p, 6f * k, "explosion");
                     p.setRemainingFireTicks(100);
+                    util("applyStun", p, 10);
+                    // a black hole and a spatial tear open next to where the player lands (short-lived, removed with the curse)
+                    ServerLevel lv = p.serverLevel();
+                    Vec3 at = p.position();
+                    var hole = Lotm.spawn(lv, "black_hole_entity", at.x + 6, at.y + 2, at.z, null, 80);
+                    if (hole != null) c.summoned.add(hole);
+                    Vec3 from = new Vec3(at.x - 10, at.y + 1.5, at.z);
+                    var tear = Lotm.spawn(lv, "space_rift_entity", from.x, from.y, from.z, at.subtract(from).normalize().scale(0.6), 60);
+                    if (tear != null) c.summoned.add(tear);
                     c.nextAct = now + 20;
                 } else {
                     p.setRemainingFireTicks(40);
                     c.nextAct = now + 5; // the next spot is still generating: check again very soon
                 }
             }
-            case DEPRAVITY -> c.nextAct = now + 40;
+            case DEPRAVITY -> {
+                Lotm.whisper(p);
+                hurt(p, 1.5f * k, "magic");
+                c.nextAct = now + 20;
+            }
             case DESIRE -> {
                 p.setDeltaMovement(0, Math.min(0, p.getDeltaMovement().y), 0);
                 p.hurtMarked = true;
-                hurt(p, 2f * k, true);
+                hurt(p, 2f * k, "crush");
+                util("applyBleeding", p, 40, 1); // thorns cut
                 p.serverLevel().sendParticles(ParticleTypes.COMPOSTER, p.getX(), p.getY() + 0.5, p.getZ(), 12, 0.4, 0.6, 0.4, 0.0);
                 c.nextAct = now + 20;
             }
             case DEVILS -> {
                 p.setRemainingFireTicks(60);
-                for (Mob m : c.summoned) if (m.isAlive()) m.setTarget(p);
+                for (net.minecraft.world.entity.Entity m : c.summoned) if (m instanceof Mob mob && mob.isAlive()) mob.setTarget(p);
                 c.nextAct = now + 20;
             }
             case BLATHERER -> {
                 OuterGods.playAt(p, r.nextBoolean() ? "entity.ghast.scream" : "entity.elder_guardian.curse",
                         p.getX() + r.nextInt(7) - 3, p.getY(), p.getZ() + r.nextInt(7) - 3, 1.6f, 0.5f);
-                hurt(p, 1.5f * k, true);
+                Lotm.whisper(p); // the babble: LOTM's own corrupted whispers
+                hurt(p, 1.5f * k, "magic");
                 c.nextAct = now + 20;
             }
             case CHAOS -> {
                 fx(p, randomChaosEffect(r), 60, 1 + (c.stage >= 3 ? 1 : 0));
+                switch (r.nextInt(5)) {
+                    case 0 -> util("applyStun", p, 20);
+                    case 1 -> util("applyParalysis", p, 20);
+                    case 2 -> util("applyFrenzy", p, 60);
+                    case 3 -> util("applyBleeding", p, 60, 1);
+                    default -> util("applyMentalPlague", p, 60);
+                }
                 p.setDeltaMovement((r.nextDouble() - 0.5) * 2.2, 0.3 + r.nextDouble() * 0.5, (r.nextDouble() - 0.5) * 2.2);
                 p.hurtMarked = true;
                 if (c.step++ % 2 == 0) { // once a second: shuffle the whole inventory
@@ -373,7 +422,8 @@ public final class GodCurse {
             case MIST -> {
                 Vec3 to = nearbySpot(p, 20, 60);
                 if (to != null) jump(p, to);
-                hurt(p, 1.5f * k, true);
+                util("applyAwe", p, 20);
+                hurt(p, 1.5f * k, "magic");
                 c.nextAct = now + 20;
             }
             case BRIDGE -> {
@@ -382,7 +432,7 @@ public final class GodCurse {
                 p.removeEffect(MobEffects.GLOWING);
                 if (light) fx(p, MobEffects.GLOWING, 40, 0);
                 else fx(p, MobEffects.BLINDNESS, 40, 0);
-                hurt(p, 2f * k, true);
+                hurt(p, 2f * k, light ? "holyFire" : "magic"); // light burns with holy fire, dark with plain magic
                 p.serverLevel().sendParticles(light ? ParticleTypes.SOUL_FIRE_FLAME : ParticleTypes.SQUID_INK, p.getX(), p.getY() + 1, p.getZ(), 20, 0.5, 0.8, 0.5, 0.05);
                 c.nextAct = now + 20;
             }
@@ -406,11 +456,12 @@ public final class GodCurse {
             }
             case RAVINGS -> {
                 p.setRemainingFireTicks(80); // water cannot put this out: it is lit again every second
-                hurt(p, 1.5f * k, false);
+                hurt(p, 1.5f * k, "lava");
                 c.nextAct = now + 10;
             }
             case DECAY -> {
                 wearDown(p, 0.25);
+                util("applyBleeding", p, 40, 2);
                 Inventory inv = p.getInventory();
                 for (int i = 0; i < inv.items.size(); i++) {
                     ItemStack s = inv.items.get(i);
@@ -422,6 +473,8 @@ public final class GodCurse {
             }
             case OVERSEER -> {
                 p.fallDistance = Math.max(p.fallDistance, 0f);
+                Lotm.loseSanityPercent(p, 6); // seeing too much at once
+                Lotm.whisper(p);
                 c.nextAct = now + 20;
             }
             case FATE -> {
@@ -466,7 +519,7 @@ public final class GodCurse {
 
     private static void cleanup(Curse c) {
         releaseTargets(c);
-        for (Mob m : c.summoned) if (m.isAlive()) m.discard();
+        for (net.minecraft.world.entity.Entity m : c.summoned) if (m.isAlive()) m.discard();
         c.summoned.clear();
     }
 

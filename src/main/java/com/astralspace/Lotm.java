@@ -166,4 +166,80 @@ public final class Lotm {
             return player.getPersistentData().getInt("LOTMinCombat") > 0; // what LOTM stores it in
         }
     }
+
+    // ------------------------------------------------------------------ LOTM abilities (all by reflection, all optional)
+
+    private static Class<?> util;
+    private static boolean utilFailed;
+
+    private static Class<?> beyonderUtil() {
+        if (util == null && !utilFailed) {
+            try { util = Class.forName("net.swimmingtuna.lotm.util.BeyonderUtil"); }
+            catch (Throwable t) { utilFailed = true; }
+        }
+        return util;
+    }
+
+    private static boolean accepts(Class<?> param, Object arg) {
+        if (arg == null) return !param.isPrimitive();
+        if (param.isInstance(arg)) return true;
+        return (param == int.class && arg instanceof Integer) || (param == float.class && arg instanceof Float)
+                || (param == double.class && arg instanceof Double) || (param == boolean.class && arg instanceof Boolean)
+                || (param == long.class && arg instanceof Long);
+    }
+
+    /** Calls a static LOTM BeyonderUtil method by name (e.g. "applyStun", victim, 20). Returns its result, or null when missing/failed. */
+    public static Object util(String name, Object... args) {
+        Class<?> c = beyonderUtil();
+        if (c == null) return null;
+        try {
+            for (Method m : c.getMethods()) {
+                if (!m.getName().equals(name) || m.getParameterCount() != args.length) continue;
+                Class<?>[] types = m.getParameterTypes();
+                boolean ok = true;
+                for (int i = 0; i < types.length; i++) if (!accepts(types[i], args[i])) { ok = false; break; }
+                if (ok) return m.invoke(null, args);
+            }
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] LOTM ability {} failed: {}", name, String.valueOf(t.getCause() != null ? t.getCause() : t));
+        }
+        return null;
+    }
+
+    /** LOTM's own damage source of a kind ("magic", "explosion", "lava", "holyFire", "lightning", "crush", "fall", "freeze", "generic"), or null. */
+    public static net.minecraft.world.damagesource.DamageSource source(String kind, ServerPlayer victim) {
+        Object o = util(kind + "Source", null, victim);
+        return o instanceof net.minecraft.world.damagesource.DamageSource d ? d : null;
+    }
+
+    /** The corrupted whispers LOTM sends to players who are losing their mind. */
+    public static void whisper(ServerPlayer p) {
+        try {
+            Class<?> c = Class.forName("net.swimmingtuna.lotm.util.SpamClass");
+            c.getMethod("sendMonsterMessage", net.minecraft.world.entity.player.Player.class).invoke(null, p);
+        } catch (Throwable ignored) { }
+    }
+
+    /** Spawns one of LOTM's entities (like /summon would), with a short life. Returns it, or null. */
+    public static net.minecraft.world.entity.Entity spawn(net.minecraft.server.level.ServerLevel level, String id,
+                                                         double x, double y, double z, net.minecraft.world.phys.Vec3 motion, int life) {
+        try {
+            var type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
+                    .getOptional(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("lotm", id)).orElse(null);
+            if (type == null) return null;
+            net.minecraft.world.entity.Entity e = type.create(level);
+            if (e == null) return null;
+            e.setPos(x, y, z);
+            if (motion != null) e.setDeltaMovement(motion);
+            for (Method m : e.getClass().getMethods()) {
+                if (m.getName().equals("setMaxLife") && m.getParameterCount() == 1) m.invoke(e, life);
+                if (m.getName().equals("setDestroyBlocks") && m.getParameterCount() == 1) m.invoke(e, false);
+            }
+            level.addFreshEntity(e);
+            return e;
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not spawn lotm:{}: {}", id, String.valueOf(t.getCause() != null ? t.getCause() : t));
+            return null;
+        }
+    }
 }
