@@ -111,7 +111,7 @@ public final class AstralSymbols {
             float[] d = AstralGods.anchor(id);
             float alpha = 0.55f + 0.35f * (float) Math.sin(t * 0.5 + gi);
             RenderSystem.setShaderTexture(0, ResourceLocation.fromNamespaceAndPath("lotm", "textures/pathway/" + id + ".png"));
-            drawSymbol(modelView, d, 0.0f, 16f, alpha, 255, 235, 190);
+            drawSymbol(modelView, d, 0.0f, 7f, alpha, 255, 235, 190);
         }
 
         RenderSystem.depthMask(true);

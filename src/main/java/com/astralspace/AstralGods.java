@@ -153,157 +153,300 @@ public final class AstralGods {
         } catch (Throwable t) { return false; }
     }
 
-    /** Where a pathway's sign sits in the sky (the same for everyone, always). */
+    /**
+     * Where a pathway's sign sits in the sky. All 22 get their own place on an evenly spread spiral (same for everyone, always),
+     * so two signs never share the same spot.
+     */
     public static float[] anchor(String id) {
-        Random r = new Random(id.hashCode() * 7919L + 31);
-        return dir(r.nextDouble() * Math.PI * 2, -0.35 + r.nextDouble() * 1.2);
+        int idx = 0;
+        for (int i = 0; i < ALL.length; i++) if (ALL[i].equals(id)) idx = i;
+        double zLo = Math.sin(-0.30), zHi = 1.0;
+        double z = zLo + (zHi - zLo) * (idx + 0.5) / ALL.length;
+        return dir(idx * 2.39996323, Math.asin(z));
     }
 
-    private static void sunAndMoon(Matrix4f m, double t, boolean sun, boolean moon, int moonPhase) {
+    private static void quadTex(float[] d, float[] ax, float half, float u0, float v0, float u1, float v1, Matrix4f m) {
+        BufferBuilder b = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        float[][] c = {{-1, -1, u0, v1}, {-1, 1, u0, v0}, {1, 1, u1, v0}, {1, -1, u1, v1}};
+        for (float[] k : c) {
+            float x = d[0] + ax[0] * k[0] * half + ax[3] * k[1] * half, y = d[1] + ax[1] * k[0] * half + ax[4] * k[1] * half, z = d[2] + ax[2] * k[0] * half + ax[5] * k[1] * half;
+            float l = (float) Math.sqrt(x * x + y * y + z * z);
+            b.addVertex(m, x / l * 100f, y / l * 100f, z / l * 100f).setUv(k[2], k[3]);
+        }
+        BufferUploader.drawWithShader(b.buildOrThrow());
+    }
+
+    private static void sunAndMoon(Matrix4f m, boolean sun, boolean moon, int moonPhase) {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         if (sun) {
-            float[] d = dir(0.8 + t * 0.004, 0.75);
-            float[] ax = basis(d);
+            float[] d = anchor("bard");
             RenderSystem.setShaderTexture(0, SUN);
-            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-            BufferBuilder b = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-            float s = 0.32f; // vanilla's sun is about this big at this distance
-            float[][] c = {{-1, -1, 0, 0}, {-1, 1, 0, 1}, {1, 1, 1, 1}, {1, -1, 1, 0}};
-            for (float[] k : c) {
-                float x = d[0] + ax[0] * k[0] * s + ax[3] * k[1] * s, y = d[1] + ax[1] * k[0] * s + ax[4] * k[1] * s, z = d[2] + ax[2] * k[0] * s + ax[5] * k[1] * s;
-                float l = (float) Math.sqrt(x * x + y * y + z * z);
-                b.addVertex(m, x / l * 100f, y / l * 100f, z / l * 100f).setUv(k[2], k[3]);
-            }
-            BufferUploader.drawWithShader(b.buildOrThrow());
+            quadTex(d, basis(d), 0.2f, 0f, 0f, 1f, 1f, m);
         }
         if (moon) {
             boolean crimson = crimsonMoon();
-            float[] d = dir(3.9 - t * 0.004, 0.95);
-            float[] ax = basis(d);
+            float[] d = anchor("apothecary");
             RenderSystem.setShaderTexture(0, crimson ? CRIMSON_MOON : MOON);
-            if (crimson) RenderSystem.setShaderColor(1f, 0.35f, 0.3f, 1f); else RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+            if (crimson) RenderSystem.setShaderColor(1f, 0.35f, 0.3f, 1f);
             float u0 = (moonPhase % 4) / 4f, u1 = u0 + 0.25f, v0 = ((moonPhase / 4) % 2) / 2f, v1 = v0 + 0.5f;
-            BufferBuilder b = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-            float s = 0.5f; // LOTM's moon is 2.5 x vanilla
-            float[][] c = {{-1, -1, u0, v0}, {-1, 1, u0, v1}, {1, 1, u1, v1}, {1, -1, u1, v0}};
-            for (float[] k : c) {
-                float x = d[0] + ax[0] * k[0] * s + ax[3] * k[1] * s, y = d[1] + ax[1] * k[0] * s + ax[4] * k[1] * s, z = d[2] + ax[2] * k[0] * s + ax[5] * k[1] * s;
-                float l = (float) Math.sqrt(x * x + y * y + z * z);
-                b.addVertex(m, x / l * 100f, y / l * 100f, z / l * 100f).setUv(k[2], k[3]);
-            }
-            BufferUploader.drawWithShader(b.buildOrThrow());
+            quadTex(d, basis(d), 0.24f, u0, v0, u1, v1, m);
             RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         }
     }
 
-    /** Jagged lightning bolts that flash at random places (a Tyrant). */
-    private static void lightning(BufferBuilder q, Matrix4f m, double t) {
+    // ---- little drawing helpers, in the flat (a = sideways, b = up) coordinates around a sign's centre
+
+    private static void line(BufferBuilder q, Matrix4f m, float[] d, float[] ax, float a0, float b0, float a1, float b1, float w, int[] c, float al) {
+        float dx = a1 - a0, dy = b1 - b0, l = (float) Math.sqrt(dx * dx + dy * dy);
+        if (l < 1e-6f) return;
+        float nx = -dy / l * w * 0.5f, ny = dx / l * w * 0.5f;
+        vertex(q, m, d, ax, a0 + nx, b0 + ny, c[0], c[1], c[2], al);
+        vertex(q, m, d, ax, a1 + nx, b1 + ny, c[0], c[1], c[2], al);
+        vertex(q, m, d, ax, a1 - nx, b1 - ny, c[0], c[1], c[2], al);
+        vertex(q, m, d, ax, a0 - nx, b0 - ny, c[0], c[1], c[2], al);
+    }
+
+    private static void fill(BufferBuilder q, Matrix4f m, float[] d, float[] ax, float[][] pts, int[] c, float al) { // 3 or 4 corners
+        for (int i = 0; i < 4; i++) {
+            float[] p = pts[Math.min(i, pts.length - 1)];
+            vertex(q, m, d, ax, p[0], p[1], c[0], c[1], c[2], al);
+        }
+    }
+
+    private static final int[] BLACK = {0, 0, 0};
+
+    // ------------------------------------------------------------------ one distinct sign per pathway (names from the LOTM wiki)
+
+    private static void lightning(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Tyrant: a storm
+        disc(q, m, d, 0.2f, 0.11f, 0f, new int[]{70, 70, 110}, new int[]{20, 20, 50}, 0.55f, 0.8f, 0, 0, 0); // dark storm cloud
         for (int slot = 0; slot < 3; slot++) {
-            double period = 2.2 + slot * 0.9;
-            long n = (long) Math.floor((t + slot * 0.7) / period);
-            double age = (t + slot * 0.7) - n * period;
+            double period = 1.6 + slot * 0.7;
+            long n = (long) Math.floor((t + slot * 0.6) / period);
+            double age = (t + slot * 0.6) - n * period;
             if (age > 0.45) continue;
             float flick = age < 0.08 ? 1f : (age < 0.16 ? 0.35f : (age < 0.24 ? 0.9f : 0.5f * (1f - (float) ((age - 0.24) / 0.21))));
             Random r = new Random(n * 9973L + slot * 131L);
-            double lon = r.nextDouble() * Math.PI * 2, lat = -0.1 + r.nextDouble() * 1.2;
-            int steps = 8 + r.nextInt(4);
-            double[][] pts = new double[steps + 1][];
-            double lo = lon, la = lat;
-            for (int i = 0; i <= steps; i++) {
-                pts[i] = new double[]{lo, la};
-                lo += (r.nextDouble() - 0.5) * 0.06;
-                la -= 0.05 + r.nextDouble() * 0.03;
-            }
-            for (int pass = 0; pass < 2; pass++) { // a wide blue glow, then a thin white core
-                float w = pass == 0 ? 0.018f : 0.006f;
-                int[] col = pass == 0 ? new int[]{120, 150, 255} : new int[]{235, 240, 255};
-                float al = (pass == 0 ? 0.55f : 1f) * flick;
-                for (int i = 0; i < steps; i++) {
-                    float[] d0 = dir(pts[i][0], pts[i][1]), d1 = dir(pts[i + 1][0], pts[i + 1][1]);
-                    float[] ax0 = basis(d0), ax1 = basis(d1);
-                    vertex(q, m, d0, ax0, -w, 0, col[0], col[1], col[2], al);
-                    vertex(q, m, d0, ax0, w, 0, col[0], col[1], col[2], al);
-                    vertex(q, m, d1, ax1, w, 0, col[0], col[1], col[2], al);
-                    vertex(q, m, d1, ax1, -w, 0, col[0], col[1], col[2], al);
-                }
+            float a = (r.nextFloat() - 0.5f) * 0.3f, b = 0.02f;
+            for (int i = 0; i < 7; i++) {
+                float na = a + (r.nextFloat() - 0.5f) * 0.06f, nb = b - 0.032f;
+                line(q, m, d, ax, a, b, na, nb, 0.016f, new int[]{120, 150, 255}, 0.55f * flick);
+                line(q, m, d, ax, a, b, na, nb, 0.005f, new int[]{240, 245, 255}, flick);
+                a = na; b = nb;
             }
         }
     }
 
-    /** Small lights drifting up or down in a column (death, mother, demoness, red priest ...). */
-    private static void motes(BufferBuilder q, Matrix4f m, String id, double t, int[] col, boolean up, int count) {
-        float[] a = anchor(id);
-        double lon0 = Math.atan2(a[2], a[0]), lat0 = Math.asin(a[1]);
-        Random r = new Random(id.hashCode() * 31L + 7);
-        for (int i = 0; i < count; i++) {
-            double ph = r.nextDouble(), sp = 0.04 + r.nextDouble() * 0.05;
-            double off = (r.nextDouble() - 0.5) * 0.5, sway = r.nextDouble() * 6.28;
-            double f = (t * sp + ph) % 1.0;
-            double lat = lat0 + (up ? (f - 0.5) : (0.5 - f)) * 0.9;
-            double lon = lon0 + off + 0.04 * Math.sin(t * 0.7 + sway);
-            float al = (float) Math.sin(Math.PI * f) * 0.9f;
-            float[] d = dir(lon, lat);
-            disc(q, m, d, 0.018f, 0.018f, 0f, col, col, al, 1.0f, 0, 0, 0);
+    private static void strings(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Fool: puppet strings
+        for (int i = 0; i < 7; i++) {
+            float x = (i - 3) * 0.045f + 0.012f * (float) Math.sin(t * 0.8 + i), y = -0.14f + 0.02f * (float) Math.sin(t * 1.1 + i * 1.7);
+            line(q, m, d, ax, 0f, 0.18f, x, y, 0.004f, new int[]{255, 230, 150}, 0.85f);
+            disc(q, m, d, 0.012f, 0.012f, 0f, new int[]{255, 235, 170}, new int[]{200, 150, 60}, 0.9f, 0.6f, 0, 0, 0);
+        }
+        disc(q, m, d, 0.03f, 0.03f, 0f, new int[]{255, 240, 190}, new int[]{200, 150, 60}, 0.9f, 0.7f, 0, 0, 0);
+    }
+
+    private static void glitch(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Error: glitching blocks
+        long n = (long) Math.floor(t * 6);
+        Random r = new Random(n * 77L);
+        for (int i = 0; i < 9; i++) {
+            float a = (r.nextFloat() - 0.5f) * 0.36f, b = (r.nextFloat() - 0.5f) * 0.36f, w = 0.01f + r.nextFloat() * 0.05f, h = 0.008f + r.nextFloat() * 0.02f;
+            int[] c = r.nextInt(3) == 0 ? new int[]{255, 70, 120} : new int[]{70, 255, 220};
+            fill(q, m, d, ax, new float[][]{{a, b}, {a + w, b}, {a + w, b + h}, {a, b + h}}, c, 0.5f + 0.4f * r.nextFloat());
+        }
+    }
+
+    private static void door(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Door: a doorway, opening and closing
+        float open = 0.3f + 0.7f * (0.5f + 0.5f * (float) Math.sin(t * 0.6));
+        fill(q, m, d, ax, new float[][]{{-0.065f, -0.13f}, {0.065f, -0.13f}, {0.065f, 0.13f}, {-0.065f, 0.13f}}, new int[]{40, 70, 130}, 0.8f); // frame
+        fill(q, m, d, ax, new float[][]{{-0.05f, -0.12f}, {0.05f, -0.12f}, {0.05f, 0.11f}, {-0.05f, 0.11f}}, new int[]{235, 250, 255}, 0.35f + 0.55f * open); // light inside
+        fill(q, m, d, ax, new float[][]{{-0.05f, -0.12f}, {-0.05f + 0.1f * (1f - open) * 0.5f, -0.12f}, {-0.05f + 0.1f * (1f - open) * 0.5f, 0.11f}, {-0.05f, 0.11f}}, new int[]{20, 40, 80}, 0.9f); // the door leaf
+    }
+
+    private static void eye(BufferBuilder q, Matrix4f m, float[] d, double t) { // Visionary: a watching eye
+        float open = 0.25f + 0.75f * smooth((float) (0.5 + 0.5 * Math.sin(t * 0.35)) * 1.6f - 0.2f);
+        disc(q, m, d, 0.2f, 0.2f * open, 0f, new int[]{240, 250, 255}, new int[]{20, 90, 70}, 0.7f, 0.9f, 0, 0, 0);
+        disc(q, m, d, 0.08f, 0.08f * Math.min(1f, open * 1.2f), 0f, new int[]{150, 255, 200}, new int[]{70, 130, 100}, 0.95f, 0.5f, 0, 0, 0);
+        disc(q, m, d, 0.032f, 0.032f * Math.min(1f, open * 1.2f), 0f, BLACK, BLACK, 1f, 0.3f, 0, 0, 0);
+    }
+
+    private static void tower(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // White Tower: a tall white tower
+        float p = 0.7f + 0.3f * (float) Math.sin(t * 0.7);
+        fill(q, m, d, ax, new float[][]{{-0.035f, -0.17f}, {0.035f, -0.17f}, {0.014f, 0.13f}, {-0.014f, 0.13f}}, new int[]{235, 238, 255}, 0.85f);
+        fill(q, m, d, ax, new float[][]{{-0.02f, 0.13f}, {0.02f, 0.13f}, {0.0f, 0.18f}, {0.0f, 0.18f}}, new int[]{255, 255, 255}, 0.9f);
+        disc(q, m, d, 0.06f, 0.06f, 0f, new int[]{255, 255, 255}, new int[]{150, 170, 255}, 0.8f * p, 1.2f, 0, 0, 0);
+    }
+
+    private static void hanged(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Hanged Man: a figure swinging on a rope
+        float sw = 0.05f * (float) Math.sin(t * 0.9);
+        float topB = 0.2f;
+        float hx = sw * 0.9f, hy = 0.02f; // head
+        int[] rope = {190, 150, 120}, body = {60, 25, 60};
+        line(q, m, d, ax, 0f, topB, hx, hy + 0.025f, 0.005f, rope, 0.9f);
+        disc(q, m, d, 0.2f, 0.22f, 0f, new int[]{150, 60, 120}, new int[]{20, 0, 25}, 0.3f, 1.2f, 0, 0, 0); // sickly glow
+        disc(q, m, dirOffset(d, hx, hy), 0.026f, 0.026f, 0f, body, new int[]{140, 60, 120}, 0.95f, 0.15f, 0, 0, 0);       // head
+        fill(q, m, d, ax, new float[][]{{hx - 0.03f, hy - 0.03f}, {hx + 0.03f, hy - 0.03f}, {hx + sw * 0.5f + 0.022f, hy - 0.13f}, {hx + sw * 0.5f - 0.022f, hy - 0.13f}}, body, 0.95f); // body
+        line(q, m, d, ax, hx + sw * 0.5f - 0.01f, hy - 0.13f, hx + sw * 0.8f - 0.015f, hy - 0.22f, 0.014f, body, 0.95f); // legs
+        line(q, m, d, ax, hx + sw * 0.5f + 0.01f, hy - 0.13f, hx + sw * 0.8f + 0.015f, hy - 0.22f, 0.014f, body, 0.95f);
+        line(q, m, d, ax, hx - 0.03f, hy - 0.04f, hx - 0.05f, hy - 0.11f, 0.012f, body, 0.9f); // arms
+        line(q, m, d, ax, hx + 0.03f, hy - 0.04f, hx + 0.05f, hy - 0.11f, 0.012f, body, 0.9f);
+    }
+
+    private static void eclipse(BufferBuilder q, Matrix4f m, float[] d, double t) { // Darkness: a black sun with a thin corona
+        float p = 0.6f + 0.4f * (float) Math.sin(t * 0.5);
+        disc(q, m, d, 0.2f, 0.2f, 0f, new int[]{150, 150, 190}, new int[]{20, 20, 40}, 0.35f * p, 1.6f, 0, 0, 0);
+        disc(q, m, d, 0.1f, 0.1f, 0f, BLACK, BLACK, 0.95f, 0.15f, 0, 0, 0);
+    }
+
+    private static void souls(BufferBuilder q, Matrix4f m, float[] d, double t) { // Death: pale souls rising
+        for (int i = 0; i < 4; i++) {
+            double f = (t * 0.05 + i * 0.25) % 1.0;
+            float a = (i - 1.5f) * 0.08f + 0.02f * (float) Math.sin(t * 0.9 + i), b = -0.15f + (float) f * 0.35f;
+            float al = (float) Math.sin(Math.PI * f) * 0.85f;
+            float[] p = dirOffset(d, a, b);
+            disc(q, m, p, 0.022f, 0.05f, 0f, new int[]{235, 245, 255}, new int[]{110, 160, 220}, al, 0.8f, 0, 0, 0);
+        }
+    }
+
+    /** Direction moved (a, b) from d in the flat coordinates (used to place small parts of a sign). */
+    private static float[] dirOffset(float[] d, float a, float b) {
+        float[] ax = basis(d);
+        float x = d[0] + ax[0] * a + ax[3] * b, y = d[1] + ax[1] * a + ax[4] * b, z = d[2] + ax[2] * a + ax[5] * b;
+        float l = (float) Math.sqrt(x * x + y * y + z * z);
+        return new float[]{x / l, y / l, z / l};
+    }
+
+    private static void giant(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Twilight Giant: a giant against the dusk
+        float p = 0.7f + 0.3f * (float) Math.sin(t * 0.4);
+        disc(q, m, d, 0.24f, 0.2f, 0f, new int[]{255, 160, 70}, new int[]{150, 50, 110}, 0.7f * p, 1.0f, 0, 0, 0); // dusk glow behind
+        int[] k = {10, 5, 15};
+        fill(q, m, d, ax, new float[][]{{-0.04f, -0.05f}, {0.04f, -0.05f}, {0.03f, 0.08f}, {-0.03f, 0.08f}}, k, 0.92f);       // torso
+        fill(q, m, d, ax, new float[][]{{-0.035f, -0.17f}, {-0.005f, -0.17f}, {-0.005f, -0.05f}, {-0.04f, -0.05f}}, k, 0.92f); // legs
+        fill(q, m, d, ax, new float[][]{{0.005f, -0.17f}, {0.035f, -0.17f}, {0.04f, -0.05f}, {0.005f, -0.05f}}, k, 0.92f);
+        fill(q, m, d, ax, new float[][]{{-0.07f, 0.0f}, {-0.04f, 0.07f}, {-0.03f, 0.04f}, {-0.06f, -0.04f}}, k, 0.92f);        // arms
+        fill(q, m, d, ax, new float[][]{{0.07f, 0.0f}, {0.04f, 0.07f}, {0.03f, 0.04f}, {0.06f, -0.04f}}, k, 0.92f);
+        disc(q, m, dirOffset(d, 0f, 0.115f), 0.028f, 0.028f, 0f, k, k, 0.95f, 0.15f, 0, 0, 0);                                // head
+    }
+
+    private static void lily(BufferBuilder q, Matrix4f m, float[] d, double t) { // Demoness: a red spider lily
+        for (int i = 0; i < 9; i++) {
+            double ang = i * Math.PI * 2 / 9 + t * 0.06;
+            float[] p = dirOffset(d, (float) Math.cos(ang) * 0.09f, (float) Math.sin(ang) * 0.09f);
+            disc(q, m, p, 0.012f, 0.1f, (float) (ang - Math.PI / 2), new int[]{255, 70, 120}, new int[]{150, 10, 60}, 0.85f, 0.7f, 0, 0, 0);
+        }
+        disc(q, m, d, 0.025f, 0.025f, 0f, new int[]{255, 200, 220}, new int[]{200, 40, 100}, 0.9f, 0.5f, 0, 0, 0);
+    }
+
+    private static void flames(BufferBuilder q, Matrix4f m, float[] d, double t) { // Red Priest: flames
+        for (int i = 0; i < 4; i++) {
+            float h = 0.07f + 0.05f * (0.5f + 0.5f * (float) Math.sin(t * (3 + i) + i));
+            float[] p = dirOffset(d, (i - 1.5f) * 0.06f, -0.05f + h * 0.5f);
+            disc(q, m, p, 0.03f, h, 0f, new int[]{255, 230, 120}, new int[]{230, 40, 10}, 0.85f, 0.8f, 0, 0, 0);
+        }
+        disc(q, m, d, 0.2f, 0.12f, 0f, new int[]{255, 90, 20}, new int[]{120, 0, 0}, 0.3f, 1.4f, 0, 0, 0);
+    }
+
+    private static void hexagram(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Hermit: an occult seal
+        float rot = (float) (t * 0.12);
+        int[] c = {200, 170, 255};
+        for (int tri = 0; tri < 2; tri++) {
+            for (int i = 0; i < 3; i++) {
+                double a0 = rot + tri * Math.PI / 3 * 1.0 + i * Math.PI * 2 / 3 + Math.PI / 2, a1 = a0 + Math.PI * 2 / 3;
+                line(q, m, d, ax, (float) Math.cos(a0) * 0.17f, (float) Math.sin(a0) * 0.17f, (float) Math.cos(a1) * 0.17f, (float) Math.sin(a1) * 0.17f, 0.006f, c, 0.85f);
+            }
+        }
+        ring(q, m, d, 0.18f, 0.2f, c, 0.6f, 0, 0);
+    }
+
+    private static void cogs(BufferBuilder q, Matrix4f m, float[] d, double t) { // Paragon: turning gears
+        ring(q, m, d, 0.12f, 0.19f, new int[]{150, 255, 255}, 0.85f, 10, (float) t * 0.5f);
+        ring(q, m, d, 0.04f, 0.09f, new int[]{255, 255, 255}, 0.9f, 6, (float) -t * 0.9f);
+    }
+
+    private static void wheel(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Wheel of Fortune: a turning wheel
+        float rot = (float) (t * 0.25);
+        int[] c = {255, 220, 110};
+        ring(q, m, d, 0.16f, 0.19f, c, 0.9f, 0, 0);
+        for (int i = 0; i < 8; i++) {
+            double a = rot + i * Math.PI / 4;
+            line(q, m, d, ax, 0f, 0f, (float) Math.cos(a) * 0.17f, (float) Math.sin(a) * 0.17f, 0.007f, c, 0.85f);
+        }
+    }
+
+    private static void tree(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Mother: a growing tree
+        float grow = 0.6f + 0.4f * (float) Math.sin(t * 0.4);
+        int[] bark = {110, 220, 110};
+        line(q, m, d, ax, 0f, -0.18f, 0f, -0.18f + 0.22f * grow, 0.012f, bark, 0.9f);
+        for (int i = 0; i < 4; i++) {
+            float by = -0.1f + i * 0.055f, side = (i % 2 == 0) ? 1 : -1, len = 0.09f * grow;
+            line(q, m, d, ax, 0f, by * grow, side * len, by * grow + 0.05f * grow, 0.007f, bark, 0.85f);
+            disc(q, m, dirOffset(d, side * len, by * grow + 0.05f * grow), 0.022f, 0.022f, 0f, new int[]{190, 255, 160}, new int[]{40, 160, 50}, 0.85f, 0.6f, 0, 0, 0);
+        }
+        disc(q, m, dirOffset(d, 0f, -0.18f + 0.22f * grow), 0.035f, 0.035f, 0f, new int[]{190, 255, 160}, new int[]{40, 160, 50}, 0.9f, 0.6f, 0, 0, 0);
+    }
+
+    private static void vortex(BufferBuilder q, Matrix4f m, float[] d, double t) { // Abyss: a dark red whirlpool
+        disc(q, m, d, 0.2f, 0.2f, 0f, new int[]{60, 0, 10}, new int[]{0, 0, 0}, 0.9f, 0.9f, 5, 3f, (float) (t * 0.35));
+        disc(q, m, d, 0.05f, 0.05f, 0f, BLACK, BLACK, 1f, 0.4f, 0, 0, 0);
+    }
+
+    private static void chains(BufferBuilder q, Matrix4f m, float[] d, double t) { // Chained: a hanging chain
+        for (int i = 0; i < 6; i++) {
+            float sway = 0.03f * (float) Math.sin(t * 0.8 - i * 0.35) * (i / 5f + 0.2f);
+            float[] p = dirOffset(d, sway, 0.16f - i * 0.055f);
+            ring(q, m, p, 0.012f, (i % 2 == 0) ? 0.03f : 0.022f, new int[]{185, 190, 205}, 0.95f, 0, 0);
+        }
+    }
+
+    private static void crown(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Black Emperor: a crown
+        float p = 0.75f + 0.25f * (float) Math.sin(t * 0.6);
+        int[] gold = {255, 205, 80};
+        disc(q, m, d, 0.2f, 0.2f, 0f, new int[]{40, 30, 0}, new int[]{0, 0, 0}, 0.6f, 0.8f, 0, 0, 0);
+        fill(q, m, d, ax, new float[][]{{-0.11f, -0.07f}, {0.11f, -0.07f}, {0.11f, -0.02f}, {-0.11f, -0.02f}}, gold, 0.9f * p);
+        fill(q, m, d, ax, new float[][]{{-0.11f, -0.02f}, {-0.07f, -0.02f}, {-0.11f, 0.09f}, {-0.11f, 0.09f}}, gold, 0.9f * p);
+        fill(q, m, d, ax, new float[][]{{-0.04f, -0.02f}, {0.04f, -0.02f}, {0f, 0.12f}, {0f, 0.12f}}, gold, 0.9f * p);
+        fill(q, m, d, ax, new float[][]{{0.07f, -0.02f}, {0.11f, -0.02f}, {0.11f, 0.09f}, {0.11f, 0.09f}}, gold, 0.9f * p);
+    }
+
+    private static void scales(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Justiciar: scales of justice
+        float tilt = 0.025f * (float) Math.sin(t * 0.6);
+        int[] gold = {255, 225, 130};
+        line(q, m, d, ax, 0f, -0.17f, 0f, 0.14f, 0.01f, gold, 0.9f);
+        line(q, m, d, ax, -0.14f, 0.14f + tilt, 0.14f, 0.14f - tilt, 0.008f, gold, 0.9f);
+        for (int s = -1; s <= 1; s += 2) {
+            float ex = s * 0.14f, ey = 0.14f + s * -1 * tilt * -1f;
+            ey = 0.14f - s * tilt;
+            line(q, m, d, ax, ex, ey, ex - 0.05f, ey - 0.09f, 0.004f, gold, 0.8f);
+            line(q, m, d, ax, ex, ey, ex + 0.05f, ey - 0.09f, 0.004f, gold, 0.8f);
+            disc(q, m, dirOffset(d, ex, ey - 0.1f), 0.06f, 0.016f, 0f, gold, new int[]{200, 150, 60}, 0.9f, 0.6f, 0, 0, 0);
         }
     }
 
     private static void sign(BufferBuilder q, Matrix4f m, String id, double t) {
-        float[] a = anchor(id);
-        float pulse = 0.65f + 0.35f * (float) Math.sin(t * 0.8 + id.hashCode());
+        float[] d = anchor(id);
+        float[] ax = basis(d);
         switch (id) {
-            case "sailor" -> lightning(q, m, t);
-            case "spectator" -> eye(q, m, a, t, new int[]{150, 255, 200}, new int[]{20, 90, 70});
-            case "mystery_pryer" -> eye(q, m, a, t, new int[]{200, 170, 255}, new int[]{50, 20, 110});
-            case "seer" -> ring(q, m, a, 0.10f, 0.14f, new int[]{235, 200, 120}, 0.8f * pulse, 6, (float) t * 0.5f);
-            case "arbiter" -> ring(q, m, a, 0.10f, 0.13f, new int[]{255, 225, 130}, 0.9f * pulse, 0, 0);
-            case "prisoner" -> ring(q, m, a, 0.09f, 0.13f, new int[]{170, 175, 190}, 0.85f, 14, (float) t * 0.3f);
-            case "reader" -> ring(q, m, a, 0.09f, 0.12f, new int[]{240, 240, 255}, 0.8f * pulse, 3, (float) -t * 0.4f);
-            case "apprentice" -> rift(q, m, a, t, new int[]{210, 245, 255}, new int[]{60, 130, 200});
-            case "marauder" -> rift(q, m, a, t, new int[]{150, 255, 235}, new int[]{20, 110, 100});
-            case "secrets_supplicant" -> rift(q, m, a, t, new int[]{190, 190, 255}, new int[]{50, 50, 140});
-            case "sleepless" -> disc(q, m, a, 0.30f, 0.22f, (float) (t * 0.02), new int[]{0, 0, 0}, new int[]{5, 0, 15}, 0.7f, 0.8f, 0, 0, 0);
-            case "criminal" -> disc(q, m, a, 0.28f, 0.28f, 0f, new int[]{40, 0, 5}, new int[]{0, 0, 0}, 0.75f * pulse, 0.8f, 5, 2f, (float) (t * 0.3));
-            case "corpse_collector" -> motes(q, m, id, t, new int[]{190, 225, 255}, true, 16);
-            case "planter" -> motes(q, m, id, t, new int[]{120, 255, 130}, true, 16);
-            case "assassin" -> motes(q, m, id, t, new int[]{255, 140, 190}, false, 16);
-            case "hunter" -> motes(q, m, id, t, new int[]{255, 140, 50}, true, 16);
-            case "monster" -> motes(q, m, id, t, new int[]{255, 225, 110}, true, 14);
-            case "savant" -> motes(q, m, id, t, new int[]{140, 255, 255}, false, 14);
-            case "lawyer" -> motes(q, m, id, t, new int[]{255, 215, 120}, true, 14);
-            case "warrior" -> band(q, m, t);
-            default -> { }
-        }
-    }
-
-    private static void eye(BufferBuilder q, Matrix4f m, float[] a, double t, int[] iris, int[] rim) {
-        float open = 0.25f + 0.75f * smooth((float) (0.5 + 0.5 * Math.sin(t * 0.35)) * 1.6f - 0.2f);
-        disc(q, m, a, 0.22f, 0.22f * open, 0f, new int[]{240, 250, 255}, rim, 0.7f, 0.9f, 0, 0, 0);
-        disc(q, m, a, 0.09f, 0.09f * Math.min(1f, open * 1.2f), 0f, iris, new int[]{iris[0] / 2, iris[1] / 2, iris[2] / 2}, 0.95f, 0.5f, 0, 0, 0);
-        disc(q, m, a, 0.035f, 0.035f * Math.min(1f, open * 1.2f), 0f, new int[]{0, 0, 0}, new int[]{0, 0, 0}, 1f, 0.3f, 0, 0, 0);
-    }
-
-    private static void rift(BufferBuilder q, Matrix4f m, float[] a, double t, int[] core, int[] edge) {
-        float pulse = 0.6f + 0.4f * (float) Math.sin(t * 0.9 + a[0] * 5);
-        disc(q, m, a, 0.025f, 0.30f, 0.15f, core, edge, 1f * pulse, 0.7f, 0, 0, 0);
-        disc(q, m, a, 0.08f, 0.34f, 0.15f, edge, edge, 0.35f * pulse, 1.6f, 0, 0, 0);
-    }
-
-    /** A band of twilight low on the horizon all the way round (a Twilight Giant). */
-    private static void band(BufferBuilder q, Matrix4f m, double t) {
-        final int segs = 48;
-        for (int j = 0; j < segs; j++) {
-            double l0 = Math.PI * 2 * j / segs, l1 = Math.PI * 2 * (j + 1) / segs;
-            float w0 = 0.55f + 0.45f * (float) Math.sin(l0 * 3 + t * 0.2), w1 = 0.55f + 0.45f * (float) Math.sin(l1 * 3 + t * 0.2);
-            float[][] c = {{255, 150, 60}, {255, 90, 120}, {120, 60, 170}};
-            double[] lats = {-0.05, 0.06, 0.22};
-            for (int k = 0; k < 2; k++) {
-                float[] d00 = dir(l0, lats[k]), d01 = dir(l1, lats[k]), d11 = dir(l1, lats[k + 1]), d10 = dir(l0, lats[k + 1]);
-                float a0 = k == 0 ? 0.65f : 0.4f, a1 = k == 0 ? 0.4f : 0f;
-                q.addVertex(m, d00[0] * R, d00[1] * R, d00[2] * R).setColor((int) c[k][0], (int) c[k][1], (int) c[k][2], (int) (a0 * w0 * 255));
-                q.addVertex(m, d01[0] * R, d01[1] * R, d01[2] * R).setColor((int) c[k][0], (int) c[k][1], (int) c[k][2], (int) (a0 * w1 * 255));
-                q.addVertex(m, d11[0] * R, d11[1] * R, d11[2] * R).setColor((int) c[k + 1][0], (int) c[k + 1][1], (int) c[k + 1][2], (int) (a1 * w1 * 255));
-                q.addVertex(m, d10[0] * R, d10[1] * R, d10[2] * R).setColor((int) c[k + 1][0], (int) c[k + 1][1], (int) c[k + 1][2], (int) (a1 * w0 * 255));
-            }
+            case "sailor" -> lightning(q, m, d, ax, t);
+            case "seer" -> strings(q, m, d, ax, t);
+            case "marauder" -> glitch(q, m, d, ax, t);
+            case "apprentice" -> door(q, m, d, ax, t);
+            case "spectator" -> eye(q, m, d, t);
+            case "reader" -> tower(q, m, d, ax, t);
+            case "secrets_supplicant" -> hanged(q, m, d, ax, t);
+            case "sleepless" -> eclipse(q, m, d, t);
+            case "corpse_collector" -> souls(q, m, d, t);
+            case "warrior" -> giant(q, m, d, ax, t);
+            case "assassin" -> lily(q, m, d, t);
+            case "hunter" -> flames(q, m, d, t);
+            case "mystery_pryer" -> hexagram(q, m, d, ax, t);
+            case "savant" -> cogs(q, m, d, t);
+            case "monster" -> wheel(q, m, d, ax, t);
+            case "planter" -> tree(q, m, d, ax, t);
+            case "criminal" -> vortex(q, m, d, t);
+            case "prisoner" -> chains(q, m, d, t);
+            case "lawyer" -> crown(q, m, d, ax, t);
+            case "arbiter" -> scales(q, m, d, ax, t);
+            default -> { } // bard (the sun) and apothecary (the moon) are textures, drawn separately
         }
     }
 
@@ -323,6 +466,6 @@ public final class AstralGods {
         for (String id : ALL) if (gods.contains("," + id + ",")) sign(q, m, id, t);
         end(q);
         boolean sun = gods.contains(",bard,"), moon = gods.contains(",apothecary,");
-        if (sun || moon) sunAndMoon(m, t, sun, moon, moonPhase);
+        if (sun || moon) sunAndMoon(m, sun, moon, moonPhase);
     }
 }
