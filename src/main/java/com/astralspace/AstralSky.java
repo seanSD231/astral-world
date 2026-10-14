@@ -91,11 +91,7 @@ public final class AstralSky extends DimensionSpecialEffects {
         RenderSystem.defaultBlendFunc();
         RenderSystem.depthMask(false);
 
-        // stars
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        BufferBuilder b = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        for (float[] s : stars) quadFacing(b, modelView, s[0], s[1], s[2], s[3], (int) s[5], (int) s[6], (int) s[7], (int) (s[4] * 255), 0);
-        BufferUploader.drawWithShader(b.buildOrThrow());
+        // no stars: the swirling colours and symbols of the Astral World are drawn by AstralSymbols
 
         // the moon, straight overhead, as big as LOTM draws it (2.5 x vanilla), crimson texture when LOTM's crimson moon is up
         boolean crimson = crimsonMoon();

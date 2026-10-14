@@ -26,10 +26,11 @@ public final class AstralSymbols {
             "corpse_collector", "warrior", "assassin", "hunter", "mystery_pryer", "savant", "monster", "planter",
             "apothecary", "criminal", "prisoner", "lawyer", "arbiter"
     };
-    private static final int SYMBOLS = 14;
+    private static final int SYMBOLS = 26;
     private static final ResourceLocation ASTRAL = ResourceLocation.fromNamespaceAndPath("astral_world", "astral_world");
 
     public static volatile boolean enabled = true;
+    public static volatile boolean swirl = true;
     private static final float[][] symbols = new float[SYMBOLS][]; // {size, phase, speed}
 
     static {
@@ -52,8 +53,46 @@ public final class AstralSymbols {
         }
     }
 
+    private static float smooth(float x) { x = Math.max(0f, Math.min(1f, x)); return x * x * (3 - 2 * x); }
+
+    private static float[] swirlColor(double lon, double lat, double t) {
+        float f1 = (float) Math.sin(lon * 2 + lat * 3 + t * 0.12 + 1.8 * Math.sin(lat * 4 - t * 0.07));
+        float f2 = (float) Math.sin(lon * 3 - lat * 2 - t * 0.09 + 1.5 * Math.sin(lon * 2 + t * 0.05));
+        float f3 = (float) Math.sin(lon * 5 + lat * 5 + t * 0.15 + Math.sin(lon * 3 - t * 0.08));
+        float r = 14, g = 6, b = 40;                                   // deep indigo
+        float w = smooth(f1 * 0.5f + 0.5f);       r += (140 - r) * w * 0.8f; g += (25 - g) * w * 0.8f; b += (155 - b) * w * 0.8f;   // violet
+        w = smooth(f2 * 0.5f + 0.35f);            r += (15 - r) * w * 0.6f;  g += (125 - g) * w * 0.6f; b += (165 - b) * w * 0.6f;  // teal
+        w = (float) Math.pow(Math.max(0, f3), 3); r += (215 - r) * w * 0.55f; g += (150 - g) * w * 0.55f; b += (55 - b) * w * 0.55f; // gold
+        w = (float) Math.pow(Math.max(0, -f1 * f2), 2) * 0.5f; r += (170 - r) * w; g += (20 - g) * w; b += (60 - b) * w;           // crimson
+        float a = 0.5f + 0.25f * f1 * f2 + 0.12f * f3;
+        a = Math.max(0.25f, Math.min(0.85f, a));
+        if (lat > 1.1) a *= 1f - 0.85f * smooth((float) ((lat - 1.1) / 0.4)); // leave the moon overhead clear
+        return new float[]{r, g, b, a};
+    }
+
+    /** A big sphere of slowly flowing colour around the player, over the whole sky and also under the floor. */
+    private static void drawSwirl(Matrix4f modelView, double t) {
+        final int stacks = 18, slices = 36;
+        final float radius = 92f;
+        BufferBuilder q = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        for (int i = 0; i < stacks; i++) {
+            double lat0 = -Math.PI / 2 + Math.PI * i / stacks, lat1 = -Math.PI / 2 + Math.PI * (i + 1) / stacks;
+            for (int j = 0; j < slices; j++) {
+                double lon0 = Math.PI * 2 * j / slices, lon1 = Math.PI * 2 * (j + 1) / slices;
+                double[][] p = {{lon0, lat0}, {lon1, lat0}, {lon1, lat1}, {lon0, lat1}};
+                for (double[] v : p) {
+                    float[] c = swirlColor(v[0], v[1], t);
+                    float cl = (float) Math.cos(v[1]);
+                    q.addVertex(modelView, (float) (Math.cos(v[0]) * cl) * radius, (float) Math.sin(v[1]) * radius, (float) (Math.sin(v[0]) * cl) * radius)
+                            .setColor((int) c[0], (int) c[1], (int) c[2], (int) (c[3] * 255));
+                }
+            }
+        }
+        BufferUploader.drawWithShader(q.buildOrThrow());
+    }
+
     private static void onRender(RenderLevelStageEvent event) {
-        if (!enabled || event.getStage() != RenderLevelStageEvent.Stage.AFTER_SKY) return;
+        if ((!enabled && !swirl) || event.getStage() != RenderLevelStageEvent.Stage.AFTER_SKY) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || !mc.level.dimension().location().equals(ASTRAL)) return;
         Matrix4f modelView = event.getModelViewMatrix();
@@ -63,10 +102,13 @@ public final class AstralSymbols {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.depthMask(false);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-
         double t = System.currentTimeMillis() / 1000.0;
-        for (int i = 0; i < SYMBOLS; i++) {
+        if (swirl) {
+            RenderSystem.setShader(GameRenderer::getPositionColorShader);
+            drawSwirl(modelView, t);
+        }
+        RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
+        for (int i = 0; enabled && i < SYMBOLS; i++) {
             float[] s = symbols[i];
             double angle = t * s[2] + s[1];
             long cycle = (long) Math.floor(angle / (Math.PI * 2));

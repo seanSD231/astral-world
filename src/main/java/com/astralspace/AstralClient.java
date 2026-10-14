@@ -119,6 +119,11 @@ public final class AstralClient {
                                     : AstralSky.skyMode == 2 ? "vanilla / shader pack" : "auto (custom unless a shader pack is on)")), false);
                             return 1;
                         })))
+                .then(Commands.literal("swirl").then(Commands.argument("on", com.mojang.brigadier.arguments.BoolArgumentType.bool()).executes(ctx -> {
+                    AstralSymbols.swirl = com.mojang.brigadier.arguments.BoolArgumentType.getBool(ctx, "on");
+                    ctx.getSource().sendSuccess(() -> Component.literal("Astral sky swirl: " + (AstralSymbols.swirl ? "on" : "off")), false);
+                    return 1;
+                })))
                 .then(Commands.literal("symbols").then(Commands.argument("on", com.mojang.brigadier.arguments.BoolArgumentType.bool()).executes(ctx -> {
                     AstralSymbols.enabled = com.mojang.brigadier.arguments.BoolArgumentType.getBool(ctx, "on");
                     ctx.getSource().sendSuccess(() -> Component.literal("Astral sky symbols: " + (AstralSymbols.enabled ? "on" : "off")), false);
