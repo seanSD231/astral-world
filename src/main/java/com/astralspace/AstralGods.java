@@ -319,6 +319,38 @@ public final class AstralGods {
         BufferUploader.drawWithShader(b.buildOrThrow());
     }
 
+    private static final ResourceLocation TEX_HANGED = ResourceLocation.fromNamespaceAndPath("astral_world", "textures/sign/hanged.png");
+    private static final ResourceLocation TEX_FOOL = ResourceLocation.fromNamespaceAndPath("astral_world", "textures/sign/fool.png");
+    private static final ResourceLocation TEX_DEATH = ResourceLocation.fromNamespaceAndPath("astral_world", "textures/sign/death.png");
+    private static final ResourceLocation TEX_VISIONARY = ResourceLocation.fromNamespaceAndPath("astral_world", "textures/sign/visionary.png");
+
+    /** A sign drawn from a picture (the artwork's own fade-out edge is baked into the png). */
+    private static void picture(String id, ResourceLocation tex, float halfW, float halfH, double t) {
+        float[] d = anchor(id);
+        float[] ax = basis(d);
+        RenderSystem.setShaderTexture(0, tex);
+        RenderSystem.setShaderColor(1f, 1f, 1f, 0.9f + 0.1f * (float) Math.sin(t * 0.8));
+        BufferBuilder b = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        float[][] c = {{-1, -1, 0, 1}, {-1, 1, 0, 0}, {1, 1, 1, 0}, {1, -1, 1, 1}};
+        for (float[] k : c) {
+            float x = d[0] + ax[0] * k[0] * halfW + ax[3] * k[1] * halfH, y = d[1] + ax[1] * k[0] * halfW + ax[4] * k[1] * halfH, z = d[2] + ax[2] * k[0] * halfW + ax[5] * k[1] * halfH;
+            float l = (float) Math.sqrt(x * x + y * y + z * z);
+            b.addVertex(m0, x / l * 100f, y / l * 100f, z / l * 100f).setUv(k[2], k[3]);
+        }
+        BufferUploader.drawWithShader(b.buildOrThrow());
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+    }
+    private static Matrix4f m0;
+
+    private static void pictures(Matrix4f m, String gods, double t) {
+        m0 = m;
+        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        if (gods.contains(",secrets_supplicant,")) picture("secrets_supplicant", TEX_HANGED, 0.6f, 0.5f, t);
+        if (gods.contains(",seer,")) picture("seer", TEX_FOOL, 0.4f, 0.52f, t);
+        if (gods.contains(",corpse_collector,")) picture("corpse_collector", TEX_DEATH, 0.4f, 0.52f, t);
+        if (gods.contains(",spectator,")) picture("spectator", TEX_VISIONARY, 0.4f, 0.5f, t);
+    }
+
     private static void sunAndMoon(Matrix4f m, boolean sun, boolean moon, int moonPhase) {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
@@ -768,7 +800,7 @@ public final class AstralGods {
         for (int i = 0; i <= n; i++) {
             float u = i / (float) n;
             double ang = rot + gap * 0.5 + (Math.PI * 2 - gap) * u;
-            float w = 0.012f + 0.05f * (float) Math.pow(u, 1.3);
+            float w = 0.014f + 0.07f * (float) Math.pow(u, 1.2);
             ringPts[i] = pt((float) Math.cos(ang) * R0, (float) Math.sin(ang) * R0, w);
         }
         engraved(q, m, d, ax, ringPts);
@@ -776,15 +808,24 @@ public final class AstralGods {
             float[] p = ringPts[i];
             double ang = rot + gap * 0.5 + (Math.PI * 2 - gap) * (i / (float) n);
             float nx = (float) Math.cos(ang), ny = (float) Math.sin(ang);
-            line(q, m, d, ax, p[0] - nx * p[2] * 0.4f, p[1] - ny * p[2] * 0.4f, p[0] + nx * p[2] * 0.4f, p[1] + ny * p[2] * 0.4f, 0.004f, GOLD, 0.85f);
+            line(q, m, d, ax, p[0] - nx * p[2] * 0.4f, p[1] - ny * p[2] * 0.4f, p[0] + nx * p[2] * 0.4f, p[1] + ny * p[2] * 0.4f, 0.005f, GOLD, 0.9f);
         }
         // head: a wedge ahead of the thick end, facing the tail, and an eye
+        // forked tongue
+        {
+            double ha0 = rot + gap * 0.5 + (Math.PI * 2 - gap);
+            float cx = (float) Math.cos(ha0) * R0, cy = (float) Math.sin(ha0) * R0, fx = (float) -Math.sin(ha0), fy = (float) Math.cos(ha0);
+            float ex = cx + fx * 0.13f, ey = cy + fy * 0.13f;
+            line(q, m, d, ax, cx + fx * 0.09f, cy + fy * 0.09f, ex, ey, 0.006f, new int[]{255, 70, 60}, 0.95f);
+            line(q, m, d, ax, ex, ey, ex + fx * 0.03f + fy * 0.025f, ey + fy * 0.03f - fx * 0.025f, 0.005f, new int[]{255, 70, 60}, 0.95f);
+            line(q, m, d, ax, ex, ey, ex + fx * 0.03f - fy * 0.025f, ey + fy * 0.03f + fx * 0.025f, 0.005f, new int[]{255, 70, 60}, 0.95f);
+        }
         double ha = rot + gap * 0.5 + (Math.PI * 2 - gap);
         float hx = (float) Math.cos(ha) * R0, hy = (float) Math.sin(ha) * R0;
         float tx = (float) -Math.sin(ha), ty = (float) Math.cos(ha); // along the ring, forward
         float nx = (float) Math.cos(ha), ny = (float) Math.sin(ha);
         engravedPoly(q, m, d, ax, new float[][]{{hx - nx * 0.04f, hy - ny * 0.04f}, {hx + tx * 0.07f - nx * 0.012f, hy + ty * 0.07f - ny * 0.012f}, {hx + tx * 0.07f + nx * 0.012f, hy + ty * 0.07f + ny * 0.012f}, {hx + nx * 0.04f, hy + ny * 0.04f}});
-        disc(q, m, dirOffset(d, hx + tx * 0.025f + nx * 0.015f, hy + ty * 0.025f + ny * 0.015f), 0.01f, 0.01f, 0f, new int[]{255, 250, 200}, new int[]{255, 160, 40}, 0.95f, 0.6f, 0, 0, 0);
+        disc(q, m, dirOffset(d, hx + tx * 0.025f + nx * 0.015f, hy + ty * 0.025f + ny * 0.015f), 0.016f, 0.016f, 0f, new int[]{255, 250, 120}, new int[]{255, 60, 30}, 1f, 0.6f, 0, 0, 0);
     }
 
     private static void sign(BufferBuilder q, Matrix4f m, String id, double t) {
@@ -792,14 +833,14 @@ public final class AstralGods {
         float[] ax = basis(d);
         switch (id) {
             case "sailor" -> lightning(q, m, d, ax, t);
-            case "seer" -> tendrils(q, m, d, ax, t);
+            case "seer" -> backdrop(q, m, d, 0.5f, 0.55f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.55f);
             case "marauder" -> glitch(q, m, d, ax, t);
             case "apprentice" -> door(q, m, d, ax, t);
-            case "spectator" -> dragon(q, m, d, ax, t);
+            case "spectator" -> backdrop(q, m, d, 0.45f, 0.55f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.55f);
             case "reader" -> tower(q, m, d, ax, t);
-            case "secrets_supplicant" -> hanged(q, m, d, ax, t);
+            case "secrets_supplicant" -> backdrop(q, m, d, 0.6f, 0.5f, new int[]{255, 215, 120}, new int[]{150, 70, 20}, 0.6f);
             case "sleepless" -> eclipse(q, m, d, t);
-            case "corpse_collector" -> feathered(q, m, d, ax, t);
+            case "corpse_collector" -> backdrop(q, m, d, 0.5f, 0.55f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.55f);
             case "warrior" -> giant(q, m, d, ax, t);
             case "assassin" -> lily(q, m, d, t);
             case "hunter" -> flames(q, m, d, t);
@@ -830,6 +871,7 @@ public final class AstralGods {
         BufferBuilder q = begin();
         for (String id : ALL) if (gods.contains("," + id + ",")) sign(q, m, id, t);
         end(q);
+        pictures(m, gods, t);
         boolean sun = gods.contains(",bard,"), moon = gods.contains(",apothecary,");
         if (sun || moon) sunAndMoon(m, sun, moon, moonPhase);
     }
