@@ -214,13 +214,36 @@ public final class AstralGods {
                     float r = (float) c[0];
                     double th = c[1] + v[5] * Math.log(r / R_MIN) + t * v[6];
                     float arm = 0.5f + 0.5f * (float) Math.sin(5 * th);
-                    float hue = v[7] + (float) (c[1] / (Math.PI * 2)) * 0.9f + 0.25f * (float) Math.log(r / R_MIN) + (float) t * 0.006f + 0.25f * arm;
+                    float hue = v[7] + (float) (c[1] / (Math.PI * 2)) * 1.8f + 0.4f * (float) Math.log(r / R_MIN) + (float) t * 0.01f + 0.5f * arm;
                     int[] col = armColor(hue);
                     float edge = (float) Math.pow(Math.max(0, 1f - (r / rad) * (r / rad)), 1.1);
-                    float al = 0.5f * edge * (0.35f + 0.65f * arm);
+                    float al = 0.4f * edge * (0.35f + 0.65f * arm);
                     vertex(q, m, d, ax, (float) Math.cos(c[1]) * r, (float) Math.sin(c[1]) * r, col[0], col[1], col[2], al);
                 }
             }
+        }
+    }
+
+    /** A soft-edged ribbon along the points (pa, pb) with width, alpha and colour per point. */
+    private static void ribbon(BufferBuilder q, Matrix4f m, float[] d, float[] ax, float[] pa, float[] pb, float[] w, float[] al, int[][] col) {
+        int n = pa.length - 1;
+        for (int i = 0; i < n; i++) {
+            int i1 = i + 1;
+            float[][] nn = new float[2][];
+            for (int k = 0; k < 2; k++) {
+                int p0 = Math.max(0, i + k - 1), p1 = Math.min(n, i + k + 1);
+                float tx = pa[p1] - pa[p0], ty = pb[p1] - pb[p0], l = (float) Math.sqrt(tx * tx + ty * ty);
+                if (l < 1e-6f) l = 1f;
+                nn[k] = new float[]{-ty / l, tx / l};
+            }
+            vertex(q, m, d, ax, pa[i] + nn[0][0] * w[i], pb[i] + nn[0][1] * w[i], col[i][0], col[i][1], col[i][2], 0f);
+            vertex(q, m, d, ax, pa[i1] + nn[1][0] * w[i1], pb[i1] + nn[1][1] * w[i1], col[i1][0], col[i1][1], col[i1][2], 0f);
+            vertex(q, m, d, ax, pa[i1], pb[i1], col[i1][0], col[i1][1], col[i1][2], al[i1]);
+            vertex(q, m, d, ax, pa[i], pb[i], col[i][0], col[i][1], col[i][2], al[i]);
+            vertex(q, m, d, ax, pa[i], pb[i], col[i][0], col[i][1], col[i][2], al[i]);
+            vertex(q, m, d, ax, pa[i1], pb[i1], col[i1][0], col[i1][1], col[i1][2], al[i1]);
+            vertex(q, m, d, ax, pa[i1] - nn[1][0] * w[i1], pb[i1] - nn[1][1] * w[i1], col[i1][0], col[i1][1], col[i1][2], 0f);
+            vertex(q, m, d, ax, pa[i] - nn[0][0] * w[i], pb[i] - nn[0][1] * w[i], col[i][0], col[i][1], col[i][2], 0f);
         }
     }
 
@@ -269,6 +292,26 @@ public final class AstralGods {
                 vertex(q, m, d, ax, pa[i1] - n[1][0] * w[i1], pb[i1] - n[1][1] * w[i1], col[i1][0], col[i1][1], col[i1][2], 0f);
                 vertex(q, m, d, ax, pa[i] - n[0][0] * w[i], pb[i] - n[0][1] * w[i], col[i][0], col[i][1], col[i][2], 0f);
             }
+        }
+        // tendrils hanging down out of the vortex, stretching toward the player
+        final int tendrils = 16, ts = 16;
+        for (int k = 0; k < tendrils; k++) {
+            float[] sp = STREAK[vi][k];
+            float len = 1.1f + 0.9f * sp[0] + 0.15f * (float) Math.sin(t * 0.5 + k);
+            double th0 = k * Math.PI * 2 / tendrils + t * 0.12 * (v[5] > 0 ? 1 : -1);
+            float[] pa = new float[ts + 1], pb = new float[ts + 1], w = new float[ts + 1], al = new float[ts + 1];
+            int[][] col = new int[ts + 1][];
+            for (int i = 0; i <= ts; i++) {
+                float s = i / (float) ts;
+                float rho = 0.2f * (1f - 0.75f * s) * (0.5f + sp[2] * 0.5f);
+                double th = th0 + s * 5.0 * (v[5] > 0 ? 1 : -1) + t * 0.5;
+                pa[i] = (float) Math.cos(th) * rho * (1f + s);
+                pb[i] = -s * len + (float) Math.sin(th) * rho * 0.3f;
+                w[i] = 0.035f * (1f - 0.8f * s) + 0.004f;
+                al[i] = 0.8f * (float) Math.sin(Math.PI * Math.min(1f, s * 6f) * 0.5) * (1f - s * s);
+                col[i] = armColor(v[7] + sp[3] + s * 0.6f + (float) t * 0.02f);
+            }
+            ribbon(q, m, d, ax, pa, pb, w, al, col);
         }
         // a glowing heart where everything is dragged to
         int[] c = armColor(v[7] + (float) t * 0.01f);
