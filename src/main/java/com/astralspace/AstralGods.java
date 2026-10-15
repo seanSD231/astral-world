@@ -319,38 +319,6 @@ public final class AstralGods {
         BufferUploader.drawWithShader(b.buildOrThrow());
     }
 
-    private static final ResourceLocation TEX_HANGED = ResourceLocation.fromNamespaceAndPath("astral_world", "textures/sign/hanged.png");
-    private static final ResourceLocation TEX_FOOL = ResourceLocation.fromNamespaceAndPath("astral_world", "textures/sign/fool.png");
-    private static final ResourceLocation TEX_DEATH = ResourceLocation.fromNamespaceAndPath("astral_world", "textures/sign/death.png");
-    private static final ResourceLocation TEX_VISIONARY = ResourceLocation.fromNamespaceAndPath("astral_world", "textures/sign/visionary.png");
-
-    /** A sign drawn from a picture (the artwork's own fade-out edge is baked into the png). */
-    private static void picture(String id, ResourceLocation tex, float halfW, float halfH, double t) {
-        float[] d = anchor(id);
-        float[] ax = basis(d);
-        RenderSystem.setShaderTexture(0, tex);
-        RenderSystem.setShaderColor(1f, 1f, 1f, 0.9f + 0.1f * (float) Math.sin(t * 0.8));
-        BufferBuilder b = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        float[][] c = {{-1, -1, 0, 1}, {-1, 1, 0, 0}, {1, 1, 1, 0}, {1, -1, 1, 1}};
-        for (float[] k : c) {
-            float x = d[0] + ax[0] * k[0] * halfW + ax[3] * k[1] * halfH, y = d[1] + ax[1] * k[0] * halfW + ax[4] * k[1] * halfH, z = d[2] + ax[2] * k[0] * halfW + ax[5] * k[1] * halfH;
-            float l = (float) Math.sqrt(x * x + y * y + z * z);
-            b.addVertex(m0, x / l * 100f, y / l * 100f, z / l * 100f).setUv(k[2], k[3]);
-        }
-        BufferUploader.drawWithShader(b.buildOrThrow());
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-    }
-    private static Matrix4f m0;
-
-    private static void pictures(Matrix4f m, String gods, double t) {
-        m0 = m;
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        if (gods.contains(",secrets_supplicant,")) picture("secrets_supplicant", TEX_HANGED, 0.6f, 0.5f, t);
-        if (gods.contains(",seer,")) picture("seer", TEX_FOOL, 0.4f, 0.52f, t);
-        if (gods.contains(",corpse_collector,")) picture("corpse_collector", TEX_DEATH, 0.4f, 0.52f, t);
-        if (gods.contains(",spectator,")) picture("spectator", TEX_VISIONARY, 0.4f, 0.5f, t);
-    }
-
     private static void sunAndMoon(Matrix4f m, boolean sun, boolean moon, int moonPhase) {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
@@ -416,6 +384,15 @@ public final class AstralGods {
         }
     }
 
+    private static void strings(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Fool: puppet strings
+        for (int i = 0; i < 7; i++) {
+            float x = (i - 3) * 0.045f + 0.012f * (float) Math.sin(t * 0.8 + i), y = -0.14f + 0.02f * (float) Math.sin(t * 1.1 + i * 1.7);
+            line(q, m, d, ax, 0f, 0.18f, x, y, 0.004f, new int[]{255, 230, 150}, 0.85f);
+            disc(q, m, d, 0.012f, 0.012f, 0f, new int[]{255, 235, 170}, new int[]{200, 150, 60}, 0.9f, 0.6f, 0, 0, 0);
+        }
+        disc(q, m, d, 0.03f, 0.03f, 0f, new int[]{255, 240, 190}, new int[]{200, 150, 60}, 0.9f, 0.7f, 0, 0, 0);
+    }
+
     private static void glitch(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Error: glitching blocks
         long n = (long) Math.floor(t * 6);
         Random r = new Random(n * 77L);
@@ -433,6 +410,13 @@ public final class AstralGods {
         fill(q, m, d, ax, new float[][]{{-0.05f, -0.12f}, {-0.05f + 0.1f * (1f - open) * 0.5f, -0.12f}, {-0.05f + 0.1f * (1f - open) * 0.5f, 0.11f}, {-0.05f, 0.11f}}, new int[]{20, 40, 80}, 0.9f); // the door leaf
     }
 
+    private static void eye(BufferBuilder q, Matrix4f m, float[] d, double t) { // Visionary: a watching eye
+        float open = 0.25f + 0.75f * smooth((float) (0.5 + 0.5 * Math.sin(t * 0.35)) * 1.6f - 0.2f);
+        disc(q, m, d, 0.2f, 0.2f * open, 0f, new int[]{240, 250, 255}, new int[]{20, 90, 70}, 0.7f, 0.9f, 0, 0, 0);
+        disc(q, m, d, 0.08f, 0.08f * Math.min(1f, open * 1.2f), 0f, new int[]{150, 255, 200}, new int[]{70, 130, 100}, 0.95f, 0.5f, 0, 0, 0);
+        disc(q, m, d, 0.032f, 0.032f * Math.min(1f, open * 1.2f), 0f, BLACK, BLACK, 1f, 0.3f, 0, 0, 0);
+    }
+
     private static void tower(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // White Tower: a tall white tower
         float p = 0.7f + 0.3f * (float) Math.sin(t * 0.7);
         fill(q, m, d, ax, new float[][]{{-0.035f, -0.17f}, {0.035f, -0.17f}, {0.014f, 0.13f}, {-0.014f, 0.13f}}, new int[]{235, 238, 255}, 0.85f);
@@ -440,10 +424,35 @@ public final class AstralGods {
         disc(q, m, d, 0.06f, 0.06f, 0f, new int[]{255, 255, 255}, new int[]{150, 170, 255}, 0.8f * p, 1.2f, 0, 0, 0);
     }
 
+    private static void hanged(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Hanged Man: a figure swinging on a rope
+        float sw = 0.05f * (float) Math.sin(t * 0.9);
+        float topB = 0.2f;
+        float hx = sw * 0.9f, hy = 0.02f; // head
+        int[] rope = {190, 150, 120}, body = {60, 25, 60};
+        line(q, m, d, ax, 0f, topB, hx, hy + 0.025f, 0.005f, rope, 0.9f);
+        disc(q, m, d, 0.2f, 0.22f, 0f, new int[]{150, 60, 120}, new int[]{20, 0, 25}, 0.3f, 1.2f, 0, 0, 0); // sickly glow
+        disc(q, m, dirOffset(d, hx, hy), 0.026f, 0.026f, 0f, body, new int[]{140, 60, 120}, 0.95f, 0.15f, 0, 0, 0);       // head
+        fill(q, m, d, ax, new float[][]{{hx - 0.03f, hy - 0.03f}, {hx + 0.03f, hy - 0.03f}, {hx + sw * 0.5f + 0.022f, hy - 0.13f}, {hx + sw * 0.5f - 0.022f, hy - 0.13f}}, body, 0.95f); // body
+        line(q, m, d, ax, hx + sw * 0.5f - 0.01f, hy - 0.13f, hx + sw * 0.8f - 0.015f, hy - 0.22f, 0.014f, body, 0.95f); // legs
+        line(q, m, d, ax, hx + sw * 0.5f + 0.01f, hy - 0.13f, hx + sw * 0.8f + 0.015f, hy - 0.22f, 0.014f, body, 0.95f);
+        line(q, m, d, ax, hx - 0.03f, hy - 0.04f, hx - 0.05f, hy - 0.11f, 0.012f, body, 0.9f); // arms
+        line(q, m, d, ax, hx + 0.03f, hy - 0.04f, hx + 0.05f, hy - 0.11f, 0.012f, body, 0.9f);
+    }
+
     private static void eclipse(BufferBuilder q, Matrix4f m, float[] d, double t) { // Darkness: a black sun with a thin corona
         float p = 0.6f + 0.4f * (float) Math.sin(t * 0.5);
         disc(q, m, d, 0.2f, 0.2f, 0f, new int[]{150, 150, 190}, new int[]{20, 20, 40}, 0.35f * p, 1.6f, 0, 0, 0);
         disc(q, m, d, 0.1f, 0.1f, 0f, BLACK, BLACK, 0.95f, 0.15f, 0, 0, 0);
+    }
+
+    private static void souls(BufferBuilder q, Matrix4f m, float[] d, double t) { // Death: pale souls rising
+        for (int i = 0; i < 4; i++) {
+            double f = (t * 0.05 + i * 0.25) % 1.0;
+            float a = (i - 1.5f) * 0.08f + 0.02f * (float) Math.sin(t * 0.9 + i), b = -0.15f + (float) f * 0.35f;
+            float al = (float) Math.sin(Math.PI * f) * 0.85f;
+            float[] p = dirOffset(d, a, b);
+            disc(q, m, p, 0.022f, 0.05f, 0f, new int[]{235, 245, 255}, new int[]{110, 160, 220}, al, 0.8f, 0, 0, 0);
+        }
     }
 
     /** Where a god's own pathway symbol is drawn: just below its sign, so it never covers the sign. */
@@ -506,6 +515,16 @@ public final class AstralGods {
         ring(q, m, d, 0.04f, 0.09f, new int[]{255, 255, 255}, 0.9f, 6, (float) -t * 0.9f);
     }
 
+    private static void wheel(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Wheel of Fortune: a turning wheel
+        float rot = (float) (t * 0.25);
+        int[] c = {255, 220, 110};
+        ring(q, m, d, 0.16f, 0.19f, c, 0.9f, 0, 0);
+        for (int i = 0; i < 8; i++) {
+            double a = rot + i * Math.PI / 4;
+            line(q, m, d, ax, 0f, 0f, (float) Math.cos(a) * 0.17f, (float) Math.sin(a) * 0.17f, 0.007f, c, 0.85f);
+        }
+    }
+
     private static void tree(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) { // Mother: a growing tree
         float grow = 0.6f + 0.4f * (float) Math.sin(t * 0.4);
         int[] bark = {110, 220, 110};
@@ -555,298 +574,25 @@ public final class AstralGods {
         }
     }
 
-
-    // ------------------------------------------------------------------ engraved gold-on-black art (Hanged Man, Visionary, Fool, Death, Wheel)
-
-    private static final int[] GOLD = {255, 205, 90}, GOLD_LIGHT = {255, 238, 160};
-
-    /** A ribbon along points {a, b, width}: every point gets a left and a right edge, one quad between neighbours. */
-    private static void strip(BufferBuilder q, Matrix4f m, float[] d, float[] ax, float[][] p, int[] c, float al, float extra) {
-        int n = p.length;
-        float[] lx = new float[n], ly = new float[n], rx = new float[n], ry = new float[n];
-        for (int i = 0; i < n; i++) {
-            float[] a = p[Math.max(0, i - 1)], b = p[Math.min(n - 1, i + 1)];
-            float dx = b[0] - a[0], dy = b[1] - a[1], l = (float) Math.sqrt(dx * dx + dy * dy);
-            if (l < 1e-6f) { dx = 1; dy = 0; l = 1; }
-            float h = Math.max(0.0005f, p[i][2] + extra) * 0.5f, nx = -dy / l * h, ny = dx / l * h;
-            lx[i] = p[i][0] + nx; ly[i] = p[i][1] + ny; rx[i] = p[i][0] - nx; ry[i] = p[i][1] - ny;
-        }
-        for (int i = 0; i + 1 < n; i++) {
-            vertex(q, m, d, ax, lx[i], ly[i], c[0], c[1], c[2], al);
-            vertex(q, m, d, ax, lx[i + 1], ly[i + 1], c[0], c[1], c[2], al);
-            vertex(q, m, d, ax, rx[i + 1], ry[i + 1], c[0], c[1], c[2], al);
-            vertex(q, m, d, ax, rx[i], ry[i], c[0], c[1], c[2], al);
-        }
-    }
-
-    /** A black shape with a thin gold outline, like the engraved tarot art. */
-    private static void engraved(BufferBuilder q, Matrix4f m, float[] d, float[] ax, float[][] p) {
-        strip(q, m, d, ax, p, GOLD, 1f, 0.02f);
-        strip(q, m, d, ax, p, BLACK, 1f, 0f);
-    }
-
-    /** A black polygon (3 or 4 corners) with a gold outline: the outline is the same shape pushed outward. */
-    private static void engravedPoly(BufferBuilder q, Matrix4f m, float[] d, float[] ax, float[][] pts) {
-        float ca = 0, cb = 0;
-        for (float[] p : pts) { ca += p[0]; cb += p[1]; }
-        ca /= pts.length; cb /= pts.length;
-        float[][] out = new float[pts.length][];
-        for (int i = 0; i < pts.length; i++) {
-            float dx = pts[i][0] - ca, dy = pts[i][1] - cb, l = Math.max(1e-6f, (float) Math.sqrt(dx * dx + dy * dy));
-            out[i] = new float[]{pts[i][0] + dx / l * 0.011f, pts[i][1] + dy / l * 0.011f};
-        }
-        fill(q, m, d, ax, out, GOLD, 1f);
-        fill(q, m, d, ax, pts, BLACK, 1f);
-    }
-
-    /** A warm glow behind a sign, so its black shapes stand out against the sky. */
-    private static void backdrop(BufferBuilder q, Matrix4f m, float[] d, float rx, float ry, int[] inner, int[] outer, float alpha) {
-        disc(q, m, d, rx, ry, 0f, inner, outer, alpha, 0.7f, 0, 0, 0);
-    }
-
-    private static float[] pt(float a, float b, float w) { return new float[]{a, b, w}; }
-
-    /** The Hanged Man: a chained figure hanging upside down under a column of chains, in golden rings and beams of light. */
-    private static void hanged(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) {
-        float bob = 0.012f * (float) Math.sin(t * 0.6);
-        backdrop(q, m, d, 0.42f, 0.38f, new int[]{255, 215, 120}, new int[]{150, 70, 20}, 0.75f); // golden sky behind the figure
-        for (int i = -1; i <= 1; i += 2) backdrop(q, m, dirOffset(d, i * 0.26f, 0.1f), 0.2f, 0.12f, new int[]{90, 50, 20}, new int[]{20, 10, 5}, 0.8f); // dark clouds
-        // beams of golden light falling straight down
-        for (int i = 0; i < 11; i++) {
-            float x = -0.3f + i * 0.06f;
-            float al = 0.3f + 0.3f * (0.5f + 0.5f * (float) Math.sin(t * 1.4 + i * 1.3));
-            line(q, m, d, ax, x, 0.34f, x + 0.004f, -0.32f, 0.02f, GOLD_LIGHT, al * 0.25f);
-            line(q, m, d, ax, x, 0.34f, x + 0.004f, -0.32f, 0.004f, GOLD_LIGHT, al);
-        }
-        // golden rings (seen at an angle) around the figure
-        float[][] rings = {{0.30f, 0.05f, 0.22f}, {0.20f, 0.08f, 0.02f}, {0.17f, 0.06f, -0.24f}};
-        for (float[] r : rings) {
-            float[][] p = new float[41][];
-            for (int i = 0; i <= 40; i++) { double a = Math.PI * 2 * i / 40; p[i] = pt((float) Math.cos(a) * r[0], r[2] + (float) Math.sin(a) * r[1], 0.007f); }
-            strip(q, m, d, ax, p, GOLD, 0.8f, 0f);
-        }
-        // the chain column above the figure
-        for (int i = 0; i < 6; i++) {
-            float b = 0.09f + bob + i * 0.036f, wd = (i % 2 == 0) ? 0.035f : 0.022f;
-            engravedPoly(q, m, d, ax, new float[][]{{-wd, b}, {wd, b}, {wd, b + 0.026f}, {-wd, b + 0.026f}});
-        }
-        // arms stretched out to both sides, hung with chains
-        for (int s = -1; s <= 1; s += 2) {
-            float[][] arm = new float[8][];
-            for (int i = 0; i < 8; i++) { float u = i / 7f; arm[i] = pt(s * (0.02f + 0.24f * u), -0.02f + bob - 0.025f * u * u, 0.045f * (1f - 0.55f * u)); }
-            engraved(q, m, d, ax, arm);
-            for (int i = 1; i < 6; i++) { // chain links along the arm
-                float u = i / 7f;
-                ring(q, m, dirOffset(d, s * (0.02f + 0.24f * u), -0.02f + bob - 0.025f * u * u - 0.03f), 0.006f, 0.014f, GOLD, 0.9f, 0, 0);
-            }
-            line(q, m, d, ax, s * 0.24f, -0.03f + bob, s * 0.25f, -0.15f + bob, 0.008f, GOLD, 0.9f); // a chain hanging from each hand
-        }
-        // torso
-        engraved(q, m, d, ax, new float[][]{pt(0f, 0.095f + bob, 0.06f), pt(0f, 0.03f + bob, 0.085f), pt(0f, -0.04f + bob, 0.07f)});
-        line(q, m, d, ax, -0.04f, 0.07f + bob, 0.04f, -0.03f + bob, 0.006f, GOLD, 0.9f); // chains across the chest
-        line(q, m, d, ax, 0.04f, 0.07f + bob, -0.04f, -0.03f + bob, 0.006f, GOLD, 0.9f);
-        // head at the bottom, with long hair falling below it
-        disc(q, m, dirOffset(d, 0f, -0.075f + bob), 0.034f, 0.034f, 0f, GOLD, GOLD, 0.95f, 0.1f, 0, 0, 0);
-        disc(q, m, dirOffset(d, 0f, -0.075f + bob), 0.03f, 0.03f, 0f, BLACK, BLACK, 0.97f, 0.1f, 0, 0, 0);
-        for (int i = -2; i <= 2; i++) {
-            float sw = 0.012f * (float) Math.sin(t * 1.1 + i);
-            float[][] hair = new float[8][];
-            for (int k = 0; k < 8; k++) { float u = k / 7f; hair[k] = pt(i * 0.014f * (1f + u) + sw * u, -0.1f + bob - 0.17f * u, 0.016f * (1f - u * 0.85f)); }
-            engraved(q, m, d, ax, hair);
-        }
-    }
-
-    /** The Visionary: a coiling dragon with horns, a spined back and a burning eye. */
-    private static void dragon(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) {
-        backdrop(q, m, d, 0.34f, 0.36f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.5f);
-        final int n = 40;
-        float phase = (float) (t * 0.5);
-        float[][] body = new float[n + 1][];
-        for (int i = 0; i <= n; i++) {
-            float s = i / (float) n;
-            float a = 0.17f * (float) Math.sin(Math.PI * 2 * 1.25 * s + phase) * (0.5f + 0.5f * s);
-            float b = -0.26f + 0.5f * s + 0.03f * (float) Math.sin(Math.PI * 2 * 2.5 * s - phase * 1.3);
-            float w = 0.012f + 0.05f * (float) Math.sin(Math.min(1f, s * 1.05f) * Math.PI * 0.5);
-            body[i] = pt(a, b, w);
-        }
-        // spines along the back, then the body on top of them
-        for (int i = 4; i < n; i += 3) {
-            float[] p = body[i], pn = body[i + 1];
-            float dx = pn[0] - p[0], dy = pn[1] - p[1], l = Math.max(1e-6f, (float) Math.sqrt(dx * dx + dy * dy));
-            float nx = -dy / l, ny = dx / l, h = p[2] * 0.5f;
-            engravedPoly(q, m, d, ax, new float[][]{{p[0] + nx * h, p[1] + ny * h}, {pn[0] + nx * h, pn[1] + ny * h}, {p[0] + nx * (h + 0.035f) + dx / l * 0.015f, p[1] + ny * (h + 0.035f) + dy / l * 0.015f}});
-        }
-        engraved(q, m, d, ax, body);
-        for (int i = 6; i < n - 1; i += 4) { // belly scales
-            float[] p = body[i], pn = body[i + 1];
-            float dx = pn[0] - p[0], dy = pn[1] - p[1], l = Math.max(1e-6f, (float) Math.sqrt(dx * dx + dy * dy));
-            float nx = -dy / l * p[2] * 0.5f, ny = dx / l * p[2] * 0.5f;
-            line(q, m, d, ax, p[0] - nx, p[1] - ny, p[0] + nx, p[1] + ny, 0.004f, GOLD, 0.85f);
-        }
-        // head: a wedge pointing along the last bit of the body, two horns, an open jaw and an eye
-        float[] h = body[n], hp = body[n - 3];
-        float hx = h[0] - hp[0], hy = h[1] - hp[1], hl = Math.max(1e-6f, (float) Math.sqrt(hx * hx + hy * hy));
-        hx /= hl; hy /= hl;
-        float px = -hy, py = hx;
-        float sx = h[0], sy = h[1];
-        engravedPoly(q, m, d, ax, new float[][]{{sx + px * 0.035f, sy + py * 0.035f}, {sx + hx * 0.1f + px * 0.012f, sy + hy * 0.1f + py * 0.012f}, {sx + hx * 0.1f - px * 0.004f, sy + hy * 0.1f - py * 0.004f}, {sx - px * 0.03f, sy - py * 0.03f}});
-        engravedPoly(q, m, d, ax, new float[][]{{sx - px * 0.02f, sy - py * 0.02f}, {sx + hx * 0.08f - px * 0.02f, sy + hy * 0.08f - py * 0.02f}, {sx + hx * 0.02f - px * 0.05f, sy + hy * 0.02f - py * 0.05f}}); // lower jaw
-        for (int s = -1; s <= 1; s += 2) {
-            engravedPoly(q, m, d, ax, new float[][]{{sx - hx * 0.01f + px * s * 0.02f, sy - hy * 0.01f + py * s * 0.02f}, {sx - hx * 0.09f + px * s * 0.07f, sy - hy * 0.09f + py * s * 0.07f}, {sx - hx * 0.02f + px * s * 0.03f, sy - hy * 0.02f + py * s * 0.03f}}); // horns
-        }
-        float glow = 0.7f + 0.3f * (float) Math.sin(t * 2.0);
-        disc(q, m, dirOffset(d, sx + hx * 0.045f + px * 0.016f, sy + hy * 0.045f + py * 0.016f), 0.014f, 0.014f, 0f, new int[]{255, 250, 210}, new int[]{255, 120, 30}, glow, 0.6f, 0, 0, 0);
-    }
-
-    /** The Fool: great black tendrils with gold edges, ending in tight curls, and drifting gold smoke. */
-    private static void tendrils(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) {
-        backdrop(q, m, d, 0.36f, 0.36f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.5f);
-        for (int i = -3; i <= 3; i++) { // pinstripes behind
-            float x = i * 0.075f;
-            line(q, m, d, ax, x, -0.3f, x, 0.3f, 0.003f, GOLD, 0.35f);
-        }
-        float[][] cfg = {{-0.22f, -0.3f, -0.26f, 0.12f, 1f}, {0.04f, -0.3f, 0.2f, 0.18f, -1f}, {0.24f, -0.3f, 0.3f, -0.02f, 1f}};
-        for (int k = 0; k < 3; k++) {
-            float[] c = cfg[k];
-            float sway = 0.02f * (float) Math.sin(t * 0.6 + k * 2.0);
-            float x0 = c[0], y0 = c[1], x1 = c[2] + sway, y1 = c[3];
-            float cx = (x0 + x1) * 0.5f + c[4] * 0.16f, cy = (y0 + y1) * 0.5f - 0.05f;
-            int body = 26, curl = 18;
-            float[][] p = new float[body + curl + 1][];
-            for (int i = 0; i <= body; i++) {
-                float u = i / (float) body;
-                float a = (1 - u) * (1 - u) * x0 + 2 * (1 - u) * u * cx + u * u * x1, b = (1 - u) * (1 - u) * y0 + 2 * (1 - u) * u * cy + u * u * y1;
-                p[i] = pt(a, b, 0.055f * (1f - 0.55f * u));
-            }
-            // the tip curls into a spiral
-            double ang0 = Math.atan2(y1 - cy, x1 - cx) - c[4] * Math.PI / 2;
-            for (int i = 1; i <= curl; i++) {
-                float u = i / (float) curl;
-                double ang = ang0 + c[4] * u * Math.PI * 3.2;
-                float r = 0.07f * (1f - 0.85f * u);
-                p[body + i] = pt(x1 + (float) (Math.cos(ang) - Math.cos(ang0)) * r, y1 + (float) (Math.sin(ang) - Math.sin(ang0)) * r, 0.025f * (1f - 0.7f * u));
-            }
-            engraved(q, m, d, ax, p);
-        }
-        // gold smoke curls
-        for (int k = 0; k < 3; k++) {
-            float[][] p = new float[30][];
-            float ph = (float) (t * 0.4 + k * 2.1);
-            for (int i = 0; i < 30; i++) { float u = i / 29f; p[i] = pt(-0.28f + 0.56f * u, -0.1f + k * 0.1f + 0.05f * (float) Math.sin(u * 7 + ph), 0.005f * (float) Math.sin(u * Math.PI)); }
-            strip(q, m, d, ax, p, GOLD, 0.8f, 0f);
-        }
-    }
-
-    /** Death: a feathered serpent, coiled, with great wings of black feathers edged in gold. */
-    private static void feathered(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) {
-        float flap = 0.06f * (float) Math.sin(t * 0.9);
-        backdrop(q, m, d, 0.38f, 0.34f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.5f);
-        // the wings first, so the coiled body is in front
-        for (int s = -1; s <= 1; s += 2) {
-            for (int k = 0; k < 7; k++) {
-                double ang = Math.toRadians(95 - k * 12) + flap * (1f + 0.15f * k);
-                float len = 0.3f - 0.02f * k, w = 0.045f;
-                float bx = s * 0.03f, by = 0.0f;
-                float ax2 = (float) Math.cos(ang) * s, ay = (float) Math.sin(ang);
-                float tx = bx + ax2 * len, ty = by + ay * len, mx = bx + ax2 * len * 0.45f, my = by + ay * len * 0.45f;
-                float nx = -ay * s, ny = ax2 * s;
-                engravedPoly(q, m, d, ax, new float[][]{{bx, by}, {mx + nx * w, my + ny * w}, {tx, ty}, {mx - nx * w, my - ny * w}});
-                line(q, m, d, ax, bx, by, tx, ty, 0.004f, GOLD, 0.8f); // the quill
-            }
-        }
-        // the coiled body
-        final int n = 44;
-        float[][] body = new float[n + 1][];
-        for (int i = 0; i <= n; i++) {
-            float u = i / (float) n;
-            double ang = Math.PI * 2 * 1.35 * u + t * 0.25;
-            float r = 0.17f - 0.05f * u;
-            body[i] = pt((float) Math.cos(ang) * r, -0.06f + (float) Math.sin(ang) * r * 0.75f + 0.1f * u - 0.1f, 0.012f + 0.05f * (float) Math.sin(Math.min(1f, u * 1.05f) * Math.PI * 0.5));
-        }
-        engraved(q, m, d, ax, body);
-        for (int i = 4; i < n; i += 3) { // scale marks
-            float[] p = body[i], pn = body[i + 1];
-            float dx = pn[0] - p[0], dy = pn[1] - p[1], l = Math.max(1e-6f, (float) Math.sqrt(dx * dx + dy * dy));
-            line(q, m, d, ax, p[0] - dy / l * p[2] * 0.4f, p[1] + dx / l * p[2] * 0.4f, p[0] + dy / l * p[2] * 0.4f, p[1] - dx / l * p[2] * 0.4f, 0.004f, GOLD, 0.8f);
-        }
-        float[] h = body[n], hp = body[n - 3];
-        float hx = h[0] - hp[0], hy = h[1] - hp[1], hl = Math.max(1e-6f, (float) Math.sqrt(hx * hx + hy * hy));
-        hx /= hl; hy /= hl;
-        float px = -hy, py = hx;
-        engravedPoly(q, m, d, ax, new float[][]{{h[0] + px * 0.032f, h[1] + py * 0.032f}, {h[0] + hx * 0.09f + px * 0.01f, h[1] + hy * 0.09f + py * 0.01f}, {h[0] + hx * 0.09f - px * 0.005f, h[1] + hy * 0.09f - py * 0.005f}, {h[0] - px * 0.03f, h[1] - py * 0.03f}});
-        disc(q, m, dirOffset(d, h[0] + hx * 0.04f + px * 0.014f, h[1] + hy * 0.04f + py * 0.014f), 0.011f, 0.011f, 0f, new int[]{235, 245, 255}, new int[]{130, 190, 255}, 0.95f, 0.6f, 0, 0, 0);
-    }
-
-    /** Wheel of Fortune: a snake eating its own tail in a turning ring, with four serpents for spokes. */
-    private static void serpentWheel(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) {
-        float rot = (float) (t * 0.2);
-        float R0 = 0.17f;
-        backdrop(q, m, d, 0.3f, 0.3f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.5f);
-        // four wavy serpents as spokes, turning the other way
-        for (int k = 0; k < 4; k++) {
-            double base = -rot * 1.5 + k * Math.PI / 2;
-            float[][] p = new float[22][];
-            for (int i = 0; i < 22; i++) {
-                float u = i / 21f, r = 0.02f + u * (R0 - 0.02f), off = 0.025f * (float) Math.sin(u * 9 + t * 1.5 + k);
-                double ang = base + off / Math.max(0.04f, r);
-                p[i] = pt((float) Math.cos(ang) * r, (float) Math.sin(ang) * r, 0.022f * (1f - 0.75f * u) + 0.006f);
-            }
-            engraved(q, m, d, ax, p);
-        }
-        // the snake ring: thin tail, thick body near the head, a small gap between head and tail
-        final int n = 64;
-        float gap = 0.35f;
-        float[][] ringPts = new float[n + 1][];
-        for (int i = 0; i <= n; i++) {
-            float u = i / (float) n;
-            double ang = rot + gap * 0.5 + (Math.PI * 2 - gap) * u;
-            float w = 0.014f + 0.07f * (float) Math.pow(u, 1.2);
-            ringPts[i] = pt((float) Math.cos(ang) * R0, (float) Math.sin(ang) * R0, w);
-        }
-        engraved(q, m, d, ax, ringPts);
-        for (int i = 3; i < n; i += 3) { // scales
-            float[] p = ringPts[i];
-            double ang = rot + gap * 0.5 + (Math.PI * 2 - gap) * (i / (float) n);
-            float nx = (float) Math.cos(ang), ny = (float) Math.sin(ang);
-            line(q, m, d, ax, p[0] - nx * p[2] * 0.4f, p[1] - ny * p[2] * 0.4f, p[0] + nx * p[2] * 0.4f, p[1] + ny * p[2] * 0.4f, 0.005f, GOLD, 0.9f);
-        }
-        // head: a wedge ahead of the thick end, facing the tail, and an eye
-        // forked tongue
-        {
-            double ha0 = rot + gap * 0.5 + (Math.PI * 2 - gap);
-            float cx = (float) Math.cos(ha0) * R0, cy = (float) Math.sin(ha0) * R0, fx = (float) -Math.sin(ha0), fy = (float) Math.cos(ha0);
-            float ex = cx + fx * 0.13f, ey = cy + fy * 0.13f;
-            line(q, m, d, ax, cx + fx * 0.09f, cy + fy * 0.09f, ex, ey, 0.006f, new int[]{255, 70, 60}, 0.95f);
-            line(q, m, d, ax, ex, ey, ex + fx * 0.03f + fy * 0.025f, ey + fy * 0.03f - fx * 0.025f, 0.005f, new int[]{255, 70, 60}, 0.95f);
-            line(q, m, d, ax, ex, ey, ex + fx * 0.03f - fy * 0.025f, ey + fy * 0.03f + fx * 0.025f, 0.005f, new int[]{255, 70, 60}, 0.95f);
-        }
-        double ha = rot + gap * 0.5 + (Math.PI * 2 - gap);
-        float hx = (float) Math.cos(ha) * R0, hy = (float) Math.sin(ha) * R0;
-        float tx = (float) -Math.sin(ha), ty = (float) Math.cos(ha); // along the ring, forward
-        float nx = (float) Math.cos(ha), ny = (float) Math.sin(ha);
-        engravedPoly(q, m, d, ax, new float[][]{{hx - nx * 0.04f, hy - ny * 0.04f}, {hx + tx * 0.07f - nx * 0.012f, hy + ty * 0.07f - ny * 0.012f}, {hx + tx * 0.07f + nx * 0.012f, hy + ty * 0.07f + ny * 0.012f}, {hx + nx * 0.04f, hy + ny * 0.04f}});
-        disc(q, m, dirOffset(d, hx + tx * 0.025f + nx * 0.015f, hy + ty * 0.025f + ny * 0.015f), 0.016f, 0.016f, 0f, new int[]{255, 250, 120}, new int[]{255, 60, 30}, 1f, 0.6f, 0, 0, 0);
-    }
-
     private static void sign(BufferBuilder q, Matrix4f m, String id, double t) {
         float[] d = anchor(id);
         float[] ax = basis(d);
         switch (id) {
             case "sailor" -> lightning(q, m, d, ax, t);
-            case "seer" -> backdrop(q, m, d, 0.5f, 0.55f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.55f);
+            case "seer" -> strings(q, m, d, ax, t);
             case "marauder" -> glitch(q, m, d, ax, t);
             case "apprentice" -> door(q, m, d, ax, t);
-            case "spectator" -> backdrop(q, m, d, 0.45f, 0.55f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.55f);
+            case "spectator" -> eye(q, m, d, t);
             case "reader" -> tower(q, m, d, ax, t);
-            case "secrets_supplicant" -> backdrop(q, m, d, 0.6f, 0.5f, new int[]{255, 215, 120}, new int[]{150, 70, 20}, 0.6f);
+            case "secrets_supplicant" -> hanged(q, m, d, ax, t);
             case "sleepless" -> eclipse(q, m, d, t);
-            case "corpse_collector" -> backdrop(q, m, d, 0.5f, 0.55f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.55f);
+            case "corpse_collector" -> souls(q, m, d, t);
             case "warrior" -> giant(q, m, d, ax, t);
             case "assassin" -> lily(q, m, d, t);
             case "hunter" -> flames(q, m, d, t);
             case "mystery_pryer" -> hexagram(q, m, d, ax, t);
             case "savant" -> cogs(q, m, d, t);
-            case "monster" -> serpentWheel(q, m, d, ax, t);
+            case "monster" -> wheel(q, m, d, ax, t);
             case "planter" -> tree(q, m, d, ax, t);
             case "criminal" -> vortex(q, m, d, t);
             case "prisoner" -> chains(q, m, d, t);
@@ -871,7 +617,6 @@ public final class AstralGods {
         BufferBuilder q = begin();
         for (String id : ALL) if (gods.contains("," + id + ",")) sign(q, m, id, t);
         end(q);
-        pictures(m, gods, t);
         boolean sun = gods.contains(",bard,"), moon = gods.contains(",apothecary,");
         if (sun || moon) sunAndMoon(m, sun, moon, moonPhase);
     }
