@@ -184,8 +184,8 @@ public final class AstralGods {
 
     // ---- the vortices: a few MASSIVE ones, each made of many thin streaks of different colours that flow inward and mix
 
-    private static final int VORTICES = 5, STREAKS = 90, STEPS = 12;
-    private static final float R_MIN = 0.08f, R_MAX = 1.25f; // radius in flat sky units (1.25 is about 51 degrees from the centre)
+    private static final int VORTICES = 5, STREAKS = 60, STEPS = 12;
+    private static final float R_MIN = 0.08f, R_MAX = 0.7f; // radius in flat sky units (1.25 is about 51 degrees from the centre)
     private static final float[][] VORTEX = new float[VORTICES][];  // {lon, lat, lonSpeed, latAmp, latSpeed, pitch (+ or -), rotation speed, hue}
     private static final float[][][] STREAK = new float[VORTICES][STREAKS][]; // {phase, angle, widthFactor, hue, speed}
 
@@ -193,7 +193,7 @@ public final class AstralGods {
         Random r = new Random(0xB0771CE5L);
         float[][] centres = {{0.6f, 1.1f}, {2.2f, 0.25f}, {3.6f, 0.75f}, {4.9f, 0.1f}, {5.7f, -0.8f}};
         for (int i = 0; i < VORTICES; i++) {
-            VORTEX[i] = new float[]{centres[i][0], centres[i][1], 0.006f + r.nextFloat() * 0.01f, 0.1f + r.nextFloat() * 0.12f,
+            VORTEX[i] = new float[]{centres[i][0], centres[i][1], 0.008f, 0.03f + r.nextFloat() * 0.03f,
                     0.02f + r.nextFloat() * 0.03f, (i % 2 == 0 ? 1f : -1f) * (1.2f + r.nextFloat() * 0.8f), (i % 2 == 0 ? 1f : -1f) * (0.03f + r.nextFloat() * 0.03f), r.nextFloat()};
             for (int j = 0; j < STREAKS; j++)
                 STREAK[i][j] = new float[]{r.nextFloat(), r.nextFloat() * 6.2832f, 0.5f + r.nextFloat() * 1.4f, r.nextFloat(), 0.7f + r.nextFloat() * 0.8f};
