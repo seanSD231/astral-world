@@ -181,21 +181,81 @@ public final class AstralGods {
         }
     }
 
-    private static void swirls(Matrix4f m, double t) {
-        BufferBuilder q = begin();
-        for (float[] s : SWIRL) {
-            double lon = s[0] + t * s[2];
-            double lat = Math.max(-1.35, Math.min(1.35, s[1] + s[3] * Math.sin(t * s[4] + s[11])));
-            float[] d = dir(lon, lat);
-            float radius = s[5] * 0.8f;
-            // a very faint haze behind, then the colourful arms
-            int[] c = armColor(s[9] / 6f + (float) (t * 0.01));
-            disc(q, m, d, radius, radius, 0f, c, c, 0.10f, 1.6f, 0, 0, 0);
-            swirlArms(q, m, d, radius * 1.15f, 3 + (int) s[6] - 2, s[8] * 1.3f * (s[7] > 0 ? 1 : -1), (float) (t * s[7]), s[9] / 6f + (float) (t * 0.015), 0.9f);
-            // a bright core
-            disc(q, m, d, radius * 0.08f, radius * 0.08f, 0f, new int[]{255, 255, 255}, c, 0.7f, 1.0f, 0, 0, 0);
+    // ---- the vortices: a few MASSIVE ones, each made of many thin streaks of different colours that flow inward and mix
+
+    private static final int VORTICES = 4, STREAKS = 46, STEPS = 16;
+    private static final float R_MIN = 0.1f, R_MAX = 2.4f; // radius in flat sky units (2.4 is about 67 degrees from the centre)
+    private static final float[][] VORTEX = new float[VORTICES][];  // {lon, lat, lonSpeed, latAmp, latSpeed, pitch (+ or -), rotation speed, hue}
+    private static final float[][][] STREAK = new float[VORTICES][STREAKS][]; // {phase, angle, widthFactor, hue, speed}
+
+    static {
+        Random r = new Random(0xB0771CE5L);
+        float[][] centres = {{0.6f, 1.05f}, {2.5f, 0.15f}, {4.3f, 0.5f}, {5.6f, -0.75f}};
+        for (int i = 0; i < VORTICES; i++) {
+            VORTEX[i] = new float[]{centres[i][0], centres[i][1], 0.006f + r.nextFloat() * 0.01f, 0.1f + r.nextFloat() * 0.12f,
+                    0.02f + r.nextFloat() * 0.03f, (i % 2 == 0 ? 1f : -1f) * (1.2f + r.nextFloat() * 0.8f), (i % 2 == 0 ? 1f : -1f) * (0.03f + r.nextFloat() * 0.03f), r.nextFloat()};
+            for (int j = 0; j < STREAKS; j++)
+                STREAK[i][j] = new float[]{r.nextFloat(), r.nextFloat() * 6.2832f, 0.5f + r.nextFloat() * 1.4f, r.nextFloat(), 0.7f + r.nextFloat() * 0.8f};
         }
-        end(q);
+    }
+
+    private static void vortex(BufferBuilder q, Matrix4f m, double t, int vi) {
+        float[] v = VORTEX[vi];
+        double lon = v[0] + t * v[2], lat = Math.max(-1.3, Math.min(1.3, v[1] + v[3] * Math.sin(t * v[4] + vi)));
+        float[] d = dir(lon, lat);
+        float[] ax = basis(d);
+        float logRange = (float) Math.log(R_MAX / R_MIN);
+        for (int j = 0; j < STREAKS; j++) {
+            float[] sp = STREAK[vi][j];
+            double frac = (sp[0] - t * 0.018 * sp[4]) % 1.0;
+            if (frac < 0) frac += 1.0;
+            float rc = (float) (R_MIN * Math.exp(frac * logRange));          // the streak slides inward, being dragged into the middle
+            float env = (float) Math.pow(Math.sin(Math.PI * frac), 0.8);       // and fades in far out, fades out near the middle
+            if (env < 0.03f) continue;
+            float[] pa = new float[STEPS + 1], pb = new float[STEPS + 1], w = new float[STEPS + 1], al = new float[STEPS + 1];
+            int[][] col = new int[STEPS + 1][];
+            for (int i = 0; i <= STEPS; i++) {
+                float s = -1f + 2f * i / STEPS;
+                float r = rc * (1f + 0.42f * s);
+                double th = sp[1] + v[5] * Math.log(r / R_MIN) + t * v[6] + 0.2 * Math.sin(t * 0.3 + sp[0] * 9);
+                pa[i] = (float) Math.cos(th) * r; pb[i] = (float) Math.sin(th) * r;
+                float tip = 1f - (float) Math.pow(Math.abs(s), 1.6);
+                w[i] = rc * (0.01f + 0.02f * sp[2]) * (0.2f + 0.8f * tip);
+                al[i] = 0.62f * env * tip;
+                col[i] = armColor(v[7] + sp[3] + 0.12f * s + (float) t * 0.004f);
+            }
+            for (int i = 0; i < STEPS; i++) {
+                int i1 = i + 1;
+                float[][] n = new float[2][];
+                for (int k = 0; k < 2; k++) {
+                    int p0 = Math.max(0, i + k - 1), p1 = Math.min(STEPS, i + k + 1);
+                    float tx = pa[p1] - pa[p0], ty = pb[p1] - pb[p0], l = (float) Math.sqrt(tx * tx + ty * ty);
+                    if (l < 1e-6f) l = 1f;
+                    n[k] = new float[]{-ty / l, tx / l};
+                }
+                // a streak is a thin ribbon with soft edges (centre opaque, edges clear)
+                vertex(q, m, d, ax, pa[i] + n[0][0] * w[i], pb[i] + n[0][1] * w[i], col[i][0], col[i][1], col[i][2], 0f);
+                vertex(q, m, d, ax, pa[i1] + n[1][0] * w[i1], pb[i1] + n[1][1] * w[i1], col[i1][0], col[i1][1], col[i1][2], 0f);
+                vertex(q, m, d, ax, pa[i1], pb[i1], col[i1][0], col[i1][1], col[i1][2], al[i1]);
+                vertex(q, m, d, ax, pa[i], pb[i], col[i][0], col[i][1], col[i][2], al[i]);
+                vertex(q, m, d, ax, pa[i], pb[i], col[i][0], col[i][1], col[i][2], al[i]);
+                vertex(q, m, d, ax, pa[i1], pb[i1], col[i1][0], col[i1][1], col[i1][2], al[i1]);
+                vertex(q, m, d, ax, pa[i1] - n[1][0] * w[i1], pb[i1] - n[1][1] * w[i1], col[i1][0], col[i1][1], col[i1][2], 0f);
+                vertex(q, m, d, ax, pa[i] - n[0][0] * w[i], pb[i] - n[0][1] * w[i], col[i][0], col[i][1], col[i][2], 0f);
+            }
+        }
+        // a glowing heart where everything is dragged to
+        int[] c = armColor(v[7] + (float) t * 0.01f);
+        disc(q, m, d, 0.3f, 0.3f, 0f, c, new int[]{40, 10, 80}, 0.35f, 1.6f, 0, 0, 0);
+        disc(q, m, d, 0.06f, 0.06f, 0f, new int[]{255, 250, 235}, c, 0.9f, 1.0f, 0, 0, 0);
+    }
+
+    private static void swirls(Matrix4f m, double t) {
+        for (int vi = 0; vi < VORTICES; vi++) {
+            BufferBuilder q = begin();
+            vortex(q, m, t, vi);
+            end(q);
+        }
     }
 
     // ------------------------------------------------------------------ the gods' signs
