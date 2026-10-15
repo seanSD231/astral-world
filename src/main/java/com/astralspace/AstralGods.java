@@ -549,8 +549,8 @@ public final class AstralGods {
 
     /** A black shape with a thin gold outline, like the engraved tarot art. */
     private static void engraved(BufferBuilder q, Matrix4f m, float[] d, float[] ax, float[][] p) {
-        strip(q, m, d, ax, p, GOLD, 0.95f, 0.012f);
-        strip(q, m, d, ax, p, BLACK, 0.97f, 0f);
+        strip(q, m, d, ax, p, GOLD, 1f, 0.02f);
+        strip(q, m, d, ax, p, BLACK, 1f, 0f);
     }
 
     /** A black polygon (3 or 4 corners) with a gold outline: the outline is the same shape pushed outward. */
@@ -561,10 +561,15 @@ public final class AstralGods {
         float[][] out = new float[pts.length][];
         for (int i = 0; i < pts.length; i++) {
             float dx = pts[i][0] - ca, dy = pts[i][1] - cb, l = Math.max(1e-6f, (float) Math.sqrt(dx * dx + dy * dy));
-            out[i] = new float[]{pts[i][0] + dx / l * 0.007f, pts[i][1] + dy / l * 0.007f};
+            out[i] = new float[]{pts[i][0] + dx / l * 0.011f, pts[i][1] + dy / l * 0.011f};
         }
-        fill(q, m, d, ax, out, GOLD, 0.95f);
-        fill(q, m, d, ax, pts, BLACK, 0.97f);
+        fill(q, m, d, ax, out, GOLD, 1f);
+        fill(q, m, d, ax, pts, BLACK, 1f);
+    }
+
+    /** A warm glow behind a sign, so its black shapes stand out against the sky. */
+    private static void backdrop(BufferBuilder q, Matrix4f m, float[] d, float rx, float ry, int[] inner, int[] outer, float alpha) {
+        disc(q, m, d, rx, ry, 0f, inner, outer, alpha, 0.7f, 0, 0, 0);
     }
 
     private static float[] pt(float a, float b, float w) { return new float[]{a, b, w}; }
@@ -572,6 +577,8 @@ public final class AstralGods {
     /** The Hanged Man: a chained figure hanging upside down under a column of chains, in golden rings and beams of light. */
     private static void hanged(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) {
         float bob = 0.012f * (float) Math.sin(t * 0.6);
+        backdrop(q, m, d, 0.42f, 0.38f, new int[]{255, 215, 120}, new int[]{150, 70, 20}, 0.75f); // golden sky behind the figure
+        for (int i = -1; i <= 1; i += 2) backdrop(q, m, dirOffset(d, i * 0.26f, 0.1f), 0.2f, 0.12f, new int[]{90, 50, 20}, new int[]{20, 10, 5}, 0.8f); // dark clouds
         // beams of golden light falling straight down
         for (int i = 0; i < 11; i++) {
             float x = -0.3f + i * 0.06f;
@@ -619,6 +626,7 @@ public final class AstralGods {
 
     /** The Visionary: a coiling dragon with horns, a spined back and a burning eye. */
     private static void dragon(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) {
+        backdrop(q, m, d, 0.34f, 0.36f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.5f);
         final int n = 40;
         float phase = (float) (t * 0.5);
         float[][] body = new float[n + 1][];
@@ -660,6 +668,7 @@ public final class AstralGods {
 
     /** The Fool: great black tendrils with gold edges, ending in tight curls, and drifting gold smoke. */
     private static void tendrils(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) {
+        backdrop(q, m, d, 0.36f, 0.36f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.5f);
         for (int i = -3; i <= 3; i++) { // pinstripes behind
             float x = i * 0.075f;
             line(q, m, d, ax, x, -0.3f, x, 0.3f, 0.003f, GOLD, 0.35f);
@@ -699,6 +708,7 @@ public final class AstralGods {
     /** Death: a feathered serpent, coiled, with great wings of black feathers edged in gold. */
     private static void feathered(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) {
         float flap = 0.06f * (float) Math.sin(t * 0.9);
+        backdrop(q, m, d, 0.38f, 0.34f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.5f);
         // the wings first, so the coiled body is in front
         for (int s = -1; s <= 1; s += 2) {
             for (int k = 0; k < 7; k++) {
@@ -739,6 +749,7 @@ public final class AstralGods {
     private static void serpentWheel(BufferBuilder q, Matrix4f m, float[] d, float[] ax, double t) {
         float rot = (float) (t * 0.2);
         float R0 = 0.17f;
+        backdrop(q, m, d, 0.3f, 0.3f, new int[]{255, 200, 90}, new int[]{70, 40, 10}, 0.5f);
         // four wavy serpents as spokes, turning the other way
         for (int k = 0; k < 4; k++) {
             double base = -rot * 1.5 + k * Math.PI / 2;
