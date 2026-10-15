@@ -129,14 +129,71 @@ public final class AstralGods {
         }
     }
 
+    /** Colours that every arm of a swirl runs through, one after the other (looping). */
+    private static final int[][] ARM_COLORS = {
+            {255, 90, 200}, {150, 90, 255}, {70, 200, 255}, {90, 255, 190}, {255, 215, 90}, {255, 120, 80}
+    };
+
+    private static int[] armColor(float u) {
+        u -= (float) Math.floor(u);
+        float f = u * ARM_COLORS.length;
+        int i = (int) f % ARM_COLORS.length, j = (i + 1) % ARM_COLORS.length;
+        float t = smooth(f - (int) f);
+        return new int[]{mix(ARM_COLORS[i][0], ARM_COLORS[j][0], t), mix(ARM_COLORS[i][1], ARM_COLORS[j][1], t), mix(ARM_COLORS[i][2], ARM_COLORS[j][2], t)};
+    }
+
+    /** One swirl: a few curling arms, each a ribbon that changes colour along its length, turning slowly. */
+    private static void swirlArms(BufferBuilder q, Matrix4f m, float[] d, float radius, int arms, float twist, float spin, float hue, float alpha) {
+        float[] ax = basis(d);
+        final int steps = 26;
+        for (int k = 0; k < arms; k++) {
+            double th0 = spin + k * Math.PI * 2 / arms;
+            float[] pa = new float[steps + 1], pb = new float[steps + 1], w = new float[steps + 1], al = new float[steps + 1];
+            int[][] col = new int[steps + 1][];
+            for (int i = 0; i <= steps; i++) {
+                float s = i / (float) steps;
+                double th = th0 + twist * s;
+                float r = radius * (0.04f + 0.96f * s);
+                pa[i] = (float) Math.cos(th) * r; pb[i] = (float) Math.sin(th) * r;
+                float body = (float) Math.pow(Math.sin(Math.PI * Math.min(1f, s * 0.92f + 0.04f)), 0.7);
+                w[i] = radius * 0.16f * (0.25f + 0.75f * body) * (1f - 0.35f * s);
+                al[i] = alpha * body;
+                col[i] = armColor(hue + s * 0.8f + k * 0.17f);
+            }
+            for (int i = 0; i < steps; i++) {
+                float[][] n = new float[2][];
+                for (int e = 0; e < 2; e++) {
+                    int p0 = Math.max(0, i + e - 1), p1 = Math.min(steps, i + e + 1);
+                    float tx = pa[p1] - pa[p0], ty = pb[p1] - pb[p0], l = (float) Math.sqrt(tx * tx + ty * ty);
+                    if (l < 1e-6f) l = 1f;
+                    n[e] = new float[]{-ty / l, tx / l};
+                }
+                int i1 = i + 1;
+                vertex(q, m, d, ax, pa[i] + n[0][0] * w[i], pb[i] + n[0][1] * w[i], col[i][0], col[i][1], col[i][2], al[i] * 0.15f);
+                vertex(q, m, d, ax, pa[i1] + n[1][0] * w[i1], pb[i1] + n[1][1] * w[i1], col[i1][0], col[i1][1], col[i1][2], al[i1] * 0.15f);
+                vertex(q, m, d, ax, pa[i1], pb[i1], col[i1][0], col[i1][1], col[i1][2], al[i1]);
+                vertex(q, m, d, ax, pa[i], pb[i], col[i][0], col[i][1], col[i][2], al[i]);
+                vertex(q, m, d, ax, pa[i], pb[i], col[i][0], col[i][1], col[i][2], al[i]);
+                vertex(q, m, d, ax, pa[i1], pb[i1], col[i1][0], col[i1][1], col[i1][2], al[i1]);
+                vertex(q, m, d, ax, pa[i1] - n[1][0] * w[i1], pb[i1] - n[1][1] * w[i1], col[i1][0], col[i1][1], col[i1][2], al[i1] * 0.15f);
+                vertex(q, m, d, ax, pa[i] - n[0][0] * w[i], pb[i] - n[0][1] * w[i], col[i][0], col[i][1], col[i][2], al[i] * 0.15f);
+            }
+        }
+    }
+
     private static void swirls(Matrix4f m, double t) {
         BufferBuilder q = begin();
         for (float[] s : SWIRL) {
             double lon = s[0] + t * s[2];
-            double lat = s[1] + s[3] * Math.sin(t * s[4] + s[11]);
-            lat = Math.max(-1.35, Math.min(1.35, lat));
-            int[][] pal = PALETTES[(int) s[9]];
-            disc(q, m, dir(lon, lat), s[5], s[5], 0f, pal[0], pal[1], s[10], 1.3f, (int) s[6], s[8], (float) (t * s[7]));
+            double lat = Math.max(-1.35, Math.min(1.35, s[1] + s[3] * Math.sin(t * s[4] + s[11])));
+            float[] d = dir(lon, lat);
+            float radius = s[5] * 0.8f;
+            // a very faint haze behind, then the colourful arms
+            int[] c = armColor(s[9] / 6f + (float) (t * 0.01));
+            disc(q, m, d, radius, radius, 0f, c, c, 0.10f, 1.6f, 0, 0, 0);
+            swirlArms(q, m, d, radius * 1.15f, 3 + (int) s[6] - 2, s[8] * 1.3f * (s[7] > 0 ? 1 : -1), (float) (t * s[7]), s[9] / 6f + (float) (t * 0.015), 0.9f);
+            // a bright core
+            disc(q, m, d, radius * 0.08f, radius * 0.08f, 0f, new int[]{255, 255, 255}, c, 0.7f, 1.0f, 0, 0, 0);
         }
         end(q);
     }
@@ -179,10 +236,13 @@ public final class AstralGods {
     private static void sunAndMoon(Matrix4f m, boolean sun, boolean moon, int moonPhase) {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+        // like vanilla: additive blending, so the black square around the sun / moon picture disappears
+        RenderSystem.blendFuncSeparate(com.mojang.blaze3d.platform.GlStateManager.SourceFactor.SRC_ALPHA, com.mojang.blaze3d.platform.GlStateManager.DestFactor.ONE,
+                com.mojang.blaze3d.platform.GlStateManager.SourceFactor.ONE, com.mojang.blaze3d.platform.GlStateManager.DestFactor.ZERO);
         if (sun) {
             float[] d = anchor("bard");
             RenderSystem.setShaderTexture(0, SUN);
-            quadTex(d, basis(d), 0.2f, 0f, 0f, 1f, 1f, m);
+            quadTex(d, basis(d), 0.3f, 0f, 0f, 1f, 1f, m);
         }
         if (moon) {
             boolean crimson = crimsonMoon();
@@ -190,9 +250,10 @@ public final class AstralGods {
             RenderSystem.setShaderTexture(0, crimson ? CRIMSON_MOON : MOON);
             if (crimson) RenderSystem.setShaderColor(1f, 0.35f, 0.3f, 1f);
             float u0 = (moonPhase % 4) / 4f, u1 = u0 + 0.25f, v0 = ((moonPhase / 4) % 2) / 2f, v1 = v0 + 0.5f;
-            quadTex(d, basis(d), 0.24f, u0, v0, u1, v1, m);
+            quadTex(d, basis(d), 0.3f, u0, v0, u1, v1, m);
             RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         }
+        RenderSystem.defaultBlendFunc();
     }
 
     // ---- little drawing helpers, in the flat (a = sideways, b = up) coordinates around a sign's centre
