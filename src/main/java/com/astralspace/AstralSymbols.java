@@ -53,6 +53,17 @@ public final class AstralSymbols {
         }
     }
 
+    /** True if a direction is close to the sign of a pathway that has a god (those signs must stay clear). */
+    private static boolean nearGod(float[] d) {
+        String gods = Net.ClientState.gods == null ? "," : Net.ClientState.gods;
+        for (String id : AstralGods.ALL) {
+            if (!gods.contains("," + id + ",")) continue;
+            float[] a = AstralGods.anchor(id);
+            if (d[0] * a[0] + d[1] * a[1] + d[2] * a[2] > 0.88f) return true; // within about 28 degrees
+        }
+        return false;
+    }
+
     private static void onRender(RenderLevelStageEvent event) {
         if ((!enabled && !swirl) || event.getStage() != RenderLevelStageEvent.Stage.AFTER_SKY) return;
         Minecraft mc = Minecraft.getInstance();
@@ -80,7 +91,8 @@ public final class AstralSymbols {
             float alpha = wave * wave * 0.8f;
             if (alpha < 0.02f) continue;
             Random pr = new Random(i * 7919L + cycle * 104729L + 17L);
-            float[] d = direction(pr, -0.6f); // anywhere, also low and below
+            float[] d = direction(pr, -0.6f); // anywhere, also low and below, but never on top of a god's sign
+            for (int tries = 0; tries < 12 && nearGod(d); tries++) d = direction(pr, -0.6f);
             String path = PATHWAYS[(int) ((i * 5 + cycle * 3) % PATHWAYS.length)];
             RenderSystem.setShaderTexture(0, ResourceLocation.fromNamespaceAndPath("lotm", "textures/pathway/" + path + ".png"));
 
@@ -108,7 +120,7 @@ public final class AstralSymbols {
         for (int gi = 0; enabled && gi < AstralGods.ALL.length; gi++) {
             String id = AstralGods.ALL[gi];
             if (!gods.contains("," + id + ",")) continue;
-            float[] d = AstralGods.anchor(id);
+            float[] d = AstralGods.symbolSpot(id);
             float alpha = 0.55f + 0.35f * (float) Math.sin(t * 0.5 + gi);
             RenderSystem.setShaderTexture(0, ResourceLocation.fromNamespaceAndPath("lotm", "textures/pathway/" + id + ".png"));
             drawSymbol(modelView, d, 0.0f, 7f, alpha, 255, 235, 190);

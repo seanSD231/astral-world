@@ -131,7 +131,8 @@ public final class AstralGods {
 
     /** Colours that every arm of a swirl runs through, one after the other (looping). */
     private static final int[][] ARM_COLORS = {
-            {255, 90, 200}, {150, 90, 255}, {70, 200, 255}, {90, 255, 190}, {255, 215, 90}, {255, 120, 80}
+            {255, 70, 110}, {255, 130, 60}, {255, 215, 80}, {170, 255, 90}, {60, 255, 170}, {50, 215, 255},
+            {70, 120, 255}, {140, 90, 255}, {215, 80, 255}, {255, 90, 200}, {255, 120, 150}, {90, 240, 230}
     };
 
     private static int[] armColor(float u) {
@@ -183,14 +184,14 @@ public final class AstralGods {
 
     // ---- the vortices: a few MASSIVE ones, each made of many thin streaks of different colours that flow inward and mix
 
-    private static final int VORTICES = 4, STREAKS = 46, STEPS = 16;
-    private static final float R_MIN = 0.1f, R_MAX = 2.4f; // radius in flat sky units (2.4 is about 67 degrees from the centre)
+    private static final int VORTICES = 5, STREAKS = 90, STEPS = 12;
+    private static final float R_MIN = 0.08f, R_MAX = 1.25f; // radius in flat sky units (1.25 is about 51 degrees from the centre)
     private static final float[][] VORTEX = new float[VORTICES][];  // {lon, lat, lonSpeed, latAmp, latSpeed, pitch (+ or -), rotation speed, hue}
     private static final float[][][] STREAK = new float[VORTICES][STREAKS][]; // {phase, angle, widthFactor, hue, speed}
 
     static {
         Random r = new Random(0xB0771CE5L);
-        float[][] centres = {{0.6f, 1.05f}, {2.5f, 0.15f}, {4.3f, 0.5f}, {5.6f, -0.75f}};
+        float[][] centres = {{0.6f, 1.1f}, {2.2f, 0.25f}, {3.6f, 0.75f}, {4.9f, 0.1f}, {5.7f, -0.8f}};
         for (int i = 0; i < VORTICES; i++) {
             VORTEX[i] = new float[]{centres[i][0], centres[i][1], 0.006f + r.nextFloat() * 0.01f, 0.1f + r.nextFloat() * 0.12f,
                     0.02f + r.nextFloat() * 0.03f, (i % 2 == 0 ? 1f : -1f) * (1.2f + r.nextFloat() * 0.8f), (i % 2 == 0 ? 1f : -1f) * (0.03f + r.nextFloat() * 0.03f), r.nextFloat()};
@@ -199,11 +200,36 @@ public final class AstralGods {
         }
     }
 
+    /** The filled-in body of a vortex: a disc of mixed colours that follow the spiral and fade out toward the rim. */
+    private static void fillDisc(BufferBuilder q, Matrix4f m, float[] d, float[] ax, float[] v, double t) {
+        final int rings = 12, segs = 40;
+        float rad = R_MAX * 0.95f;
+        float logRange = (float) Math.log(rad / R_MIN);
+        for (int k = 0; k < rings; k++) {
+            float r0 = (float) (R_MIN * Math.exp(logRange * k / rings)), r1 = (float) (R_MIN * Math.exp(logRange * (k + 1) / rings));
+            for (int j = 0; j < segs; j++) {
+                double t0 = Math.PI * 2 * j / segs, t1 = Math.PI * 2 * (j + 1) / segs;
+                double[][] p = {{r0, t0}, {r0, t1}, {r1, t1}, {r1, t0}};
+                for (double[] c : p) {
+                    float r = (float) c[0];
+                    double th = c[1] + v[5] * Math.log(r / R_MIN) + t * v[6];
+                    float arm = 0.5f + 0.5f * (float) Math.sin(5 * th);
+                    float hue = v[7] + (float) (c[1] / (Math.PI * 2)) * 0.9f + 0.25f * (float) Math.log(r / R_MIN) + (float) t * 0.006f + 0.25f * arm;
+                    int[] col = armColor(hue);
+                    float edge = (float) Math.pow(Math.max(0, 1f - (r / rad) * (r / rad)), 1.1);
+                    float al = 0.5f * edge * (0.35f + 0.65f * arm);
+                    vertex(q, m, d, ax, (float) Math.cos(c[1]) * r, (float) Math.sin(c[1]) * r, col[0], col[1], col[2], al);
+                }
+            }
+        }
+    }
+
     private static void vortex(BufferBuilder q, Matrix4f m, double t, int vi) {
         float[] v = VORTEX[vi];
         double lon = v[0] + t * v[2], lat = Math.max(-1.3, Math.min(1.3, v[1] + v[3] * Math.sin(t * v[4] + vi)));
         float[] d = dir(lon, lat);
         float[] ax = basis(d);
+        fillDisc(q, m, d, ax, v, t);
         float logRange = (float) Math.log(R_MAX / R_MIN);
         for (int j = 0; j < STREAKS; j++) {
             float[] sp = STREAK[vi][j];
@@ -216,13 +242,13 @@ public final class AstralGods {
             int[][] col = new int[STEPS + 1][];
             for (int i = 0; i <= STEPS; i++) {
                 float s = -1f + 2f * i / STEPS;
-                float r = rc * (1f + 0.42f * s);
+                float r = rc * (1f + 0.5f * s);
                 double th = sp[1] + v[5] * Math.log(r / R_MIN) + t * v[6] + 0.2 * Math.sin(t * 0.3 + sp[0] * 9);
                 pa[i] = (float) Math.cos(th) * r; pb[i] = (float) Math.sin(th) * r;
                 float tip = 1f - (float) Math.pow(Math.abs(s), 1.6);
-                w[i] = rc * (0.01f + 0.02f * sp[2]) * (0.2f + 0.8f * tip);
-                al[i] = 0.62f * env * tip;
-                col[i] = armColor(v[7] + sp[3] + 0.12f * s + (float) t * 0.004f);
+                w[i] = rc * (0.022f + 0.035f * sp[2]) * (0.2f + 0.8f * tip);
+                al[i] = 0.75f * env * tip;
+                col[i] = armColor(v[7] + sp[3] * 1.0f + 0.15f * s + (float) t * 0.004f);
             }
             for (int i = 0; i < STEPS; i++) {
                 int i1 = i + 1;
@@ -427,6 +453,11 @@ public final class AstralGods {
             float[] p = dirOffset(d, a, b);
             disc(q, m, p, 0.022f, 0.05f, 0f, new int[]{235, 245, 255}, new int[]{110, 160, 220}, al, 0.8f, 0, 0, 0);
         }
+    }
+
+    /** Where a god's own pathway symbol is drawn: just below its sign, so it never covers the sign. */
+    public static float[] symbolSpot(String id) {
+        return dirOffset(anchor(id), 0f, -0.3f);
     }
 
     /** Direction moved (a, b) from d in the flat coordinates (used to place small parts of a sign). */
