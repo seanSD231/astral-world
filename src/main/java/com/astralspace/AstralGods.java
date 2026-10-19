@@ -332,7 +332,31 @@ public final class AstralGods {
         disc(q, m, d, 0.06f, 0.06f, 0f, new int[]{255, 250, 235}, c, 0.9f, 1.0f, 0, 0, 0);
     }
 
+    /** A very faint, slow veil of the old swirling colours over the whole sky, behind the vortexes. */
+    private static void veil(Matrix4f m, double t) {
+        final int stacks = 18, slices = 36;
+        final float radius = 98f;
+        BufferBuilder q = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        double ts = t * 0.4;
+        for (int i = 0; i < stacks; i++) {
+            double lat0 = -Math.PI / 2 + Math.PI * i / stacks, lat1 = -Math.PI / 2 + Math.PI * (i + 1) / stacks;
+            for (int j = 0; j < slices; j++) {
+                double lon0 = Math.PI * 2 * j / slices, lon1 = Math.PI * 2 * (j + 1) / slices;
+                double[][] p = {{lon0, lat0}, {lon1, lat0}, {lon1, lat1}, {lon0, lat1}};
+                for (double[] v : p) {
+                    float[] c = swirlColor(v[0], v[1], ts);
+                    float cl = (float) Math.cos(v[1]);
+                    float a = 0.17f * c[3] * (0.4f + 0.6f * smoothstep((float) ((v[1] + 0.4) / 0.8))); // thinner toward the ground
+                    q.addVertex(m, (float) (Math.cos(v[0]) * cl) * radius, (float) Math.sin(v[1]) * radius, (float) (Math.sin(v[0]) * cl) * radius)
+                            .setColor((int) c[0], (int) c[1], (int) c[2], (int) (a * 255));
+                }
+            }
+        }
+        BufferUploader.drawWithShader(q.buildOrThrow());
+    }
+
     private static void swirls(Matrix4f m, double t) {
+        veil(m, t);
         for (int vi = 0; vi < VORTICES; vi++) {
             BufferBuilder q = begin();
             vortex(q, m, t, vi);
