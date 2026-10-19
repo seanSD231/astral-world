@@ -131,9 +131,24 @@ public final class AstralGods {
 
     /** Colours that every arm of a swirl runs through, one after the other (looping). */
     private static final int[][] ARM_COLORS = {
-            {255, 70, 110}, {255, 130, 60}, {255, 215, 80}, {170, 255, 90}, {60, 255, 170}, {50, 215, 255},
-            {70, 120, 255}, {140, 90, 255}, {215, 80, 255}, {255, 90, 200}, {255, 120, 150}, {90, 240, 230}
+            {150, 40, 200}, {90, 70, 230}, {40, 150, 220}, {30, 200, 190}, {230, 180, 70}, {235, 90, 90}, {200, 40, 130}, {120, 60, 220}
     };
+
+    private static float smoothstep(float x) { x = Math.max(0f, Math.min(1f, x)); return x * x * (3 - 2 * x); }
+
+    /** The original swirling sky colours: indigo, violet, teal, gold and crimson flowing into each other. */
+    private static float[] swirlColor(double lon, double lat, double t) {
+        float f1 = (float) Math.sin(lon * 2 + lat * 3 + t * 0.12 + 1.8 * Math.sin(lat * 4 - t * 0.07));
+        float f2 = (float) Math.sin(lon * 3 - lat * 2 - t * 0.09 + 1.5 * Math.sin(lon * 2 + t * 0.05));
+        float f3 = (float) Math.sin(lon * 5 + lat * 5 + t * 0.15 + Math.sin(lon * 3 - t * 0.08));
+        float r = 20, g = 8, b = 60;
+        float w = smoothstep(f1 * 0.5f + 0.5f);       r += (170 - r) * w * 0.8f; g += (35 - g) * w * 0.8f; b += (200 - b) * w * 0.8f;
+        w = smoothstep(f2 * 0.5f + 0.35f);            r += (15 - r) * w * 0.6f;  g += (160 - g) * w * 0.6f; b += (200 - b) * w * 0.6f;
+        w = (float) Math.pow(Math.max(0, f3), 3);     r += (245 - r) * w * 0.6f; g += (180 - g) * w * 0.6f; b += (70 - b) * w * 0.6f;
+        w = (float) Math.pow(Math.max(0, -f1 * f2), 2) * 0.6f; r += (230 - r) * w; g += (40 - g) * w; b += (90 - b) * w;
+        float a = 0.55f + 0.25f * f1 * f2 + 0.12f * f3;
+        return new float[]{r, g, b, Math.max(0.3f, Math.min(0.9f, a))};
+    }
 
     private static int[] armColor(float u) {
         u -= (float) Math.floor(u);
@@ -202,8 +217,8 @@ public final class AstralGods {
 
     /** The filled-in body of a vortex: a disc of mixed colours that follow the spiral and fade out toward the rim. */
     private static void fillDisc(BufferBuilder q, Matrix4f m, float[] d, float[] ax, float[] v, double t) {
-        final int rings = 12, segs = 40;
-        float rad = R_MAX * 0.95f;
+        final int rings = 22, segs = 72;
+        float rad = R_MAX * 0.97f;
         float logRange = (float) Math.log(rad / R_MIN);
         for (int k = 0; k < rings; k++) {
             float r0 = (float) (R_MIN * Math.exp(logRange * k / rings)), r1 = (float) (R_MIN * Math.exp(logRange * (k + 1) / rings));
@@ -212,13 +227,11 @@ public final class AstralGods {
                 double[][] p = {{r0, t0}, {r0, t1}, {r1, t1}, {r1, t0}};
                 for (double[] c : p) {
                     float r = (float) c[0];
-                    double th = c[1] + v[5] * Math.log(r / R_MIN) + t * v[6];
-                    float arm = 0.5f + 0.5f * (float) Math.sin(5 * th);
-                    float hue = v[7] + (float) (c[1] / (Math.PI * 2)) * 1.8f + 0.4f * (float) Math.log(r / R_MIN) + (float) t * 0.01f + 0.5f * arm;
-                    int[] col = armColor(hue);
-                    float edge = (float) Math.pow(Math.max(0, 1f - (r / rad) * (r / rad)), 1.1);
-                    float al = 0.4f * edge * (0.35f + 0.65f * arm);
-                    vertex(q, m, d, ax, (float) Math.cos(c[1]) * r, (float) Math.sin(c[1]) * r, col[0], col[1], col[2], al);
+                    float x = (float) Math.log(r / R_MIN);
+                    double th = c[1] + v[5] * x + t * v[6];
+                    float[] col = swirlColor(th, x * 0.9 + v[7] * 6.0, t);
+                    float edge = (float) Math.pow(Math.max(0, 1f - (r / rad) * (r / rad)), 0.9);
+                    vertex(q, m, d, ax, (float) Math.cos(c[1]) * r, (float) Math.sin(c[1]) * r, (int) col[0], (int) col[1], (int) col[2], 0.9f * col[3] * edge);
                 }
             }
         }
@@ -270,7 +283,7 @@ public final class AstralGods {
                 pa[i] = (float) Math.cos(th) * r; pb[i] = (float) Math.sin(th) * r;
                 float tip = 1f - (float) Math.pow(Math.abs(s), 1.6);
                 w[i] = rc * (0.022f + 0.035f * sp[2]) * (0.2f + 0.8f * tip);
-                al[i] = 0.75f * env * tip;
+                al[i] = 0.45f * env * tip;
                 col[i] = armColor(v[7] + sp[3] * 1.0f + 0.15f * s + (float) t * 0.004f);
             }
             for (int i = 0; i < STEPS; i++) {
