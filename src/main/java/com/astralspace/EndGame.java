@@ -1084,6 +1084,32 @@ public final class EndGame {
                     bossDied(s, d, StringArgumentType.getString(ctx, "planet"));
                     return 1;
                 })))
+                .then(Commands.literal("bosses").executes(ctx -> { // skip straight to the planet bosses
+                    MinecraftServer s = ctx.getSource().getServer();
+                    destroyEarth(s, AstralData.get(s));
+                    return 1;
+                }))
+                .then(Commands.literal("spawn").then(Commands.argument("planet", StringArgumentType.word()).executes(ctx -> { // a look-only copy in front of you
+                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                    String id = StringArgumentType.getString(ctx, "planet");
+                    for (BossDef b : BOSSES) if (b.planet().equals(id)) {
+                        Vec3 f = p.position().add(p.getLookAngle().multiply(1, 0, 1).normalize().scale(10));
+                        Mob m = makeMob(p.serverLevel(), b.pathway(), b.title(), f.x, p.getY(), f.z);
+                        if (m == null) return 0;
+                        m.setNoAi(true);
+                        p.serverLevel().addFreshEntity(m);
+                        return 1;
+                    }
+                    if (id.equals("tree")) {
+                        Vec3 f = p.position().add(p.getLookAngle().multiply(1, 0, 1).normalize().scale(60));
+                        Mob m = makeMob(p.serverLevel(), RAID_PATHWAY, RAID_NAME, f.x, p.getY(), f.z);
+                        if (m == null) return 0;
+                        m.setNoAi(true);
+                        p.serverLevel().addFreshEntity(m);
+                        return 1;
+                    }
+                    return 0;
+                })))
                 .then(Commands.literal("raid").executes(ctx -> {
                     MinecraftServer s = ctx.getSource().getServer();
                     startRaid(s, AstralData.get(s));
