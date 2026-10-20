@@ -147,6 +147,14 @@ public final class Cosmos {
             p.sendSystemMessage(Component.literal("There is no planet like that.").withStyle(ChatFormatting.RED));
             return 0;
         }
+        if (pl.id().equals("earth")) { // Earth is the overworld
+            ServerLevel ow = server.overworld();
+            var s = ow.getSharedSpawnPos();
+            for (ServerPlayer o : companions(p)) teleport(o, ow, s.getX() + 1.5, s.getY(), s.getZ() + 0.5);
+            teleport(p, ow, s.getX() + 0.5, s.getY(), s.getZ() + 0.5);
+            p.displayClientMessage(Component.literal(pl.name()).withStyle(ChatFormatting.AQUA), true);
+            return 1;
+        }
         ServerLevel dest = server.getLevel(key(pl.id()));
         if (dest == null) return 0;
         dest.getChunk(0, 0);
@@ -245,6 +253,12 @@ public final class Cosmos {
                     double dx = p.getX() - pl.x(), dy = p.getY() - pl.y(), dz = p.getZ() - pl.z();
                     double reach = pl.r() + 3.5;
                     if (dx * dx + dy * dy + dz * dz > reach * reach) continue;
+                    if (pl.id().equals("earth")) { // Earth is the overworld
+                        var sp = server.overworld().getSharedSpawnPos();
+                        teleport(p, server.overworld(), sp.getX() + 0.5, sp.getY(), sp.getZ() + 0.5);
+                        p.displayClientMessage(Component.literal(pl.name()).withStyle(ChatFormatting.AQUA), true);
+                        break;
+                    }
                     ServerLevel dest = server.getLevel(key(pl.id()));
                     if (dest == null) continue;
                     dest.getChunk(0, 0); // make sure the landing spot exists

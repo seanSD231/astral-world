@@ -2,7 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
-## 0.1.58 — Raid arena plaza removed (current)
+## 0.1.59 — Earth is the overworld (current)
+- The separate Earth dimension is gone. The Earth planet in the Cosmos and `/cosmos to earth` take you to the overworld spawn.
+
+## 0.1.58 — Raid arena plaza removed
 - The stone plaza is gone; the raid arena is plain grass. Pillars and ruins remain.
 
 ## 0.1.57 — Sovereign models
