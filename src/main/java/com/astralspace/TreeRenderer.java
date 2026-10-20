@@ -92,7 +92,7 @@ public final class TreeRenderer {
                 ps.mulPose(com.mojang.math.Axis.YP.rotation((float) Math.atan2(dx, dz)));
                 ps.scale(SOV_SCALE, SOV_SCALE, SOV_SCALE);
             }
-            Matrix4f mv = new Matrix4f(ps.last().pose());
+            Matrix4f mv = new Matrix4f(event.getModelViewMatrix()).mul(ps.last().pose()); // camera rotation lives in the event's view matrix, not the pose stack
             ps.popPose();
 
             float fs = RenderSystem.getShaderFogStart(), fe = RenderSystem.getShaderFogEnd();
