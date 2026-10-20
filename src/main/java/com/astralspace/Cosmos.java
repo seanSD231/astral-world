@@ -56,6 +56,7 @@ public final class Cosmos {
             DeferredRegister.create(Registries.CHUNK_GENERATOR, AstralMod.MOD_ID);
     static {
         GENERATORS.register("cosmos", () -> CosmosGenerator.CODEC);
+        GENERATORS.register("planet", () -> PlanetGenerator.CODEC);
     }
 
     /** Where each player came from (until the server restarts; after that /cosmos leave uses the world spawn). */
@@ -90,7 +91,7 @@ public final class Cosmos {
     // ------------------------------------------------------------------ places
 
     /** Standing spot in every planet dimension. */
-    public static final double[] PLANET_SPAWN = {0.5, 4.0, 0.5};
+    public static final double[] PLANET_SPAWN = {0.5, PlanetGenerator.spawnY(), 0.5};
 
     public static boolean isPlanetDim(ResourceKey<Level> dim) { return planetOf(dim) != null; }
 
@@ -247,7 +248,7 @@ public final class Cosmos {
                     ServerLevel dest = server.getLevel(key(pl.id()));
                     if (dest == null) continue;
                     dest.getChunk(0, 0); // make sure the landing spot exists
-                    teleport(p, dest, 0.5, 4.0, 0.5);
+                    teleport(p, dest, PLANET_SPAWN[0], PLANET_SPAWN[1], PLANET_SPAWN[2]);
                     p.displayClientMessage(Component.literal(pl.name()).withStyle(ChatFormatting.AQUA), true);
                     break;
                 }

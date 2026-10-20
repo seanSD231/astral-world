@@ -1020,7 +1020,7 @@ public final class EndGame {
         AstralData d = AstralData.get(server);
         if (d.earthGone && p.level().dimension().equals(Level.OVERWORLD)) {
             ServerLevel m = dim(server, "mercury");
-            if (m != null) { m.getChunk(0, 0); p.teleportTo(m, 0.5, 4.0, 0.5, p.getYRot(), 0f); }
+            if (m != null) { m.getChunk(0, 0); p.teleportTo(m, 0.5, PlanetGenerator.spawnY(), 0.5, p.getYRot(), 0f); }
         }
     }
 

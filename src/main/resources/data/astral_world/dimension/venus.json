@@ -1,22 +1,11 @@
 {
   "type": "astral_world:planet",
   "generator": {
-    "type": "minecraft:flat",
-    "settings": {
-      "biome": "astral_world:planet",
-      "features": false,
-      "lakes": false,
-      "layers": [
-        {
-          "block": "minecraft:bedrock",
-          "height": 1
-        },
-        {
-          "block": "minecraft:yellow_terracotta",
-          "height": 3
-        }
-      ],
-      "structure_overrides": []
+    "type": "astral_world:planet",
+    "planet": "venus",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "astral_world:venus"
     }
   }
 }
