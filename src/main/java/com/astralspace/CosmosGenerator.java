@@ -59,6 +59,24 @@ public final class CosmosGenerator extends ChunkGenerator {
         ALL = l;
     }
 
+    /** Earth has been destroyed: it is no longer built (set by Cosmos from the saved data). */
+    public static volatile boolean earthGone = false;
+
+    /** Builds a planet (or clears it away, present = false) block by block in an existing level. */
+    public static void setPlanet(net.minecraft.server.level.ServerLevel lv, Planet p, boolean present) {
+        int reach = p.r + 3;
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int x = p.x - reach; x <= p.x + reach; x++)
+            for (int z = p.z - reach; z <= p.z + reach; z++)
+                for (int y = Math.max(lv.getMinBuildHeight(), p.y - reach); y <= Math.min(lv.getMaxBuildHeight() - 1, p.y + reach); y++) {
+                    BlockState s = present ? blockAt(p, x, y, z) : Blocks.AIR.defaultBlockState();
+                    if (s == null) continue;
+                    pos.set(x, y, z);
+                    if (!present && lv.getBlockState(pos).isAir()) continue;
+                    lv.setBlock(pos, s, 2);
+                }
+    }
+
     public CosmosGenerator(BiomeSource source) { super(source); }
 
     @Override
@@ -141,6 +159,7 @@ public final class CosmosGenerator extends ChunkGenerator {
         int x0 = chunk.getPos().getMinBlockX(), z0 = chunk.getPos().getMinBlockZ();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (Planet p : ALL) {
+            if (earthGone && p.id.equals("earth")) continue;
             int reach = p.r + 3 + (p.ring ? (int) (p.r * 1.0) : 0); // a ring reaches out to about 2 radii
             if (p.x + reach < x0 || p.x - reach > x0 + 15 || p.z + reach < z0 || p.z - reach > z0 + 15) continue;
             int yLo = Math.max(minY, p.y - p.r - 3), yHi = Math.min(maxY, p.y + p.r + 3);

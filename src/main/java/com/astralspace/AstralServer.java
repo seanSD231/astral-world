@@ -216,7 +216,7 @@ public final class AstralServer {
                 if (!pid.isEmpty() && !pid.equals(d.seq0Paths.put(id, pid))) dirty = true;
                 if (d.seq0.put(id, name(p)) == null) {
                     dirty = true;
-                    if (d.stage == 0) Stage.set(server, 1); // the first Seq 0 ever: the Outer Gods take notice
+                    if (d.stage == 0 && d.endPhase.isEmpty()) Stage.set(server, 1); // the first Seq 0 ever: the Outer Gods take notice
                 }
             } else if (d.seq0.remove(id) != null) {
                 d.seq0Paths.remove(id);

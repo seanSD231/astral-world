@@ -67,7 +67,7 @@ public final class Cosmos {
 
     private Cosmos() {}
 
-    private static ResourceKey<Level> key(String id) {
+    public static ResourceKey<Level> key(String id) {
         return ResourceKey.create(Registries.DIMENSION, ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, id));
     }
 
@@ -89,6 +89,11 @@ public final class Cosmos {
 
     // ------------------------------------------------------------------ places
 
+    /** Standing spot in every planet dimension. */
+    public static final double[] PLANET_SPAWN = {0.5, 4.0, 0.5};
+
+    public static boolean isPlanetDim(ResourceKey<Level> dim) { return planetOf(dim) != null; }
+
     private static CosmosGenerator.Planet planetOf(ResourceKey<Level> dim) {
         for (CosmosGenerator.Planet pl : CosmosGenerator.PLANETS) if (dim.equals(key(pl.id()))) return pl;
         return null;
@@ -97,7 +102,16 @@ public final class Cosmos {
     /** A spot in space next to a planet, just outside the distance where it pulls you in. */
     private static double[] near(CosmosGenerator.Planet pl) { return new double[]{pl.x() + pl.r() + 10.5, pl.y(), pl.z() + 0.5}; }
 
-    private static CosmosGenerator.Planet earth() { return CosmosGenerator.PLANETS.get(2); }
+    /** Where /cosmos arrives: next to Earth, or Mercury once Earth is gone. */
+    private static CosmosGenerator.Planet earth() { return CosmosGenerator.PLANETS.get(CosmosGenerator.earthGone ? 0 : 2); }
+
+    /** The people standing right next to a traveller come along (as with the Traveler's Door). */
+    private static java.util.List<ServerPlayer> companions(ServerPlayer p) {
+        java.util.List<ServerPlayer> list = new java.util.ArrayList<>();
+        for (ServerPlayer o : p.serverLevel().players())
+            if (o != p && o.isAlive() && !o.isSpectator() && o.distanceToSqr(p) <= 64) list.add(o);
+        return list;
+    }
 
     private static void teleport(ServerPlayer p, ServerLevel lv, double x, double y, double z) {
         lastPortal.put(p.getUUID(), System.currentTimeMillis());
@@ -114,7 +128,30 @@ public final class Cosmos {
             originDims.put(p.getUUID(), p.level().dimension().location().toString());
         }
         double[] h = near(earth());
+        for (ServerPlayer o : companions(p)) {
+            origins.put(o.getUUID(), new double[]{o.getX(), o.getY(), o.getZ()});
+            originDims.put(o.getUUID(), o.level().dimension().location().toString());
+            teleport(o, lv, h[0] + 1, h[1], h[2]);
+        }
         teleport(p, lv, h[0], h[1], h[2]);
+        return 1;
+    }
+
+    /** /cosmos to <planet>: straight to a planet's own dimension, bringing the people next to you. */
+    private static int toPlanet(ServerPlayer p, String id) {
+        MinecraftServer server = p.getServer();
+        CosmosGenerator.Planet pl = null;
+        for (CosmosGenerator.Planet x : CosmosGenerator.PLANETS) if (x.id().equals(id)) pl = x;
+        if (pl == null || (pl.id().equals("earth") && CosmosGenerator.earthGone)) {
+            p.sendSystemMessage(Component.literal("There is no planet like that.").withStyle(ChatFormatting.RED));
+            return 0;
+        }
+        ServerLevel dest = server.getLevel(key(pl.id()));
+        if (dest == null) return 0;
+        dest.getChunk(0, 0);
+        for (ServerPlayer o : companions(p)) teleport(o, dest, PLANET_SPAWN[0] + 1, PLANET_SPAWN[1], PLANET_SPAWN[2]);
+        teleport(p, dest, PLANET_SPAWN[0], PLANET_SPAWN[1], PLANET_SPAWN[2]);
+        p.displayClientMessage(Component.literal(pl.name()).withStyle(ChatFormatting.AQUA), true);
         return 1;
     }
 
@@ -131,7 +168,12 @@ public final class Cosmos {
         double[] o = origins.get(p.getUUID());
         String dim = originDims.get(p.getUUID());
         ServerLevel target = dim == null ? null : server.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(dim)));
+        if (target != null && target.dimension().equals(Level.OVERWORLD) && AstralData.get(server).earthGone) {
+            p.sendSystemMessage(Component.literal("Earth is gone.").withStyle(ChatFormatting.RED));
+            return 0;
+        }
         if (target == null || o == null) {
+            if (AstralData.get(server).earthGone) { p.sendSystemMessage(Component.literal("Earth is gone.").withStyle(ChatFormatting.RED)); return 0; }
             target = server.overworld();
             var s = target.getSharedSpawnPos();
             teleport(p, target, s.getX() + 0.5, s.getY(), s.getZ() + 0.5);
@@ -146,7 +188,11 @@ public final class Cosmos {
         event.getDispatcher().register(Commands.literal("cosmos")
                 .requires(Cosmos::allowed)
                 .executes(ctx -> enter(ctx.getSource().getPlayerOrException()))
-                .then(Commands.literal("leave").executes(ctx -> leave(ctx.getSource().getPlayerOrException()))));
+                .then(Commands.literal("leave").executes(ctx -> leave(ctx.getSource().getPlayerOrException())))
+                .then(Commands.literal("to").then(Commands.argument("planet", com.mojang.brigadier.arguments.StringArgumentType.word())
+                        .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
+                                CosmosGenerator.PLANETS.stream().map(CosmosGenerator.Planet::id).toList(), b))
+                        .executes(ctx -> toPlanet(ctx.getSource().getPlayerOrException(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "planet"))))));
     }
 
     // ------------------------------------------------------------------ the rules of the Cosmos
@@ -160,6 +206,7 @@ public final class Cosmos {
         long tick = server.getTickCount();
         if (tick % 10 != 0) return;
         long now = System.currentTimeMillis();
+        CosmosGenerator.earthGone = AstralData.get(server).earthGone;
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             UUID id = p.getUUID();
             boolean inSpace = p.level().dimension().equals(COSMOS);
@@ -193,6 +240,7 @@ public final class Cosmos {
             Long last = lastPortal.get(id);
             if (last == null || now - last > PORTAL_COOLDOWN_MS) {
                 for (CosmosGenerator.Planet pl : CosmosGenerator.PLANETS) {
+                    if (pl.id().equals("earth") && CosmosGenerator.earthGone) continue;
                     double dx = p.getX() - pl.x(), dy = p.getY() - pl.y(), dz = p.getZ() - pl.z();
                     double reach = pl.r() + 3.5;
                     if (dx * dx + dy * dy + dz * dz > reach * reach) continue;

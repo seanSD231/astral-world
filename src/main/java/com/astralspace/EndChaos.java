@@ -82,7 +82,7 @@ public final class EndChaos {
     public static void onDeath(LivingDeathEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer p)) return;
         MinecraftServer server = p.getServer();
-        if (server == null || AstralData.get(server).stage != 5) return;
+        if (server == null || !EndGame.classic(AstralData.get(server))) return;
         fallen.add(p.getUUID());
         server.execute(() -> kick(p));
     }
@@ -95,7 +95,7 @@ public final class EndChaos {
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer p)) return;
         MinecraftServer server = p.getServer();
-        if (server == null || AstralData.get(server).stage != 5) return;
+        if (server == null || !EndGame.classic(AstralData.get(server))) return;
         if (fallen.contains(p.getUUID())) server.execute(() -> kick(p)); // no coming back in while the end is still going
     }
 
@@ -105,13 +105,20 @@ public final class EndChaos {
     public static void onTick(ServerTickEvent.Post event) {
         MinecraftServer server = event.getServer();
         AstralData d = AstralData.get(server);
-        if (d.stage != 5) return;
+        if (!EndGame.chaosPhase(d)) {
+            if (!mutedSent.isEmpty()) unmuteAll(server);
+            return;
+        }
+        boolean classic = EndGame.classic(d);
         long el = System.currentTimeMillis() - d.stageSince;
         long tick = server.getTickCount();
 
-        if (el >= MUTE_AFTER_MS) {
-            for (ServerPlayer p : server.getPlayerList().getPlayers())
-                if (mutedSent.add(p.getUUID())) PacketDistributor.sendToPlayer(p, new Net.MutePayload(true));
+        if (el >= MUTE_AFTER_MS && tick % 10 == 0) {
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                boolean want = EndGame.inDanger(p, d); // on another planet there is sound again
+                if (want && mutedSent.add(p.getUUID())) PacketDistributor.sendToPlayer(p, new Net.MutePayload(true));
+                else if (!want && mutedSent.remove(p.getUUID())) PacketDistributor.sendToPlayer(p, new Net.MutePayload(false));
+            }
         }
         if (el < CHAOS_AFTER_MS) return;
 
@@ -123,7 +130,7 @@ public final class EndChaos {
 
         ThreadLocalRandom r = ThreadLocalRandom.current();
         for (ServerPlayer p : players) {
-            if (p.isRemoved() || !p.isAlive()) continue;
+            if (p.isRemoved() || !p.isAlive() || p.isSpectator() || !EndGame.inDanger(p, d)) continue;
             ServerLevel lv = p.serverLevel();
             if (tick % 3 == 0) lightning(lv, p, r);
             if (tick % 10 == 0) meteor(lv, p, r);
@@ -138,7 +145,7 @@ public final class EndChaos {
 
         // once a second: has everyone gone?
         if (tick % 20 == 0) {
-            if (players.isEmpty() && d.stage5Seen) finish(server, d);
+            if (classic && players.isEmpty() && d.stage5Seen) finish(server, d);
         }
     }
 
@@ -167,7 +174,7 @@ public final class EndChaos {
         }
     }
 
-    private static void kill(ServerPlayer p) {
+    static void kill(ServerPlayer p) {
         p.hurt(p.serverLevel().damageSources().genericKill(), Float.MAX_VALUE);
         if (p.isAlive()) p.kill();
     }

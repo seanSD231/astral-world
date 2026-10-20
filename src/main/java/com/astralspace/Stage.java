@@ -41,6 +41,8 @@ public final class Stage {
 
     static final String PLANET = "The planet is theirs, give up";
     static final String END = "The end is here";
+    static final String RUN = "RUN";
+    static final String HELP = "Help people leave";
 
     /** Message colors {from, to}: each message is coloured to fit what it says. */
     private static final Map<String, int[]> THEMES = new HashMap<>();
@@ -53,6 +55,8 @@ public final class Stage {
         THEMES.put("The barrier is at risk", new int[]{0x7A3CFF, 0xFF3050});                // barrier purple turning to danger red
         THEMES.put(PLANET, new int[]{0x000000, 0x8A0A5A});                                  // black to a bruised, hopeless crimson-violet
         THEMES.put(END, new int[]{0xFFFFFF, 0x300000});                                     // white fading into dried blood and dark
+        THEMES.put(RUN, new int[]{0xFFFFFF, 0xFF0000});
+        THEMES.put(HELP, new int[]{0x8A0A00, 0xFFD060});
         THEMES.put("The gods strike the barrier!", new int[]{0x7A3CFF, 0xFF1010});
     }
     private static final int[] DEFAULT_THEME = {0x000000, 0xDC143C};
@@ -77,13 +81,15 @@ public final class Stage {
             case 2 -> "It's coming";
             case 3 -> d.stage3Text.isEmpty() ? "They're watching, they're waiting" : d.stage3Text;
             case 4 -> PLANET;
-            case 5 -> END;
+            case 5 -> d.endPhase.equals("evac") ? RUN : END;
             default -> null;
         };
     }
 
     /** A second message that only some players get, after the global one. Null if this player gets none. */
-    private static String followUp(int stage, int seq) {
+    private static String followUp(AstralData d, int stage, ServerPlayer p) {
+        int seq = Lotm.sequence(p);
+        if (stage == 5 && d.endPhase.equals("evac") && Lotm.isDoor(p) && seq >= 0 && seq <= 2) return HELP;
         if (stage == 2 && seq == 0) return "Protect the barrier";
         if (stage == 3 && seq >= 0 && seq <= 1) return "The barrier is at risk"; // Seq 1 and stronger
         return null;
@@ -94,6 +100,7 @@ public final class Stage {
     /** Moves the world to a stage (up or down) and applies that stage's one-time effects. */
     public static void set(MinecraftServer server, int stage) {
         AstralData d = AstralData.get(server);
+        int old = d.stage;
         d.stage = Math.max(0, stage);
         d.stageSince = System.currentTimeMillis();
         d.damageAccum = 0.0;
@@ -103,6 +110,7 @@ public final class Stage {
         // lowering the stage lets players see the later messages again when the stage comes back
         d.seenStage.replaceAll((k, v) -> Math.min(v, d.stage));
         d.setDirty();
+        EndGame.stageChanged(server, old, d.stage);
         if (d.stage == 3) {
             // the message depends on how healthy the barrier is right now, then the barrier takes 50 damage
             d.stage3Text = AstralBarrier.get(server) > 50 ? "They're watching, they're waiting" : "It's too late";
@@ -206,7 +214,7 @@ public final class Stage {
                     if (m == null) continue;
                     if (st == 4 && d.stage >= 5) continue; // the end came first: skip the stage 4 message
                     q.add(new Queued(m, t));
-                    String f = followUp(st, seq);
+                    String f = followUp(d, st, p);
                     if (f != null) { t += GAP_TICKS; q.add(new Queued(f, t)); }
                     t += NEXT_TICKS;
                 }

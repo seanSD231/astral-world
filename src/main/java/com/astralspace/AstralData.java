@@ -6,6 +6,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,6 +26,18 @@ public class AstralData extends SavedData {
     public String stage3Text = "";
     /** Stage 5: a player was online while the end was happening (the world resets once everyone is gone). */
     public boolean stage5Seen = false;
+    /** After the barrier broke: "" = the plain end, "evac" = RUN countdown, "bosses", "raid", "recover" (see EndGame). */
+    public String endPhase = "";
+    /** Real time (epoch millis) when the current end phase runs out. */
+    public long endUntil = 0L;
+    public boolean earthGone = false;
+    /** The evacuation has been offered once already (a second phase 5 has no countdown). */
+    public boolean evacOffered = false;
+    /** The stage to return to after the raid is won. */
+    public int resumeStage = 1;
+    public final Set<String> bossesDead = new HashSet<>();
+    public final Map<UUID, Integer> raidLives = new HashMap<>();
+    public String raidBoss = "";
     /** The newest stage message each player has already seen. */
     public final Map<UUID, Integer> seenStage = new HashMap<>();
     /** Every player ever seen at Seq 0 (kept while offline). */
@@ -49,6 +63,15 @@ public class AstralData extends SavedData {
         d.damageAccum = tag.getDouble("damageAccum");
         d.stage3Text = tag.getString("stage3Text");
         d.stage5Seen = tag.getBoolean("stage5Seen");
+        d.endPhase = tag.getString("endPhase");
+        d.endUntil = tag.getLong("endUntil");
+        d.earthGone = tag.getBoolean("earthGone");
+        d.evacOffered = tag.getBoolean("evacOffered");
+        d.resumeStage = tag.contains("resumeStage") ? tag.getInt("resumeStage") : 1;
+        d.raidBoss = tag.getString("raidBoss");
+        for (String k : tag.getString("bossesDead").split(",")) if (!k.isEmpty()) d.bossesDead.add(k);
+        CompoundTag rl = tag.getCompound("raidLives");
+        for (String k : rl.getAllKeys()) d.raidLives.put(UUID.fromString(k), rl.getInt(k));
         CompoundTag st = tag.getCompound("seenStage");
         for (String k : st.getAllKeys()) d.seenStage.put(UUID.fromString(k), st.getInt(k));
         CompoundTag s = tag.getCompound("seq0");
@@ -74,6 +97,16 @@ public class AstralData extends SavedData {
         tag.putDouble("damageAccum", damageAccum);
         tag.putString("stage3Text", stage3Text);
         tag.putBoolean("stage5Seen", stage5Seen);
+        tag.putString("endPhase", endPhase);
+        tag.putLong("endUntil", endUntil);
+        tag.putBoolean("earthGone", earthGone);
+        tag.putBoolean("evacOffered", evacOffered);
+        tag.putInt("resumeStage", resumeStage);
+        tag.putString("raidBoss", raidBoss);
+        tag.putString("bossesDead", String.join(",", bossesDead));
+        CompoundTag rl = new CompoundTag();
+        raidLives.forEach((k, v) -> rl.putInt(k.toString(), v));
+        tag.put("raidLives", rl);
         CompoundTag st = new CompoundTag();
         seenStage.forEach((k, v) -> st.putInt(k.toString(), v));
         tag.put("seenStage", st);

@@ -37,6 +37,9 @@ public final class Settings {
         KEYS.put("barrier_damage_minutes", new String[]{"60", "Stage 3: one barrier damage every this many minutes, before the online-Seq-0 multiplier (halved with no Seq 0\n# online, doubled for every Seq 0 online beyond the first)."});
         KEYS.put("stage4_days", new String[]{"30", "Real-life days from the start of stage 3 until stage 4 begins (decimals allowed, e.g. 0.01 to test)."});
         KEYS.put("stage4_damage_multiplier", new String[]{"5", "Stage 4: how many times faster the barrier takes its normal damage."});
+        KEYS.put("evacuation_minutes", new String[]{"10", "Stage 5 with a living Door (Seq 2 or stronger): real minutes the players have to get 75% of everyone onto the other planets."});
+        KEYS.put("boss_days", new String[]{"3", "After the evacuation: real days to defeat the planet bosses (each boss defeated adds this many days again)."});
+        KEYS.put("recovery_days", new String[]{"10", "After the raid boss is beaten: real days the world stays at stage 0 before it returns to its earlier stage."});
         KEYS.put("chaos_destroys_blocks", new String[]{"false", "Stage 5 (the end): true = meteors and explosions also destroy blocks. The world is kept when the server resets,\n# so this is off by default."});
         KEYS.put("nearby_radius", new String[]{"32", "Stage 2+: how close (blocks) players must be to someone who names an Outer God to be affected. Doubled in stage 3."});
     }
@@ -51,6 +54,9 @@ public final class Settings {
     public static volatile double stage4Days = 30.0;
     public static volatile double stage4DamageMultiplier = 5.0;
     public static volatile boolean chaosDestroysBlocks = false;
+    public static volatile double evacuationMinutes = 10.0;
+    public static volatile double bossDays = 3.0;
+    public static volatile double recoveryDays = 10.0;
 
     private Settings() {}
 
@@ -94,6 +100,9 @@ public final class Settings {
             stage4Days = Double.parseDouble(p.getProperty("stage4_days").trim());
             stage4DamageMultiplier = Math.max(1.0, Double.parseDouble(p.getProperty("stage4_damage_multiplier").trim()));
             chaosDestroysBlocks = Boolean.parseBoolean(p.getProperty("chaos_destroys_blocks").trim());
+            evacuationMinutes = Double.parseDouble(p.getProperty("evacuation_minutes").trim());
+            bossDays = Double.parseDouble(p.getProperty("boss_days").trim());
+            recoveryDays = Double.parseDouble(p.getProperty("recovery_days").trim());
             LOGGER.info("[astral] settings: surface {} down to {}, astral_barrier_level {}, stage3_days {}, damage every {} min, nearby_radius {}",
                     surfaceTop, surfaceBottom, barrierY, stage3Days, barrierDamageMinutes, nearbyRadius);
         } catch (IOException | NumberFormatException e) {

@@ -1,0 +1,699 @@
+package com.astralspace;
+
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.logging.LogUtils;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.Commands;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.BossEvent;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import org.slf4j.Logger;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
+
+/**
+ * What happens after the barrier breaks (stage 5), the part that can be survived. d.endPhase says where we are:
+ *   ""        nothing is going on
+ *   "classic" the plain end (EndChaos: everyone dies and is kicked, the world resets, the server stops)
+ *   "evac"    a Door of Seq 2 or stronger was online, so the message is RUN and a countdown runs. Chaos only strikes
+ *             where people are not on another planet. When 75% of the online players stand on another planet
+ *             before it ends, Earth is destroyed. Otherwise the plain end follows.
+ *   "bosses"  Earth is gone and the overworld is locked. A boss (Seq 0, 10,000 HP) waits on every other planet.
+ *             Defeat them all before the time runs out (each kill adds days) or phase 5 happens again, with no countdown.
+ *   "raid"    all bosses fell: stage 0 and an Outer God with 100,000 HP. Everyone is pulled into the arena with 5 lives.
+ *             Losing = phase 5 again with no countdown. Winning = Earth returns and stage 0 lasts recovery_days.
+ *   "recover" stage 0 for recovery_days, then the stage from before the first break returns.
+ */
+@EventBusSubscriber(modid = AstralMod.MOD_ID)
+public final class EndGame {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
+    static final String TAG_BOSS = "astral_boss", TAG_RAID = "astral_raid";
+    private static final String TAG_PLANET = "astral_boss_of:";
+    private static final float BOSS_HP = 1000f;        // the attribute caps at 1024, so the rest is done by shrinking damage
+    private static final float BOSS_DAMAGE = 0.1f;     // 1000 HP / 0.1  = 10,000 effective
+    private static final float RAID_DAMAGE = 0.01f;    // 1000 HP / 0.01 = 100,000 effective
+    private static final int LIVES = 5;
+    private static final long DAY = 86_400_000L;
+
+    /** The boss of each planet: a Seq 0 of a pathway that is finished in LOTM. */
+    private record BossDef(String planet, String pathway, String title) {}
+    private static final List<BossDef> BOSSES = List.of(
+            new BossDef("mercury", "seer", "Sovereign of Mercury"),
+            new BossDef("venus", "spectator", "Sovereign of Venus"),
+            new BossDef("mars", "warrior", "Sovereign of Mars"),
+            new BossDef("jupiter", "sailor", "Sovereign of Jupiter"),
+            new BossDef("saturn", "monster", "Sovereign of Saturn"),
+            new BossDef("uranus", "marauder", "Sovereign of Uranus"),
+            new BossDef("neptune", "bard", "Sovereign of Neptune"));
+    private static final String RAID_PATHWAY = "prisoner";
+    private static final String RAID_NAME = "Mother Tree of Desire";
+
+    /** Set while this class changes the stage itself (Stage.set must then not reset the end). */
+    private static boolean internal = false;
+    private static final Map<String, ServerBossEvent> bars = new HashMap<>();
+    private static ServerBossEvent raidBar;
+
+    private EndGame() {}
+
+    // ------------------------------------------------------------------ small helpers
+
+    private static boolean isEarthDim(ResourceKey<Level> k) { return k.equals(Cosmos.key("earth")); }
+
+    /** On a planet that is not Earth. */
+    static boolean onOtherPlanet(ServerPlayer p) {
+        ResourceKey<Level> k = p.level().dimension();
+        return Cosmos.isPlanetDim(k) && !isEarthDim(k);
+    }
+
+    /** Is chaos allowed to strike this player right now? */
+    static boolean inDanger(ServerPlayer p, AstralData d) {
+        if (d.endPhase.equals("evac")) return !onOtherPlanet(p) && !p.level().dimension().equals(Cosmos.COSMOS);
+        return true;
+    }
+
+    static boolean chaosPhase(AstralData d) {
+        return d.stage == 5 && (d.endPhase.isEmpty() || d.endPhase.equals("classic") || d.endPhase.equals("evac"));
+    }
+
+    static boolean classic(AstralData d) { return d.stage == 5 && (d.endPhase.isEmpty() || d.endPhase.equals("classic")); }
+
+    private static void tell(MinecraftServer server, String msg, ChatFormatting color) {
+        Component c = Component.literal(msg).withStyle(color);
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) p.sendSystemMessage(c);
+    }
+
+    private static ServerLevel dim(MinecraftServer server, String id) { return server.getLevel(Cosmos.key(id)); }
+
+    private static void force(ServerLevel lv, int r, boolean on) {
+        for (int x = -r; x <= r; x++) for (int z = -r; z <= r; z++) lv.setChunkForced(x, z, on);
+    }
+
+    private static void setGameMode(ServerPlayer p, GameType t) { if (p.gameMode.getGameModeForPlayer() != t) p.setGameMode(t); }
+
+    // ------------------------------------------------------------------ beginning (called by Stage.set)
+
+    /** The stage was just set to `stage` (not by this class). `old` is the stage it was before. */
+    static void stageChanged(MinecraftServer server, int old, int stage) {
+        if (internal) return;
+        if (stage == 5) begin(server, old); else resetAll(server);
+    }
+
+    private static void begin(MinecraftServer server, int old) {
+        AstralData d = AstralData.get(server);
+        String ph = d.endPhase;
+        if (ph.equals("bosses") || ph.equals("raid")) {
+            // phase 5 again: no countdown, the plain end
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) setGameMode(p, GameType.SURVIVAL);
+            d.endPhase = "classic";
+            d.endUntil = 0;
+            clearRaidState(server, false);
+            d.setDirty();
+            LOGGER.info("[astral] phase 5 again (was {}): the plain end", ph);
+            return;
+        }
+        if (!ph.isEmpty()) resetAll(server);
+        d.resumeStage = old >= 1 && old < 5 ? old : Math.max(1, d.resumeStage);
+        boolean door = false;
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            int seq = Lotm.sequence(p);
+            if (p.isAlive() && !p.isSpectator() && Lotm.isDoor(p) && seq >= 0 && seq <= 2) door = true;
+        }
+        if (door && !d.evacOffered) {
+            d.endPhase = "evac";
+            d.evacOffered = true;
+            d.endUntil = System.currentTimeMillis() + (long) (Settings.evacuationMinutes * 60_000.0);
+        } else {
+            d.endPhase = "classic";
+            d.endUntil = 0;
+        }
+        d.setDirty();
+        LOGGER.info("[astral] the end begins: {}", d.endPhase);
+    }
+
+    /** Puts everything back as it was: Earth, the overworld, the bosses. Does not touch the stage. */
+    static void resetAll(MinecraftServer server) {
+        AstralData d = AstralData.get(server);
+        boolean was = !d.endPhase.isEmpty() || d.earthGone || !d.bossesDead.isEmpty();
+        if (!was) return;
+        clearRaidState(server, true);
+        if (d.earthGone) {
+            ServerLevel cosmos = server.getLevel(Cosmos.COSMOS);
+            if (cosmos != null) CosmosGenerator.setPlanet(cosmos, CosmosGenerator.PLANETS.get(2), true);
+        }
+        d.earthGone = false;
+        CosmosGenerator.earthGone = false;
+        d.endPhase = "";
+        d.endUntil = 0;
+        d.evacOffered = false;
+        d.bossesDead.clear();
+        d.raidLives.clear();
+        d.raidBoss = "";
+        d.setDirty();
+    }
+
+    /** Removes the bosses and the raid; people in the arena go home when `sendHome` is set. */
+    private static void clearRaidState(MinecraftServer server, boolean sendHome) {
+        AstralData d = AstralData.get(server);
+        for (ServerBossEvent b : bars.values()) b.removeAllPlayers();
+        bars.clear();
+        if (raidBar != null) { raidBar.removeAllPlayers(); raidBar = null; }
+        timed.clear();
+        for (BossDef b : BOSSES) {
+            ServerLevel lv = dim(server, b.planet());
+            if (lv == null) continue;
+            for (Entity e : lv.getAllEntities()) if (e.getTags().contains(TAG_BOSS)) e.discard();
+            force(lv, 1, false);
+        }
+        ServerLevel raid = dim(server, "raid");
+        if (raid != null) {
+            for (Entity e : raid.getAllEntities()) if (e.getTags().contains(TAG_RAID)) e.discard();
+            if (sendHome) {
+                ServerLevel ow = server.overworld();
+                var s = ow.getSharedSpawnPos();
+                for (ServerPlayer p : new ArrayList<>(raid.players())) {
+                    setGameMode(p, GameType.SURVIVAL);
+                    p.teleportTo(ow, s.getX() + 0.5, s.getY(), s.getZ() + 0.5, p.getYRot(), 0f);
+                }
+            }
+            force(raid, 3, false);
+        }
+        if (sendHome) for (ServerPlayer p : server.getPlayerList().getPlayers()) setGameMode(p, p.gameMode.getGameModeForPlayer() == GameType.SPECTATOR ? GameType.SURVIVAL : p.gameMode.getGameModeForPlayer());
+        d.setDirty();
+    }
+
+    // ------------------------------------------------------------------ the countdown
+
+    private static void evacuated(MinecraftServer server, int[] out) {
+        int on = 0, total = 0;
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) { total++; if (onOtherPlanet(p)) on++; }
+        out[0] = on; out[1] = total;
+    }
+
+    private static void secondEvac(MinecraftServer server, AstralData d) {
+        int[] c = new int[2];
+        evacuated(server, c);
+        long left = Math.max(0, d.endUntil - System.currentTimeMillis());
+        if (c[1] > 0 && c[0] * 4 >= c[1] * 3) { destroyEarth(server, d); return; }
+        if (left <= 0) {
+            d.endPhase = "classic";
+            d.endUntil = 0;
+            d.setDirty();
+            tell(server, "Not enough of you made it.", ChatFormatting.DARK_RED);
+            return;
+        }
+        String t = String.format("%d:%02d", left / 60000, (left / 1000) % 60);
+        Component bar = Component.literal("RUN  " + t + "   on another planet: " + c[0] + "/" + c[1] + " (75% needed)")
+                .withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) p.displayClientMessage(bar, true);
+    }
+
+    private static void destroyEarth(MinecraftServer server, AstralData d) {
+        LOGGER.info("[astral] evacuation succeeded: Earth is destroyed");
+        d.earthGone = true;
+        CosmosGenerator.earthGone = true;
+        d.endPhase = "bosses";
+        d.endUntil = System.currentTimeMillis() + (long) (Settings.bossDays * DAY);
+        d.setDirty();
+        ServerLevel cosmos = server.getLevel(Cosmos.COSMOS);
+        if (cosmos != null) CosmosGenerator.setPlanet(cosmos, CosmosGenerator.PLANETS.get(2), false);
+        EndChaos.unmuteAll(server);
+        tell(server, "Earth is gone.", ChatFormatting.DARK_RED);
+        // whoever stayed behind goes down with it
+        for (ServerPlayer p : new ArrayList<>(server.getPlayerList().getPlayers())) {
+            ResourceKey<Level> k = p.level().dimension();
+            if (k.equals(Level.OVERWORLD) || isEarthDim(k)) EndChaos.kill(p);
+        }
+        tell(server, "Defeat the sovereign on every planet within " + (int) Settings.bossDays + " days. Each one you defeat gives you " + (int) Settings.bossDays + " more.", ChatFormatting.GOLD);
+    }
+
+    // ------------------------------------------------------------------ the planet bosses
+
+    private static Mob makeMob(ServerLevel lv, String pathId, String name, double x, double y, double z) {
+        Mob m = null;
+        try {
+            Object path = Lotm.pathwayById(pathId);
+            if (path != null) {
+                Class<?> c = Class.forName("net.swimmingtuna.lotm.entity.Mobs.PlayerMobEntity");
+                Class<?> bc = Class.forName("net.swimmingtuna.lotm.beyonder.api.BeyonderClass");
+                m = (Mob) c.getConstructor(Level.class, bc, int.class).newInstance(lv, path, 0); // Seq 0, built directly so LOTM's Seq 0 limit never sees it
+            }
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not build a LOTM Beyonder for '{}': {}", pathId, String.valueOf(t.getCause() != null ? t.getCause() : t));
+        }
+        if (m == null) m = EntityType.WARDEN.create(lv); // LOTM missing: something big all the same
+        if (m == null) return null;
+        m.setPos(x, y, z);
+        m.setPersistenceRequired();
+        var hp = m.getAttribute(Attributes.MAX_HEALTH);
+        if (hp != null) hp.setBaseValue(BOSS_HP);
+        m.setHealth(BOSS_HP);
+        m.setCustomName(Component.literal(name).withStyle(ChatFormatting.DARK_RED));
+        m.setCustomNameVisible(true);
+        return m;
+    }
+
+    private static Mob findBoss(ServerLevel lv, String tag) {
+        for (Entity e : lv.getAllEntities()) if (e instanceof Mob m && m.isAlive() && e.getTags().contains(tag)) return m;
+        return null;
+    }
+
+    private static void secondBosses(MinecraftServer server, AstralData d) {
+        long now = System.currentTimeMillis();
+        int alive = 0;
+        for (BossDef b : BOSSES) {
+            if (d.bossesDead.contains(b.planet())) continue;
+            alive++;
+            ServerLevel lv = dim(server, b.planet());
+            if (lv == null) continue;
+            lv.getChunk(0, 0);
+            force(lv, 1, true);
+            String tag = TAG_PLANET + b.planet();
+            Mob m = findBoss(lv, tag);
+            if (m == null) {
+                int gy = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 14, 14);
+                m = makeMob(lv, b.pathway(), b.title(), 14.5, gy, 14.5);
+                if (m == null) continue;
+                m.addTag(TAG_BOSS);
+                m.addTag(tag);
+                lv.addFreshEntity(m);
+            }
+            ServerBossEvent bar = bars.computeIfAbsent(b.planet(), k ->
+                    new ServerBossEvent(Component.literal(b.title()), BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.NOTCHED_10));
+            bar.setProgress(Math.max(0f, Math.min(1f, m.getHealth() / BOSS_HP)));
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                boolean here = p.level() == lv;
+                if (here) bar.addPlayer(p); else bar.removePlayer(p);
+            }
+        }
+        if (alive == 0) { startRaid(server, d); return; }
+        if (now >= d.endUntil) {
+            tell(server, "Time has run out.", ChatFormatting.DARK_RED);
+            Stage.set(server, 5); // phase 5 again, no countdown
+            return;
+        }
+        long left = d.endUntil - now;
+        if (server.getTickCount() % 600 == 0) {
+            String t = (left / DAY) + "d " + ((left / 3_600_000L) % 24) + "h";
+            Component c = Component.literal("Planets left: " + alive + "   Time left: " + t).withStyle(ChatFormatting.GOLD);
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) p.displayClientMessage(c, true);
+        }
+    }
+
+    private static void bossDied(MinecraftServer server, AstralData d, String planet) {
+        if (!d.bossesDead.add(planet)) return;
+        d.endUntil += (long) (Settings.bossDays * DAY);
+        d.setDirty();
+        ServerBossEvent bar = bars.remove(planet);
+        if (bar != null) bar.removeAllPlayers();
+        int left = BOSSES.size() - d.bossesDead.size();
+        tell(server, "The sovereign of " + planet.substring(0, 1).toUpperCase() + planet.substring(1) + " has fallen. +" + (int) Settings.bossDays + " days. "
+                + (left == 0 ? "That was the last." : left + " left."), ChatFormatting.GOLD);
+    }
+
+    // ------------------------------------------------------------------ the raid
+
+    private record Timed(long at, Consumer<ServerLevel> run) {}
+    private static final List<Timed> timed = new ArrayList<>();
+    private static long rt = 0, nextPattern = 0;
+    private static int patternIdx = 0;
+    private static double groundY = 4;
+    private static final Map<UUID, Long> lastHit = new HashMap<>();
+    private static final int[] ORDER = {0, 3, 1, 2, 4};
+
+    private static void startRaid(MinecraftServer server, AstralData d) {
+        ServerLevel lv = dim(server, "raid");
+        if (lv == null) { LOGGER.warn("[astral] raid dimension missing"); Stage.set(server, 5); return; }
+        LOGGER.info("[astral] every planet boss is down: the raid begins");
+        clearRaidState(server, false);
+        internal = true;
+        try { Stage.set(server, 0); } finally { internal = false; }
+        d.endPhase = "raid";
+        d.endUntil = 0;
+        d.raidLives.clear();
+        d.raidBoss = RAID_NAME;
+        d.hp = AstralBarrier.getMax(server);
+        d.setDirty();
+        EndChaos.unmuteAll(server);
+        lv.getChunk(0, 0);
+        force(lv, 3, true);
+        groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
+        timed.clear();
+        rt = 0; nextPattern = 100; patternIdx = 0;
+        Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
+        if (boss != null) {
+            boss.addTag(TAG_BOSS);
+            boss.addTag(TAG_RAID);
+            boss.setNoAi(true);        // the fight is scripted: the attacks below are all it does
+            boss.setNoGravity(true);
+            lv.addFreshEntity(boss);
+        }
+        List<ServerPlayer> all = new ArrayList<>(server.getPlayerList().getPlayers());
+        int i = 0;
+        for (ServerPlayer p : all) {
+            d.raidLives.put(p.getUUID(), LIVES);
+            setGameMode(p, GameType.SURVIVAL);
+            double a = Math.PI * 2 * i++ / Math.max(1, all.size());
+            p.teleportTo(lv, 0.5 + Math.cos(a) * 14, groundY, 0.5 + Math.sin(a) * 14, p.getYRot(), 0f);
+            p.setHealth(p.getMaxHealth());
+        }
+        tell(server, RAID_NAME + " has come. You have " + LIVES + " lives. Do not be where it strikes.", ChatFormatting.DARK_PURPLE);
+    }
+
+    private static List<ServerPlayer> fighters(ServerLevel lv) {
+        List<ServerPlayer> l = new ArrayList<>();
+        AstralData d = AstralData.get(lv.getServer());
+        for (ServerPlayer p : lv.players()) if (!p.isSpectator() && p.isAlive() && d.raidLives.getOrDefault(p.getUUID(), 0) > 0) l.add(p);
+        return l;
+    }
+
+    private static void loseLife(ServerLevel lv, ServerPlayer p) {
+        AstralData d = AstralData.get(lv.getServer());
+        long now = lv.getServer().getTickCount();
+        Long last = lastHit.get(p.getUUID());
+        if (last != null && now - last < 40) return; // just hit: a moment of grace
+        lastHit.put(p.getUUID(), now);
+        int lives = d.raidLives.merge(p.getUUID(), -1, Integer::sum);
+        d.setDirty();
+        lv.playSound(null, p.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.HOSTILE, 1f, 1.2f);
+        if (lives <= 0) {
+            d.raidLives.put(p.getUUID(), 0);
+            setGameMode(p, GameType.SPECTATOR);
+            p.sendSystemMessage(Component.literal("You have fallen. You can only watch now.").withStyle(ChatFormatting.DARK_RED));
+        } else {
+            double a = ThreadLocalRandom.current().nextDouble() * Math.PI * 2;
+            p.teleportTo(lv, 0.5 + Math.cos(a) * 14, groundY, 0.5 + Math.sin(a) * 14, p.getYRot(), 0f);
+            p.setHealth(p.getMaxHealth());
+            p.sendSystemMessage(Component.literal("Lives left: " + lives).withStyle(ChatFormatting.RED));
+        }
+    }
+
+    /** Anyone inside the area (and low enough to be hit) loses a life. */
+    private static void strike(ServerLevel lv, double x, double z, double r, double maxFeetAbove) {
+        for (ServerPlayer p : fighters(lv)) {
+            double dx = p.getX() - x, dz = p.getZ() - z;
+            if (dx * dx + dz * dz <= r * r && p.getY() < groundY + maxFeetAbove) loseLife(lv, p);
+        }
+    }
+
+    private static void at(long delay, Consumer<ServerLevel> run) { timed.add(new Timed(rt + delay, run)); }
+
+    private static void dust(ServerLevel lv, double x, double y, double z, float r, float g, float b) {
+        lv.sendParticles(new DustParticleOptions(new org.joml.Vector3f(r, g, b), 1.6f), x, y, z, 1, 0, 0, 0, 0);
+    }
+
+    private static void circle(ServerLevel lv, double x, double z, double r, float cr, float cg, float cb) {
+        int n = (int) Math.max(12, r * 6);
+        for (int i = 0; i < n; i++) {
+            double a = Math.PI * 2 * i / n;
+            dust(lv, x + Math.cos(a) * r, groundY + 0.2, z + Math.sin(a) * r, cr, cg, cb);
+        }
+    }
+
+    private static void boom(ServerLevel lv, double x, double z, double r) {
+        LightningBolt b = EntityType.LIGHTNING_BOLT.create(lv);
+        if (b != null) { b.moveTo(x, groundY, z); b.setVisualOnly(true); lv.addFreshEntity(b); }
+        lv.sendParticles(ParticleTypes.EXPLOSION, x, groundY + 1, z, 6, r / 3, 0.5, r / 3, 0);
+    }
+
+    /** One scripted attack. Every one of them can be dodged: leave the marked ground, jump the low ones, stand in the safe circles. */
+    private static void pattern(ServerLevel lv, int which) {
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        switch (which) {
+            case 0 -> { // meteors: red marks under every fighter, they land 1.5 s later
+                for (int k = 0; k < 5; k++) at(k * 20L, l -> {
+                    for (ServerPlayer p : fighters(l)) {
+                        double x = p.getX() + rnd.nextDouble(-3, 3), z = p.getZ() + rnd.nextDouble(-3, 3);
+                        for (int t = 0; t < 30; t += 5) at(t, ll -> circle(ll, x, z, 3.5, 1f, 0.1f, 0.1f));
+                        at(30, ll -> { boom(ll, x, z, 3.5); strike(ll, x, z, 3.5, 99); });
+                    }
+                });
+            }
+            case 1 -> { // two rings rolling out from the Outer God: jump them
+                for (int ring = 0; ring < 2; ring++) {
+                    long start = 25 + ring * 30L;
+                    for (int t = 0; t < 50; t++) {
+                        final int tt = t;
+                        at(start + t, l -> {
+                            double r = 2 + tt * 0.6;
+                            circle(l, 0.5, 0.5, r, 0.7f, 0.2f, 1f);
+                            for (ServerPlayer p : fighters(l)) { // only the ring itself, and only fighters standing on the ground
+                                double dist = Math.hypot(p.getX() - 0.5, p.getZ() - 0.5);
+                                if (Math.abs(dist - r) < 1.0 && p.getY() < groundY + 0.9) loseLife(l, p);
+                            }
+                        });
+                    }
+                }
+            }
+            case 2 -> { // a beam sweeping round: jump it
+                double a0 = rnd.nextDouble() * Math.PI * 2;
+                for (int t = 0; t < 100; t++) {
+                    final int tt = t;
+                    at(t, l -> {
+                        double a = a0 + Math.max(0, tt - 20) * Math.toRadians(1.5);
+                        boolean live = tt >= 20;
+                        for (double d = 1; d <= 40; d += 1.2) {
+                            double x = 0.5 + Math.cos(a) * d, z = 0.5 + Math.sin(a) * d;
+                            if (live) { dust(l, x, groundY + 0.5, z, 1f, 0.9f, 0.3f); }
+                            else if (tt % 4 == 0) dust(l, x, groundY + 0.3, z, 1f, 0.2f, 0.2f);
+                        }
+                        if (!live) return;
+                        for (ServerPlayer p : fighters(l)) {
+                            double px = p.getX() - 0.5, pz = p.getZ() - 0.5;
+                            double along = px * Math.cos(a) + pz * Math.sin(a);
+                            double side = Math.abs(-px * Math.sin(a) + pz * Math.cos(a));
+                            if (along > 0 && along < 42 && side < 1.3 && p.getY() < groundY + 1.1) loseLife(l, p);
+                        }
+                    });
+                }
+            }
+            case 3 -> { // slam: a big red circle under every fighter, 2 s to leave it
+                for (ServerPlayer p : fighters(lv)) {
+                    double x = p.getX(), z = p.getZ();
+                    for (int t = 0; t < 40; t += 4) at(t, l -> circle(l, x, z, 5.5, 1f, 0.3f, 0f));
+                    at(40, l -> { boom(l, x, z, 5.5); strike(l, x, z, 5.5, 99); });
+                }
+            }
+            default -> { // the whole arena is struck except for three safe circles
+                double[][] safe = new double[3][2];
+                for (double[] s : safe) { double a = rnd.nextDouble() * Math.PI * 2, d = 4 + rnd.nextDouble() * 14; s[0] = 0.5 + Math.cos(a) * d; s[1] = 0.5 + Math.sin(a) * d; }
+                for (int t = 0; t < 70; t += 5) at(t, l -> { for (double[] s : safe) circle(l, s[0], s[1], 3.2, 0.2f, 1f, 0.3f); });
+                at(70, l -> {
+                    for (ServerPlayer p : fighters(l)) {
+                        boolean ok = false;
+                        for (double[] s : safe) { double dx = p.getX() - s[0], dz = p.getZ() - s[1]; if (dx * dx + dz * dz <= 3.2 * 3.2) ok = true; }
+                        if (!ok) loseLife(l, p);
+                    }
+                    boom(l, 0.5, 0.5, 30);
+                });
+            }
+        }
+    }
+
+    private static void raidTick(MinecraftServer server, AstralData d) {
+        ServerLevel lv = dim(server, "raid");
+        if (lv == null) return;
+        rt++;
+        if (rt >= nextPattern && !fighters(lv).isEmpty()) {
+            int which = ORDER[patternIdx++ % ORDER.length];
+            pattern(lv, which);
+            nextPattern = rt + (which == 2 ? 120 : which == 1 ? 120 : 100) + 40;
+        }
+        Iterator<Timed> it = new ArrayList<>(timed).iterator();
+        List<Timed> done = new ArrayList<>();
+        while (it.hasNext()) {
+            Timed t = it.next();
+            if (t.at() <= rt) { done.add(t); t.run().accept(lv); }
+        }
+        timed.removeAll(done);
+    }
+
+    private static void secondRaid(MinecraftServer server, AstralData d) {
+        ServerLevel lv = dim(server, "raid");
+        if (lv == null) return;
+        // everyone belongs in the arena
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            d.raidLives.putIfAbsent(p.getUUID(), LIVES);
+            if (p.level() != lv) p.teleportTo(lv, 0.5 + 14, groundY, 0.5, p.getYRot(), 0f);
+            else if (p.distanceToSqr(0.5, groundY, 0.5) > 45 * 45) p.teleportTo(lv, 0.5 + 14, groundY, 0.5, p.getYRot(), 0f);
+            if (d.raidLives.get(p.getUUID()) <= 0) setGameMode(p, GameType.SPECTATOR);
+            else p.displayClientMessage(Component.literal("Lives: " + "♥".repeat(d.raidLives.get(p.getUUID()))).withStyle(ChatFormatting.RED), true);
+        }
+        Mob boss = findBoss(lv, TAG_RAID);
+        if (boss == null) {
+            if (!d.bossesDead.contains("raid")) { // it was lost somehow without dying: bring it back at full strength
+                Mob m = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
+                if (m != null) { m.addTag(TAG_BOSS); m.addTag(TAG_RAID); m.setNoAi(true); m.setNoGravity(true); lv.addFreshEntity(m); }
+            }
+        } else {
+            if (raidBar == null) raidBar = new ServerBossEvent(Component.literal(RAID_NAME).withStyle(ChatFormatting.DARK_PURPLE),
+                    BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.NOTCHED_20);
+            raidBar.setProgress(Math.max(0f, Math.min(1f, boss.getHealth() / BOSS_HP)));
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) raidBar.addPlayer(p);
+        }
+        boolean anyAlive = false;
+        for (int v : d.raidLives.values()) if (v > 0) anyAlive = true;
+        if (!anyAlive && !d.raidLives.isEmpty()) {
+            tell(server, "It is over.", ChatFormatting.DARK_RED);
+            Stage.set(server, 5); // phase 5 again, no countdown
+        }
+    }
+
+    private static void raidWon(MinecraftServer server, AstralData d) {
+        LOGGER.info("[astral] the raid boss fell: Earth returns, stage 0 for {} days", Settings.recoveryDays);
+        int resume = d.resumeStage;
+        resetAll(server);
+        internal = true;
+        try { Stage.set(server, 0); } finally { internal = false; }
+        d.resumeStage = resume;
+        d.hp = AstralBarrier.getMax(server);
+        d.endPhase = "recover";
+        d.endUntil = System.currentTimeMillis() + (long) (Settings.recoveryDays * DAY);
+        d.setDirty();
+        tell(server, "The Outer God is gone. The barrier is whole again, and Earth has returned.", ChatFormatting.GOLD);
+    }
+
+    private static void secondRecover(MinecraftServer server, AstralData d) {
+        if (System.currentTimeMillis() < d.endUntil) return;
+        int resume = Math.max(1, d.resumeStage);
+        d.endPhase = "";
+        d.setDirty();
+        Stage.set(server, resume);
+    }
+
+    // ------------------------------------------------------------------ events
+
+    @SubscribeEvent
+    public static void onTick(ServerTickEvent.Post event) {
+        MinecraftServer server = event.getServer();
+        AstralData d = AstralData.get(server);
+        if (d.endPhase.isEmpty() || d.endPhase.equals("classic")) return;
+        if (d.endPhase.equals("raid")) raidTick(server, d);
+        if (server.getTickCount() % 20 != 0) return;
+        switch (d.endPhase) {
+            case "evac" -> secondEvac(server, d);
+            case "bosses" -> secondBosses(server, d);
+            case "raid" -> secondRaid(server, d);
+            case "recover" -> secondRecover(server, d);
+            default -> { }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onDeath(LivingDeathEvent event) {
+        Entity e = event.getEntity();
+        if (e.level().isClientSide || !e.getTags().contains(TAG_BOSS)) return;
+        MinecraftServer server = e.getServer();
+        if (server == null) return;
+        AstralData d = AstralData.get(server);
+        if (e.getTags().contains(TAG_RAID)) {
+            if (d.endPhase.equals("raid")) { d.bossesDead.add("raid"); server.execute(() -> raidWon(server, d)); }
+            return;
+        }
+        for (String t : e.getTags()) if (t.startsWith(TAG_PLANET)) bossDied(server, d, t.substring(TAG_PLANET.length()));
+    }
+
+    /** The bosses have 1000 real HP; shrinking every hit makes that 10,000 (planet) or 100,000 (raid). In the arena nobody is hurt, hits cost lives instead. */
+    @SubscribeEvent
+    public static void onDamage(LivingIncomingDamageEvent event) {
+        Entity e = event.getEntity();
+        if (e.getTags().contains(TAG_RAID)) { event.setAmount(event.getAmount() * RAID_DAMAGE); return; }
+        if (e.getTags().contains(TAG_BOSS)) { event.setAmount(event.getAmount() * BOSS_DAMAGE); return; }
+        if (e instanceof ServerPlayer p && p.level().dimension().equals(Cosmos.key("raid"))) event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public static void onTravel(EntityTravelToDimensionEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer p) || p.getServer() == null) return;
+        if (event.getDimension().equals(Level.OVERWORLD) && AstralData.get(p.getServer()).earthGone) {
+            event.setCanceled(true);
+            p.displayClientMessage(Component.literal("Earth is gone.").withStyle(ChatFormatting.RED), true);
+        }
+    }
+
+    private static void relocate(ServerPlayer p) {
+        MinecraftServer server = p.getServer();
+        if (server == null) return;
+        AstralData d = AstralData.get(server);
+        if (d.earthGone && p.level().dimension().equals(Level.OVERWORLD)) {
+            ServerLevel m = dim(server, "mercury");
+            if (m != null) { m.getChunk(0, 0); p.teleportTo(m, 0.5, 4.0, 0.5, p.getYRot(), 0f); }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onRespawn(PlayerEvent.PlayerRespawnEvent event) {
+        if (event.getEntity() instanceof ServerPlayer p) p.getServer().execute(() -> relocate(p));
+    }
+
+    @SubscribeEvent
+    public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer p && p.getServer() != null) p.getServer().execute(() -> relocate(p));
+    }
+
+    // ------------------------------------------------------------------ for testing
+
+    @SubscribeEvent
+    public static void onRegisterCommands(RegisterCommandsEvent event) {
+        event.getDispatcher().register(Commands.literal("astralend")
+                .requires(src -> src.hasPermission(2))
+                .then(Commands.literal("status").executes(ctx -> {
+                    AstralData d = AstralData.get(ctx.getSource().getServer());
+                    long left = Math.max(0, d.endUntil - System.currentTimeMillis());
+                    String m = "phase=" + (d.endPhase.isEmpty() ? "none" : d.endPhase) + " earthGone=" + d.earthGone + " bossesDead=" + d.bossesDead
+                            + " timeLeft=" + String.format("%.2f", left / 86_400_000.0) + "d resumeStage=" + d.resumeStage;
+                    ctx.getSource().sendSuccess(() -> Component.literal(m), false);
+                    return 1;
+                }))
+                .then(Commands.literal("kill").then(Commands.argument("planet", StringArgumentType.word()).executes(ctx -> {
+                    MinecraftServer s = ctx.getSource().getServer();
+                    AstralData d = AstralData.get(s);
+                    if (!d.endPhase.equals("bosses")) return 0;
+                    bossDied(s, d, StringArgumentType.getString(ctx, "planet"));
+                    return 1;
+                })))
+                .then(Commands.literal("raid").executes(ctx -> {
+                    MinecraftServer s = ctx.getSource().getServer();
+                    startRaid(s, AstralData.get(s));
+                    return 1;
+                }))
+                .then(Commands.literal("reset").executes(ctx -> {
+                    MinecraftServer s = ctx.getSource().getServer();
+                    resetAll(s);
+                    Stage.set(s, 0);
+                    return 1;
+                })));
+    }
+}
