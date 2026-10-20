@@ -26,61 +26,49 @@ import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * The Cosmos: empty space with planets. The sky is a grid of 160 x 160 block cells; each cell may hold one planet (and
- * sometimes a moon), found again from the cell's coordinates alone, so every chunk can build its own slice of any planet
- * that reaches into it. Cell (0, 0) always holds the home planet.
+ * The Cosmos: empty space with the eight planets of our solar system (and the Moon by Earth), as hollow shells of
+ * blocks. The planets are at fixed places (PLANETS), so every chunk can build its own slice of any planet that reaches into it.
  */
 public final class CosmosGenerator extends ChunkGenerator {
     public static final MapCodec<CosmosGenerator> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             BiomeSource.CODEC.fieldOf("biome_source").forGetter(g -> g.biomeSource)).apply(i, CosmosGenerator::new));
 
-    public static final int CELL = 160;
-    /** The home planet: where /cosmos puts people. */
-    public static final int HOME_X = 80, HOME_Y = 110, HOME_Z = 80, HOME_R = 26;
+    /** A planet of the solar system, drawn to a compressed scale. Each one is also a dimension of its own (id). */
+    public record Planet(String id, String name, int x, int y, int z, int r, int kind, boolean ring) {}
 
-    private static final int EARTH = 0, ROCKY = 1, DESERT = 2, ICE = 3, LAVA = 4, GAS = 5, MOON = 6, CRYSTAL = 7;
+    private static final int MERCURY = 0, VENUS = 1, EARTH = 2, MARS = 3, JUPITER = 4, SATURN = 5, URANUS = 6, NEPTUNE = 7, MOON = 8;
 
-    private record Planet(int x, int y, int z, int r, int kind, int seed, boolean ring) {}
+    /** In order from the sun, along +x. Walking up to one takes you to its dimension. */
+    public static final List<Planet> PLANETS = List.of(
+            new Planet("mercury", "Mercury", 0, 120, 0, 7, MERCURY, false),
+            new Planet("venus", "Venus", 230, 120, -50, 13, VENUS, false),
+            new Planet("earth", "Earth", 460, 120, 40, 14, EARTH, false),
+            new Planet("mars", "Mars", 680, 120, -40, 9, MARS, false),
+            new Planet("jupiter", "Jupiter", 950, 120, 60, 46, JUPITER, false),
+            new Planet("saturn", "Saturn", 1330, 120, -60, 40, SATURN, true),
+            new Planet("uranus", "Uranus", 1680, 120, 30, 24, URANUS, false),
+            new Planet("neptune", "Neptune", 1960, 120, -40, 23, NEPTUNE, false));
+
+    /** Decoration only: the Moon next to Earth (not a destination). */
+    private static final Planet THE_MOON = new Planet("moon", "Moon", 492, 126, 52, 4, MOON, false);
+
+    private static final List<Planet> ALL;
+    static {
+        List<Planet> l = new ArrayList<>(PLANETS);
+        l.add(THE_MOON);
+        ALL = l;
+    }
 
     public CosmosGenerator(BiomeSource source) { super(source); }
 
     @Override
     protected MapCodec<? extends ChunkGenerator> codec() { return CODEC; }
 
-    // ------------------------------------------------------------------ where the planets are
-
-    private static void cellPlanets(int cx, int cz, List<Planet> out) {
-        Random r = new Random(cx * 341873128712L + cz * 132897987541L + 0xC05305L);
-        if (cx == 0 && cz == 0) {
-            out.add(new Planet(HOME_X, HOME_Y, HOME_Z, HOME_R, EARTH, 7, false));
-            return;
-        }
-        if (r.nextInt(100) >= 85) return; // an empty cell
-        int x = cx * CELL + 50 + r.nextInt(60), z = cz * CELL + 50 + r.nextInt(60), y = 70 + r.nextInt(130);
-        int roll = r.nextInt(100);
-        int kind = roll < 18 ? EARTH : roll < 36 ? ROCKY : roll < 50 ? DESERT : roll < 64 ? ICE : roll < 74 ? LAVA : roll < 88 ? GAS : CRYSTAL;
-        int radius = kind == GAS ? 34 + r.nextInt(18) : 12 + r.nextInt(24);
-        int seed = r.nextInt(100000);
-        out.add(new Planet(x, y, z, radius, kind, seed, kind == GAS && r.nextInt(100) < 70));
-        if (r.nextInt(100) < 40) { // a moon
-            double a = r.nextDouble() * Math.PI * 2;
-            int d = (int) (radius * 1.9 + 14 + r.nextInt(14));
-            int my = Math.max(24, Math.min(290, y + r.nextInt(31) - 15));
-            out.add(new Planet(x + (int) (Math.cos(a) * d), my, z + (int) (Math.sin(a) * d), 5 + r.nextInt(5), MOON, r.nextInt(100000), false));
-        }
-    }
-
-    private static List<Planet> near(int chunkX, int chunkZ) {
-        List<Planet> list = new ArrayList<>();
-        int cx = Math.floorDiv(chunkX * 16 + 8, CELL), cz = Math.floorDiv(chunkZ * 16 + 8, CELL);
-        for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) cellPlanets(cx + dx, cz + dz, list);
-        return list;
-    }
-
     // ------------------------------------------------------------------ what a planet is made of
 
-    private static final Block[] BANDS = {Blocks.ORANGE_TERRACOTTA, Blocks.YELLOW_TERRACOTTA, Blocks.WHITE_TERRACOTTA, Blocks.BROWN_TERRACOTTA,
-            Blocks.RED_TERRACOTTA, Blocks.LIGHT_GRAY_TERRACOTTA, Blocks.CYAN_TERRACOTTA, Blocks.LIGHT_BLUE_TERRACOTTA, Blocks.PURPLE_TERRACOTTA, Blocks.BLUE_TERRACOTTA};
+    private static final Block[] JUP = {Blocks.ORANGE_TERRACOTTA, Blocks.WHITE_TERRACOTTA, Blocks.BROWN_TERRACOTTA, Blocks.WHITE_CONCRETE, Blocks.ORANGE_CONCRETE, Blocks.TERRACOTTA, Blocks.LIGHT_GRAY_TERRACOTTA};
+    private static final Block[] SAT = {Blocks.SMOOTH_SANDSTONE, Blocks.YELLOW_TERRACOTTA, Blocks.WHITE_TERRACOTTA, Blocks.LIGHT_GRAY_TERRACOTTA, Blocks.SANDSTONE};
+    private static final Block[] NEP = {Blocks.BLUE_CONCRETE, Blocks.BLUE_TERRACOTTA, Blocks.LIGHT_BLUE_CONCRETE, Blocks.BLUE_CONCRETE, Blocks.CYAN_TERRACOTTA};
 
     private static double hash(int a, int b, int c) {
         long h = a * 73856093L ^ b * 19349663L ^ c * 83492791L;
@@ -88,49 +76,60 @@ public final class CosmosGenerator extends ChunkGenerator {
         return ((h ^ (h >>> 17)) & 0xFFFFF) / (double) 0xFFFFF;
     }
 
+    private static final int SHELL = 4; // planets are hollow shells this thick (the inside is never seen, and it keeps generation fast)
+
     /** The block of this planet at (x, y, z), or null if the planet does not reach it. */
     private static BlockState blockAt(Planet p, int x, int y, int z) {
         int dx = x - p.x, dy = y - p.y, dz = z - p.z;
         double d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        double bump = 0.9 * (Math.sin(x * 0.19 + p.seed) + Math.sin(z * 0.16 + y * 0.11 + p.seed * 2.0)); // a slightly lumpy surface
-        double reff = p.r + (p.kind == GAS ? 0 : bump);
+        boolean gas = p.kind == JUPITER || p.kind == SATURN || p.kind == URANUS || p.kind == NEPTUNE;
+        double bump = gas ? 0 : 0.8 * (Math.sin(x * 0.19 + p.r) + Math.sin(z * 0.16 + y * 0.11 + p.r * 2.0));
+        double reff = p.r + bump;
         if (d > reff) {
-            if (p.ring) { // the ring: a thin, broken disc of ice and rock around the equator
+            if (p.ring) { // Saturn's ring: a thin, broken disc of ice and rock
                 double rho = Math.sqrt(dx * dx + dz * dz);
-                if (dy == 0 && rho > p.r * 1.45 && rho < p.r * 1.95 && hash(x, 0, z) < 0.8)
-                    return (hash(z, 1, x) < 0.6 ? Blocks.PACKED_ICE : hash(x, 2, z) < 0.5 ? Blocks.STONE : Blocks.CALCITE).defaultBlockState();
+                if (dy == 0 && rho > p.r * 1.45 && rho < p.r * 1.95 && hash(x, 0, z) < 0.85)
+                    return (hash(z, 1, x) < 0.6 ? Blocks.PACKED_ICE : hash(x, 2, z) < 0.5 ? Blocks.CALCITE : Blocks.LIGHT_GRAY_CONCRETE).defaultBlockState();
             }
             return null;
         }
         double depth = reff - d;
+        if (depth >= SHELL) return null;
         double n = hash(x / 3, y / 3, z / 3);
+        double lat = d == 0 ? 0 : dy / d;
         switch (p.kind) {
-            case EARTH:
-                if (depth < 1.5) return (n < 0.25 ? Blocks.MOSS_BLOCK : Blocks.GRASS_BLOCK).defaultBlockState();
-                return (depth < 4 ? Blocks.DIRT : depth > p.r - 4 ? Blocks.DEEPSLATE : Blocks.STONE).defaultBlockState();
-            case ROCKY:
-                if (depth < 2) return (n < 0.4 ? Blocks.ANDESITE : n < 0.7 ? Blocks.STONE : Blocks.TUFF).defaultBlockState();
-                return (depth > p.r * 0.6 ? Blocks.DEEPSLATE : Blocks.STONE).defaultBlockState();
-            case DESERT:
-                if (depth < 3) return (n < 0.5 ? Blocks.SANDSTONE : n < 0.8 ? Blocks.RED_SANDSTONE : Blocks.ORANGE_TERRACOTTA).defaultBlockState();
-                return Blocks.SANDSTONE.defaultBlockState();
-            case ICE:
-                if (depth < 2) return (n < 0.5 ? Blocks.SNOW_BLOCK : Blocks.PACKED_ICE).defaultBlockState();
-                return Blocks.BLUE_ICE.defaultBlockState();
-            case LAVA:
-                if (depth < 2) return (n < 0.5 ? Blocks.BLACKSTONE : n < 0.8 ? Blocks.BASALT : Blocks.MAGMA_BLOCK).defaultBlockState();
-                if (depth > 6 && p.r >= 16 && d < p.r - 6) return Blocks.LAVA.defaultBlockState(); // a sealed molten core
-                return Blocks.MAGMA_BLOCK.defaultBlockState();
-            case GAS: { // horizontal bands, wavy
-                int band = (int) Math.floor((dy + 3.0 * Math.sin(dx * 0.11 + p.seed) + 2.0 * Math.sin(dz * 0.07)) / 4.0) + p.seed;
-                return BANDS[Math.floorMod(band, BANDS.length)].defaultBlockState();
+            case MERCURY:
+                return (n < 0.45 ? Blocks.ANDESITE : n < 0.8 ? Blocks.STONE : Blocks.GRAY_CONCRETE).defaultBlockState();
+            case VENUS:
+                return (n < 0.45 ? Blocks.YELLOW_TERRACOTTA : n < 0.8 ? Blocks.ORANGE_TERRACOTTA : Blocks.SANDSTONE).defaultBlockState();
+            case EARTH: {
+                double c = hash(x / 5, y / 5, z / 5);
+                if (Math.abs(lat) > 0.9) return Blocks.WHITE_CONCRETE.defaultBlockState(); // ice caps
+                if (depth < 1.5 && hash(x / 2, y / 2 + 7, z / 2) < 0.12) return Blocks.WHITE_CONCRETE.defaultBlockState(); // clouds
+                return (c < 0.55 ? Blocks.BLUE_CONCRETE : c < 0.9 ? Blocks.GREEN_CONCRETE : Blocks.BROWN_CONCRETE).defaultBlockState();
             }
-            case MOON:
-                if (depth < 2) return (n < 0.5 ? Blocks.STONE : Blocks.ANDESITE).defaultBlockState();
-                return Blocks.STONE.defaultBlockState();
-            default: // CRYSTAL
-                if (depth < 2.5) return (n < 0.7 ? Blocks.AMETHYST_BLOCK : Blocks.BUDDING_AMETHYST).defaultBlockState();
-                return Blocks.PURPUR_BLOCK.defaultBlockState();
+            case MARS:
+                if (Math.abs(lat) > 0.88) return Blocks.SNOW_BLOCK.defaultBlockState();
+                return (n < 0.45 ? Blocks.RED_SANDSTONE : n < 0.8 ? Blocks.TERRACOTTA : Blocks.ORANGE_TERRACOTTA).defaultBlockState();
+            case JUPITER: {
+                double sx = p.x + p.r * 0.8, sy = p.y - p.r * 0.3, sz = p.z + p.r * 0.5; // the Great Red Spot
+                if ((x - sx) * (x - sx) + (y - sy) * (y - sy) + (z - sz) * (z - sz) < 90 && dx > 0)
+                    return Blocks.RED_CONCRETE.defaultBlockState();
+                int band = (int) Math.floor((dy + 2.5 * Math.sin(dx * 0.12) + 2.0 * Math.sin(dz * 0.09)) / 4.0);
+                return JUP[Math.floorMod(band, JUP.length)].defaultBlockState();
+            }
+            case SATURN: {
+                int band = (int) Math.floor((dy + 2.0 * Math.sin(dx * 0.1) + 1.5 * Math.sin(dz * 0.08)) / 4.0);
+                return SAT[Math.floorMod(band, SAT.length)].defaultBlockState();
+            }
+            case URANUS:
+                return (n < 0.8 ? Blocks.LIGHT_BLUE_CONCRETE : Blocks.CYAN_CONCRETE).defaultBlockState();
+            case NEPTUNE: {
+                int band = (int) Math.floor((dy + 2.0 * Math.sin(dx * 0.13)) / 4.0);
+                return NEP[Math.floorMod(band, NEP.length)].defaultBlockState();
+            }
+            default: // the Moon
+                return (n < 0.5 ? Blocks.LIGHT_GRAY_CONCRETE : Blocks.ANDESITE).defaultBlockState();
         }
     }
 
@@ -141,8 +140,8 @@ public final class CosmosGenerator extends ChunkGenerator {
         int minY = chunk.getMinBuildHeight(), maxY = chunk.getMaxBuildHeight() - 1;
         int x0 = chunk.getPos().getMinBlockX(), z0 = chunk.getPos().getMinBlockZ();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        for (Planet p : near(chunk.getPos().x, chunk.getPos().z)) {
-            int reach = p.r + 3 + (p.ring ? (int) (p.r * 1.0) : 0);
+        for (Planet p : ALL) {
+            int reach = p.r + 3 + (p.ring ? (int) (p.r * 1.0) : 0); // a ring reaches out to about 2 radii
             if (p.x + reach < x0 || p.x - reach > x0 + 15 || p.z + reach < z0 || p.z - reach > z0 + 15) continue;
             int yLo = Math.max(minY, p.y - p.r - 3), yHi = Math.min(maxY, p.y + p.r + 3);
             for (int x = x0; x < x0 + 16; x++) {

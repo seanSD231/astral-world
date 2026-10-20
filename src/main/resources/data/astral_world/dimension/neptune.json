@@ -1,0 +1,22 @@
+{
+  "type": "astral_world:planet",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "astral_world:planet",
+      "features": false,
+      "lakes": false,
+      "layers": [
+        {
+          "block": "minecraft:bedrock",
+          "height": 1
+        },
+        {
+          "block": "minecraft:blue_concrete",
+          "height": 3
+        }
+      ],
+      "structure_overrides": []
+    }
+  }
+}
