@@ -196,23 +196,7 @@ public final class PlanetGenerator extends ChunkGenerator {
             }
             case "raid": {
                 double r = Math.hypot(x, z);
-                if (r < 49) { // the old plaza of stone, cracked and mossy, with grass growing through
-                    if (depth == 0) {
-                        double ring = Math.abs(r - 20), ring2 = Math.abs(r - 34), rune = Math.abs(r - 9);
-                        if (rune < 1.0 || ring < 0.8 || ring2 < 0.8) return Blocks.CHISELED_STONE_BRICKS;     // inlaid rings
-                        double ang = Math.atan2(z, x);
-                        if (r < 9 && Math.abs(Math.sin(ang * 4)) < 0.12) return Blocks.POLISHED_ANDESITE;      // spokes of the central seal
-                        if (r < 9) return Blocks.SMOOTH_STONE;
-                        double wild = hash(x / 3, z / 3, 61) + (r / 49.0) * 0.25;
-                        if (wild > 0.93) return Blocks.GRASS_BLOCK;
-                        if (n < 0.45) return Blocks.STONE_BRICKS;
-                        if (n < 0.65) return Blocks.MOSSY_STONE_BRICKS;
-                        if (n < 0.85) return Blocks.CRACKED_STONE_BRICKS;
-                        return Blocks.COBBLESTONE;
-                    }
-                    return depth < 3 ? Blocks.STONE_BRICKS : depth < 8 ? Blocks.STONE : Blocks.DEEPSLATE;
-                }
-                if (depth == 0) return r < 52 && n < 0.5 ? Blocks.COARSE_DIRT : Blocks.GRASS_BLOCK;
+                if (depth == 0) return n < 0.12 ? Blocks.COARSE_DIRT : Blocks.GRASS_BLOCK;
                 return depth < 4 ? Blocks.DIRT : Blocks.STONE;
             }
             default:
