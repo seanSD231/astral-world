@@ -1007,6 +1007,8 @@ public final class EndGame {
         AstralData d = AstralData.get(server);
         if (e instanceof ServerPlayer pl) { if (d.endPhase.equals("bosses")) stat(d, pl).deaths++; return; }
         if (!e.getTags().contains(TAG_BOSS)) return;
+        LOGGER.info("[astral] boss '{}' died in {} at {} {} {}: {} (attacker {})", e.getName().getString(), e.level().dimension().location(),
+                (int) e.getX(), (int) e.getY(), (int) e.getZ(), event.getSource().type().msgId(), event.getSource().getEntity());
         if (e.getTags().contains(TAG_RAID)) {
             if (d.endPhase.equals("raid")) { d.bossesDead.add("raid"); server.execute(() -> raidWon(server, d)); }
             return;
@@ -1015,6 +1017,14 @@ public final class EndGame {
     }
 
     /** The bosses have 1000 real HP; shrinking every hit makes that 10,000 (planet) or 100,000 (raid). In the arena nobody is hurt, hits cost lives instead. */
+    private static boolean environmental(net.minecraft.world.damagesource.DamageSource src) {
+        return src.is(net.minecraft.tags.DamageTypeTags.IS_FIRE) || src.is(net.minecraft.tags.DamageTypeTags.IS_DROWNING)
+                || src.is(net.minecraft.tags.DamageTypeTags.IS_FREEZING) || src.is(net.minecraft.tags.DamageTypeTags.IS_FALL)
+                || src.is(net.minecraft.world.damagesource.DamageTypes.IN_WALL) || src.is(net.minecraft.world.damagesource.DamageTypes.CRAMMING)
+                || src.is(net.minecraft.world.damagesource.DamageTypes.STARVE) || src.is(net.minecraft.world.damagesource.DamageTypes.CACTUS)
+                || src.is(net.minecraft.world.damagesource.DamageTypes.DRY_OUT) || src.is(net.minecraft.world.damagesource.DamageTypes.HOT_FLOOR);
+    }
+
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         Entity e = event.getEntity();
@@ -1023,6 +1033,7 @@ public final class EndGame {
             AstralData d = AstralData.get(e.getServer());
             if (tracking(d)) stat(d, atk).damage += event.getAmount(); // counted before shrinking: this is the 10,000 / 100,000 scale
         }
+        if (e.getTags().contains(TAG_BOSS) && environmental(event.getSource())) { event.setCanceled(true); return; } // the world cannot kill a sovereign
         if (e.getTags().contains(TAG_RAID)) { event.setAmount(event.getAmount() * RAID_DAMAGE); return; }
         if (e.getTags().contains(TAG_BOSS)) { event.setAmount(event.getAmount() * BOSS_DAMAGE); return; }
         if (e instanceof ServerPlayer p && p.level().dimension().equals(Cosmos.key("raid"))) event.setCanceled(true);
