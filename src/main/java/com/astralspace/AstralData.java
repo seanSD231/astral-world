@@ -22,6 +22,8 @@ public class AstralData extends SavedData {
     public double damageAccum = 0.0;
     /** Stage 3's global message, chosen from the barrier's HP when the stage began. */
     public String stage3Text = "";
+    /** Stage 5: a player was online while the end was happening (the world resets once everyone is gone). */
+    public boolean stage5Seen = false;
     /** The newest stage message each player has already seen. */
     public final Map<UUID, Integer> seenStage = new HashMap<>();
     /** Every player ever seen at Seq 0 (kept while offline). */
@@ -46,6 +48,7 @@ public class AstralData extends SavedData {
         d.stageSince = tag.getLong("stageSince");
         d.damageAccum = tag.getDouble("damageAccum");
         d.stage3Text = tag.getString("stage3Text");
+        d.stage5Seen = tag.getBoolean("stage5Seen");
         CompoundTag st = tag.getCompound("seenStage");
         for (String k : st.getAllKeys()) d.seenStage.put(UUID.fromString(k), st.getInt(k));
         CompoundTag s = tag.getCompound("seq0");
@@ -70,6 +73,7 @@ public class AstralData extends SavedData {
         tag.putLong("stageSince", stageSince);
         tag.putDouble("damageAccum", damageAccum);
         tag.putString("stage3Text", stage3Text);
+        tag.putBoolean("stage5Seen", stage5Seen);
         CompoundTag st = new CompoundTag();
         seenStage.forEach((k, v) -> st.putInt(k.toString(), v));
         tag.put("seenStage", st);

@@ -251,8 +251,9 @@ public final class OuterGods {
      */
     private static void spillover(MinecraftServer server, ServerPlayer speaker, String match) {
         boolean strong = Stage.atLeast(server, 3);
-        double radius = Settings.nearbyRadius * (strong ? 2.0 : 1.0);
-        double percent = strong ? 75 : 50;
+        boolean fourth = Stage.atLeast(server, 4); // stage 4: three times the range, and full corruption
+        double radius = Settings.nearbyRadius * (fourth ? 3.0 : strong ? 2.0 : 1.0);
+        double percent = fourth ? 100 : strong ? 75 : 50;
         GodCurse.Kind kind = kindFor(match);
         int stage = Stage.current(server);
         for (ServerPlayer q : server.getPlayerList().getPlayers()) {
@@ -438,6 +439,7 @@ public final class OuterGods {
                 boolean strong = Stage.atLeast(server, 3);
                 int minGap = strong ? MIN_GAP_TICKS / 2 : MIN_GAP_TICKS; // stage 3: every 10-20 minutes
                 int maxGap = strong ? MAX_GAP_TICKS / 2 : MAX_GAP_TICKS;
+                if (Stage.atLeast(server, 4)) { minGap /= 2; maxGap /= 2; } // stage 4: twice as often again
                 if (next == null) {
                     nextHallucination.put(id, now + ThreadLocalRandom.current().nextInt(0, maxGap));
                 } else if (now >= next) {

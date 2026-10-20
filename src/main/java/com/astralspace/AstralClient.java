@@ -60,8 +60,28 @@ public final class AstralClient {
         AstralSymbols.init();
         modBus.addListener(AstralClient::registerLayers);
         modBus.addListener(AstralClient::registerSky);
+        NeoForge.EVENT_BUS.addListener(AstralClient::onPlaySound);
+        NeoForge.EVENT_BUS.addListener(AstralClient::onClientTick);
+        NeoForge.EVENT_BUS.addListener(AstralClient::onLoggingOut);
         NeoForge.EVENT_BUS.addListener(AstralClient::registerCommands);
         NeoForge.EVENT_BUS.addListener(AstralClient::registerGfxCommand);
+    }
+
+    private static boolean wasMuted = false;
+
+    /** Stage 5: no sound at all. */
+    private static void onPlaySound(net.neoforged.neoforge.client.event.sound.PlaySoundEvent event) {
+        if (Net.ClientState.muted) event.setSound(null);
+    }
+
+    private static void onClientTick(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
+        boolean m = Net.ClientState.muted;
+        if (m && !wasMuted) Minecraft.getInstance().getSoundManager().stop(); // cut everything that is playing right now
+        wasMuted = m;
+    }
+
+    private static void onLoggingOut(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
+        Net.ClientState.muted = false; // the sound comes back for the next world / server
     }
 
     private static void registerCommands(RegisterClientCommandsEvent event) {

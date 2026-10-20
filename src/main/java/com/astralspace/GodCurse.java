@@ -279,7 +279,7 @@ public final class GodCurse {
 
     /** stage 1-3 (and later stages count as 3). onEnd runs when the curse is over (the speaker's corruption death). */
     public static void start(MinecraftServer server, ServerPlayer p, Kind kind, int stage, Runnable onEnd) {
-        int s = Math.max(1, Math.min(3, stage));
+        int s = Math.max(1, Math.min(4, stage)); // stage 4 (and the end) is stronger again: 12 seconds, intensity x2.5
         int seconds = Math.min(12, 4 + 2 * s); // 6 / 8 / 10 seconds
         if (kind == Kind.CIRCLE) seconds = Math.min(24, seconds * 2); // the Circle lasts twice as long
         if (kind == Kind.SUPERNOVA) seconds = Math.min(16, seconds + 4); // time for the far chunks to be ready
@@ -642,7 +642,7 @@ public final class GodCurse {
                 .then(Commands.argument("god", StringArgumentType.word())
                         .suggests((ctx, b) -> SharedSuggestionProvider.suggest(names, b))
                         .executes(ctx -> test(ctx.getSource(), StringArgumentType.getString(ctx, "god"), 2))
-                        .then(Commands.argument("stage", IntegerArgumentType.integer(1, 3))
+                        .then(Commands.argument("stage", IntegerArgumentType.integer(1, 4))
                                 .executes(ctx -> test(ctx.getSource(), StringArgumentType.getString(ctx, "god"),
                                         IntegerArgumentType.getInteger(ctx, "stage"))))));
     }

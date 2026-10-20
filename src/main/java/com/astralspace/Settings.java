@@ -35,6 +35,9 @@ public final class Settings {
         KEYS.put("overworld_barrier_y", new String[]{"1000", "The same for the overworld sky. It is always drawn at least as high as the game allows, never below this height unless the render distance is too small."});
         KEYS.put("stage3_days", new String[]{"7", "Real-life days from the start of stage 2 until stage 3 begins (decimals allowed, e.g. 0.01 to test)."});
         KEYS.put("barrier_damage_minutes", new String[]{"60", "Stage 3: one barrier damage every this many minutes, before the online-Seq-0 multiplier (halved with no Seq 0\n# online, doubled for every Seq 0 online beyond the first)."});
+        KEYS.put("stage4_days", new String[]{"30", "Real-life days from the start of stage 3 until stage 4 begins (decimals allowed, e.g. 0.01 to test)."});
+        KEYS.put("stage4_damage_multiplier", new String[]{"5", "Stage 4: how many times faster the barrier takes its normal damage."});
+        KEYS.put("chaos_destroys_blocks", new String[]{"false", "Stage 5 (the end): true = meteors and explosions also destroy blocks. The world is kept when the server resets,\n# so this is off by default."});
         KEYS.put("nearby_radius", new String[]{"32", "Stage 2+: how close (blocks) players must be to someone who names an Outer God to be affected. Doubled in stage 3."});
     }
 
@@ -45,6 +48,9 @@ public final class Settings {
     public static volatile double stage3Days = 7.0;
     public static volatile double barrierDamageMinutes = 60.0;
     public static volatile int nearbyRadius = 32;
+    public static volatile double stage4Days = 30.0;
+    public static volatile double stage4DamageMultiplier = 5.0;
+    public static volatile boolean chaosDestroysBlocks = false;
 
     private Settings() {}
 
@@ -85,6 +91,9 @@ public final class Settings {
             stage3Days = Double.parseDouble(p.getProperty("stage3_days").trim());
             barrierDamageMinutes = Math.max(0.01, Double.parseDouble(p.getProperty("barrier_damage_minutes").trim()));
             nearbyRadius = Integer.parseInt(p.getProperty("nearby_radius").trim());
+            stage4Days = Double.parseDouble(p.getProperty("stage4_days").trim());
+            stage4DamageMultiplier = Math.max(1.0, Double.parseDouble(p.getProperty("stage4_damage_multiplier").trim()));
+            chaosDestroysBlocks = Boolean.parseBoolean(p.getProperty("chaos_destroys_blocks").trim());
             LOGGER.info("[astral] settings: surface {} down to {}, astral_barrier_level {}, stage3_days {}, damage every {} min, nearby_radius {}",
                     surfaceTop, surfaceBottom, barrierY, stage3Days, barrierDamageMinutes, nearbyRadius);
         } catch (IOException | NumberFormatException e) {

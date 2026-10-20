@@ -27,7 +27,9 @@ import java.util.UUID;
  *   1  starts when the first player ever reaches Seq 0 (AstralServer).
  *   2  starts when two Seq 0 players are online at the same time.
  *   3  starts stage3_days (default 7) real days after stage 2 began. The barrier takes 50 damage, then slow damage (10 per period).
- *   5  starts when the barrier is destroyed in stage 3 (stage 4 comes later; nothing happens in 5 yet).
+ *   4  starts stage4_days (default 30) real days after stage 3 began: the barrier takes damage much faster and the gods
+ *      lay siege to it (all of them online = a near-fatal assault).
+ *   5  starts the moment the barrier breaks, in any stage: "The end is here", 10 s of nothing, silence, chaos (EndChaos).
  * Every stage can have a message every player sees once (online players right away, offline players on their next
  * login, in order), plus a follow-up message for some players (e.g. "Protect the barrier" for Seq 0s).
  * Other code asks Stage.atLeast(server, n).
@@ -37,8 +39,8 @@ public final class Stage {
     private static final int GAP_TICKS = 9 * 20;       // delay before a follow-up message
     private static final int NEXT_TICKS = 11 * 20;     // delay before the next stage's message
 
-    static final String SHATTERED = "The barrier has shattered";
-    private static final int SHATTER_DELAY_TICKS = 10 * 20; // the message comes 10 seconds after the barrier breaks
+    static final String PLANET = "The planet is theirs, give up";
+    static final String END = "The end is here";
 
     /** Message colors {from, to}: each message is coloured to fit what it says. */
     private static final Map<String, int[]> THEMES = new HashMap<>();
@@ -49,7 +51,9 @@ public final class Stage {
         THEMES.put("They're watching, they're waiting", new int[]{0x000000, 0x6BFF8A});     // black to sickly eerie green
         THEMES.put("It's too late", new int[]{0x000000, 0xFF1010});                         // black to blood red
         THEMES.put("The barrier is at risk", new int[]{0x7A3CFF, 0xFF3050});                // barrier purple turning to danger red
-        THEMES.put(SHATTERED, new int[]{0xFFFFFF, 0x5A1090});                               // bright shards fading into dark violet
+        THEMES.put(PLANET, new int[]{0x000000, 0x8A0A5A});                                  // black to a bruised, hopeless crimson-violet
+        THEMES.put(END, new int[]{0xFFFFFF, 0x300000});                                     // white fading into dried blood and dark
+        THEMES.put("The gods strike the barrier!", new int[]{0x7A3CFF, 0xFF1010});
     }
     private static final int[] DEFAULT_THEME = {0x000000, 0xDC143C};
 
@@ -72,7 +76,8 @@ public final class Stage {
             case 1 -> "You feel a strange gaze from above.";
             case 2 -> "It's coming";
             case 3 -> d.stage3Text.isEmpty() ? "They're watching, they're waiting" : d.stage3Text;
-            case 5 -> SHATTERED;
+            case 4 -> PLANET;
+            case 5 -> END;
             default -> null;
         };
     }
@@ -92,6 +97,9 @@ public final class Stage {
         d.stage = Math.max(0, stage);
         d.stageSince = System.currentTimeMillis();
         d.damageAccum = 0.0;
+        siegeEnd = 0; nextSiege = 0;
+        d.stage5Seen = false;
+        if (d.stage != 5) EndChaos.unmuteAll(server);
         // lowering the stage lets players see the later messages again when the stage comes back
         d.seenStage.replaceAll((k, v) -> Math.min(v, d.stage));
         d.setDirty();
@@ -103,13 +111,10 @@ public final class Stage {
         }
     }
 
-    /** Called when the barrier drops to 0 HP. */
+    /** Called when the barrier drops to 0 HP: the end begins at once, whatever the stage. */
     public static void onBarrierBroken(MinecraftServer server) {
-        if (current(server) == 3) { set(server, 5); return; } // the stage 5 message is "The barrier has shattered", 10 s later
-        shatterAtTick = server.getTickCount() + SHATTER_DELAY_TICKS; // a break in any other stage: 10 s later, to everyone online
+        if (current(server) != 5) set(server, 5);
     }
-
-    private static long shatterAtTick = -1;
 
     /**
      * Once a second. seq0Online = how many Seq 0 players are online right now (any dimension, any game mode).
@@ -121,6 +126,10 @@ public final class Stage {
             if (seq0Online >= 2) set(server, 2);
         } else if (d.stage == 2) {
             if (nowMs - d.stageSince >= (long) (Settings.stage3Days * 86_400_000.0)) set(server, 3);
+        } else if (d.stage == 3 && nowMs - d.stageSince >= (long) (Settings.stage4Days * 86_400_000.0)) {
+            set(server, 4);
+        } else if (d.stage == 4) {
+            stage4(server, d, seq0Online, nowMs);
         } else if (d.stage == 3) {
             // 1 damage per period; halved with no Seq 0 online; doubled for every Seq 0 online beyond the first
             double perHour = 60.0 / Settings.barrierDamageMinutes;
@@ -134,16 +143,57 @@ public final class Stage {
         }
     }
 
+    // ------------------------------------------------------------------ stage 4: the barrier under siege
+
+    private static long siegeEnd = 0, nextSiege = 0;
+    private static double siegeRemaining = 0, siegePerSecond = 0, siegeAccum = 0;
+
+    private static void stage4(MinecraftServer server, AstralData d, int online, long nowMs) {
+        // constant pressure: the stage 3 damage, several times faster
+        double perHour = 60.0 / Settings.barrierDamageMinutes;
+        double multiplier = online == 0 ? 0.5 : Math.pow(2.0, online - 1);
+        d.damageAccum += perHour * multiplier * Settings.stage4DamageMultiplier / 3600.0;
+        d.setDirty();
+        while (d.damageAccum >= 1.0 && d.stage == 4) {
+            d.damageAccum -= 1.0;
+            AstralBarrier.damage(server, 10);
+        }
+        if (d.stage != 4) return;
+
+        // sieges: the gods that are online strike the barrier together. Everyone online = a near-fatal assault.
+        if (siegeEnd > 0) {
+            int defenders = 0;
+            for (ServerPlayer p : server.getPlayerList().getPlayers())
+                if (!p.isSpectator() && Lotm.sequence(p) == 0 && p.level().dimension().equals(AstralServer.ASTRAL)) defenders++;
+            double rate = siegePerSecond * Math.max(0.2, 1.0 - 0.3 * defenders); // Seq 0s in the Astral World hold the barrier up
+            double hit = Math.min(siegeRemaining, rate);
+            siegeRemaining -= hit;
+            siegeAccum += hit;
+            int whole = (int) siegeAccum;
+            if (whole > 0) { siegeAccum -= whole; AstralBarrier.damage(server, whole); }
+            if (nowMs >= siegeEnd) { siegeEnd = 0; nextSiege = nowMs + (4 + (long) (Math.random() * 5)) * 60_000L; }
+        } else if (online >= 1) {
+            if (nextSiege == 0) nextSiege = nowMs + (3 + (long) (Math.random() * 4)) * 60_000L;
+            if (nowMs >= nextSiege) {
+                int total = Math.max(1, d.seq0.size());
+                double ratio = Math.min(1.0, online / (double) total);
+                double amount = ratio * ratio * 0.55 * AstralBarrier.getMax(server); // all gods online: more than half the barrier
+                siegeEnd = nowMs + 60_000L;
+                siegeRemaining = amount;
+                siegePerSecond = amount / 60.0;
+                siegeAccum = 0;
+                for (ServerPlayer p : server.getPlayerList().getPlayers())
+                    if (Lotm.sequence(p) >= 0 && Lotm.sequence(p) <= 1) show(p, "The gods strike the barrier!");
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ showing messages
 
     /** Once a second: queue the messages a player has not seen, and show the ones that are due. */
     public static void notifyPass(MinecraftServer server) {
         AstralData d = AstralData.get(server);
         long now = server.getTickCount();
-        if (shatterAtTick >= 0 && now >= shatterAtTick) {
-            shatterAtTick = -1;
-            for (ServerPlayer p : server.getPlayerList().getPlayers()) show(p, SHATTERED);
-        }
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             UUID id = p.getUUID();
             int seen = d.seenStage.getOrDefault(id, 0);
@@ -154,9 +204,8 @@ public final class Stage {
                 for (int st = seen + 1; st <= d.stage; st++) {
                     String m = globalMessage(d, st);
                     if (m == null) continue;
-                    long delay = 0;
-                    if (st == 5) delay = Math.max(0, SHATTER_DELAY_TICKS - (System.currentTimeMillis() - d.stageSince) / 50); // already counted for late joiners
-                    q.add(new Queued(m, t + delay));
+                    if (st == 4 && d.stage >= 5) continue; // the end came first: skip the stage 4 message
+                    q.add(new Queued(m, t));
                     String f = followUp(st, seq);
                     if (f != null) { t += GAP_TICKS; q.add(new Queued(f, t)); }
                     t += NEXT_TICKS;

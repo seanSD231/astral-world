@@ -54,6 +54,18 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -> client: silence the game completely (stage 5) or give the sound back. */
+    public record MutePayload(boolean mute) implements CustomPacketPayload {
+        public static final Type<MutePayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "mute"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, MutePayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.BOOL, MutePayload::mute,
+                MutePayload::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** Server -> every player: the sky barrier (its health decides how many cracks it has). */
     public record BarrierPayload(boolean show, int hp, int max, int y, int yOverworld, String gods) implements CustomPacketPayload {
         public static final Type<BarrierPayload> TYPE =
@@ -85,6 +97,8 @@ public final class Net {
         public static volatile int barrierHp, barrierMax, barrierY = 1000, barrierYOverworld = 1000;
         /** Pathway ids that have a Seq 0 (a "god"), as ",id,id,". */
         public static volatile String gods = ",";
+        /** Stage 5: all sound is switched off. */
+        public static volatile boolean muted = false;
     }
 
     public static void register(RegisterPayloadHandlersEvent event) {
@@ -108,6 +122,7 @@ public final class Net {
             ClientState.flashMs = Math.max(50, payload.ms());
             ClientState.flashStart = System.currentTimeMillis();
         }));
+        registrar.playToClient(MutePayload.TYPE, MutePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> ClientState.muted = payload.mute()));
         registrar.playToClient(StagePayload.TYPE, StagePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             ClientState.stageText = payload.text();
             ClientState.stageFrom = payload.from();
