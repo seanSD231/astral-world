@@ -158,6 +158,7 @@ public final class AstralClient {
 
     private static void registerSky(net.neoforged.neoforge.client.event.RegisterDimensionSpecialEffectsEvent event) {
         event.register(ResourceLocation.fromNamespaceAndPath("astral_world", "astral_world"), new AstralSky());
+        event.register(ResourceLocation.fromNamespaceAndPath("astral_world", "cosmos"), new CosmosSky());
     }
 
     private static void registerLayers(RegisterGuiLayersEvent event) {

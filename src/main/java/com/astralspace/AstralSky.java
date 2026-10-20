@@ -29,6 +29,8 @@ public final class AstralSky extends DimensionSpecialEffects {
     private static final ResourceLocation MOON = ResourceLocation.withDefaultNamespace("textures/environment/moon_phases.png");
     private static final ResourceLocation CRIMSON_MOON = ResourceLocation.fromNamespaceAndPath("lotm", "textures/environment/crimson_moon_phases.png");
 
+    static boolean shaderPackOn() { return shaderPackActive(); }
+
     private static boolean shaderPackActive() {
         try {
             Class<?> c = Class.forName("net.irisshaders.iris.api.v0.IrisApi");

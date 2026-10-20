@@ -1,0 +1,10 @@
+{
+  "type": "astral_world:cosmos",
+  "generator": {
+    "type": "astral_world:cosmos",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "astral_world:cosmos"
+    }
+  }
+}
