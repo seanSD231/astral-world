@@ -396,6 +396,7 @@ public final class EndGame {
                 if (m == null) continue;
                 m.addTag(TAG_BOSS);
                 m.addTag(tag);
+                m.setNoAi(true); // it stays where it is: the model is far bigger than the mob, so walking up to you would swallow you
                 lv.addFreshEntity(m);
             }
             ServerBossEvent bar = bars.computeIfAbsent(b.planet(), k ->
