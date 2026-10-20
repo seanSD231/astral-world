@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.logging.LogUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.Commands;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -21,6 +22,8 @@ import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.BaseFireBlock;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
@@ -38,6 +41,8 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -249,6 +254,8 @@ public final class EndGame {
         }
         ServerLevel raid = dim(server, "raid");
         if (raid != null) {
+            removeRoots(raid);
+            rootsActive = false;
             for (Entity e : raid.getAllEntities()) if (e.getTags().contains(TAG_RAID)) e.discard();
             if (sendHome) {
                 ServerLevel ow = server.overworld();
@@ -400,9 +407,9 @@ public final class EndGame {
     private static long rt = 0, nextPattern = 0;
     private static double groundY = 4;
     private static final Map<UUID, Long> lastHit = new HashMap<>();
-    /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles. */
-    private static final int[][] NEXT = {{2, 4, 3}, {0, 3, 4}, {3, 1, 4}, {0, 1, 2}, {2, 3, 1}};
-    private static final int[] DURATION = {140, 150, 110, 70, 80};
+    /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
+    private static final int[][] NEXT = {{2, 4, 3}, {0, 3, 4, 5}, {3, 1, 4, 5}, {0, 1, 2}, {2, 3, 1, 5}, {3, 1, 2}};
+    private static final int[] DURATION = {140, 150, 110, 70, 80, 200};
     private static int lastPattern = 3;
 
     private static void startRaid(MinecraftServer server, AstralData d) {
@@ -423,7 +430,7 @@ public final class EndGame {
         force(lv, 3, true);
         groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
         timed.clear();
-        rt = 0; nextPattern = 100; lastPattern = 3; lastHit.clear();
+        rt = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear();
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
             boss.addTag(TAG_BOSS);
@@ -457,6 +464,15 @@ public final class EndGame {
         Long last = lastHit.get(p.getUUID());
         if (last != null && now - last < 40) return; // just hit: a moment of grace
         lastHit.put(p.getUUID(), now);
+        Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 35); // every hit corrupts
+        float dmg = p.getMaxHealth() * 0.8f;
+        if (p.getHealth() > dmg) { // it takes 80% of their health: a second hit is certain death
+            p.setHealth(p.getHealth() - dmg);
+            lv.broadcastEntityEvent(p, (byte) 2);
+            p.sendSystemMessage(Component.literal("It struck you down to a sliver. Another hit and you fall.").withStyle(ChatFormatting.DARK_RED));
+            return;
+        }
+        // a killing blow: the life is taken here, so totems and revival abilities never get the chance to answer it
         stat(d, p).deaths++;
         int lives = d.raidLives.merge(p.getUUID(), -1, Integer::sum);
         d.setDirty();
@@ -562,6 +578,39 @@ public final class EndGame {
                     at(40, l -> { boom(l, x, z, 5.5); strike(l, x, z, 5.5, 99); });
                 }
             }
+            case 5 -> { // temptation: look away from the tree and crouch, or be corrupted
+                Map<UUID, Integer> meter = new HashMap<>();
+                Set<UUID> failed = new HashSet<>();
+                for (ServerPlayer p : fighters(lv)) p.sendSystemMessage(Component.literal("Come to me, child... (look AWAY from it and keep crouching)").withStyle(ChatFormatting.LIGHT_PURPLE));
+                for (int t = 0; t < 160; t++) {
+                    final int tt = t;
+                    at(t, l -> {
+                        Vec3 boss = new Vec3(0.5, groundY + 2, 0.5);
+                        if (tt % 10 == 0) l.sendParticles(ParticleTypes.CHERRY_LEAVES, 0.5, groundY + 3, 0.5, 20, 6, 3, 6, 0.02);
+                        for (ServerPlayer p : fighters(l)) {
+                            UUID id = p.getUUID();
+                            if (failed.contains(id)) continue;
+                            Vec3 to = boss.subtract(p.getEyePosition()).normalize();
+                            boolean looking = p.getLookAngle().dot(to) > 0.5;
+                            boolean ok = p.isShiftKeyDown() && !looking;
+                            int m = meter.getOrDefault(id, 0);
+                            m = ok ? Math.max(0, m - 1) : m + 1;
+                            meter.put(id, m);
+                            if (!ok) { Vec3 pull = to.scale(0.06); p.push(pull.x, 0, pull.z); p.hurtMarked = true; }
+                            if (tt % 5 == 0) {
+                                int bars = Math.min(10, m / 4);
+                                p.displayClientMessage(Component.literal("Resist  " + "█".repeat(bars) + "░".repeat(10 - bars)).withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.LIGHT_PURPLE), true);
+                            }
+                            if (m >= 40) {
+                                failed.add(id);
+                                p.sendSystemMessage(Component.literal("You gave in.").withStyle(ChatFormatting.DARK_RED));
+                                if (!Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 60)) loseLife(l, p);
+                            }
+                        }
+                    });
+                }
+                at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
+            }
             default -> { // the whole arena is struck except for three safe circles
                 double[][] safe = new double[3][2];
                 for (double[] s : safe) { double a = rnd.nextDouble() * Math.PI * 2, d = 4 + rnd.nextDouble() * 14; s[0] = 0.5 + Math.cos(a) * d; s[1] = 0.5 + Math.sin(a) * d; }
@@ -578,10 +627,90 @@ public final class EndGame {
         }
     }
 
+    // ------------------------------------------------------------------ the roots (Mother Tree of Desire)
+
+    private static boolean rootsActive = false;
+    private static long rootsEnd = 0;
+    private static int rootStage = 0;
+    private static final List<BlockPos> roots = new ArrayList<>();
+    private static final float[] THRESHOLDS = {0.75f, 0.5f, 0.25f};
+
+    private static boolean burnt(ServerLevel lv, BlockPos b) {
+        if (!lv.getBlockState(b).is(Blocks.MANGROVE_WOOD) || !lv.getBlockState(b.above()).is(Blocks.MANGROVE_WOOD)) return true;
+        BlockPos u = b.above();
+        for (BlockPos q : new BlockPos[]{b.north(), b.south(), b.east(), b.west(), u.north(), u.south(), u.east(), u.west(), u.above()})
+            if (lv.getBlockState(q).getBlock() instanceof BaseFireBlock) return true;
+        return false;
+    }
+
+    private static void removeRoots(ServerLevel lv) {
+        for (BlockPos b : roots) {
+            if (lv.getBlockState(b).is(Blocks.MANGROVE_WOOD)) lv.setBlock(b, Blocks.AIR.defaultBlockState(), 3);
+            if (lv.getBlockState(b.above()).is(Blocks.MANGROVE_WOOD)) lv.setBlock(b.above(), Blocks.AIR.defaultBlockState(), 3);
+        }
+        roots.clear();
+    }
+
+    private static void startRoots(ServerLevel lv) {
+        rootsActive = true;
+        rootsEnd = rt + 600;
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        int n = 14 + 4 * rootStage;
+        for (int i = 0; i < n; i++) {
+            double a = rnd.nextDouble() * Math.PI * 2, r = 6 + rnd.nextDouble() * 28;
+            BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
+            if (!lv.getBlockState(b).isAir() || !lv.getBlockState(b.above()).isAir()) continue;
+            lv.setBlock(b, Blocks.MANGROVE_WOOD.defaultBlockState(), 3);
+            lv.setBlock(b.above(), Blocks.MANGROVE_WOOD.defaultBlockState(), 3);
+            roots.add(b);
+        }
+        tellLevel(lv, "Roots surge over the battlefield! The tree cannot be hurt. BURN THE ROOTS within 30 seconds or it heals to full.", ChatFormatting.DARK_GREEN);
+    }
+
+    private static void tellLevel(ServerLevel lv, String msg, ChatFormatting c) {
+        for (ServerPlayer p : lv.players()) p.sendSystemMessage(Component.literal(msg).withStyle(c));
+    }
+
+    /** Once a second during the raid. */
+    private static void rootsSecond(ServerLevel lv) {
+        Mob boss = findBoss(lv, TAG_RAID);
+        if (boss == null) return;
+        if (!rootsActive) {
+            if (rootStage < THRESHOLDS.length && boss.getHealth() / BOSS_HP <= THRESHOLDS[rootStage]) startRoots(lv);
+            return;
+        }
+        roots.removeIf(b -> {
+            if (!burnt(lv, b)) return false;
+            lv.sendParticles(ParticleTypes.FLAME, b.getX() + 0.5, b.getY() + 1, b.getZ() + 0.5, 20, 0.3, 0.6, 0.3, 0.02);
+            if (lv.getBlockState(b).is(Blocks.MANGROVE_WOOD)) lv.setBlock(b, Blocks.AIR.defaultBlockState(), 3);
+            if (lv.getBlockState(b.above()).is(Blocks.MANGROVE_WOOD)) lv.setBlock(b.above(), Blocks.AIR.defaultBlockState(), 3);
+            return true;
+        });
+        if (roots.isEmpty()) {
+            rootsActive = false;
+            rootStage++;
+            if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME).withStyle(ChatFormatting.DARK_PURPLE));
+            tellLevel(lv, "The roots burn. The tree is exposed again!", ChatFormatting.GOLD);
+            return;
+        }
+        long left = Math.max(0, (rootsEnd - rt) / 20);
+        if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME + "  -  roots left: " + roots.size() + "  (" + left + "s)").withStyle(ChatFormatting.DARK_GREEN));
+        for (BlockPos b : roots) lv.sendParticles(ParticleTypes.HAPPY_VILLAGER, b.getX() + 0.5, b.getY() + 2.3, b.getZ() + 0.5, 3, 0.2, 0.2, 0.2, 0);
+        if (rt >= rootsEnd) {
+            removeRoots(lv);
+            boss.setHealth(BOSS_HP);
+            rootsActive = false;
+            rootStage = 0;
+            if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME).withStyle(ChatFormatting.DARK_PURPLE));
+            tellLevel(lv, "The roots drink. The Mother Tree of Desire is whole again.", ChatFormatting.DARK_RED);
+        }
+    }
+
     private static void raidTick(MinecraftServer server, AstralData d) {
         ServerLevel lv = dim(server, "raid");
         if (lv == null) return;
         rt++;
+        if (rt % 20 == 0) rootsSecond(lv);
         if (rt >= nextPattern && !fighters(lv).isEmpty()) {
             int[] opts = NEXT[lastPattern];
             int which = opts[ThreadLocalRandom.current().nextInt(opts.length)];
@@ -694,6 +823,7 @@ public final class EndGame {
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         Entity e = event.getEntity();
+        if (rootsActive && e.getTags().contains(TAG_RAID)) { event.setCanceled(true); return; } // untouchable while its roots stand
         if (e.getTags().contains(TAG_BOSS) && event.getSource().getEntity() instanceof ServerPlayer atk && e.getServer() != null) {
             AstralData d = AstralData.get(e.getServer());
             if (tracking(d)) stat(d, atk).damage += event.getAmount(); // counted before shrinking: this is the 10,000 / 100,000 scale
