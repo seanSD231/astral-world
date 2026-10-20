@@ -255,6 +255,7 @@ public final class EndGame {
         ServerLevel raid = dim(server, "raid");
         if (raid != null) {
             removeRoots(raid);
+            removeSeeds(raid);
             rootsActive = false;
             for (Entity e : raid.getAllEntities()) if (e.getTags().contains(TAG_RAID)) e.discard();
             if (sendHome) {
@@ -430,7 +431,7 @@ public final class EndGame {
         force(lv, 3, true);
         groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
         timed.clear();
-        rt = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear();
+        rt = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0;
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
             boss.addTag(TAG_BOSS);
@@ -464,7 +465,8 @@ public final class EndGame {
         Long last = lastHit.get(p.getUUID());
         if (last != null && now - last < 40) return; // just hit: a moment of grace
         lastHit.put(p.getUUID(), now);
-        Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 35); // every hit corrupts
+        Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 80); // every hit corrupts heavily and shakes the mind
+        Lotm.loseSanityPercent(p, 50);
         float dmg = p.getMaxHealth() * 0.8f;
         if (p.getHealth() > dmg) { // it takes 80% of their health: a second hit is certain death
             p.setHealth(p.getHealth() - dmg);
@@ -515,6 +517,39 @@ public final class EndGame {
         LightningBolt b = EntityType.LIGHTNING_BOLT.create(lv);
         if (b != null) { b.moveTo(x, groundY, z); b.setVisualOnly(true); lv.addFreshEntity(b); }
         lv.sendParticles(ParticleTypes.EXPLOSION, x, groundY + 1, z, 6, r / 3, 0.5, r / 3, 0);
+    }
+
+    /** The temptation minigame for `ticks` ticks: everyone who gives in is added to `failed`. */
+    private static void temptation(ServerLevel lv, int ticks, Set<UUID> failed) {
+        Map<UUID, Integer> meter = new HashMap<>();
+        for (ServerPlayer p : fighters(lv)) p.sendSystemMessage(Component.literal("Come to me, child... (look AWAY from it and keep crouching)").withStyle(ChatFormatting.LIGHT_PURPLE));
+        for (int t = 0; t < ticks; t++) {
+            final int tt = t;
+            at(t, l -> {
+                Vec3 boss = new Vec3(0.5, groundY + 2, 0.5);
+                if (tt % 10 == 0) l.sendParticles(ParticleTypes.CHERRY_LEAVES, 0.5, groundY + 3, 0.5, 20, 6, 3, 6, 0.02);
+                for (ServerPlayer p : fighters(l)) {
+                    UUID id = p.getUUID();
+                    if (failed.contains(id)) continue;
+                    Vec3 to = boss.subtract(p.getEyePosition()).normalize();
+                    boolean looking = p.getLookAngle().dot(to) > 0.5;
+                    boolean ok = p.isShiftKeyDown() && !looking;
+                    int m = meter.getOrDefault(id, 0);
+                    m = ok ? Math.max(0, m - 1) : m + 1;
+                    meter.put(id, m);
+                    if (!ok) { Vec3 pull = to.scale(0.06); p.push(pull.x, 0, pull.z); p.hurtMarked = true; }
+                    if (tt % 5 == 0) {
+                        int bars = Math.min(10, m / 4);
+                        p.displayClientMessage(Component.literal("Resist  " + "█".repeat(bars) + "░".repeat(10 - bars)).withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.LIGHT_PURPLE), true);
+                    }
+                    if (m >= 40) {
+                        failed.add(id);
+                        p.sendSystemMessage(Component.literal("You gave in.").withStyle(ChatFormatting.DARK_RED));
+                        if (!Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 60)) loseLife(l, p);
+                    }
+                }
+            });
+        }
     }
 
     /** One scripted attack. Every one of them can be dodged: leave the marked ground, jump the low ones, stand in the safe circles. */
@@ -579,36 +614,8 @@ public final class EndGame {
                 }
             }
             case 5 -> { // temptation: look away from the tree and crouch, or be corrupted
-                Map<UUID, Integer> meter = new HashMap<>();
                 Set<UUID> failed = new HashSet<>();
-                for (ServerPlayer p : fighters(lv)) p.sendSystemMessage(Component.literal("Come to me, child... (look AWAY from it and keep crouching)").withStyle(ChatFormatting.LIGHT_PURPLE));
-                for (int t = 0; t < 160; t++) {
-                    final int tt = t;
-                    at(t, l -> {
-                        Vec3 boss = new Vec3(0.5, groundY + 2, 0.5);
-                        if (tt % 10 == 0) l.sendParticles(ParticleTypes.CHERRY_LEAVES, 0.5, groundY + 3, 0.5, 20, 6, 3, 6, 0.02);
-                        for (ServerPlayer p : fighters(l)) {
-                            UUID id = p.getUUID();
-                            if (failed.contains(id)) continue;
-                            Vec3 to = boss.subtract(p.getEyePosition()).normalize();
-                            boolean looking = p.getLookAngle().dot(to) > 0.5;
-                            boolean ok = p.isShiftKeyDown() && !looking;
-                            int m = meter.getOrDefault(id, 0);
-                            m = ok ? Math.max(0, m - 1) : m + 1;
-                            meter.put(id, m);
-                            if (!ok) { Vec3 pull = to.scale(0.06); p.push(pull.x, 0, pull.z); p.hurtMarked = true; }
-                            if (tt % 5 == 0) {
-                                int bars = Math.min(10, m / 4);
-                                p.displayClientMessage(Component.literal("Resist  " + "█".repeat(bars) + "░".repeat(10 - bars)).withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.LIGHT_PURPLE), true);
-                            }
-                            if (m >= 40) {
-                                failed.add(id);
-                                p.sendSystemMessage(Component.literal("You gave in.").withStyle(ChatFormatting.DARK_RED));
-                                if (!Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 60)) loseLife(l, p);
-                            }
-                        }
-                    });
-                }
+                temptation(lv, 160, failed);
                 at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
             }
             default -> { // the whole arena is struck except for three safe circles
@@ -633,6 +640,10 @@ public final class EndGame {
     private static long rootsEnd = 0;
     private static int rootStage = 0;
     private static final List<BlockPos> roots = new ArrayList<>();
+    private static int activeKind = 0;       // 0 roots, 1 desire's call, 2 heart seeds
+    private static long phaseEnd = 0;
+    private static final List<BlockPos> seeds = new ArrayList<>();
+    private static final Set<UUID> callFailed = new HashSet<>();
     private static final float[] THRESHOLDS = {0.75f, 0.5f, 0.25f};
 
     private static boolean burnt(ServerLevel lv, BlockPos b) {
@@ -651,8 +662,72 @@ public final class EndGame {
         roots.clear();
     }
 
+    private static void endPhase(ServerLevel lv, String msg, ChatFormatting c) {
+        rootsActive = false;
+        rootStage++;
+        if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME).withStyle(ChatFormatting.DARK_PURPLE));
+        tellLevel(lv, msg, c);
+    }
+
+    private static void healBoss(Mob boss, float fraction) { boss.setHealth(Math.min(BOSS_HP, boss.getHealth() + BOSS_HP * fraction)); }
+
+    private static void removeSeeds(ServerLevel lv) {
+        for (BlockPos b : seeds) if (lv.getBlockState(b).is(Blocks.SHROOMLIGHT)) lv.setBlock(b, Blocks.AIR.defaultBlockState(), 3);
+        seeds.clear();
+    }
+
+    /** 50%: the tree sings to everyone for 20 seconds. Each one who gives in heals it by 10%. */
+    private static void startCall(ServerLevel lv) {
+        rootsActive = true;
+        activeKind = 1;
+        phaseEnd = rt + 410;
+        callFailed.clear();
+        tellLevel(lv, "The Mother Tree sings. It cannot be hurt while you listen. Do NOT give in: every one who does heals it.", ChatFormatting.LIGHT_PURPLE);
+        temptation(lv, 400, callFailed);
+        at(405, l -> {
+            Mob b = findBoss(l, TAG_RAID);
+            if (b != null) healBoss(b, 0.10f * callFailed.size());
+            endPhase(l, callFailed.isEmpty() ? "Nobody gave in. The tree is exposed!" : callFailed.size() + " gave in and fed it. The tree is exposed again.", ChatFormatting.GOLD);
+        });
+    }
+
+    /** 25%: heart seeds grow; break them (any way) within 40 seconds or they hit everyone and feed the tree. */
+    private static void startSeeds(ServerLevel lv) {
+        rootsActive = true;
+        activeKind = 2;
+        phaseEnd = rt + 800;
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        for (int i = 0; i < 6; i++) {
+            double a = Math.PI * 2 * i / 6 + rnd.nextDouble() * 0.5, r = 12 + rnd.nextDouble() * 18;
+            BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
+            if (!lv.getBlockState(b).isAir()) continue;
+            lv.setBlock(b, Blocks.SHROOMLIGHT.defaultBlockState(), 3);
+            seeds.add(b);
+        }
+        tellLevel(lv, "Heart seeds have grown! The tree cannot be hurt. Break them all within 40 seconds, or each one feeds it 5% and the rest strike you all.", ChatFormatting.RED);
+    }
+
+    private static void seedsSecond(ServerLevel lv, Mob boss) {
+        seeds.removeIf(b -> {
+            if (lv.getBlockState(b).is(Blocks.SHROOMLIGHT)) return false;
+            lv.sendParticles(ParticleTypes.EXPLOSION, b.getX() + 0.5, b.getY() + 1, b.getZ() + 0.5, 3, 0.3, 0.3, 0.3, 0);
+            return true;
+        });
+        if (seeds.isEmpty()) { endPhase(lv, "Every seed is broken. The tree is exposed!", ChatFormatting.GOLD); return; }
+        long left = Math.max(0, (phaseEnd - rt) / 20);
+        if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME + "  -  seeds left: " + seeds.size() + "  (" + left + "s)").withStyle(ChatFormatting.RED));
+        for (BlockPos b : seeds) lv.sendParticles(ParticleTypes.CRIMSON_SPORE, b.getX() + 0.5, b.getY() + 1.5, b.getZ() + 0.5, 6, 0.3, 0.5, 0.3, 0);
+        if (rt >= phaseEnd) {
+            healBoss(boss, 0.05f * seeds.size());
+            removeSeeds(lv);
+            for (ServerPlayer p : fighters(lv)) loseLife(lv, p);
+            endPhase(lv, "The seeds burst.", ChatFormatting.DARK_RED);
+        }
+    }
+
     private static void startRoots(ServerLevel lv) {
         rootsActive = true;
+        activeKind = 0;
         rootsEnd = rt + 600;
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         int n = 14 + 4 * rootStage;
@@ -676,9 +751,13 @@ public final class EndGame {
         Mob boss = findBoss(lv, TAG_RAID);
         if (boss == null) return;
         if (!rootsActive) {
-            if (rootStage < THRESHOLDS.length && boss.getHealth() / BOSS_HP <= THRESHOLDS[rootStage]) startRoots(lv);
+            if (rootStage < THRESHOLDS.length && boss.getHealth() / BOSS_HP <= THRESHOLDS[rootStage]) {
+                if (rootStage == 0) startRoots(lv); else if (rootStage == 1) startCall(lv); else startSeeds(lv);
+            }
             return;
         }
+        if (activeKind == 2) { seedsSecond(lv, boss); return; }
+        if (activeKind == 1) return; // desire's call ends on its own timer
         roots.removeIf(b -> {
             if (!burnt(lv, b)) return false;
             lv.sendParticles(ParticleTypes.FLAME, b.getX() + 0.5, b.getY() + 1, b.getZ() + 0.5, 20, 0.3, 0.6, 0.3, 0.02);
