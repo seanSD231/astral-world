@@ -194,6 +194,7 @@ public final class EndGame {
             d.endPhase = "classic";
             d.endUntil = 0;
             clearRaidState(server, false);
+            releaseAllies(server, d);
             d.setDirty();
             LOGGER.info("[astral] phase 5 again (was {}): the plain end", ph);
             return;
@@ -223,6 +224,7 @@ public final class EndGame {
         boolean was = !d.endPhase.isEmpty() || d.earthGone || !d.bossesDead.isEmpty();
         if (!was) return;
         clearRaidState(server, true);
+        releaseAllies(server, d);
         if (d.earthGone) {
             ServerLevel cosmos = server.getLevel(Cosmos.COSMOS);
             if (cosmos != null) CosmosGenerator.setPlanet(cosmos, CosmosGenerator.PLANETS.get(2), true);
@@ -270,6 +272,33 @@ public final class EndGame {
             force(raid, 3, false);
         }
         if (sendHome) for (ServerPlayer p : server.getPlayerList().getPlayers()) setGameMode(p, p.gameMode.getGameModeForPlayer() == GameType.SPECTATOR ? GameType.SURVIVAL : p.gameMode.getGameModeForPlayer());
+        d.setDirty();
+    }
+
+    // ------------------------------------------------------------------ allies
+
+    private static final Set<String> allyChecked = new HashSet<>();
+
+    /** Everyone in the boss fights is a LOTM ally of everyone else, so nobody hurts or targets each other. */
+    private static void ensureAllies(MinecraftServer server, AstralData d) {
+        List<ServerPlayer> ps = server.getPlayerList().getPlayers();
+        for (int i = 0; i < ps.size(); i++)
+            for (int j = i + 1; j < ps.size(); j++) {
+                String a = ps.get(i).getUUID().toString(), b = ps.get(j).getUUID().toString();
+                String key = a.compareTo(b) < 0 ? a + "|" + b : b + "|" + a;
+                if (!allyChecked.add(key)) continue;
+                if (Lotm.addAlly(server, ps.get(i).getUUID(), ps.get(j).getUUID())) { d.allyPairs.add(key); d.setDirty(); }
+            }
+    }
+
+    /** Undoes only the alliances this fight made. */
+    private static void releaseAllies(MinecraftServer server, AstralData d) {
+        for (String key : d.allyPairs) {
+            String[] p = key.split("\\|");
+            if (p.length == 2) Lotm.removeAlly(server, UUID.fromString(p[0]), UUID.fromString(p[1]));
+        }
+        d.allyPairs.clear();
+        allyChecked.clear();
         d.setDirty();
     }
 
@@ -961,8 +990,8 @@ public final class EndGame {
         if (server.getTickCount() % 20 != 0) return;
         switch (d.endPhase) {
             case "evac" -> secondEvac(server, d);
-            case "bosses" -> secondBosses(server, d);
-            case "raid" -> secondRaid(server, d);
+            case "bosses" -> { ensureAllies(server, d); secondBosses(server, d); }
+            case "raid" -> { ensureAllies(server, d); secondRaid(server, d); }
             case "recover" -> secondRecover(server, d);
             default -> { }
         }

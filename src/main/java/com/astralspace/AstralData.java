@@ -38,6 +38,8 @@ public class AstralData extends SavedData {
     public final Set<String> bossesDead = new HashSet<>();
     public final Map<UUID, Integer> raidLives = new HashMap<>();
     public String raidBoss = "";
+    /** LOTM alliances made for the boss fights ("uuid|uuid"), undone afterwards. */
+    public final Set<String> allyPairs = new HashSet<>();
     /** Leaderboard numbers kept while the bosses and the raid last. */
     public static final class Stat { public String name = ""; public double damage, heal; public int deaths; }
     public final Map<UUID, Stat> stats = new HashMap<>();
@@ -74,6 +76,7 @@ public class AstralData extends SavedData {
         d.evacOffered = tag.getBoolean("evacOffered");
         d.resumeStage = tag.contains("resumeStage") ? tag.getInt("resumeStage") : 1;
         d.raidBoss = tag.getString("raidBoss");
+        for (String k : tag.getString("allyPairs").split(",")) if (!k.isEmpty()) d.allyPairs.add(k);
         for (String k : tag.getString("bossesDead").split(",")) if (!k.isEmpty()) d.bossesDead.add(k);
         CompoundTag stt = tag.getCompound("stats");
         for (String k : stt.getAllKeys()) {
@@ -117,6 +120,7 @@ public class AstralData extends SavedData {
         tag.putBoolean("evacOffered", evacOffered);
         tag.putInt("resumeStage", resumeStage);
         tag.putString("raidBoss", raidBoss);
+        tag.putString("allyPairs", String.join(",", allyPairs));
         tag.putString("bossesDead", String.join(",", bossesDead));
         CompoundTag stt = new CompoundTag();
         stats.forEach((k, s) -> {

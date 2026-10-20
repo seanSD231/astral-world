@@ -231,6 +231,39 @@ public final class Lotm {
         } catch (Throwable ignored) { }
     }
 
+    // ------------------------------------------------------------------ LOTM's ally system
+
+    private static Object allyData(net.minecraft.server.MinecraftServer server) throws Exception {
+        Class<?> c = Class.forName("net.swimmingtuna.lotm.util.AllyInformation.PlayerAllyData");
+        return c.getMethod("get", net.minecraft.world.level.LevelAccessor.class).invoke(null, server.overworld());
+    }
+
+    /** Makes two players LOTM allies. Returns true only if they were not allies before (so the caller knows to undo it later). */
+    public static boolean addAlly(net.minecraft.server.MinecraftServer server, java.util.UUID a, java.util.UUID b) {
+        try {
+            Object data = allyData(server);
+            Class<?> c = data.getClass();
+            if ((Boolean) c.getMethod("areAllies", java.util.UUID.class, java.util.UUID.class).invoke(data, a, b)) return false;
+            c.getMethod("addAlly", java.util.UUID.class, java.util.UUID.class).invoke(data, a, b);
+            c.getMethod("addAlly", java.util.UUID.class, java.util.UUID.class).invoke(data, b, a);
+            return true;
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not add LOTM ally: {}", String.valueOf(t.getCause() != null ? t.getCause() : t));
+            return false;
+        }
+    }
+
+    public static void removeAlly(net.minecraft.server.MinecraftServer server, java.util.UUID a, java.util.UUID b) {
+        try {
+            Object data = allyData(server);
+            Class<?> c = data.getClass();
+            c.getMethod("removeAlly", java.util.UUID.class, java.util.UUID.class).invoke(data, a, b);
+            c.getMethod("removeAlly", java.util.UUID.class, java.util.UUID.class).invoke(data, b, a);
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not remove LOTM ally: {}", String.valueOf(t.getCause() != null ? t.getCause() : t));
+        }
+    }
+
     /** Spawns one of LOTM's entities (like /summon would), with a short life. Returns it, or null. */
     public static net.minecraft.world.entity.Entity spawn(net.minecraft.server.level.ServerLevel level, String id,
                                                          double x, double y, double z, net.minecraft.world.phys.Vec3 motion, int life,
