@@ -135,11 +135,15 @@ public final class PlanetGenerator extends ChunkGenerator {
                 double w = Math.abs(fbm(x, z, 70, 9, 4) - 0.5) * 2;             // ridged storm waves
                 h = BASE - 4 + (1 - w) * 22;
             }
+            case "raid" -> { // the sanctuary: flat ground out to the ruins, gentle grassy hills beyond
+                double r = Math.hypot(x, z);
+                h = BASE + smooth(60, 110, r) * (fbm(x, z, 70, 12, 3) - 0.3) * 14;
+            }
             default -> h = BASE + (fbm(x, z, 120, 10, 3) - 0.5) * 6;
         }
         double dist = Math.hypot(x, z);
         double f = 1 - smooth(26, 64, dist);                                   // flat disc around the arrival point
-        h = h + (BASE - h) * f;
+        if (!id.equals("raid")) h = h + (BASE - h) * f;
         return (int) Math.max(8, Math.min(230, Math.round(h)));
     }
 
@@ -190,6 +194,27 @@ public final class PlanetGenerator extends ChunkGenerator {
                 double warp = 12 * Math.sin(x * 0.03) + 16 * (fbm(x, z, 60, 42, 2) - 0.5);
                 return NEP[Math.floorMod((int) Math.floor((z + warp) / 18.0), NEP.length)];
             }
+            case "raid": {
+                double r = Math.hypot(x, z);
+                if (r < 49) { // the old plaza of stone, cracked and mossy, with grass growing through
+                    if (depth == 0) {
+                        double ring = Math.abs(r - 20), ring2 = Math.abs(r - 34), rune = Math.abs(r - 9);
+                        if (rune < 1.0 || ring < 0.8 || ring2 < 0.8) return Blocks.CHISELED_STONE_BRICKS;     // inlaid rings
+                        double ang = Math.atan2(z, x);
+                        if (r < 9 && Math.abs(Math.sin(ang * 4)) < 0.12) return Blocks.POLISHED_ANDESITE;      // spokes of the central seal
+                        if (r < 9) return Blocks.SMOOTH_STONE;
+                        double wild = hash(x / 3, z / 3, 61) + (r / 49.0) * 0.25;
+                        if (wild > 0.93) return Blocks.GRASS_BLOCK;
+                        if (n < 0.45) return Blocks.STONE_BRICKS;
+                        if (n < 0.65) return Blocks.MOSSY_STONE_BRICKS;
+                        if (n < 0.85) return Blocks.CRACKED_STONE_BRICKS;
+                        return Blocks.COBBLESTONE;
+                    }
+                    return depth < 3 ? Blocks.STONE_BRICKS : depth < 8 ? Blocks.STONE : Blocks.DEEPSLATE;
+                }
+                if (depth == 0) return r < 52 && n < 0.5 ? Blocks.COARSE_DIRT : Blocks.GRASS_BLOCK;
+                return depth < 4 ? Blocks.DIRT : Blocks.STONE;
+            }
             default:
                 if (depth == 0) return Blocks.GRASS_BLOCK;
                 return depth < 4 ? Blocks.DIRT : Blocks.STONE;
@@ -213,6 +238,7 @@ public final class PlanetGenerator extends ChunkGenerator {
                     Block b = banded ? block(planet, x, z, h, h) : block(planet, x, z, y, h);
                     chunk.setBlockState(pos.set(x, y, z), b.defaultBlockState(), false);
                 }
+                if (planet.equals("raid")) decorateRaid(chunk, pos, x, z, h);
                 if (planet.equals("venus")) for (int y = h + 1; y <= 62; y++) chunk.setBlockState(pos.set(x, y, z), lava, false);
                 if (saturn && Math.abs(z + 300) >= 150 && Math.abs(z + 300) <= 230 && hash(x, z, 5) < 0.85) { // its ring, high overhead
                     Block r = hash(z, x, 6) < 0.6 ? Blocks.PACKED_ICE : hash(x, 2, z) < 0.5 ? Blocks.CALCITE : Blocks.LIGHT_GRAY_CONCRETE;
@@ -221,6 +247,38 @@ public final class PlanetGenerator extends ChunkGenerator {
             }
         }
         return CompletableFuture.completedFuture(chunk);
+    }
+
+    /** Ruined pillars, broken low walls, grass tufts and flowers. Left plain on purpose, for builders to finish. */
+    private static void decorateRaid(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int z, int h) {
+        double r = Math.hypot(x, z);
+        BlockState[] stone = {Blocks.STONE_BRICKS.defaultBlockState(), Blocks.MOSSY_STONE_BRICKS.defaultBlockState(), Blocks.CRACKED_STONE_BRICKS.defaultBlockState()};
+        // twelve pillars on a ring, each one broken off at its own height
+        for (int k = 0; k < 12; k++) {
+            double a = Math.PI * 2 * k / 12 + 0.13;
+            int cx = (int) Math.round(Math.cos(a) * 46), cz = (int) Math.round(Math.sin(a) * 46);
+            if (Math.abs(x - cx) <= 1 && Math.abs(z - cz) <= 1) {
+                int top = 5 + (int) (hash(k, 7, 91) * 10) - ((x + z) % 2 == 0 && hash(x, z, 92) < 0.4 ? 2 : 0);
+                for (int y = h + 1; y <= h + top; y++) {
+                    BlockState s = y == h + 1 || y == h + top && top > 11 ? Blocks.CHISELED_STONE_BRICKS.defaultBlockState() : stone[(int) (hash(x, y, z) * 3)];
+                    chunk.setBlockState(pos.set(x, y, z), s, false);
+                }
+                return;
+            }
+        }
+        // low walls between them, mostly fallen
+        if (r >= 45 && r <= 46.9) {
+            int wh = (int) (hash(x / 3, 5, z / 3) * 4) - 1;
+            for (int y = h + 1; y <= h + wh; y++) chunk.setBlockState(pos.set(x, y, z), stone[(int) (hash(x, y, z) * 3)], false);
+            return;
+        }
+        // grass and flowers where the ground is grass
+        if (hash(x, 3, z) < 0.35 && chunk.getBlockState(pos.set(x, h, z)).is(Blocks.GRASS_BLOCK)) {
+            double q = hash(x, 4, z);
+            BlockState p = q < 0.80 ? Blocks.SHORT_GRASS.defaultBlockState() : q < 0.88 ? Blocks.FERN.defaultBlockState()
+                    : q < 0.92 ? Blocks.DANDELION.defaultBlockState() : q < 0.96 ? Blocks.AZURE_BLUET.defaultBlockState() : Blocks.CORNFLOWER.defaultBlockState();
+            chunk.setBlockState(pos.set(x, h + 1, z), p, false);
+        }
     }
 
     @Override
