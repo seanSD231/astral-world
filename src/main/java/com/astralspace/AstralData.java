@@ -41,6 +41,8 @@ public class AstralData extends SavedData {
     /** Leaderboard numbers kept while the bosses and the raid last. */
     public static final class Stat { public String name = ""; public double damage, heal; public int deaths; }
     public final Map<UUID, Stat> stats = new HashMap<>();
+    /** Attacks each player has already been taught about (comma-separated ids). */
+    public final Map<UUID, String> tutorSeen = new HashMap<>();
     /** The newest stage message each player has already seen. */
     public final Map<UUID, Integer> seenStage = new HashMap<>();
     /** Every player ever seen at Seq 0 (kept while offline). */
@@ -80,6 +82,8 @@ public class AstralData extends SavedData {
             s.name = e.getString("name"); s.damage = e.getDouble("damage"); s.heal = e.getDouble("heal"); s.deaths = e.getInt("deaths");
             d.stats.put(UUID.fromString(k), s);
         }
+        CompoundTag ts = tag.getCompound("tutorSeen");
+        for (String k : ts.getAllKeys()) d.tutorSeen.put(UUID.fromString(k), ts.getString(k));
         CompoundTag rl = tag.getCompound("raidLives");
         for (String k : rl.getAllKeys()) d.raidLives.put(UUID.fromString(k), rl.getInt(k));
         CompoundTag st = tag.getCompound("seenStage");
@@ -121,6 +125,9 @@ public class AstralData extends SavedData {
             stt.put(k.toString(), e);
         });
         tag.put("stats", stt);
+        CompoundTag ts = new CompoundTag();
+        tutorSeen.forEach((k, v) -> ts.putString(k.toString(), v));
+        tag.put("tutorSeen", ts);
         CompoundTag rl = new CompoundTag();
         raidLives.forEach((k, v) -> rl.putInt(k.toString(), v));
         tag.put("raidLives", rl);

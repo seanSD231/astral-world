@@ -246,6 +246,7 @@ public final class EndGame {
         bars.clear();
         if (raidBar != null) { raidBar.removeAllPlayers(); raidBar = null; }
         timed.clear();
+        nextBossAttack.clear();
         for (BossDef b : BOSSES) {
             ServerLevel lv = dim(server, b.planet());
             if (lv == null) continue;
@@ -371,6 +372,18 @@ public final class EndGame {
             ServerBossEvent bar = bars.computeIfAbsent(b.planet(), k ->
                     new ServerBossEvent(Component.literal(b.title()), BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.NOTCHED_10));
             bar.setProgress(Math.max(0f, Math.min(1f, m.getHealth() / BOSS_HP)));
+            boolean near = false;
+            for (ServerPlayer p : lv.players()) if (!p.isSpectator() && p.distanceToSqr(m) < 60 * 60) near = true;
+            if (near) {
+                Long nx = nextBossAttack.get(b.planet());
+                if (nx == null) nextBossAttack.put(b.planet(), gt + 100);
+                else if (gt >= nx) {
+                    int[] set = PLANET_ATTACKS.get(b.planet());
+                    int which = set[ThreadLocalRandom.current().nextInt(set.length)];
+                    runPattern(new Arena(lv, m.getX(), m.getZ(), lv.getHeight(Heightmap.Types.MOTION_BLOCKING, (int) m.getX(), (int) m.getZ()), false), which);
+                    nextBossAttack.put(b.planet(), gt + DURATION[which] + 100 + ThreadLocalRandom.current().nextInt(100));
+                }
+            }
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
                 boolean here = p.level() == lv;
                 if (here) bar.addPlayer(p); else bar.removePlayer(p);
@@ -403,7 +416,14 @@ public final class EndGame {
 
     // ------------------------------------------------------------------ the raid
 
-    private record Timed(long at, Consumer<ServerLevel> run) {}
+    /** Where an attack happens: the raid arena, or around a planet boss. */
+    private record Arena(ServerLevel lv, double cx, double cz, double gy, boolean raid) {}
+    private record Timed(long at, Arena a, Consumer<ServerLevel> run) {}
+    private static Arena cur = null;
+    private static long gt = 0;
+    private static final Map<String, Long> nextBossAttack = new HashMap<>();
+    private static final Map<String, int[]> PLANET_ATTACKS = Map.of("mercury", new int[]{3}, "venus", new int[]{3, 0}, "mars", new int[]{0, 1},
+            "jupiter", new int[]{1, 2}, "saturn", new int[]{2, 3}, "uranus", new int[]{4, 1}, "neptune", new int[]{5, 0});
     private static final List<Timed> timed = new ArrayList<>();
     private static long rt = 0, nextPattern = 0;
     private static double groundY = 4;
@@ -455,6 +475,7 @@ public final class EndGame {
     private static List<ServerPlayer> fighters(ServerLevel lv) {
         List<ServerPlayer> l = new ArrayList<>();
         AstralData d = AstralData.get(lv.getServer());
+        if (cur != null && !cur.raid()) { for (ServerPlayer p : lv.players()) if (!p.isSpectator() && p.isAlive()) l.add(p); return l; }
         for (ServerPlayer p : lv.players()) if (!p.isSpectator() && p.isAlive() && d.raidLives.getOrDefault(p.getUUID(), 0) > 0) l.add(p);
         return l;
     }
@@ -491,15 +512,30 @@ public final class EndGame {
         }
     }
 
+    /** A hit: in the raid it costs a life, around a planet boss it is a hard but survivable blow (practice for the raid). */
+    private static void hit(ServerLevel lv, ServerPlayer p) {
+        if (cur != null && cur.raid()) { loseLife(lv, p); return; }
+        long now = lv.getServer().getTickCount();
+        Long last = lastHit.get(p.getUUID());
+        if (last != null && now - last < 40) return;
+        lastHit.put(p.getUUID(), now);
+        Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 30);
+        Lotm.loseSanityPercent(p, 20);
+        p.hurt(lv.damageSources().magic(), p.getMaxHealth() * 0.5f);
+        lv.playSound(null, p.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.HOSTILE, 1f, 1.2f);
+    }
+
+    private static void runPattern(Arena a, int which) { cur = a; pattern(a.lv(), which); }
+
     /** Anyone inside the area (and low enough to be hit) loses a life. */
     private static void strike(ServerLevel lv, double x, double z, double r, double maxFeetAbove) {
         for (ServerPlayer p : fighters(lv)) {
             double dx = p.getX() - x, dz = p.getZ() - z;
-            if (dx * dx + dz * dz <= r * r && p.getY() < groundY + maxFeetAbove) loseLife(lv, p);
+            if (dx * dx + dz * dz <= r * r && p.getY() < cur.gy() + maxFeetAbove) hit(lv, p);
         }
     }
 
-    private static void at(long delay, Consumer<ServerLevel> run) { timed.add(new Timed(rt + delay, run)); }
+    private static void at(long delay, Consumer<ServerLevel> run) { timed.add(new Timed(gt + delay, cur, run)); }
 
     private static void dust(ServerLevel lv, double x, double y, double z, float r, float g, float b) {
         lv.sendParticles(new DustParticleOptions(new org.joml.Vector3f(r, g, b), 1.6f), x, y, z, 1, 0, 0, 0, 0);
@@ -509,43 +545,88 @@ public final class EndGame {
         int n = (int) Math.max(12, r * 6);
         for (int i = 0; i < n; i++) {
             double a = Math.PI * 2 * i / n;
-            dust(lv, x + Math.cos(a) * r, groundY + 0.2, z + Math.sin(a) * r, cr, cg, cb);
+            dust(lv, x + Math.cos(a) * r, cur.gy() + 0.2, z + Math.sin(a) * r, cr, cg, cb);
         }
     }
 
     private static void boom(ServerLevel lv, double x, double z, double r) {
         LightningBolt b = EntityType.LIGHTNING_BOLT.create(lv);
-        if (b != null) { b.moveTo(x, groundY, z); b.setVisualOnly(true); lv.addFreshEntity(b); }
-        lv.sendParticles(ParticleTypes.EXPLOSION, x, groundY + 1, z, 6, r / 3, 0.5, r / 3, 0);
+        if (b != null) { b.moveTo(x, cur.gy(), z); b.setVisualOnly(true); lv.addFreshEntity(b); }
+        lv.sendParticles(ParticleTypes.EXPLOSION, x, cur.gy() + 1, z, 6, r / 3, 0.5, r / 3, 0);
     }
 
-    /** The temptation minigame for `ticks` ticks: everyone who gives in is added to `failed`. */
+    private static final String[] NOTICE = {
+            "METEORS: red circles mark where meteors will land. Keep moving out of them.",
+            "RINGS: purple rings roll out from the boss. JUMP over them.",
+            "BEAM: a line sweeps around the boss. JUMP over it as it reaches you.",
+            "SLAM: a red circle under you means a strike is coming. RUN out of it.",
+            "PURGE: green circles are safe. Stand INSIDE one before the ground is struck.",
+            "TEMPTATION: look AWAY from the boss and CROUCH. It drags your view in random directions: pull the OPPOSITE way."};
+
+    /** The first time a player meets an attack, they are told how to avoid it. */
+    private static void notice(ServerLevel lv, int which) {
+        AstralData d = AstralData.get(lv.getServer());
+        String key = String.valueOf(which);
+        for (ServerPlayer p : lv.players()) {
+            if (p.isSpectator()) continue;
+            String seen = d.tutorSeen.getOrDefault(p.getUUID(), "");
+            if (java.util.Arrays.asList(seen.split(",")).contains(key)) continue;
+            d.tutorSeen.put(p.getUUID(), seen.isEmpty() ? key : seen + "," + key);
+            d.setDirty();
+            p.sendSystemMessage(Component.literal("New attack - " + NOTICE[which]).withStyle(ChatFormatting.GOLD));
+            p.displayClientMessage(Component.literal(NOTICE[which]).withStyle(ChatFormatting.GOLD), true);
+        }
+    }
+
+    /**
+     * The temptation minigame: the boss keeps dragging your view in a random direction (it changes every second or so).
+     * Crouch, keep facing away from it and pull the OPPOSITE way. Stray too far from facing away, or stand up, and
+     * a meter fills; when it is full you give in and are added to `failed`.
+     */
     private static void temptation(ServerLevel lv, int ticks, Set<UUID> failed) {
         Map<UUID, Integer> meter = new HashMap<>();
-        for (ServerPlayer p : fighters(lv)) p.sendSystemMessage(Component.literal("Come to me, child... (look AWAY from it and keep crouching)").withStyle(ChatFormatting.LIGHT_PURPLE));
+        float[] pull = {0f, 0f};
+        int[] changeAt = {30};
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        for (ServerPlayer p : fighters(lv)) p.sendSystemMessage(Component.literal("Come to me, child... (turn away and CROUCH)").withStyle(ChatFormatting.LIGHT_PURPLE));
         for (int t = 0; t < ticks; t++) {
             final int tt = t;
             at(t, l -> {
-                Vec3 boss = new Vec3(0.5, groundY + 2, 0.5);
-                if (tt % 10 == 0) l.sendParticles(ParticleTypes.CHERRY_LEAVES, 0.5, groundY + 3, 0.5, 20, 6, 3, 6, 0.02);
+                Vec3 boss = new Vec3(cur.cx(), cur.gy() + 2, cur.cz());
+                if (tt % 10 == 0) l.sendParticles(ParticleTypes.CHERRY_LEAVES, boss.x, cur.gy() + 3, boss.z, 20, 6, 3, 6, 0.02);
+                if (tt >= changeAt[0]) {
+                    double th = rnd.nextDouble() * Math.PI * 2;
+                    pull[0] = (float) (Math.cos(th) * 2.5);
+                    pull[1] = (float) (Math.sin(th) * 1.6);
+                    changeAt[0] = tt + 15 + rnd.nextInt(15);
+                }
                 for (ServerPlayer p : fighters(l)) {
                     UUID id = p.getUUID();
                     if (failed.contains(id)) continue;
-                    Vec3 to = boss.subtract(p.getEyePosition()).normalize();
-                    boolean looking = p.getLookAngle().dot(to) > 0.5;
-                    boolean ok = p.isShiftKeyDown() && !looking;
+                    if (tt < 30) { if (tt % 10 == 0) p.displayClientMessage(Component.literal("Turn away and crouch!").withStyle(ChatFormatting.LIGHT_PURPLE), true); continue; }
+                    double dx = p.getX() - boss.x, dz = p.getZ() - boss.z;
+                    float away = (float) (net.minecraft.util.Mth.atan2(-dx, dz) * 57.29578);
+                    double dev = Math.hypot(net.minecraft.util.Mth.wrapDegrees(p.getYRot() - away), p.getXRot());
+                    boolean ok = p.isShiftKeyDown() && dev < 45;
                     int m = meter.getOrDefault(id, 0);
                     m = ok ? Math.max(0, m - 1) : m + 1;
                     meter.put(id, m);
-                    if (!ok) { Vec3 pull = to.scale(0.06); p.push(pull.x, 0, pull.z); p.hurtMarked = true; }
-                    if (tt % 5 == 0) {
+                    if (tt % 2 == 0) // the drag: a relative turn of the camera
+                        p.connection.teleport(p.getX(), p.getY(), p.getZ(), pull[0] * 2, pull[1] * 2,
+                                java.util.EnumSet.of(net.minecraft.world.entity.RelativeMovement.X, net.minecraft.world.entity.RelativeMovement.Y,
+                                        net.minecraft.world.entity.RelativeMovement.Z, net.minecraft.world.entity.RelativeMovement.Y_ROT,
+                                        net.minecraft.world.entity.RelativeMovement.X_ROT));
+                    if (tt % 4 == 0) {
+                        String h = pull[0] > 0.8 ? "►" : pull[0] < -0.8 ? "◄" : "";
+                        String v = pull[1] > 0.5 ? "▼" : pull[1] < -0.5 ? "▲" : "";
                         int bars = Math.min(10, m / 4);
-                        p.displayClientMessage(Component.literal("Resist  " + "█".repeat(bars) + "░".repeat(10 - bars)).withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.LIGHT_PURPLE), true);
+                        p.displayClientMessage(Component.literal("Pulled " + h + v + "  - pull the OTHER way!   " + "█".repeat(bars) + "░".repeat(10 - bars))
+                                .withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.LIGHT_PURPLE), true);
                     }
                     if (m >= 40) {
                         failed.add(id);
                         p.sendSystemMessage(Component.literal("You gave in.").withStyle(ChatFormatting.DARK_RED));
-                        if (!Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 60)) loseLife(l, p);
+                        if (!Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 60)) hit(l, p);
                     }
                 }
             });
@@ -555,6 +636,8 @@ public final class EndGame {
     /** One scripted attack. Every one of them can be dodged: leave the marked ground, jump the low ones, stand in the safe circles. */
     private static void pattern(ServerLevel lv, int which) {
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        final double cx = cur.cx(), cz = cur.cz(), bx = cx, bz = cz;
+        notice(lv, which);
         switch (which) {
             case 0 -> { // meteors: red marks under every fighter, they land 1.5 s later
                 int shots = 4 + rnd.nextInt(3);
@@ -574,10 +657,10 @@ public final class EndGame {
                         final int tt = t;
                         at(start + t, l -> {
                             double r = 2 + tt * 0.6;
-                            circle(l, 0.5, 0.5, r, 0.7f, 0.2f, 1f);
+                            circle(l, cur.cx(), cur.cz(), r, 0.7f, 0.2f, 1f);
                             for (ServerPlayer p : fighters(l)) { // only the ring itself, and only fighters standing on the ground
-                                double dist = Math.hypot(p.getX() - 0.5, p.getZ() - 0.5);
-                                if (Math.abs(dist - r) < 1.0 && p.getY() < groundY + 0.9) loseLife(l, p);
+                                double dist = Math.hypot(p.getX() - cur.cx(), p.getZ() - cur.cz());
+                                if (Math.abs(dist - r) < 1.0 && p.getY() < cur.gy() + 0.9) hit(l, p);
                             }
                         });
                     }
@@ -592,16 +675,16 @@ public final class EndGame {
                         double a = a0 + spin * Math.max(0, tt - 20) * Math.toRadians(1.5);
                         boolean live = tt >= 20;
                         for (double d = 1; d <= 40; d += 1.2) {
-                            double x = 0.5 + Math.cos(a) * d, z = 0.5 + Math.sin(a) * d;
-                            if (live) { dust(l, x, groundY + 0.5, z, 1f, 0.9f, 0.3f); }
-                            else if (tt % 4 == 0) dust(l, x, groundY + 0.3, z, 1f, 0.2f, 0.2f);
+                            double x = bx + Math.cos(a) * d, z = bz + Math.sin(a) * d;
+                            if (live) { dust(l, x, cur.gy() + 0.5, z, 1f, 0.9f, 0.3f); }
+                            else if (tt % 4 == 0) dust(l, x, cur.gy() + 0.3, z, 1f, 0.2f, 0.2f);
                         }
                         if (!live) return;
                         for (ServerPlayer p : fighters(l)) {
-                            double px = p.getX() - 0.5, pz = p.getZ() - 0.5;
+                            double px = p.getX() - bx, pz = p.getZ() - bz;
                             double along = px * Math.cos(a) + pz * Math.sin(a);
                             double side = Math.abs(-px * Math.sin(a) + pz * Math.cos(a));
-                            if (along > 0 && along < 42 && side < 1.3 && p.getY() < groundY + 1.1) loseLife(l, p);
+                            if (along > 0 && along < 42 && side < 1.3 && p.getY() < cur.gy() + 1.1) hit(l, p);
                         }
                     });
                 }
@@ -620,15 +703,15 @@ public final class EndGame {
             }
             default -> { // the whole arena is struck except for three safe circles
                 double[][] safe = new double[3][2];
-                for (double[] s : safe) { double a = rnd.nextDouble() * Math.PI * 2, d = 4 + rnd.nextDouble() * 14; s[0] = 0.5 + Math.cos(a) * d; s[1] = 0.5 + Math.sin(a) * d; }
+                for (double[] s : safe) { double a = rnd.nextDouble() * Math.PI * 2, d = 4 + rnd.nextDouble() * 14; s[0] = cx + Math.cos(a) * d; s[1] = cz + Math.sin(a) * d; }
                 for (int t = 0; t < 70; t += 5) at(t, l -> { for (double[] s : safe) circle(l, s[0], s[1], 3.2, 0.2f, 1f, 0.3f); });
                 at(70, l -> {
                     for (ServerPlayer p : fighters(l)) {
                         boolean ok = false;
                         for (double[] s : safe) { double dx = p.getX() - s[0], dz = p.getZ() - s[1]; if (dx * dx + dz * dz <= 3.2 * 3.2) ok = true; }
-                        if (!ok) loseLife(l, p);
+                        if (!ok) hit(l, p);
                     }
-                    boom(l, 0.5, 0.5, 30);
+                    boom(l, cx, cz, 30);
                 });
             }
         }
@@ -680,11 +763,11 @@ public final class EndGame {
     private static void startCall(ServerLevel lv) {
         rootsActive = true;
         activeKind = 1;
-        phaseEnd = rt + 410;
+        phaseEnd = rt + 210;
         callFailed.clear();
         tellLevel(lv, "The Mother Tree sings. It cannot be hurt while you listen. Do NOT give in: every one who does heals it.", ChatFormatting.LIGHT_PURPLE);
-        temptation(lv, 400, callFailed);
-        at(405, l -> {
+        temptation(lv, 200, callFailed);
+        at(205, l -> {
             Mob b = findBoss(l, TAG_RAID);
             if (b != null) healBoss(b, 0.10f * callFailed.size());
             endPhase(l, callFailed.isEmpty() ? "Nobody gave in. The tree is exposed!" : callFailed.size() + " gave in and fed it. The tree is exposed again.", ChatFormatting.GOLD);
@@ -789,6 +872,7 @@ public final class EndGame {
         ServerLevel lv = dim(server, "raid");
         if (lv == null) return;
         rt++;
+        cur = new Arena(lv, 0.5, 0.5, groundY, true);
         if (rt % 20 == 0) rootsSecond(lv);
         if (rt >= nextPattern && !fighters(lv).isEmpty()) {
             int[] opts = NEXT[lastPattern];
@@ -797,13 +881,13 @@ public final class EndGame {
             pattern(lv, which);
             nextPattern = rt + DURATION[which] + 30 + ThreadLocalRandom.current().nextInt(40);
         }
-        Iterator<Timed> it = new ArrayList<>(timed).iterator();
-        List<Timed> done = new ArrayList<>();
-        while (it.hasNext()) {
-            Timed t = it.next();
-            if (t.at() <= rt) { done.add(t); t.run().accept(lv); }
-        }
-        timed.removeAll(done);
+    }
+
+    private static void processTimed() {
+        List<Timed> due = new ArrayList<>();
+        for (Timed t : timed) if (t.at() <= gt) due.add(t);
+        timed.removeAll(due);
+        for (Timed t : due) { cur = t.a(); t.run().accept(t.a().lv()); }
     }
 
     private static void secondRaid(MinecraftServer server, AstralData d) {
@@ -869,9 +953,11 @@ public final class EndGame {
     public static void onTick(ServerTickEvent.Post event) {
         MinecraftServer server = event.getServer();
         AstralData d = AstralData.get(server);
+        gt++;
         closeTick(server);
         if (d.endPhase.isEmpty() || d.endPhase.equals("classic")) return;
         if (d.endPhase.equals("raid")) raidTick(server, d);
+        processTimed();
         if (server.getTickCount() % 20 != 0) return;
         switch (d.endPhase) {
             case "evac" -> secondEvac(server, d);
