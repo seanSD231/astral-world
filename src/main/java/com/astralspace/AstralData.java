@@ -38,6 +38,9 @@ public class AstralData extends SavedData {
     public final Set<String> bossesDead = new HashSet<>();
     public final Map<UUID, Integer> raidLives = new HashMap<>();
     public String raidBoss = "";
+    /** Leaderboard numbers kept while the bosses and the raid last. */
+    public static final class Stat { public String name = ""; public double damage, heal; public int deaths; }
+    public final Map<UUID, Stat> stats = new HashMap<>();
     /** The newest stage message each player has already seen. */
     public final Map<UUID, Integer> seenStage = new HashMap<>();
     /** Every player ever seen at Seq 0 (kept while offline). */
@@ -70,6 +73,13 @@ public class AstralData extends SavedData {
         d.resumeStage = tag.contains("resumeStage") ? tag.getInt("resumeStage") : 1;
         d.raidBoss = tag.getString("raidBoss");
         for (String k : tag.getString("bossesDead").split(",")) if (!k.isEmpty()) d.bossesDead.add(k);
+        CompoundTag stt = tag.getCompound("stats");
+        for (String k : stt.getAllKeys()) {
+            CompoundTag e = stt.getCompound(k);
+            Stat s = new Stat();
+            s.name = e.getString("name"); s.damage = e.getDouble("damage"); s.heal = e.getDouble("heal"); s.deaths = e.getInt("deaths");
+            d.stats.put(UUID.fromString(k), s);
+        }
         CompoundTag rl = tag.getCompound("raidLives");
         for (String k : rl.getAllKeys()) d.raidLives.put(UUID.fromString(k), rl.getInt(k));
         CompoundTag st = tag.getCompound("seenStage");
@@ -104,6 +114,13 @@ public class AstralData extends SavedData {
         tag.putInt("resumeStage", resumeStage);
         tag.putString("raidBoss", raidBoss);
         tag.putString("bossesDead", String.join(",", bossesDead));
+        CompoundTag stt = new CompoundTag();
+        stats.forEach((k, s) -> {
+            CompoundTag e = new CompoundTag();
+            e.putString("name", s.name); e.putDouble("damage", s.damage); e.putDouble("heal", s.heal); e.putInt("deaths", s.deaths);
+            stt.put(k.toString(), e);
+        });
+        tag.put("stats", stt);
         CompoundTag rl = new CompoundTag();
         raidLives.forEach((k, v) -> rl.putInt(k.toString(), v));
         tag.put("raidLives", rl);

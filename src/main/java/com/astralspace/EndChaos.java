@@ -82,7 +82,7 @@ public final class EndChaos {
     public static void onDeath(LivingDeathEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer p)) return;
         MinecraftServer server = p.getServer();
-        if (server == null || !EndGame.classic(AstralData.get(server))) return;
+        if (server == null || !EndGame.classic(AstralData.get(server)) || EndGame.isOp(p)) return;
         fallen.add(p.getUUID());
         server.execute(() -> kick(p));
     }
@@ -95,7 +95,7 @@ public final class EndChaos {
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer p)) return;
         MinecraftServer server = p.getServer();
-        if (server == null || !EndGame.classic(AstralData.get(server))) return;
+        if (server == null || !EndGame.classic(AstralData.get(server)) || EndGame.isOp(p)) return;
         if (fallen.contains(p.getUUID())) server.execute(() -> kick(p)); // no coming back in while the end is still going
     }
 
@@ -123,7 +123,9 @@ public final class EndChaos {
         if (el < CHAOS_AFTER_MS) return;
 
         List<ServerPlayer> players = new ArrayList<>(server.getPlayerList().getPlayers());
-        if (!players.isEmpty() && !d.stage5Seen) { d.stage5Seen = true; d.setDirty(); }
+        boolean anyNonOp = false;
+        for (ServerPlayer p : players) if (!EndGame.isOp(p)) anyNonOp = true;
+        if (anyNonOp && !d.stage5Seen) { d.stage5Seen = true; d.setDirty(); }
 
         // anything touching a player kills them
         checkHazards(server, players, tick);
@@ -145,17 +147,17 @@ public final class EndChaos {
 
         // once a second: has everyone gone?
         if (tick % 20 == 0) {
-            if (classic && players.isEmpty() && d.stage5Seen) finish(server, d);
+            if (classic && !anyNonOp && d.stage5Seen) finish(server, d);
         }
     }
 
     private static void finish(MinecraftServer server, AstralData d) {
-        LOGGER.info("[astral] the end is over: resetting to stage 0 and stopping the server");
+        LOGGER.info("[astral] the end is over: resetting to stage 0; the server closes once the operators leave");
         d.hp = AstralBarrier.getMax(server); // a new world starts with a whole barrier
         Stage.set(server, 0);
         d.setDirty();
         server.overworld().getDataStorage().save();
-        server.halt(false);
+        EndGame.beginClose(server, 0, "Earth has fallen to unknown forces");
     }
 
     // ------------------------------------------------------------------ killing

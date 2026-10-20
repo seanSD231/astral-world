@@ -29,12 +29,14 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -89,6 +91,53 @@ public final class EndGame {
     private EndGame() {}
 
     // ------------------------------------------------------------------ small helpers
+
+    static boolean isOp(ServerPlayer p) { return p.getServer() != null && p.getServer().getPlayerList().isOp(p.getGameProfile()); }
+
+    private static boolean tracking(AstralData d) { return d.endPhase.equals("bosses") || d.endPhase.equals("raid"); }
+
+    private static AstralData.Stat stat(AstralData d, ServerPlayer p) {
+        AstralData.Stat s = d.stats.computeIfAbsent(p.getUUID(), k -> new AstralData.Stat());
+        s.name = p.getGameProfile().getName();
+        d.setDirty();
+        return s;
+    }
+
+    /** The top 20 by damage, shown to everyone. */
+    private static void leaderboard(MinecraftServer server, AstralData d) {
+        List<AstralData.Stat> l = new ArrayList<>(d.stats.values());
+        l.sort(Comparator.comparingDouble((AstralData.Stat s) -> s.damage).reversed());
+        tell(server, "===== Leaderboard =====", ChatFormatting.GOLD);
+        for (int i = 0; i < Math.min(20, l.size()); i++) {
+            AstralData.Stat s = l.get(i);
+            ChatFormatting c = i == 0 ? ChatFormatting.GOLD : i < 3 ? ChatFormatting.YELLOW : ChatFormatting.GRAY;
+            tell(server, String.format("#%d  %s   damage %,.0f   healing %,.0f   deaths %d", i + 1, s.name, s.damage, s.heal, s.deaths), c);
+        }
+        if (l.isEmpty()) tell(server, "Nobody left a mark.", ChatFormatting.GRAY);
+    }
+
+    // ------------------------------------------------------------------ closing the server (operators may stay)
+
+    private static long closeAt = -1;
+    private static String closeMessage = "";
+
+    /** After `seconds`, everyone who is not an operator is kicked; the server stops once nobody is left. */
+    static void beginClose(MinecraftServer server, int seconds, String message) {
+        closeAt = server.getTickCount() + seconds * 20L;
+        closeMessage = message;
+    }
+
+    private static void closeTick(MinecraftServer server) {
+        if (closeAt < 0 || server.getTickCount() < closeAt || server.getTickCount() % 20 != 0) return;
+        for (ServerPlayer p : new ArrayList<>(server.getPlayerList().getPlayers()))
+            if (!isOp(p)) p.connection.disconnect(Component.literal(closeMessage));
+        if (server.getPlayerList().getPlayers().isEmpty()) {
+            LOGGER.info("[astral] the end game is over: stopping the server");
+            server.overworld().getDataStorage().save();
+            closeAt = -1;
+            server.halt(false);
+        }
+    }
 
     private static boolean isEarthDim(ResourceKey<Level> k) { return k.equals(Cosmos.key("earth")); }
 
@@ -179,6 +228,7 @@ public final class EndGame {
         d.endUntil = 0;
         d.evacOffered = false;
         d.bossesDead.clear();
+        d.stats.clear();
         d.raidLives.clear();
         d.raidBoss = "";
         d.setDirty();
@@ -348,10 +398,12 @@ public final class EndGame {
     private record Timed(long at, Consumer<ServerLevel> run) {}
     private static final List<Timed> timed = new ArrayList<>();
     private static long rt = 0, nextPattern = 0;
-    private static int patternIdx = 0;
     private static double groundY = 4;
     private static final Map<UUID, Long> lastHit = new HashMap<>();
-    private static final int[] ORDER = {0, 3, 1, 2, 4};
+    /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles. */
+    private static final int[][] NEXT = {{2, 4, 3}, {0, 3, 4}, {3, 1, 4}, {0, 1, 2}, {2, 3, 1}};
+    private static final int[] DURATION = {140, 150, 110, 70, 80};
+    private static int lastPattern = 3;
 
     private static void startRaid(MinecraftServer server, AstralData d) {
         ServerLevel lv = dim(server, "raid");
@@ -371,7 +423,7 @@ public final class EndGame {
         force(lv, 3, true);
         groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
         timed.clear();
-        rt = 0; nextPattern = 100; patternIdx = 0;
+        rt = 0; nextPattern = 100; lastPattern = 3; lastHit.clear();
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
             boss.addTag(TAG_BOSS);
@@ -405,6 +457,7 @@ public final class EndGame {
         Long last = lastHit.get(p.getUUID());
         if (last != null && now - last < 40) return; // just hit: a moment of grace
         lastHit.put(p.getUUID(), now);
+        stat(d, p).deaths++;
         int lives = d.raidLives.merge(p.getUUID(), -1, Integer::sum);
         d.setDirty();
         lv.playSound(null, p.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.HOSTILE, 1f, 1.2f);
@@ -453,7 +506,8 @@ public final class EndGame {
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         switch (which) {
             case 0 -> { // meteors: red marks under every fighter, they land 1.5 s later
-                for (int k = 0; k < 5; k++) at(k * 20L, l -> {
+                int shots = 4 + rnd.nextInt(3);
+                for (int k = 0; k < shots; k++) at(k * 20L, l -> {
                     for (ServerPlayer p : fighters(l)) {
                         double x = p.getX() + rnd.nextDouble(-3, 3), z = p.getZ() + rnd.nextDouble(-3, 3);
                         for (int t = 0; t < 30; t += 5) at(t, ll -> circle(ll, x, z, 3.5, 1f, 0.1f, 0.1f));
@@ -462,7 +516,8 @@ public final class EndGame {
                 });
             }
             case 1 -> { // two rings rolling out from the Outer God: jump them
-                for (int ring = 0; ring < 2; ring++) {
+                int rings = 2 + rnd.nextInt(2);
+                for (int ring = 0; ring < rings; ring++) {
                     long start = 25 + ring * 30L;
                     for (int t = 0; t < 50; t++) {
                         final int tt = t;
@@ -479,10 +534,11 @@ public final class EndGame {
             }
             case 2 -> { // a beam sweeping round: jump it
                 double a0 = rnd.nextDouble() * Math.PI * 2;
+                double spin = rnd.nextBoolean() ? 1 : -1;
                 for (int t = 0; t < 100; t++) {
                     final int tt = t;
                     at(t, l -> {
-                        double a = a0 + Math.max(0, tt - 20) * Math.toRadians(1.5);
+                        double a = a0 + spin * Math.max(0, tt - 20) * Math.toRadians(1.5);
                         boolean live = tt >= 20;
                         for (double d = 1; d <= 40; d += 1.2) {
                             double x = 0.5 + Math.cos(a) * d, z = 0.5 + Math.sin(a) * d;
@@ -527,9 +583,11 @@ public final class EndGame {
         if (lv == null) return;
         rt++;
         if (rt >= nextPattern && !fighters(lv).isEmpty()) {
-            int which = ORDER[patternIdx++ % ORDER.length];
+            int[] opts = NEXT[lastPattern];
+            int which = opts[ThreadLocalRandom.current().nextInt(opts.length)];
+            lastPattern = which;
             pattern(lv, which);
-            nextPattern = rt + (which == 2 ? 120 : which == 1 ? 120 : 100) + 40;
+            nextPattern = rt + DURATION[which] + 30 + ThreadLocalRandom.current().nextInt(40);
         }
         Iterator<Timed> it = new ArrayList<>(timed).iterator();
         List<Timed> done = new ArrayList<>();
@@ -574,7 +632,10 @@ public final class EndGame {
     private static void raidWon(MinecraftServer server, AstralData d) {
         LOGGER.info("[astral] the raid boss fell: Earth returns, stage 0 for {} days", Settings.recoveryDays);
         int resume = d.resumeStage;
-        resetAll(server);
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) p.displayClientMessage(Component.literal("VICTORY").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), true);
+        tell(server, "Victory! " + RAID_NAME + " has been defeated.", ChatFormatting.GOLD);
+        leaderboard(server, d);
+        resetAll(server); // everyone goes home to a restored Earth
         internal = true;
         try { Stage.set(server, 0); } finally { internal = false; }
         d.resumeStage = resume;
@@ -582,7 +643,8 @@ public final class EndGame {
         d.endPhase = "recover";
         d.endUntil = System.currentTimeMillis() + (long) (Settings.recoveryDays * DAY);
         d.setDirty();
-        tell(server, "The Outer God is gone. The barrier is whole again, and Earth has returned.", ChatFormatting.GOLD);
+        tell(server, "The barrier is whole again and Earth has returned. The server closes in 30 seconds (operators may stay).", ChatFormatting.GOLD);
+        beginClose(server, 30, "Victory! The server is now closed. Thank you for playing.");
     }
 
     private static void secondRecover(MinecraftServer server, AstralData d) {
@@ -599,6 +661,7 @@ public final class EndGame {
     public static void onTick(ServerTickEvent.Post event) {
         MinecraftServer server = event.getServer();
         AstralData d = AstralData.get(server);
+        closeTick(server);
         if (d.endPhase.isEmpty() || d.endPhase.equals("classic")) return;
         if (d.endPhase.equals("raid")) raidTick(server, d);
         if (server.getTickCount() % 20 != 0) return;
@@ -614,10 +677,12 @@ public final class EndGame {
     @SubscribeEvent
     public static void onDeath(LivingDeathEvent event) {
         Entity e = event.getEntity();
-        if (e.level().isClientSide || !e.getTags().contains(TAG_BOSS)) return;
+        if (e.level().isClientSide) return;
         MinecraftServer server = e.getServer();
         if (server == null) return;
         AstralData d = AstralData.get(server);
+        if (e instanceof ServerPlayer pl) { if (d.endPhase.equals("bosses")) stat(d, pl).deaths++; return; }
+        if (!e.getTags().contains(TAG_BOSS)) return;
         if (e.getTags().contains(TAG_RAID)) {
             if (d.endPhase.equals("raid")) { d.bossesDead.add("raid"); server.execute(() -> raidWon(server, d)); }
             return;
@@ -629,9 +694,20 @@ public final class EndGame {
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         Entity e = event.getEntity();
+        if (e.getTags().contains(TAG_BOSS) && event.getSource().getEntity() instanceof ServerPlayer atk && e.getServer() != null) {
+            AstralData d = AstralData.get(e.getServer());
+            if (tracking(d)) stat(d, atk).damage += event.getAmount(); // counted before shrinking: this is the 10,000 / 100,000 scale
+        }
         if (e.getTags().contains(TAG_RAID)) { event.setAmount(event.getAmount() * RAID_DAMAGE); return; }
         if (e.getTags().contains(TAG_BOSS)) { event.setAmount(event.getAmount() * BOSS_DAMAGE); return; }
         if (e instanceof ServerPlayer p && p.level().dimension().equals(Cosmos.key("raid"))) event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public static void onHeal(LivingHealEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer p) || p.getServer() == null) return;
+        AstralData d = AstralData.get(p.getServer());
+        if (tracking(d)) stat(d, p).heal += Math.min(event.getAmount(), p.getMaxHealth() - p.getHealth());
     }
 
     @SubscribeEvent
