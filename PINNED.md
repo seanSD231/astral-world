@@ -6,3 +6,7 @@
 - (old) Blocky design from the preview: 8 arching root legs, twisting wine-brown trunk, glowing pink hollow "face" with dark eyes, forking branches, pink/magenta blossom canopy (tiered, not a lump), hanging vines with glowing red fruit.
 - Preview: mother_tree_preview.png (first draft, normal size; the big version is the target).
 - Still undecided: reskin the LOTM mob vs. own entity type; needs a reference image/description from the user.
+
+## Mother Tree, half-HP form (rotten / fleshy)
+- Turns into this at 50% HP: fleshy red-brown lumpy bark with glowing red-orange veins, growths/pustules on the trunk, tentacle-roots rising around the base, withered branches with sparse rotten fruit (olive/yellow/dark red), dim sickly-glow bulbs on sinew strands, spores and embers, dark bruised-red sky, blighted yellow-brown grass.
+- Previews: arena_rot_wide.png / arena_rot_close.png (and arena_wide/close for the healthy form).
