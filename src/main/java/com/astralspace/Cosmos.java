@@ -85,7 +85,8 @@ public final class Cosmos {
     }
 
     private static boolean allowed(net.minecraft.commands.CommandSourceStack src) {
-        return src.hasPermission(2) || (src.getEntity() instanceof ServerPlayer p && canTravel(p));
+        if (src.hasPermission(2) || (src.getEntity() instanceof ServerPlayer p && canTravel(p))) return true;
+        return AstralData.get(src.getServer()).endPhase.equals("bosses"); // while the sovereigns reign, everyone may travel
     }
 
     // ------------------------------------------------------------------ places

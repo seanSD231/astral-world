@@ -345,6 +345,7 @@ public final class EndGame {
             if (k.equals(Level.OVERWORLD) || isEarthDim(k)) EndChaos.kill(p);
         }
         tell(server, "Defeat the sovereign on every planet within " + (int) Settings.bossDays + " days. Each one you defeat gives you " + (int) Settings.bossDays + " more.", ChatFormatting.GOLD);
+        tell(server, "Anyone may use /cosmos to travel now: /cosmos to <planet> (mercury, venus, mars, jupiter, saturn, uranus, neptune).", ChatFormatting.AQUA);
     }
 
     // ------------------------------------------------------------------ the planet bosses
