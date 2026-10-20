@@ -78,12 +78,12 @@ public final class EndGame {
     /** The boss of each planet: a Seq 0 of a pathway that is finished in LOTM. */
     private record BossDef(String planet, String pathway, String title) {}
     private static final List<BossDef> BOSSES = List.of(
-            new BossDef("mercury", "seer", "Sovereign of Mercury"),
+            new BossDef("mercury", "apprentice", "Sovereign of Mercury"),
             new BossDef("venus", "spectator", "Sovereign of Venus"),
             new BossDef("mars", "warrior", "Sovereign of Mars"),
             new BossDef("jupiter", "sailor", "Sovereign of Jupiter"),
-            new BossDef("saturn", "monster", "Sovereign of Saturn"),
-            new BossDef("uranus", "marauder", "Sovereign of Uranus"),
+            new BossDef("saturn", "corpse_collector", "Sovereign of Saturn"),
+            new BossDef("uranus", "monster", "Sovereign of Uranus"),
             new BossDef("neptune", "bard", "Sovereign of Neptune"));
     private static final String RAID_PATHWAY = "prisoner";
     private static final String RAID_NAME = "Mother Tree of Desire";

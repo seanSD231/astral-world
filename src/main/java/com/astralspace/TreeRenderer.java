@@ -17,7 +17,6 @@ import org.joml.Matrix4f;
  */
 public final class TreeRenderer {
     private static final String NAME = "Mother Tree of Desire";
-    private static VertexBuffer healthy, rotten;
 
     private TreeRenderer() {}
 
@@ -26,18 +25,31 @@ public final class TreeRenderer {
         NeoForge.EVENT_BUS.addListener(TreeRenderer::onLiving);
     }
 
-    private static boolean isBoss(Entity e) {
-        return e.hasCustomName() && NAME.equals(e.getCustomName().getString());
+    private static final String[] PLANETS = {"mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune"};
+    private static final java.util.Map<String, VertexBuffer> CACHE = new java.util.HashMap<>();
+    private static final float SOV_SCALE = 0.55f;
+
+    /** Model key for a boss entity, or null: "tree", "tree_rot" is chosen later; planets by "Sovereign of X". */
+    private static String keyOf(Entity e) {
+        if (!e.hasCustomName()) return null;
+        String n = e.getCustomName().getString();
+        if (NAME.equals(n)) return "tree";
+        if (n.startsWith("Sovereign of ")) {
+            String p = n.substring(13).trim().toLowerCase(java.util.Locale.ROOT);
+            for (String s : PLANETS) if (s.equals(p)) return s;
+        }
+        return null;
     }
+
+    private static boolean isBoss(Entity e) { return keyOf(e) != null; }
 
     private static void onLiving(RenderLivingEvent.Pre<?, ?> ev) {
         if (isBoss(ev.getEntity())) ev.setCanceled(true);
     }
 
-    private static VertexBuffer upload(TreeModel m) {
+    private static VertexBuffer upload(float[] d, int floats) {
         BufferBuilder bb = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        float[] d = m.data;
-        for (int i = 0; i < m.floats; i += 6)
+        for (int i = 0; i < floats; i += 6)
             bb.addVertex(d[i], d[i + 1], d[i + 2]).setColor((int) d[i + 3], (int) d[i + 4], (int) d[i + 5], 255);
         VertexBuffer vb = new VertexBuffer(VertexBuffer.Usage.STATIC);
         vb.bind();
@@ -46,37 +58,55 @@ public final class TreeRenderer {
         return vb;
     }
 
+    private static VertexBuffer model(String key) {
+        VertexBuffer vb = CACHE.get(key);
+        if (vb != null) return vb;
+        if (key.equals("tree") || key.equals("tree_rot")) {
+            TreeModel m = TreeModel.build(key.equals("tree_rot"));
+            vb = upload(m.data, m.floats);
+        } else {
+            Mesh m = SovModels.build(key);
+            vb = upload(m.data, m.floats);
+        }
+        CACHE.put(key, vb);
+        return vb;
+    }
+
     private static void onRender(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
-        Entity boss = null;
-        for (Entity e : mc.level.entitiesForRendering()) if (isBoss(e)) { boss = e; break; }
-        if (boss == null) return;
-        boolean rot = false;
-        if (boss instanceof net.minecraft.world.entity.LivingEntity le) rot = le.getHealth() <= le.getMaxHealth() * 0.5f;
-        VertexBuffer vb;
-        if (rot) { if (rotten == null) rotten = upload(TreeModel.build(true)); vb = rotten; }
-        else { if (healthy == null) healthy = upload(TreeModel.build(false)); vb = healthy; }
-
         Vec3 cam = event.getCamera().getPosition();
-        PoseStack ps = event.getPoseStack();
-        ps.pushPose();
-        ps.translate(boss.getX() - cam.x, boss.getY() - cam.y, boss.getZ() - cam.z);
-        Matrix4f mv = new Matrix4f(ps.last().pose());
-        ps.popPose();
+        for (Entity boss : mc.level.entitiesForRendering()) {
+            String key = keyOf(boss);
+            if (key == null) continue;
+            boolean tree = key.equals("tree");
+            if (tree && boss instanceof net.minecraft.world.entity.LivingEntity le && le.getHealth() <= le.getMaxHealth() * 0.5f) key = "tree_rot";
+            VertexBuffer vb = model(key);
 
-        float fs = RenderSystem.getShaderFogStart(), fe = RenderSystem.getShaderFogEnd();
-        RenderSystem.setShaderFogStart(1.0E7f);
-        RenderSystem.setShaderFogEnd(2.0E7f);
-        RenderSystem.enableDepthTest();
-        RenderSystem.disableCull();
-        RenderSystem.disableBlend();
-        vb.bind();
-        vb.drawWithShader(mv, event.getProjectionMatrix(), GameRenderer.getPositionColorShader());
-        VertexBuffer.unbind();
-        RenderSystem.enableCull();
-        RenderSystem.setShaderFogStart(fs);
-        RenderSystem.setShaderFogEnd(fe);
+            PoseStack ps = event.getPoseStack();
+            ps.pushPose();
+            ps.translate(boss.getX() - cam.x, boss.getY() - cam.y, boss.getZ() - cam.z);
+            if (!tree) {
+                double dx = cam.x - boss.getX(), dz = cam.z - boss.getZ();
+                ps.mulPose(com.mojang.math.Axis.YP.rotation((float) Math.atan2(dx, dz)));
+                ps.scale(SOV_SCALE, SOV_SCALE, SOV_SCALE);
+            }
+            Matrix4f mv = new Matrix4f(ps.last().pose());
+            ps.popPose();
+
+            float fs = RenderSystem.getShaderFogStart(), fe = RenderSystem.getShaderFogEnd();
+            RenderSystem.setShaderFogStart(1.0E7f);
+            RenderSystem.setShaderFogEnd(2.0E7f);
+            RenderSystem.enableDepthTest();
+            RenderSystem.disableCull();
+            RenderSystem.disableBlend();
+            vb.bind();
+            vb.drawWithShader(mv, event.getProjectionMatrix(), GameRenderer.getPositionColorShader());
+            VertexBuffer.unbind();
+            RenderSystem.enableCull();
+            RenderSystem.setShaderFogStart(fs);
+            RenderSystem.setShaderFogEnd(fe);
+        }
     }
 }
