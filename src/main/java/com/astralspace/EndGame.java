@@ -1195,7 +1195,22 @@ public final class EndGame {
     private static final Map<UUID, Float> lastHp = new HashMap<>();
     private static final Map<UUID, Long> lastPlayerHit = new HashMap<>();   // when a player last hurt each boss
     private static final float MAX_HIT = 0.10f;     // no single hit takes more than this share of a boss's health
-    private static final float MAX_DROP = 0.25f;    // anything that takes more than this in one go is not a hit but an execution
+    private static final float MAX_DROP = 0.12f;    // anything that takes more than this in one tick is not a hit but an execution
+    private static final float RAID_HIT = 0.02f;    // the Mother Tree: no single hit takes more than this share
+    private static final float RAID_RATE = 0.04f;   // ...and nothing takes more than this share of it per second, however many hits an ability lands
+    private static final float BOSS_RATE = 0.08f;   // same for the planet sovereigns
+    private static final Map<UUID, long[]> rateWin = new HashMap<>();   // boss -> {window start tick, damage taken in the window (as float bits)}
+
+    /** Caps what a boss can lose per second so multi-hit abilities (Pillar of Lightning and the like) cannot chain past the per-hit cap. Returns the allowed amount. */
+    private static float rateLimit(net.minecraft.world.entity.LivingEntity e, float amount, float rate) {
+        long[] w = rateWin.computeIfAbsent(e.getUUID(), k -> new long[]{gt, Float.floatToIntBits(0f)});
+        if (gt - w[0] >= 20) { w[0] = gt; w[1] = Float.floatToIntBits(0f); }
+        float used = Float.intBitsToFloat((int) w[1]);
+        float allowed = Math.max(0f, e.getMaxHealth() * rate - used);
+        float out = Math.min(amount, allowed);
+        w[1] = Float.floatToIntBits(used + out);
+        return out;
+    }
 
     private static void stripDeath(Mob m) {
         m.removeEffect(net.minecraft.world.effect.MobEffects.POISON);
@@ -1330,8 +1345,18 @@ public final class EndGame {
             if (by == e || direct == e || (by instanceof Mob bm && bm.getTags().contains(TAG_BOSS))) { event.setCanceled(true); return; }
         }
         if (e.getTags().contains(TAG_BOSS) && environmental(event.getSource())) { event.setCanceled(true); return; } // the world cannot kill a sovereign
-        if (e.getTags().contains(TAG_RAID)) { event.setAmount(Math.min(event.getAmount() * RAID_DAMAGE, ((net.minecraft.world.entity.LivingEntity) e).getMaxHealth() * MAX_HIT)); return; }
-        if (e.getTags().contains(TAG_BOSS)) { event.setAmount(Math.min(event.getAmount() * BOSS_DAMAGE, ((net.minecraft.world.entity.LivingEntity) e).getMaxHealth() * MAX_HIT)); return; }
+        if (e.getTags().contains(TAG_RAID)) {
+            var le = (net.minecraft.world.entity.LivingEntity) e;
+            float a = rateLimit(le, Math.min(event.getAmount() * RAID_DAMAGE, le.getMaxHealth() * RAID_HIT), RAID_RATE);
+            if (a <= 0f) event.setCanceled(true); else event.setAmount(a);
+            return;
+        }
+        if (e.getTags().contains(TAG_BOSS)) {
+            var le = (net.minecraft.world.entity.LivingEntity) e;
+            float a = rateLimit(le, Math.min(event.getAmount() * BOSS_DAMAGE, le.getMaxHealth() * MAX_HIT), BOSS_RATE);
+            if (a <= 0f) event.setCanceled(true); else event.setAmount(a);
+            return;
+        }
         if (e instanceof ServerPlayer p && p.level().dimension().equals(Cosmos.key("raid"))) event.setCanceled(true);
     }
 
