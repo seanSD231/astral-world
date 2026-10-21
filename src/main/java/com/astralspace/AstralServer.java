@@ -90,6 +90,8 @@ public final class AstralServer {
 
     // ------------------------------------------------------------------ travel
 
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+
     public static void goToAstral(MinecraftServer server, ServerPlayer p) {
         ServerLevel astral = server.getLevel(ASTRAL);
         if (astral == null) {
@@ -222,7 +224,10 @@ public final class AstralServer {
                 d.seq0Paths.remove(id);
                 dirty = true;
             }
-            if (prev != null && prev > 0 && seq == 0 && ascensionReady(id)) { // at most once per 10 minutes per player
+            if (prev != null && prev > 0 && seq == 0) {
+                boolean ready = ascensionReady(id);
+                LOGGER.info("[astral] {} reached Seq 0 (was Seq {}): {}", p.getGameProfile().getName(), prev, ready ? "sending to the Astral World" : "NOT sent, the 10 minute ascension cooldown is running");
+                if (!ready) continue;
                 goToAstral(server, p);
                 title(p, "Ascension", "The Astral World calls. Use /astral to travel", ChatFormatting.LIGHT_PURPLE);
             }
