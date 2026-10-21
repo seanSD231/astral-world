@@ -613,7 +613,6 @@ public final class EndGame {
         if (last != null && now - last < 40) return; // just hit: a moment of grace
         lastHit.put(p.getUUID(), now);
         Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 80); // every hit corrupts heavily and shakes the mind
-        Lotm.loseSanityPercent(p, 50);
         float dmg = p.getMaxHealth() * 0.8f;
         if (p.getHealth() > dmg) { // it takes 80% of their health: a second hit is certain death
             p.setHealth(p.getHealth() - dmg);
@@ -646,7 +645,6 @@ public final class EndGame {
         if (last != null && now - last < 40) return;
         lastHit.put(p.getUUID(), now);
         Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 30);
-        Lotm.loseSanityPercent(p, 20);
         p.hurt(lv.damageSources().magic(), p.getMaxHealth() * 0.5f);
         lv.playSound(null, p.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.HOSTILE, 1f, 1.2f);
     }
