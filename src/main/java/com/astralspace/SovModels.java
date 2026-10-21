@@ -160,26 +160,26 @@ final class SovModels {
         int ih = (int) (n * .38), ic = (int) (n * .5);
         for (int sz = -1; sz <= 1; sz += 2) {
             double[] hp = add(sp[ih], v(.4, -.7, sz * 1.9)), kn = add(hp, v(-2.4, -1.5, sz * 1.0)), hk = add(kn, v(3.2, -1.4, -sz * .2)), ft = v(hk[0] - .8, .35, hk[2] + sz * .1);
-            m.blob(add(hp, v(.2, -.2, 0)), v(2.2, 2.8, 1.7), gray, .08, 10, 14, false, null, 3 + sz, .9);
-            m.limb(new double[][]{hp, kn, hk, ft}, new double[]{1.35, 1.0, .66, .5}, gray, 14, .9, .04);
-            m.blob(kn, v(.95, .95, .95), gray, .08, 6, 10, false, null, 17, .9);
-            m.blob(add(ft, v(-.6, 0, 0)), v(1.4, .45, 1.15), gray, .06, 6, 10, false, null, 5, .9);
+            m.blob(add(hp, v(.2, -.2, 0)), v(1.5, 1.9, 1.15), gray, .08, 10, 14, false, null, 3 + sz, .9);
+            m.limb(new double[][]{hp, kn, hk, ft}, new double[]{.95, .7, .46, .36}, gray, 14, .9, .04);
+            m.blob(kn, v(.65, .65, .65), gray, .08, 6, 10, false, null, 17, .9);
+            m.blob(add(ft, v(-.6, 0, 0)), v(1.0, .34, .8), gray, .06, 6, 10, false, null, 5, .9);
             for (int q = 0; q < 4; q++) {
                 double z0 = (q - 1.5) * .5;
-                m.limb(new double[][]{add(ft, v(-1.0, 0, z0 * .5)), add(ft, v(-1.9, 0, z0 * .8)), add(ft, v(-2.5, -.1, z0))}, new double[]{.28, .24, .16}, gray, 7, .7, 0);
-                m.cone(add(ft, v(-2.5, -.1, z0)), add(ft, v(-3.3, -.25, z0 * 1.15)), .16, claw, 5, false);
+                m.limb(new double[][]{add(ft, v(-1.0, 0, z0 * .5)), add(ft, v(-1.9, 0, z0 * .8)), add(ft, v(-2.5, -.1, z0))}, new double[]{.2, .17, .12}, gray, 7, .7, 0);
+                m.cone(add(ft, v(-2.5, -.1, z0)), add(ft, v(-3.0, -.25, z0 * 1.15)), .11, claw, 5, false);
             }
         }
         for (int sz = -1; sz <= 1; sz += 2) {
             double[] sh = add(sp[ic], v(0, -.9, sz * 2.1)), el = add(sh, v(2.0, -2.3, sz * .9)), wr = v(el[0] - 2.3, 1.5, el[2] + sz * .3), pw = v(wr[0] - .7, .35, wr[2]);
-            m.blob(sh, v(2.8, 3.3, 2.0), gray, .08, 10, 14, false, null, 9 + sz, .9);
-            m.limb(new double[][]{sh, el, wr, pw}, new double[]{1.75, 1.2, .85, .72}, gray, 14, .9, .04);
-            m.blob(el, v(1.2, 1.2, 1.2), gray, .08, 6, 10, false, null, 19, .9);
-            m.blob(add(pw, v(-.7, 0, 0)), v(1.7, .5, 1.4), gray, .06, 6, 10, false, null, 11, .9);
+            m.blob(sh, v(1.9, 2.25, 1.35), gray, .08, 10, 14, false, null, 9 + sz, .9);
+            m.limb(new double[][]{sh, el, wr, pw}, new double[]{1.2, .84, .6, .5}, gray, 14, .9, .04);
+            m.blob(el, v(.82, .82, .82), gray, .08, 6, 10, false, null, 19, .9);
+            m.blob(add(pw, v(-.7, 0, 0)), v(1.2, .38, .98), gray, .06, 6, 10, false, null, 11, .9);
             for (int q = 0; q < 4; q++) {
                 double z0 = (q - 1.5) * .45;
-                m.limb(new double[][]{add(pw, v(-1.2, 0, z0 * .6)), add(pw, v(-2.0, 0, z0 * .9)), add(pw, v(-2.7, -.05, z0 * 1.1))}, new double[]{.34, .28, .2}, gray, 7, .7, 0);
-                m.cone(add(pw, v(-2.7, -.05, z0 * 1.1)), add(pw, v(-3.6, -.2, z0 * 1.25)), .2, claw, 5, false);
+                m.limb(new double[][]{add(pw, v(-1.2, 0, z0 * .6)), add(pw, v(-2.0, 0, z0 * .9)), add(pw, v(-2.7, -.05, z0 * 1.1))}, new double[]{.24, .2, .14}, gray, 7, .7, 0);
+                m.cone(add(pw, v(-2.7, -.05, z0 * 1.1)), add(pw, v(-3.2, -.2, z0 * 1.25)), .14, claw, 5, false);
             }
         }
         for (int sz = -1; sz <= 1; sz += 2) wing(m, sz, add(sp[ic - 3], v(0, .9, sz * .6)), mem, bone);
