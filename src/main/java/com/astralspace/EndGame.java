@@ -421,7 +421,7 @@ public final class EndGame {
     private static final Map<String, String[]> POWERS = Map.of(
             "mercury", new String[]{"starfall", "doorgammarayburst"}, "venus", new String[]{"dragonbreath", "mindstorm"},
             "mars", new String[]{"beamoftwilight", "globeoftwilight"}, "jupiter", new String[]{"sailorlightningstorm", "sonicboom"},
-            "saturn", new String[]{"deathgraveyard", "summonunderworldhelpers"}, "uranus", new String[]{"psychestorm", "misfortuneimplosion"},
+            "saturn", new String[]{"deathgraveyard"}, "uranus", new String[]{"psychestorm", "misfortuneimplosion"},
             "neptune", new String[]{"purewhiteray", "spearoflight"});
     private static final Map<String, Integer> cycleCount = new HashMap<>();
 
