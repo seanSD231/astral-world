@@ -1129,6 +1129,9 @@ public final class EndGame {
     private static final float MAX_DROP = 0.25f;    // anything that takes more than this in one go is not a hit but an execution
 
     private static void stripDeath(Mob m) {
+        m.removeEffect(net.minecraft.world.effect.MobEffects.POISON);
+        m.removeEffect(net.minecraft.world.effect.MobEffects.WITHER);
+        m.removeEffect(net.minecraft.world.effect.MobEffects.HARM);
         var tag = m.getPersistentData();
         for (String k : DEATH_FLAGS) if (tag.contains(k)) tag.remove(k);
         for (var inst : new ArrayList<>(m.getActiveEffects()))
@@ -1193,6 +1196,13 @@ public final class EndGame {
     public static void onDeath(LivingDeathEvent event) {
         Entity e = event.getEntity();
         if (e.level().isClientSide) return;
+        if (e instanceof Mob sm && sm.getTags().contains(TAG_BOSS) && (event.getSource().getEntity() == e || event.getSource().getDirectEntity() == e)) { // it did this to itself
+            event.setCanceled(true);
+            Float l = lastHp.get(sm.getUUID());
+            sm.setHealth(Math.max(1f, l != null ? l : sm.getMaxHealth()));
+            stripDeath(sm);
+            return;
+        }
         if (e instanceof Mob bm && bm.getTags().contains(TAG_BOSS)) { // a boss at good health cannot die: that is an execution, not a fight
             Float last = lastHp.get(bm.getUUID());
             if (last != null && last > bm.getMaxHealth() * MAX_DROP) {
@@ -1234,6 +1244,10 @@ public final class EndGame {
             if (tracking(d)) stat(d, atk).damage += event.getAmount(); // counted before shrinking: this is the 10,000 / 100,000 scale
         }
         if (e.getTags().contains(TAG_BOSS) && !environmental(event.getSource())) for (String t : e.getTags()) if (t.startsWith(TAG_PLANET) && PASSIVE.contains(t.substring(TAG_PLANET.length()))) woken.add(t.substring(TAG_PLANET.length()));
+        if (e.getTags().contains(TAG_BOSS)) { // bosses are hurt by players (and their allies' abilities), never by themselves or by each other
+            Entity by = event.getSource().getEntity(), direct = event.getSource().getDirectEntity();
+            if (by == e || direct == e || (by instanceof Mob bm && bm.getTags().contains(TAG_BOSS))) { event.setCanceled(true); return; }
+        }
         if (e.getTags().contains(TAG_BOSS) && environmental(event.getSource())) { event.setCanceled(true); return; } // the world cannot kill a sovereign
         if (e.getTags().contains(TAG_RAID)) { event.setAmount(Math.min(event.getAmount() * RAID_DAMAGE, ((net.minecraft.world.entity.LivingEntity) e).getMaxHealth() * MAX_HIT)); return; }
         if (e.getTags().contains(TAG_BOSS)) { event.setAmount(Math.min(event.getAmount() * BOSS_DAMAGE, ((net.minecraft.world.entity.LivingEntity) e).getMaxHealth() * MAX_HIT)); return; }
