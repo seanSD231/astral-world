@@ -397,9 +397,11 @@ public final class EndGame {
                 if (m == null) continue;
                 m.addTag(TAG_BOSS);
                 m.addTag(tag);
+                m.setNoGravity(true);
                 m.setNoAi(true); // it stays where it is: the model is far bigger than the mob, so walking up to you would swallow you
                 lv.addFreshEntity(m);
             }
+            bossIds.put(b.planet(), m.getUUID());
             ServerBossEvent bar = bars.computeIfAbsent(b.planet(), k ->
                     new ServerBossEvent(Component.literal(b.title()), BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.NOTCHED_10));
             bar.setProgress(Math.max(0f, Math.min(1f, m.getHealth() / BOSS_HP)));
@@ -980,6 +982,80 @@ public final class EndGame {
 
     // ------------------------------------------------------------------ events
 
+    // ------------------------------------------------------------------ boss movement
+
+    private static final Map<String, UUID> bossIds = new HashMap<>();
+    private static final Map<String, double[]> bossMove = new HashMap<>(); // angle, radius, direction, next change (tick), unused
+    private static final double LEASH = 34;   // bosses never leave this circle around the arrival point
+
+    private static void blink(ServerLevel lv, Mob m, double x, double z, double hover) {
+        lv.sendParticles(net.minecraft.core.particles.ParticleTypes.PORTAL, m.getX(), m.getY() + 5, m.getZ(), 60, 3, 4, 3, 0.4);
+        int gy = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, (int) Math.floor(x), (int) Math.floor(z));
+        m.setPos(x, gy + hover, z);
+        lv.sendParticles(net.minecraft.core.particles.ParticleTypes.PORTAL, x, gy + hover + 5, z, 60, 3, 4, 3, 0.4);
+    }
+
+    /** Scripted movement, one style per sovereign. None of them just chase you: they orbit, blink, or hold a distance and circle. */
+    private static void bossMoveTick(MinecraftServer server, AstralData d) {
+        java.util.Random rnd = ThreadLocalRandom.current();
+        for (BossDef b : BOSSES) {
+            if (d.bossesDead.contains(b.planet())) continue;
+            UUID id = bossIds.get(b.planet());
+            ServerLevel lv = dim(server, b.planet());
+            if (id == null || lv == null) continue;
+            if (!(lv.getEntity(id) instanceof Mob m) || !m.isAlive()) continue;
+            ServerPlayer near = null;
+            for (ServerPlayer p : lv.players()) if (!p.isSpectator() && p.isAlive() && (near == null || p.distanceToSqr(m) < near.distanceToSqr(m))) near = p;
+            if (near == null) continue;
+            double[] st = bossMove.computeIfAbsent(b.planet(), k -> new double[]{Math.atan2(m.getZ() - 0.5, m.getX() - 0.5), 20, rnd.nextBoolean() ? 1 : -1, gt + 200, 0});
+            double x = m.getX(), z = m.getZ(), hover = 0;
+            switch (b.planet()) {
+                case "mercury", "uranus" -> { // blink: stands still, then steps through a door somewhere else
+                    hover = b.planet().equals("mercury") ? 5 : 6;
+                    if (gt >= st[3]) {
+                        double a = rnd.nextDouble() * Math.PI * 2, r = 14 + rnd.nextDouble() * 10;
+                        double bx = 0.5 + Math.cos(a) * r, bz = 0.5 + Math.sin(a) * r;
+                        if (b.planet().equals("uranus")) { // behind whoever is nearest
+                            double ang = Math.atan2(near.getZ() - 0.5, near.getX() - 0.5) + Math.PI + (rnd.nextDouble() - .5);
+                            bx = 0.5 + Math.cos(ang) * 22; bz = 0.5 + Math.sin(ang) * 22;
+                        }
+                        blink(lv, m, bx, bz, hover);
+                        x = bx; z = bz;
+                        st[3] = gt + (b.planet().equals("mercury") ? 120 : 200) + rnd.nextInt(80);
+                    }
+                }
+                case "mars" -> { // a walker: keeps its distance, backs off if you crowd it, and circles
+                    double dx = near.getX() - x, dz = near.getZ() - z, dist = Math.max(0.01, Math.hypot(dx, dz));
+                    double ux = dx / dist, uz = dz / dist;
+                    if (gt >= st[3]) { st[2] = -st[2]; st[3] = gt + 200 + rnd.nextInt(200); }
+                    if (dist > 18) { x += ux * 0.2; z += uz * 0.2; }
+                    else if (dist < 11) { x -= ux * 0.16; z -= uz * 0.16; }
+                    else { x += -uz * st[2] * 0.1; z += ux * st[2] * 0.1; }
+                }
+                default -> { // fliers circle the arena, each in its own way
+                    double speed, radius;
+                    switch (b.planet()) {
+                        case "venus" -> { speed = 0.012; radius = 22 + 6 * Math.sin(gt * 0.004); hover = 9; }
+                        case "jupiter" -> { speed = 0.006; radius = 18 + 4 * Math.sin(gt * 0.01); hover = 5; }
+                        case "saturn" -> { speed = 0.01; radius = 19 + 7 * Math.sin(gt * 0.006); hover = 3; }
+                        default -> { speed = 0.008; radius = 22; hover = 7; }
+                    }
+                    if (gt >= st[3]) { st[2] = -st[2]; st[3] = gt + 400 + rnd.nextInt(300); }
+                    st[0] += st[2] * speed;
+                    x = 0.5 + Math.cos(st[0]) * radius;
+                    z = 0.5 + Math.sin(st[0]) * radius;
+                }
+            }
+            double dx = x - 0.5, dz = z - 0.5, dd = Math.hypot(dx, dz);
+            if (dd > LEASH) { x = 0.5 + dx / dd * LEASH; z = 0.5 + dz / dd * LEASH; }
+            int gy = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, (int) Math.floor(x), (int) Math.floor(z));
+            double y = m.getY() + (gy + hover - m.getY()) * 0.08;
+            m.setPos(x, y, z);
+            float yaw = (float) Math.toDegrees(Math.atan2(-(near.getX() - x), near.getZ() - z));
+            m.setYRot(yaw); m.setYHeadRot(yaw); m.yBodyRot = yaw;
+        }
+    }
+
     /** The Mercury sovereign (a Door Seq 0) must not cast Gravity Manipulation: it is bugged. Clearing its flags on everyone there stops the effect. */
     private static void stripGravityManipulation(MinecraftServer server) {
         ServerLevel lv = dim(server, "mercury");
@@ -1001,6 +1077,7 @@ public final class EndGame {
         if (d.endPhase.isEmpty() || d.endPhase.equals("classic")) return;
         if (d.endPhase.equals("raid")) raidTick(server, d);
         processTimed();
+        if (d.endPhase.equals("bosses")) bossMoveTick(server, d);
         if (d.endPhase.equals("bosses") && server.getTickCount() % 2 == 0) stripGravityManipulation(server);
         if (server.getTickCount() % 20 != 0) return;
         switch (d.endPhase) {
