@@ -980,6 +980,18 @@ public final class EndGame {
 
     // ------------------------------------------------------------------ events
 
+    /** The Mercury sovereign (a Door Seq 0) must not cast Gravity Manipulation: it is bugged. Clearing its flags on everyone there stops the effect. */
+    private static void stripGravityManipulation(MinecraftServer server) {
+        ServerLevel lv = dim(server, "mercury");
+        if (lv == null) return;
+        for (Entity e : lv.getAllEntities()) {
+            if (!(e instanceof net.minecraft.world.entity.LivingEntity)) continue;
+            var tag = e.getPersistentData();
+            if (tag.contains("affectedByGravityManipulation") && tag.getInt("affectedByGravityManipulation") != 0) tag.putInt("affectedByGravityManipulation", 0);
+            if (tag.contains("keyOfStarsGravityManipulation") && tag.getInt("keyOfStarsGravityManipulation") != 0) tag.putInt("keyOfStarsGravityManipulation", 0);
+        }
+    }
+
     @SubscribeEvent
     public static void onTick(ServerTickEvent.Post event) {
         MinecraftServer server = event.getServer();
@@ -989,6 +1001,7 @@ public final class EndGame {
         if (d.endPhase.isEmpty() || d.endPhase.equals("classic")) return;
         if (d.endPhase.equals("raid")) raidTick(server, d);
         processTimed();
+        if (d.endPhase.equals("bosses") && server.getTickCount() % 2 == 0) stripGravityManipulation(server);
         if (server.getTickCount() % 20 != 0) return;
         switch (d.endPhase) {
             case "evac" -> secondEvac(server, d);
