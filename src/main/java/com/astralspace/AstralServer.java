@@ -213,10 +213,12 @@ public final class AstralServer {
             UUID id = p.getUUID();
             Integer prev = d.lastSeq.put(id, seq);
             if (prev == null || prev != seq) dirty = true;
+            boolean newSeq0 = false;
             if (seq == 0) {
                 String pid = Lotm.pathwayId(p);
                 if (!pid.isEmpty() && !pid.equals(d.seq0Paths.put(id, pid))) dirty = true;
                 if (d.seq0.put(id, name(p)) == null) {
+                    newSeq0 = true;
                     dirty = true;
                     if (d.stage == 0 && d.endPhase.isEmpty()) Stage.set(server, 1); // the first Seq 0 ever: the Outer Gods take notice
                 }
@@ -224,9 +226,10 @@ public final class AstralServer {
                 d.seq0Paths.remove(id);
                 dirty = true;
             }
-            if (prev != null && prev > 0 && seq == 0) {
+            // a player first seen as Seq 0 counts as ascending too, even if the mod missed the step down from Seq 1 (a restart, a command, a skipped second)
+            if (seq == 0 && (newSeq0 || (prev != null && prev > 0)) && !inAstral(p)) {
                 boolean ready = ascensionReady(id);
-                LOGGER.info("[astral] {} reached Seq 0 (was Seq {}): {}", p.getGameProfile().getName(), prev, ready ? "sending to the Astral World" : "NOT sent, the 10 minute ascension cooldown is running");
+                LOGGER.info("[astral] {} reached Seq 0 (was Seq {}): {}", p.getGameProfile().getName(), prev == null ? "unknown" : prev, ready ? "sending to the Astral World" : "NOT sent, the 10 minute ascension cooldown is running");
                 if (!ready) continue;
                 goToAstral(server, p);
                 title(p, "Ascension", "The Astral World calls. Use /astral to travel", ChatFormatting.LIGHT_PURPLE);
