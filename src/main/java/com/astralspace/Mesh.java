@@ -15,7 +15,11 @@ final class Mesh {
     private static final double[] LIGHT = norm(v(0.3, 0.55, 0.75));
     private static final double[] FILL = norm(v(-0.5, 0.2, 0.4));
 
-    Mesh(long seed) { rnd = new Random(seed); }
+    /** Animated sections: each part starts at a float offset and runs to the next one; the pivot is where it turns. */
+    final List<Object[]> parts = new ArrayList<>();
+    Mesh(long seed) { rnd = new Random(seed); parts.add(new Object[]{"body", 0, new double[]{0, 0, 0}}); }
+    /** Everything built after this call belongs to a new animated part. */
+    void part(String name, double[] pivot) { parts.add(new Object[]{name, floats, pivot}); }
     int quadCount() { return floats / 24; }
 
     // ---------------------------------------------------------------- vectors

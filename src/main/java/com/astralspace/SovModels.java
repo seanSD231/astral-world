@@ -63,7 +63,9 @@ final class SovModels {
             }
         }
         double[][] worlds = {{-10, 13, -4, 2.0, 255, 190, 70}, {9, 14, -3, 1.3, 120, 170, 240}, {-8, 5, -3, 1.0, 230, 110, 90}, {10, 6, -2, 1.6, 130, 210, 150}};
+        int wi = 0;
         for (double[] w : worlds) {
+            m.part("world" + (wi++), v(0, 9, -3));
             double[] wc = v(w[0], w[1], w[2]);
             m.ball(wc, w[3], c((int) w[4], (int) w[5], (int) w[6]), true);
             m.ring(wc, w[3] * 1.7, .05, c(240, 235, 255), .5, .3, true, 40, 4);
@@ -104,6 +106,7 @@ final class SovModels {
     }
 
     private static void wing(Mesh m, int sz, double[] sh, int[] mem, int[] bone) {
+        m.part("wing" + sz, sh);
         double k = .72;
         double[] El = add(sh, mul(v(2.4, 4.2, sz * 4.5 - sh[2]), k)), Wr = add(sh, mul(v(-.8, 7.8, sz * 8.2 - sh[2]), k));
         m.limb(new double[][]{sh, El, Wr}, new double[]{.8, .62, .45}, bone, 10, .9, 0);
@@ -180,6 +183,7 @@ final class SovModels {
             }
         }
         for (int sz = -1; sz <= 1; sz += 2) wing(m, sz, add(sp[ic - 3], v(0, .9, sz * .6)), mem, bone);
+        m.part("head", sp[n - 1]);
         dragonHead(m, sp[n - 1], norm(v(-1.0, -.2, .25)), 1.35, gray, dark);
     }
 
@@ -190,11 +194,14 @@ final class SovModels {
         m.blob(v(0, 2.2, 0), v(3.2, 2.6, 3.0), c(46, 58, 82), .3, 12, 20, false, null, 12, 1.2);
         m.blob(v(.4, 10.6, .6), v(1.5, 1.4, 1.4), c(60, 72, 96), .3, 10, 14, false, null, 13, 1.1);
         for (int sx = -1; sx <= 1; sx += 2) {
+            m.part("body", v(0, 0, 0));
             m.ball(v(sx * .55, 10.7, 1.8), v(.28, .2, .12), c(10, 14, 12), false, null);
             m.ball(v(sx * .55, 10.7, 1.9), .07, c(190, 230, 80), true);
+            m.part("arm" + sx, v(sx * 3.6, 8.4, 0));
             m.limb(new double[][]{v(sx * 3.6, 8.4, 0), v(sx * 5.4, 6.2, 1.0), v(sx * 5.8, 3.6, 2.2), v(sx * 5.2, 1.2, 2.8)}, new double[]{1.35, 1.15, 1.0, .8}, bl, 14, 1.2, .18);
             m.blob(v(sx * 5.2, .9, 3.0), v(1.2, .8, 1.1), c(48, 60, 84), .3, 8, 12, false, null, 19, 1.2);
         }
+        m.part("body", v(0, 0, 0));
         int[][] skins = {{90, 110, 60}, {120, 140, 60}, {40, 46, 70}, {150, 170, 70}};
         for (int k = 0; k < 120; k++) {
             double a = m.rnd.nextDouble() * 2 * Math.PI, t = m.rr(-.9, .95), r = Math.sqrt(Math.max(0, 1 - t * t));
@@ -241,8 +248,11 @@ final class SovModels {
                 }
             }
         }
+        m.part("core", core);
         m.ball(core, 2.3, c(255, 252, 240), true);
+        m.part("rings", core);
         for (int k = 0; k < 3; k++) m.ring(core, 8.5 + k * 1.6, .07, c(255, 200, 120), .15 + k * .25, k * .9, true, 60, 4);
+        m.part("sparks", core);
         for (int k = 0; k < 60; k++) {
             double a = m.rnd.nextDouble() * 6.28, r = m.rr(9, 17);
             m.ball(v(r * Math.cos(a), m.rr(1, 18), r * Math.sin(a) * .6), m.rr(.08, .3), c(255, 170, 80), true);
@@ -278,6 +288,7 @@ final class SovModels {
                 double ln = 1.7 - row * .22;
                 m.cone(p, add(add(p, mul(inn, ln)), v(0, 0, 1.1)), .32 - .04 * row, c(238, 232, 216), 7, false);
             }
+        m.part("liquid", v(0, 7.2, 0));
         int[][] liquids = {{255, 90, 170}, {90, 230, 255}, {255, 220, 70}, {130, 255, 110}, {180, 110, 255}, {255, 140, 60}};
         for (int k = 0; k < 60; k++) {
             double t = m.rr(.15, .85), a = m.rnd.nextDouble() * 6.28, R = (7.2 * Math.pow(1 - t, .8) + .4) * m.rr(.2, .85);
@@ -293,6 +304,7 @@ final class SovModels {
             }
             m.tube(pts, rad, liquids[s], 6, true, false, 0);
         }
+        m.part("lip", v(0, 7.2, 0));
         double[][] lip = new double[61][]; double[] lr = new double[61];
         for (int k = 0; k <= 60; k++) { double a = 2 * Math.PI * k / 60; lip[k] = v(cx + 7.4 * Math.cos(a), cy + 7.4 * Math.sin(a), 0); lr[k] = .7 + .2 * noise(lip[k], 1.3, 0); }
         m.tube(lip, lr, c(92, 40, 56), 12, false, false, 1.2);
@@ -306,6 +318,7 @@ final class SovModels {
     private static void edict(Mesh m) {
         int[] gd = c(255, 214, 110), skin = c(176, 166, 170), cloth = c(42, 34, 52);
         double[] C = v(0, 15.5, -2.2);
+        m.part("wheel", C);
         for (int k = 0; k < 32; k++) { double a = k * 2 * Math.PI / 32; m.tube(new double[][]{C, add(C, v(Math.cos(a) * 16, Math.sin(a) * 16, 0))}, .05, gd, 4, true, false, 0); }
         for (double r : new double[]{3, 6, 9, 12, 15}) {
             double[][] pts = new double[49][];
@@ -314,10 +327,12 @@ final class SovModels {
         }
         int[][] knots = {{255, 150, 210}, {140, 225, 255}, {200, 255, 160}, {255, 230, 150}};
         for (int k = 0; k < 60; k++) { double a = m.rnd.nextDouble() * 6.28, r = m.rr(2, 15); m.ball(add(C, v(Math.cos(a) * r, Math.sin(a) * r, 0)), m.rr(.12, .3), knots[m.rnd.nextInt(4)], true); }
+        m.part("cloth", v(0, 14, 0));
         for (int k = 0; k < 120; k++) {
             double a = m.rnd.nextDouble() * 2 * Math.PI, r = m.rr(.5, 2.4);
             m.shroud(v(r * Math.cos(a) * .8, m.rr(11, 15), r * Math.sin(a) * .6), m.rr(10, 16), m.rr(.15, .5), k % 3 != 0 ? cloth : c(70, 52, 86), m.rr(.2, 1.4), 9);
         }
+        m.part("body", v(0, 0, 0));
         m.limb(new double[][]{v(0, 4, 0), v(.2, 9, .2), v(.3, 13.5, .5)}, new double[]{2.2, 1.4, 1.05}, c(46, 38, 56), 14, 1, .08);
         m.blob(v(.3, 14.0, .3), v(1.35, 1.85, .85), skin, .1, 10, 14, false, null, 4, .9);
         for (int q = 0; q < 8; q++) m.tube(new double[][]{v(-.9, 15.0 - q * .33, .72), v(.3, 15.1 - q * .33, .9), v(1.5, 15.0 - q * .33, .72)}, .04, c(120, 108, 112), 4, false, true, 0);
@@ -339,6 +354,7 @@ final class SovModels {
             for (int k = 0; k < 22; k++)
                 m.tube(spline(add(ha, v(m.rr(-.4, .4), m.rr(-.2, .5), 0)), add(ha, v(sg * m.rr(1, 4), m.rr(-1, 3), -m.rr(1, 3))), add(C, v(sg * m.rr(2, 13), m.rr(-8, 8), 0))), .04, gd, 4, true, false, 0);
         }
+        m.part("blade", v(hx, 26, hz));
         m.tube(new double[][]{v(hx, 31, hz - .2), v(hx, 23.2, hz - .2)}, new double[]{.35, .3}, c(205, 212, 230), 10, true, false, 0);
         m.cone(v(hx, 23.2, hz - .2), v(hx, 21.2, hz - .2), .3, c(235, 240, 250), 8, true);
         m.line(v(hx - 1.5, 30.6, hz - .2), v(hx + 1.5, 30.6, hz - .2), .24, c(160, 140, 90), 3, 6, false);
@@ -401,9 +417,12 @@ final class SovModels {
                 m.arm(s0, el, wr, .85, skin, sub(Cc, wr), .7);
             }
         }
+        m.part("core", Cc);
         m.ball(Cc, 1.1, c(1, 1, 3), false);
+        m.part("rings", Cc);
         int[][] rc = {{14, 14, 18}, {190, 198, 214}, {255, 250, 235}, {120, 120, 140}};
         for (int k = 0; k < 4; k++) m.ring(Cc, 1.7 + k * .5, .07, rc[k], Math.PI / 2, 0, k % 2 == 1, 50, 5);
+        m.part("outer", Cc);
         for (int k = 0; k < 3; k++) m.ring(Cc, Rr + 3.6 + k * .8, .06, c(170, 175, 200), Math.PI / 2, 0, true, 80, 4);
     }
 }
