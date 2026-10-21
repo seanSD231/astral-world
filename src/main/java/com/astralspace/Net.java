@@ -54,6 +54,19 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -> client: play a cutscene (kind 1 = the Mother Tree's transformation) lasting this many ticks. */
+    public record CutscenePayload(int kind, int ticks) implements CustomPacketPayload {
+        public static final Type<CutscenePayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "cutscene"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, CutscenePayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, CutscenePayload::kind,
+                ByteBufCodecs.VAR_INT, CutscenePayload::ticks,
+                CutscenePayload::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** Server -> client: silence the game completely (stage 5) or give the sound back. */
     public record MutePayload(boolean mute) implements CustomPacketPayload {
         public static final Type<MutePayload> TYPE =
@@ -97,6 +110,9 @@ public final class Net {
         public static volatile int barrierHp, barrierMax, barrierY = 1000, barrierYOverworld = 1000;
         /** Pathway ids that have a Seq 0 (a "god"), as ",id,id,". */
         public static volatile String gods = ",";
+        /** Cutscene: when it started (ms), how many ticks it lasts, and which one (0 = none). */
+        public static volatile long cutsceneStart = 0;
+        public static volatile int cutsceneTicks = 0, cutsceneKind = 0;
         /** Stage 5: all sound is switched off. */
         public static volatile boolean muted = false;
     }
@@ -121,6 +137,11 @@ public final class Net {
             ClientState.flashAlpha = payload.alpha();
             ClientState.flashMs = Math.max(50, payload.ms());
             ClientState.flashStart = System.currentTimeMillis();
+        }));
+        registrar.playToClient(CutscenePayload.TYPE, CutscenePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            ClientState.cutsceneKind = payload.kind();
+            ClientState.cutsceneTicks = payload.ticks();
+            ClientState.cutsceneStart = System.currentTimeMillis();
         }));
         registrar.playToClient(MutePayload.TYPE, MutePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> ClientState.muted = payload.mute()));
         registrar.playToClient(StagePayload.TYPE, StagePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {

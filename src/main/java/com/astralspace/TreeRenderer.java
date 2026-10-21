@@ -32,7 +32,7 @@ public final class TreeRenderer {
     private static String keyOf(Entity e) {
         if (!e.hasCustomName()) return null;
         String n = e.getCustomName().getString();
-        if (NAME.equals(n)) return "tree";
+        if (n.startsWith(NAME)) return "tree";
         if (n.startsWith("Sovereign of ")) {
             String p = n.substring(13).trim().toLowerCase(java.util.Locale.ROOT);
             for (String s : PLANETS) if (s.equals(p)) return s;
@@ -95,13 +95,27 @@ public final class TreeRenderer {
             String key = keyOf(boss);
             if (key == null) continue;
             boolean tree = key.equals("tree");
-            if (tree && boss instanceof net.minecraft.world.entity.LivingEntity le && le.getHealth() <= le.getMaxHealth() * 0.5f) key = "tree_rot";
+            boolean cut = tree && TreeCutscene.active();
+            double cs = cut ? TreeCutscene.seconds() : 0;
+            if (tree) {
+                boolean fleshy = boss.getCustomName().getString().endsWith("\u200B");   // set by the server when the transformation is done
+                if (cut) fleshy = cs >= TreeCutscene.SWAP;
+                if (fleshy) key = "tree_rot";
+            }
             Model md = model(key);
             double t = (System.nanoTime() / 1_000_000L) / 1000.0;
 
             PoseStack ps = event.getPoseStack();
             ps.pushPose();
             ps.translate(boss.getX() - cam.x, boss.getY() - cam.y, boss.getZ() - cam.z);
+            float[] tint = {1f, 1f, 1f};
+            if (cut) {
+                float[] st = TreeCutscene.treeState(cs);   // scale x, scale y, tint r, g, b, shake
+                ps.scale(st[0], st[1], st[0]);
+                ps.mulPose(com.mojang.math.Axis.ZP.rotation((float) Math.sin(cs * 37) * st[5]));
+                ps.mulPose(com.mojang.math.Axis.XP.rotation((float) Math.cos(cs * 31) * st[5]));
+                tint = new float[]{st[2], st[3], st[4]};
+            }
             if (!tree) {
                 double dx = cam.x - boss.getX(), dz = cam.z - boss.getZ();
                 ps.mulPose(com.mojang.math.Axis.YP.rotation((float) Math.atan2(dx, dz)));
@@ -118,6 +132,7 @@ public final class TreeRenderer {
             RenderSystem.enableDepthTest();
             RenderSystem.disableCull();
             RenderSystem.disableBlend();
+            RenderSystem.setShaderColor(tint[0], tint[1], tint[2], 1f);
             for (int i = 0; i < md.vbs().length; i++) {
                 Matrix4f pm = mv;
                 if (!tree) {
@@ -129,6 +144,7 @@ public final class TreeRenderer {
                 md.vbs()[i].drawWithShader(pm, event.getProjectionMatrix(), GameRenderer.getPositionColorShader());
             }
             VertexBuffer.unbind();
+            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
             RenderSystem.enableCull();
             RenderSystem.setShaderFogStart(fs);
             RenderSystem.setShaderFogEnd(fe);

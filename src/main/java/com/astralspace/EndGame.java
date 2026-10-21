@@ -36,6 +36,7 @@ import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -577,7 +578,7 @@ public final class EndGame {
         force(lv, 3, true);
         groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
         timed.clear();
-        rt = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0;
+        rt = 0; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0;
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
             boss.addTag(TAG_BOSS);
@@ -607,6 +608,7 @@ public final class EndGame {
     }
 
     private static void loseLife(ServerLevel lv, ServerPlayer p) {
+        if (cutscene) return;
         AstralData d = AstralData.get(lv.getServer());
         long now = lv.getServer().getTickCount();
         Long last = lastHit.get(p.getUUID());
@@ -854,6 +856,25 @@ public final class EndGame {
     private static final List<BlockPos> seeds = new ArrayList<>();
     private static final Set<UUID> callFailed = new HashSet<>();
     private static final float[] THRESHOLDS = {0.75f, 0.5f, 0.25f};
+    private static final int CUT_TICKS = 260;   // the transformation cutscene: 13 seconds
+    private static boolean cutscene = false;
+
+    /** 50%: everyone watches the tree wither, rot and swallow flesh to become its fleshy form; then Desire's call begins. */
+    private static void startTransformation(ServerLevel lv) {
+        rootsActive = true;
+        activeKind = 3;
+        cutscene = true;
+        timed.clear();
+        for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(1, CUT_TICKS));
+        tellLevel(lv, "The Mother Tree of Desire withers... and something worse wakes inside it.", ChatFormatting.DARK_RED);
+        at(CUT_TICKS, l -> {
+            Mob b = findBoss(l, TAG_RAID);
+            if (b != null) b.setCustomName(Component.literal(RAID_NAME + "\u200B").withStyle(ChatFormatting.DARK_RED)); // the invisible mark tells clients to draw the fleshy form for good
+            cutscene = false;
+            rootsActive = false;
+            startCall(l);
+        });
+    }
 
     private static boolean burnt(ServerLevel lv, BlockPos b) {
         if (!lv.getBlockState(b).is(Blocks.MANGROVE_WOOD) || !lv.getBlockState(b.above()).is(Blocks.MANGROVE_WOOD)) return true;
@@ -961,12 +982,12 @@ public final class EndGame {
         if (boss == null) return;
         if (!rootsActive) {
             if (rootStage < THRESHOLDS.length && boss.getHealth() / BOSS_HP <= THRESHOLDS[rootStage]) {
-                if (rootStage == 0) startRoots(lv); else if (rootStage == 1) startCall(lv); else startSeeds(lv);
+                if (rootStage == 0) startRoots(lv); else if (rootStage == 1) startTransformation(lv); else startSeeds(lv);
             }
             return;
         }
         if (activeKind == 2) { seedsSecond(lv, boss); return; }
-        if (activeKind == 1) return; // desire's call ends on its own timer
+        if (activeKind == 1 || activeKind == 3) return; // desire's call and the transformation end on their own timers
         roots.removeIf(b -> {
             if (!burnt(lv, b)) return false;
             lv.sendParticles(ParticleTypes.FLAME, b.getX() + 0.5, b.getY() + 1, b.getZ() + 0.5, 20, 0.3, 0.6, 0.3, 0.02);
@@ -1001,7 +1022,7 @@ public final class EndGame {
         cur = new Arena(lv, 0.5, 0.5, groundY, true);
         if (rt % 20 == 0) rootsSecond(lv);
         treeCast(lv);
-        if (rt >= nextPattern && !fighters(lv).isEmpty()) {
+        if (rt >= nextPattern && !cutscene && !fighters(lv).isEmpty()) {
             int[] opts = NEXT[lastPattern];
             int which = opts[ThreadLocalRandom.current().nextInt(opts.length)];
             lastPattern = which;

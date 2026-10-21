@@ -59,6 +59,7 @@ public final class AstralClient {
         BarrierRenderer.init();
         TreeRenderer.init();
         TreeBossBar.init();
+        TreeCutscene.init();
         AstralSymbols.init();
         modBus.addListener(AstralClient::registerLayers);
         modBus.addListener(AstralClient::registerSky);
