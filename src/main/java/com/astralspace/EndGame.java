@@ -1078,6 +1078,43 @@ public final class EndGame {
         }
     }
 
+    // ------------------------------------------------------------------ no instant kills
+
+    /** LOTM flags and timers that kill or wither a target (found in the LOTM jar: Hands of Death, Death Timer, Death Seal, All Dying, Absolute Death, Purification mark, killUnpreventably). */
+    private static final String[] DEATH_FLAGS = {"lotmUnpreventableDeath", "lotmExecuting", "ignoreAttackEvent", "handsOfDeathDuration", "handsOfDeathCeiling",
+            "handsOfDeathCaster", "lotmDeathTimer", "deathSealActive", "deathSealEntity", "deathSealOwnerUUID", "deathSealTimer", "allDying", "allDyingOwnerUUID",
+            "allDyingTimer", "purificationDeathMark", "unshadowedDomainPurgeUntil"};
+    private static final Map<UUID, Float> lastHp = new HashMap<>();
+    private static final float MAX_HIT = 0.10f;     // no single hit takes more than this share of a boss's health
+    private static final float MAX_DROP = 0.25f;    // anything that takes more than this in one go is not a hit but an execution
+
+    private static void stripDeath(Mob m) {
+        var tag = m.getPersistentData();
+        for (String k : DEATH_FLAGS) if (tag.contains(k)) tag.remove(k);
+        for (var inst : new ArrayList<>(m.getActiveEffects()))
+            inst.getEffect().unwrapKey().ifPresent(key -> {
+                if (key.location().getNamespace().equals("lotm") && (key.location().getPath().contains("death") || key.location().getPath().contains("doom"))) m.removeEffect(inst.getEffect());
+            });
+    }
+
+    /** Every tick: strip death effects from every boss and undo any health loss that is too big to be a hit (setHealth, kill and the like). */
+    private static void protectBosses(MinecraftServer server) {
+        for (BossDef b : BOSSES) guardLevel(dim(server, b.planet()));
+        guardLevel(dim(server, "raid"));
+    }
+
+    private static void guardLevel(ServerLevel lv) {
+        if (lv == null || lv.players().isEmpty()) return;
+        for (Entity e : lv.getAllEntities()) {
+            if (!(e instanceof Mob m) || !m.getTags().contains(TAG_BOSS) || !m.isAlive()) continue;
+            stripDeath(m);
+            float max = m.getMaxHealth(), hp = m.getHealth();
+            Float last = lastHp.get(m.getUUID());
+            if (last != null && hp < last - max * MAX_DROP) { hp = Math.max(1f, last - max * MAX_HIT); m.setHealth(hp); }
+            lastHp.put(m.getUUID(), hp);
+        }
+    }
+
     /** The Mercury sovereign (a Door Seq 0) must not cast Gravity Manipulation: it is bugged. Clearing its flags on everyone there stops the effect. */
     private static void stripGravityManipulation(MinecraftServer server) {
         ServerLevel lv = dim(server, "mercury");
@@ -1099,6 +1136,7 @@ public final class EndGame {
         if (d.endPhase.isEmpty() || d.endPhase.equals("classic")) return;
         if (d.endPhase.equals("raid")) raidTick(server, d);
         processTimed();
+        if (d.endPhase.equals("bosses") || d.endPhase.equals("raid")) protectBosses(server);
         if (d.endPhase.equals("bosses")) bossMoveTick(server, d);
         if (d.endPhase.equals("bosses") && server.getTickCount() % 2 == 0) stripGravityManipulation(server);
         if (server.getTickCount() % 20 != 0) return;
@@ -1111,10 +1149,19 @@ public final class EndGame {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.HIGHEST)
     public static void onDeath(LivingDeathEvent event) {
         Entity e = event.getEntity();
         if (e.level().isClientSide) return;
+        if (e instanceof Mob bm && bm.getTags().contains(TAG_BOSS)) { // a boss at good health cannot die: that is an execution, not a fight
+            Float last = lastHp.get(bm.getUUID());
+            if (last != null && last > bm.getMaxHealth() * MAX_DROP) {
+                event.setCanceled(true);
+                stripDeath(bm);
+                bm.setHealth(Math.max(1f, last - bm.getMaxHealth() * MAX_HIT));
+                return;
+            }
+        }
         MinecraftServer server = e.getServer();
         if (server == null) return;
         AstralData d = AstralData.get(server);
@@ -1148,8 +1195,8 @@ public final class EndGame {
         }
         if (e.getTags().contains(TAG_BOSS) && !environmental(event.getSource())) for (String t : e.getTags()) if (t.startsWith(TAG_PLANET) && PASSIVE.contains(t.substring(TAG_PLANET.length()))) woken.add(t.substring(TAG_PLANET.length()));
         if (e.getTags().contains(TAG_BOSS) && environmental(event.getSource())) { event.setCanceled(true); return; } // the world cannot kill a sovereign
-        if (e.getTags().contains(TAG_RAID)) { event.setAmount(event.getAmount() * RAID_DAMAGE); return; }
-        if (e.getTags().contains(TAG_BOSS)) { event.setAmount(event.getAmount() * BOSS_DAMAGE); return; }
+        if (e.getTags().contains(TAG_RAID)) { event.setAmount(Math.min(event.getAmount() * RAID_DAMAGE, ((net.minecraft.world.entity.LivingEntity) e).getMaxHealth() * MAX_HIT)); return; }
+        if (e.getTags().contains(TAG_BOSS)) { event.setAmount(Math.min(event.getAmount() * BOSS_DAMAGE, ((net.minecraft.world.entity.LivingEntity) e).getMaxHealth() * MAX_HIT)); return; }
         if (e instanceof ServerPlayer p && p.level().dimension().equals(Cosmos.key("raid"))) event.setCanceled(true);
     }
 
