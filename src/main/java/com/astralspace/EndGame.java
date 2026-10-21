@@ -220,6 +220,7 @@ public final class EndGame {
 
     /** Puts everything back as it was: Earth, the overworld, the bosses. Does not touch the stage. */
     static void resetAll(MinecraftServer server) {
+        woken.clear();
         AstralData d = AstralData.get(server);
         boolean was = !d.endPhase.isEmpty() || d.earthGone || !d.bossesDead.isEmpty();
         if (!was) return;
@@ -407,6 +408,7 @@ public final class EndGame {
             bar.setProgress(Math.max(0f, Math.min(1f, m.getHealth() / BOSS_HP)));
             boolean near = false;
             for (ServerPlayer p : lv.players()) if (!p.isSpectator() && p.distanceToSqr(m) < 60 * 60) near = true;
+            if (!aggro(b.planet(), lv, m)) near = false;
             if (near) {
                 Long nx = nextBossAttack.get(b.planet());
                 if (nx == null) nextBossAttack.put(b.planet(), gt + 100);
@@ -437,6 +439,7 @@ public final class EndGame {
     }
 
     private static void bossDied(MinecraftServer server, AstralData d, String planet) {
+        woken.remove(planet);
         if (!d.bossesDead.add(planet)) return;
         d.endUntil += (long) (Settings.bossDays * DAY);
         d.setDirty();
@@ -986,6 +989,19 @@ public final class EndGame {
 
     private static final Map<String, UUID> bossIds = new HashMap<>();
     private static final Map<String, double[]> bossMove = new HashMap<>(); // angle, radius, direction, next change (tick), unused
+    /** Sovereigns that only fight once you come close or hurt them (Neptune). */
+    private static final Set<String> PASSIVE = Set.of("neptune");
+    private static final double WAKE_RANGE = 30;
+    private static final Set<String> woken = new java.util.HashSet<>();
+
+    /** True when this boss should be fighting: not a passive one, or already provoked, or someone has come within WAKE_RANGE. */
+    private static boolean aggro(String planet, ServerLevel lv, Mob m) {
+        if (!PASSIVE.contains(planet) || woken.contains(planet)) return true;
+        for (ServerPlayer p : lv.players())
+            if (!p.isSpectator() && p.isAlive() && p.distanceToSqr(m) < WAKE_RANGE * WAKE_RANGE) { woken.add(planet); return true; }
+        return false;
+    }
+
     private static final double LEASH = 34;   // bosses never leave this circle around the arrival point
 
     private static void blink(ServerLevel lv, Mob m, double x, double z, double hover) {
@@ -1004,6 +1020,7 @@ public final class EndGame {
             ServerLevel lv = dim(server, b.planet());
             if (id == null || lv == null) continue;
             if (!(lv.getEntity(id) instanceof Mob m) || !m.isAlive()) continue;
+            if (!aggro(b.planet(), lv, m)) continue;
             ServerPlayer near = null;
             for (ServerPlayer p : lv.players()) if (!p.isSpectator() && p.isAlive() && (near == null || p.distanceToSqr(m) < near.distanceToSqr(m))) near = p;
             if (near == null) continue;
@@ -1124,6 +1141,7 @@ public final class EndGame {
             AstralData d = AstralData.get(e.getServer());
             if (tracking(d)) stat(d, atk).damage += event.getAmount(); // counted before shrinking: this is the 10,000 / 100,000 scale
         }
+        if (e.getTags().contains(TAG_BOSS) && !environmental(event.getSource())) for (String t : e.getTags()) if (t.startsWith(TAG_PLANET) && PASSIVE.contains(t.substring(TAG_PLANET.length()))) woken.add(t.substring(TAG_PLANET.length()));
         if (e.getTags().contains(TAG_BOSS) && environmental(event.getSource())) { event.setCanceled(true); return; } // the world cannot kill a sovereign
         if (e.getTags().contains(TAG_RAID)) { event.setAmount(event.getAmount() * RAID_DAMAGE); return; }
         if (e.getTags().contains(TAG_BOSS)) { event.setAmount(event.getAmount() * BOSS_DAMAGE); return; }
