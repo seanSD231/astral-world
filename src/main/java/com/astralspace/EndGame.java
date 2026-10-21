@@ -377,7 +377,46 @@ public final class EndGame {
         m.setHealth(BOSS_HP);
         m.setCustomName(Component.literal(name).withStyle(ChatFormatting.DARK_RED));
         m.setCustomNameVisible(true);
+        if (name.equals(RAID_NAME)) limitTreeAbilities(m);
         return m;
+    }
+
+    // ------------------------------------------------------------------ the tree's own Beyonder abilities
+
+    /** The only LOTM abilities the Mother Tree may cast, and how rarely. */
+    private static final String[] TREE_ABILITIES = {"wraith_shriek", "cursing_aura", "bane"};
+    private static long nextTreeCast = 0;
+
+    /** Stops the LOTM mob casting on its own and limits it to a short list (it still casts, but only when treeCast says so). */
+    private static void limitTreeAbilities(Mob m) {
+        try {
+            Class<?> c = m.getClass();
+            c.getMethod("setAttackChance", int.class).invoke(m, 0);
+            java.util.List<net.minecraft.world.item.Item> items = new ArrayList<>();
+            for (String id : TREE_ABILITIES) {
+                net.minecraft.world.item.Item it = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("lotm", id));
+                if (it != net.minecraft.world.item.Items.AIR) items.add(it);
+            }
+            if (!items.isEmpty()) c.getMethod("setCustomAbilities", java.util.List.class).invoke(m, items);
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not limit the tree's abilities: {}", String.valueOf(t));
+        }
+    }
+
+    /** Every 3 to 5 minutes the tree casts one of its few abilities at someone in the arena. */
+    private static void treeCast(ServerLevel lv) {
+        if (nextTreeCast == 0 || nextTreeCast > rt + 6000) nextTreeCast = rt + 1800;
+        if (rt < nextTreeCast || rootsActive) return;
+        Mob boss = findBoss(lv, TAG_RAID);
+        List<ServerPlayer> f = fighters(lv);
+        if (boss == null || f.isEmpty()) return;
+        nextTreeCast = rt + 3600 + ThreadLocalRandom.current().nextInt(2400);
+        try {
+            boss.setTarget(f.get(ThreadLocalRandom.current().nextInt(f.size())));
+            boss.getClass().getMethod("selectAndUseAbility").invoke(boss);
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] the tree could not cast: {}", String.valueOf(t));
+        }
     }
 
     private static Mob findBoss(ServerLevel lv, String tag) {
@@ -915,6 +954,7 @@ public final class EndGame {
         rt++;
         cur = new Arena(lv, 0.5, 0.5, groundY, true);
         if (rt % 20 == 0) rootsSecond(lv);
+        treeCast(lv);
         if (rt >= nextPattern && !fighters(lv).isEmpty()) {
             int[] opts = NEXT[lastPattern];
             int which = opts[ThreadLocalRandom.current().nextInt(opts.length)];
