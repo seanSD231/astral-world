@@ -351,14 +351,19 @@ public final class EndGame {
 
     // ------------------------------------------------------------------ the planet bosses
 
-    private static Mob makeMob(ServerLevel lv, String pathId, String name, double x, double y, double z) {
+    /** Sequence of each planet boss when it is not 0. */
+    private static final Map<String, Integer> BOSS_SEQ = Map.of("neptune", 1);
+
+    private static Mob makeMob(ServerLevel lv, String pathId, String name, double x, double y, double z) { return makeMob(lv, pathId, name, x, y, z, 0); }
+
+    private static Mob makeMob(ServerLevel lv, String pathId, String name, double x, double y, double z, int seq) {
         Mob m = null;
         try {
             Object path = Lotm.pathwayById(pathId);
             if (path != null) {
                 Class<?> c = Class.forName("net.swimmingtuna.lotm.entity.Mobs.PlayerMobEntity");
                 Class<?> bc = Class.forName("net.swimmingtuna.lotm.beyonder.api.BeyonderClass");
-                m = (Mob) c.getConstructor(Level.class, bc, int.class).newInstance(lv, path, 0); // Seq 0, built directly so LOTM's Seq 0 limit never sees it
+                m = (Mob) c.getConstructor(Level.class, bc, int.class).newInstance(lv, path, seq); // Seq 0 unless told otherwise, built directly so LOTM's Seq 0 limit never sees it
             }
         } catch (Throwable t) {
             LOGGER.warn("[astral] could not build a LOTM Beyonder for '{}': {}", pathId, String.valueOf(t.getCause() != null ? t.getCause() : t));
@@ -394,7 +399,7 @@ public final class EndGame {
             Mob m = findBoss(lv, tag);
             if (m == null) {
                 int gy = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 14, 14);
-                m = makeMob(lv, b.pathway(), b.title(), 14.5, gy, 14.5);
+                m = makeMob(lv, b.pathway(), b.title(), 14.5, gy, 14.5, BOSS_SEQ.getOrDefault(b.planet(), 0));
                 if (m == null) continue;
                 m.addTag(TAG_BOSS);
                 m.addTag(tag);
@@ -1215,7 +1220,7 @@ public final class EndGame {
                     String id = StringArgumentType.getString(ctx, "planet");
                     for (BossDef b : BOSSES) if (b.planet().equals(id)) {
                         Vec3 f = p.position().add(p.getLookAngle().multiply(1, 0, 1).normalize().scale(10));
-                        Mob m = makeMob(p.serverLevel(), b.pathway(), b.title(), f.x, p.getY(), f.z);
+                        Mob m = makeMob(p.serverLevel(), b.pathway(), b.title(), f.x, p.getY(), f.z, BOSS_SEQ.getOrDefault(b.planet(), 0));
                         if (m == null) return 0;
                         m.setNoAi(true);
                         p.serverLevel().addFreshEntity(m);
