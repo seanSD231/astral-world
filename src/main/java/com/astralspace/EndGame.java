@@ -378,7 +378,7 @@ public final class EndGame {
         m.setCustomName(Component.literal(name).withStyle(ChatFormatting.DARK_RED));
         m.setCustomNameVisible(true);
         if (name.equals(RAID_NAME)) limitTreeAbilities(m);
-        else if (name.startsWith("Sovereign of ")) silence(m);
+        else if (name.startsWith("Sovereign of ")) silence(m, name.substring(13).toLowerCase(java.util.Locale.ROOT));
         return m;
     }
 
@@ -405,9 +405,47 @@ public final class EndGame {
     }
 
     /** The sovereigns' fights are scripted by this mod; their own LOTM abilities (which could hurt or hide them) never fire. */
-    private static void silence(Mob m) {
-        try { m.getClass().getMethod("setAttackChance", int.class).invoke(m, 0); }
-        catch (Throwable t) { LOGGER.warn("[astral] could not silence a sovereign: {}", String.valueOf(t)); }
+    private static void silence(Mob m, String planet) {
+        try {
+            m.getClass().getMethod("setAttackChance", int.class).invoke(m, 0);
+            java.util.List<net.minecraft.world.item.Item> items = new ArrayList<>();
+            for (String id : POWERS.getOrDefault(planet, new String[0])) {
+                net.minecraft.world.item.Item it = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("lotm", id));
+                if (it != net.minecraft.world.item.Items.AIR) items.add(it);
+            }
+            if (!items.isEmpty()) m.getClass().getMethod("setCustomAbilities", java.util.List.class).invoke(m, items);
+        } catch (Throwable t) { LOGGER.warn("[astral] could not set up a sovereign's powers: {}", String.valueOf(t)); }
+    }
+
+    /** The two LOTM abilities each sovereign may cast, and only inside its attack cycle (the POWER attack, every third attack). */
+    private static final Map<String, String[]> POWERS = Map.of(
+            "mercury", new String[]{"starfall", "doorgammarayburst"}, "venus", new String[]{"dragonbreath", "mindstorm"},
+            "mars", new String[]{"beamoftwilight", "globeoftwilight"}, "jupiter", new String[]{"sailorlightningstorm", "sonicboom"},
+            "saturn", new String[]{"deathgraveyard", "summonunderworldhelpers"}, "uranus", new String[]{"psychestorm", "misfortuneimplosion"},
+            "neptune", new String[]{"purewhiteray", "spearoflight"});
+    private static final Map<String, Integer> cycleCount = new HashMap<>();
+
+    /** The POWER attack: a ring charges at the boss for 2.5 seconds, then it casts one of its abilities at a random fighter. */
+    private static void power(ServerLevel lv) {
+        Mob boss = null;
+        for (Entity e : lv.getAllEntities()) if (e instanceof Mob m && m.isAlive() && m.getTags().contains(TAG_BOSS)) { boss = m; break; }
+        if (boss == null) return;
+        final Mob b = boss;
+        for (int t = 0; t < 50; t += 5) {
+            final int tt = t;
+            at(t, l -> circle(l, b.getX(), b.getZ(), 4 + tt / 6.0, 0.7f, 0.3f, 1f));
+        }
+        at(50, l -> {
+            List<ServerPlayer> f = fighters(l);
+            if (f.isEmpty() || !b.isAlive()) return;
+            ServerPlayer target = f.get(ThreadLocalRandom.current().nextInt(f.size()));
+            try {
+                b.getClass().getMethod("setSpirituality", int.class).invoke(b, b.getClass().getMethod("getMaxSpirituality").invoke(b));
+                b.setTarget(target);
+                b.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, target.getEyePosition());
+                b.getClass().getMethod("selectAndUseAbility").invoke(b);
+            } catch (Throwable t) { LOGGER.warn("[astral] a sovereign could not cast: {}", String.valueOf(t)); }
+        });
     }
 
     /** Every 3 to 5 minutes the tree casts one of its few abilities at someone in the arena. */
@@ -465,7 +503,8 @@ public final class EndGame {
                 if (nx == null) nextBossAttack.put(b.planet(), gt + 100);
                 else if (gt >= nx) {
                     int[] set = PLANET_ATTACKS.get(b.planet());
-                    int which = set[ThreadLocalRandom.current().nextInt(set.length)];
+                    int n = cycleCount.merge(b.planet(), 1, Integer::sum);
+                    int which = n % 3 == 0 ? 6 : set[ThreadLocalRandom.current().nextInt(set.length)];   // every third attack is the POWER
                     runPattern(new Arena(lv, m.getX(), m.getZ(), lv.getHeight(Heightmap.Types.MOTION_BLOCKING, (int) m.getX(), (int) m.getZ()), false), which);
                     nextBossAttack.put(b.planet(), gt + DURATION[which] + 100 + ThreadLocalRandom.current().nextInt(100));
                 }
@@ -517,7 +556,7 @@ public final class EndGame {
     private static final Map<UUID, Long> lastHit = new HashMap<>();
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
     private static final int[][] NEXT = {{2, 4, 3}, {0, 3, 4, 5}, {3, 1, 4, 5}, {0, 1, 2}, {2, 3, 1, 5}, {3, 1, 2}};
-    private static final int[] DURATION = {140, 150, 110, 70, 80, 200};
+    private static final int[] DURATION = {140, 150, 110, 70, 80, 200, 90};
     private static int lastPattern = 3;
 
     private static void startRaid(MinecraftServer server, AstralData d) {
@@ -648,7 +687,8 @@ public final class EndGame {
             "BEAM: a line sweeps around the boss. JUMP over it as it reaches you.",
             "SLAM: a red circle under you means a strike is coming. RUN out of it.",
             "PURGE: green circles are safe. Stand INSIDE one before the ground is struck.",
-            "TEMPTATION: look AWAY from the boss and CROUCH. It drags your view in random directions: pull the OPPOSITE way."};
+            "TEMPTATION: look AWAY from the boss and CROUCH. It drags your view in random directions: pull the OPPOSITE way.",
+            "POWER: the boss gathers a Beyonder ability. A ring shows it is charging, then it strikes at one of you. Get away from where it faces."};
 
     /** The first time a player meets an attack, they are told how to avoid it. */
     private static void notice(ServerLevel lv, int which) {
@@ -726,6 +766,7 @@ public final class EndGame {
         final double cx = cur.cx(), cz = cur.cz(), bx = cx, bz = cz;
         notice(lv, which);
         switch (which) {
+            case 6 -> power(lv);
             case 0 -> { // meteors: red marks under every fighter, they land 1.5 s later
                 int shots = 4 + rnd.nextInt(3);
                 for (int k = 0; k < shots; k++) at(k * 20L, l -> {
