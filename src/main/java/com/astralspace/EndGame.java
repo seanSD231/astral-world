@@ -378,6 +378,7 @@ public final class EndGame {
         m.setCustomName(Component.literal(name).withStyle(ChatFormatting.DARK_RED));
         m.setCustomNameVisible(true);
         if (name.equals(RAID_NAME)) limitTreeAbilities(m);
+        else if (name.startsWith("Sovereign of ")) silence(m);
         return m;
     }
 
@@ -401,6 +402,12 @@ public final class EndGame {
         } catch (Throwable t) {
             LOGGER.warn("[astral] could not limit the tree's abilities: {}", String.valueOf(t));
         }
+    }
+
+    /** The sovereigns' fights are scripted by this mod; their own LOTM abilities (which could hurt or hide them) never fire. */
+    private static void silence(Mob m) {
+        try { m.getClass().getMethod("setAttackChance", int.class).invoke(m, 0); }
+        catch (Throwable t) { LOGGER.warn("[astral] could not silence a sovereign: {}", String.valueOf(t)); }
     }
 
     /** Every 3 to 5 minutes the tree casts one of its few abilities at someone in the arena. */
@@ -1123,8 +1130,10 @@ public final class EndGame {
     /** LOTM flags and timers that kill or wither a target (found in the LOTM jar: Hands of Death, Death Timer, Death Seal, All Dying, Absolute Death, Purification mark, killUnpreventably). */
     private static final String[] DEATH_FLAGS = {"lotmUnpreventableDeath", "lotmExecuting", "ignoreAttackEvent", "handsOfDeathDuration", "handsOfDeathCeiling",
             "handsOfDeathCaster", "lotmDeathTimer", "deathSealActive", "deathSealEntity", "deathSealOwnerUUID", "deathSealTimer", "allDying", "allDyingOwnerUUID",
-            "allDyingTimer", "purificationDeathMark", "unshadowedDomainPurgeUntil"};
+            "allDyingTimer", "purificationDeathMark", "unshadowedDomainPurgeUntil",
+            "warriorLightConcealment", "warriorLightEvasion", "warriorLightEvasionDistance"}; // the last three: Warrior light form, which makes a boss unhittable
     private static final Map<UUID, Float> lastHp = new HashMap<>();
+    private static final Map<UUID, Long> lastPlayerHit = new HashMap<>();   // when a player last hurt each boss
     private static final float MAX_HIT = 0.10f;     // no single hit takes more than this share of a boss's health
     private static final float MAX_DROP = 0.25f;    // anything that takes more than this in one go is not a hit but an execution
 
@@ -1147,7 +1156,7 @@ public final class EndGame {
     }
 
     private static void guardLevel(ServerLevel lv) {
-        if (lv == null || lv.players().isEmpty()) return;
+        if (lv == null) return;
         for (Entity e : lv.getAllEntities()) {
             if (!(e instanceof Mob m) || !m.getTags().contains(TAG_BOSS) || !m.isAlive()) continue;
             stripDeath(m);
@@ -1203,6 +1212,17 @@ public final class EndGame {
             stripDeath(sm);
             return;
         }
+        if (e instanceof Mob nm && nm.getTags().contains(TAG_BOSS)) { // a boss only dies to players: nothing else, however it happened, may finish it
+            Long hit = lastPlayerHit.get(nm.getUUID());
+            if (hit == null || gt - hit > 1200) {
+                LOGGER.info("[astral] '{}' died with no player hit in the last minute ({}); undone", nm.getName().getString(), event.getSource().type().msgId());
+                event.setCanceled(true);
+                Float l = lastHp.get(nm.getUUID());
+                nm.setHealth(Math.max(1f, l != null ? l : nm.getMaxHealth()));
+                stripDeath(nm);
+                return;
+            }
+        }
         if (e instanceof Mob bm && bm.getTags().contains(TAG_BOSS)) { // a boss at good health cannot die: that is an execution, not a fight
             Float last = lastHp.get(bm.getUUID());
             if (last != null && last > bm.getMaxHealth() * MAX_DROP) {
@@ -1241,6 +1261,7 @@ public final class EndGame {
         if (rootsActive && e.getTags().contains(TAG_RAID)) { event.setCanceled(true); return; } // untouchable while its roots stand
         if (e.getTags().contains(TAG_BOSS) && event.getSource().getEntity() instanceof ServerPlayer atk && e.getServer() != null) {
             AstralData d = AstralData.get(e.getServer());
+            lastPlayerHit.put(e.getUUID(), gt);
             if (tracking(d)) stat(d, atk).damage += event.getAmount(); // counted before shrinking: this is the 10,000 / 100,000 scale
         }
         if (e.getTags().contains(TAG_BOSS) && !environmental(event.getSource())) for (String t : e.getTags()) if (t.startsWith(TAG_PLANET) && PASSIVE.contains(t.substring(TAG_PLANET.length()))) woken.add(t.substring(TAG_PLANET.length()));
