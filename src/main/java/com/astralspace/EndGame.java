@@ -30,6 +30,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
@@ -796,7 +797,7 @@ public final class EndGame {
         crowd = fighters(lv).size() > 12;
         final boolean big = cur.raid();
         final double reach = big ? ARENA_R : 42;
-        final double mr = big ? 11 : 3.5, sl = big ? 16 : 5.5;   // meteor and slam sizes: in the raid they match the tree
+        final double mr = big && rootStage >= 2 ? 11 : 3.5, sl = big ? 16 : 5.5;   // meteor and slam sizes: in the raid they match the tree
         switch (which) {
             case 6 -> power(lv);
             case 0 -> { // meteors: red marks under every fighter, they land 1.5 s later
@@ -820,7 +821,7 @@ public final class EndGame {
                             ringOnly(l, cur.cx(), cur.cz(), r, 0.7f, 0.2f, 1f);
                             for (ServerPlayer p : fighters(l)) { // only the ring itself, and only fighters standing on the ground
                                 double dist = Math.hypot(p.getX() - cur.cx(), p.getZ() - cur.cz());
-                                if (Math.abs(dist - r) < (big ? 1.6 : 1.0) && p.getY() < cur.gy() + 0.9) hit(l, p);
+                                if (Math.abs(dist - r) < (big ? 3.0 : 1.0) && p.getY() < cur.gy() + 0.9) hit(l, p);
                             }
                         });
                     }
@@ -845,7 +846,7 @@ public final class EndGame {
                             double px = p.getX() - bx, pz = p.getZ() - bz;
                             double along = px * Math.cos(a) + pz * Math.sin(a);
                             double side = Math.abs(-px * Math.sin(a) + pz * Math.cos(a));
-                            if (along > 0 && along < reach + 2 && side < 1.3 && p.getY() < cur.gy() + 1.1) hit(l, p);
+                            if (along > 0 && along < reach + 2 && side < (big ? 3.2 : 1.3) && p.getY() < cur.gy() + 1.1) hit(l, p);
                         }
                     });
                 }
@@ -863,7 +864,7 @@ public final class EndGame {
                 at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
             }
             default -> { // the whole arena is struck except for three safe circles
-                final double sr = big ? 10 : 3.2;
+                final double sr = big ? 7 : 3.2;
                 double[][] safe = new double[big ? Math.max(3, (fighters(lv).size() + 4) / 5) : 3][2];   // a crowd needs room: one circle for every five fighters
                 for (double[] s : safe) { double a = rnd.nextDouble() * Math.PI * 2, d = 4 + rnd.nextDouble() * (big ? reach * 0.8 : 14); s[0] = cx + Math.cos(a) * d; s[1] = cz + Math.sin(a) * d; }
                 for (int t = 0; t < 70; t += 5) at(t, l -> { for (double[] s : safe) circle(l, s[0], s[1], sr, 0.2f, 1f, 0.3f); });
@@ -1533,6 +1534,20 @@ public final class EndGame {
         if (!(event.getEntity() instanceof ServerPlayer p) || p.getServer() == null) return;
         AstralData d = AstralData.get(p.getServer());
         if (tracking(d)) stat(d, p).heal += Math.min(event.getAmount(), p.getMaxHealth() - p.getHealth());
+    }
+
+    /** A second copy of a boss (summoned back out of a Death-pathway spirit store, say) never enters the world while the real one lives. */
+    @SubscribeEvent
+    public static void onJoin(EntityJoinLevelEvent event) {
+        if (event.getLevel().isClientSide() || !(event.getEntity() instanceof Mob m) || !m.getTags().contains(TAG_BOSS)) return;
+        var server = event.getLevel().getServer();
+        if (server == null) return;
+        for (String tag : m.getTags()) {
+            if (!tag.equals(TAG_RAID) && !tag.startsWith(TAG_PLANET)) continue;
+            for (ServerLevel lv : server.getAllLevels())
+                for (Entity e : lv.getAllEntities())
+                    if (e != m && e instanceof Mob o && o.isAlive() && !o.getUUID().equals(m.getUUID()) && o.getTags().contains(tag)) { event.setCanceled(true); return; }
+        }
     }
 
     @SubscribeEvent

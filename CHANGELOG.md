@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.1.91
+- Raid: meteors are back to their old size until the 50% change, then grow. Rolling rings and the beam are wider; safe circles are smaller.
+- A second copy of a boss can no longer enter the world while the real one is alive (stops summoning the tree back from a spirit store).
+
 ## 0.1.90
 - The Death pathway can no longer enslave the sovereigns or the Mother Tree: any claim placed on a boss is undone every tick.
 
