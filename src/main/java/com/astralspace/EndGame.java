@@ -1297,6 +1297,29 @@ public final class EndGame {
         return out;
     }
 
+    private static java.lang.reflect.Method claimedM, unclaimM;
+    private static boolean ownerLookupFailed;
+
+    /** The Death pathway cannot enslave a boss: any claim on it is undone on the next tick. */
+    private static void freeFromOwner(Mob m) {
+        if (ownerLookupFailed) return;
+        try {
+            if (claimedM == null) {
+                Class<?> c = Class.forName("net.swimmingtuna.lotm.capabilities.spirit_data.OwnershipUtils");
+                claimedM = c.getMethod("isClaimed", net.minecraft.world.entity.LivingEntity.class);
+                unclaimM = c.getMethod("unclaimEntity", net.minecraft.world.entity.LivingEntity.class);
+            }
+            if (m.getPersistentData().contains("lotmCapturedBy")) m.getPersistentData().remove("lotmCapturedBy");
+            if ((Boolean) claimedM.invoke(null, m)) {
+                unclaimM.invoke(null, m);
+                m.setTarget(null);
+            }
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
+            ownerLookupFailed = true;
+            LOGGER.warn("[astral] could not find LOTM ownership code, bosses are not protected from enslavement: {}", String.valueOf(e));
+        } catch (Throwable t) { /* try again next tick */ }
+    }
+
     private static void stripDeath(Mob m) {
         m.removeEffect(net.minecraft.world.effect.MobEffects.POISON);
         m.removeEffect(net.minecraft.world.effect.MobEffects.WITHER);
@@ -1372,6 +1395,7 @@ public final class EndGame {
         for (Entity e : lv.getAllEntities()) {
             if (!(e instanceof Mob m) || !m.getTags().contains(TAG_BOSS) || !m.isAlive()) continue;
             stripDeath(m);
+            freeFromOwner(m);
             sizeHitbox(m);
             float max = m.getMaxHealth(), hp = m.getHealth();
             if (m.getTags().contains(TAG_RAID) && rootStage < THRESHOLDS.length && hp < THRESHOLDS[rootStage] * BOSS_HP - 0.5f) { // however it got hurt (an ability that sets health), it cannot pass the next phase
