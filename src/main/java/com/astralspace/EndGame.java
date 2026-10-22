@@ -558,8 +558,8 @@ public final class EndGame {
     private static double groundY = 4;
     private static final Map<UUID, Long> lastHit = new HashMap<>();
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
-    private static final int[][] NEXT = {{2, 4, 3}, {0, 3, 4, 5}, {3, 1, 4, 5}, {0, 1, 2}, {2, 3, 1, 5}, {3, 1, 2}};
-    private static final int[] DURATION = {140, 220, 110, 70, 80, 200, 90};
+    private static final int[][] NEXT = {{2, 4, 3, 7}, {0, 3, 4, 5}, {3, 1, 4, 5, 7}, {0, 1, 2, 7}, {2, 3, 1, 5}, {3, 1, 2, 7}, {0, 1, 2, 3}, {3, 4, 0, 2}};
+    private static final int[] DURATION = {140, 220, 110, 70, 80, 200, 90, 130};
     private static int lastPattern = 3;
 
     private static void startRaid(MinecraftServer server, AstralData d) {
@@ -644,6 +644,17 @@ public final class EndGame {
         }
     }
 
+    private static final Map<UUID, long[]> airborne = new HashMap<>();   // player -> {last tick counted, ticks since leaving the ground}
+
+    /** True only for a player who has just jumped (low and airborne for under about a second): flying or hovering gets no cover from rings and beams. */
+    private static boolean jumping(ServerPlayer p) {
+        long[] a = airborne.computeIfAbsent(p.getUUID(), k -> new long[]{-1, 0});
+        if (p.onGround() || p.isInWater()) { a[0] = gt; a[1] = 0; return false; }
+        if (a[0] != gt) { a[1] += Math.max(1, Math.min(5, gt - a[0])); a[0] = gt; }
+        double up = p.getY() - cur.gy();
+        return a[1] <= 24 && up < 3.2 && !p.isFallFlying() && !p.getAbilities().flying;
+    }
+
     /** A hit: in the raid it costs a life, around a planet boss it is a hard but survivable blow (practice for the raid). */
     private static void hit(ServerLevel lv, ServerPlayer p) {
         if (cur != null && cur.raid()) { loseLife(lv, p); return; }
@@ -717,7 +728,8 @@ public final class EndGame {
             "SLAM: a red circle under you means a strike is coming. RUN out of it.",
             "PURGE: green circles are safe. Stand INSIDE one before the ground is struck.",
             "TEMPTATION: look AWAY from the boss and CROUCH. It drags your view in random directions: pull the OPPOSITE way.",
-            "POWER: the boss gathers a Beyonder ability. A ring shows it is charging, then it strikes at one of you. Get away from where it faces."};
+            "POWER: the boss gathers a Beyonder ability. A ring shows it is charging, then it strikes at one of you. Get away from where it faces.",
+            "CURSE: purple smoke gathers on every one of you. In a few seconds the whole battlefield is cursed: slowed, weakened, unlucky and corrupted. It cannot be dodged, so stay alive and stay together."};
 
     /** The first time a player meets an attack, they are told how to avoid it. */
     private static void notice(ServerLevel lv, int which) {
@@ -800,6 +812,22 @@ public final class EndGame {
         final double mr = big && rootStage >= 2 ? 11 : 3.5, sl = big ? 16 : 5.5;   // meteor and slam sizes: in the raid they match the tree
         switch (which) {
             case 6 -> power(lv);
+            case 7 -> { // a curse on everyone: cannot be dodged, but it does not cost a life
+                for (int t = 0; t < 60; t += 6) at(t, l -> {
+                    for (ServerPlayer p : fighters(l)) l.sendParticles(ParticleTypes.WITCH, p.getX(), p.getY() + 1, p.getZ(), 12, 0.6, 0.9, 0.6, 0.05);
+                });
+                at(60, l -> {
+                    sfx(l, SoundEvents.WITHER_AMBIENT, 2f, 0.5f);
+                    for (ServerPlayer p : fighters(l)) {
+                        p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 300, 1));
+                        p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.WEAKNESS, 300, 1));
+                        p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN, 300, 1));
+                        p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.UNLUCK, 300, 2));
+                        Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 15);
+                        p.sendSystemMessage(Component.literal("You are cursed.").withStyle(ChatFormatting.DARK_PURPLE));
+                    }
+                });
+            }
             case 0 -> { // meteors: red marks under every fighter, they land 1.5 s later
                 int shots = 4 + rnd.nextInt(3);
                 for (int k = 0; k < shots; k++) at(k * 20L, l -> {
@@ -821,7 +849,7 @@ public final class EndGame {
                             ringOnly(l, cur.cx(), cur.cz(), r, 0.7f, 0.2f, 1f);
                             for (ServerPlayer p : fighters(l)) { // only the ring itself, and only fighters standing on the ground
                                 double dist = Math.hypot(p.getX() - cur.cx(), p.getZ() - cur.cz());
-                                if (Math.abs(dist - r) < (big ? 3.0 : 1.0) && p.getY() < cur.gy() + 0.9) hit(l, p);
+                                if (Math.abs(dist - r) < (big ? 3.0 : 1.0) && !(p.getY() >= cur.gy() + 0.9 && jumping(p))) hit(l, p);
                             }
                         });
                     }
@@ -846,7 +874,7 @@ public final class EndGame {
                             double px = p.getX() - bx, pz = p.getZ() - bz;
                             double along = px * Math.cos(a) + pz * Math.sin(a);
                             double side = Math.abs(-px * Math.sin(a) + pz * Math.cos(a));
-                            if (along > 0 && along < reach + 2 && side < (big ? 3.2 : 1.3) && p.getY() < cur.gy() + 1.1) hit(l, p);
+                            if (along > 0 && along < reach + 2 && side < (big ? 3.2 : 1.3) && !(p.getY() >= cur.gy() + 1.1 && jumping(p))) hit(l, p);
                         }
                     });
                 }
@@ -1126,7 +1154,7 @@ public final class EndGame {
                 double px = p.getX() - 0.5, pz = p.getZ() - 0.5, dist = Math.hypot(px, pz);
                 if (dist > leash) { // the battlefield has an edge: nobody outruns the tree
                     double k = (leash - 12) / dist;
-                    p.teleportTo(lv, 0.5 + px * k, groundY, 0.5 + pz * k, p.getYRot(), p.getXRot());
+                    p.teleportTo(lv, 0.5 + px * k, Math.max(groundY, p.getY()), 0.5 + pz * k, p.getYRot(), p.getXRot());
                     p.displayClientMessage(Component.literal("The Astral World will not let you flee. Fight!").withStyle(ChatFormatting.DARK_RED), true);
                 } else if (dist > leash - 20) p.displayClientMessage(Component.literal("The edge of the battlefield is near. You cannot run from this.").withStyle(ChatFormatting.RED), true);
             }
@@ -1137,7 +1165,7 @@ public final class EndGame {
         if (boss == null) {
             if (!d.bossesDead.contains("raid")) { // it was lost somehow without dying: bring it back at full strength
                 Mob m = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
-                if (m != null) { m.addTag(TAG_BOSS); m.addTag(TAG_RAID); m.setNoAi(true); m.setNoGravity(true); lv.addFreshEntity(m); }
+                if (m != null) { m.addTag(TAG_BOSS); m.addTag(TAG_RAID); m.setNoAi(true); m.setNoGravity(true); if (raidRespawnHp > 0) { m.setHealth(Math.min(BOSS_HP, raidRespawnHp)); raidRespawnHp = -1f; } lv.addFreshEntity(m); }
             }
         } else {
             if (raidBar == null) raidBar = new ServerBossEvent(Component.literal(RAID_NAME).withStyle(ChatFormatting.DARK_PURPLE),
@@ -1391,9 +1419,35 @@ public final class EndGame {
         if (inst != null && Math.abs(inst.getBaseValue() - want) > 0.01) { inst.setBaseValue(want); m.refreshDimensions(); }
     }
 
+    private static final Set<UUID> silentHandled = new HashSet<>();
+    private static float raidRespawnHp = -1f;
+
+    /**
+     * A boss whose health hit 0 with no death event (an ability that sets health, such as the Death pathway's withering wind) would otherwise
+     * be removed by the game and later respawned at full health. Near the end that is a kill; earlier it comes back with the health it had.
+     */
+    private static void silentDeath(ServerLevel lv, Mob m) {
+        MinecraftServer server = lv.getServer();
+        if (server == null || !silentHandled.add(m.getUUID())) return;
+        AstralData d = AstralData.get(server);
+        boolean raid = m.getTags().contains(TAG_RAID);
+        String planet = null;
+        for (String t : m.getTags()) if (t.startsWith(TAG_PLANET)) planet = t.substring(TAG_PLANET.length());
+        if (raid ? d.bossesDead.contains("raid") : (planet == null || d.bossesDead.contains(planet))) return;   // a normal death already took care of it
+        Float l = lastHp.get(m.getUUID());
+        boolean finish = l != null && l <= m.getMaxHealth() * 0.30f;
+        if (raid && (rootStage < THRESHOLDS.length || rootsActive)) finish = false;   // it cannot skip its phases
+        LOGGER.info("[astral] '{}' lost all its health without a death event (last {}): {}", m.getName().getString(), l, finish ? "counted as a kill" : "it comes back with that health");
+        if (finish) {
+            if (raid) { d.bossesDead.add("raid"); server.execute(() -> raidWon(server, d)); }
+            else bossDied(server, d, planet);
+        } else if (raid && l != null) raidRespawnHp = Math.max(1f, l);
+    }
+
     private static void guardLevel(ServerLevel lv) {
         if (lv == null) return;
         for (Entity e : lv.getAllEntities()) {
+            if (e instanceof Mob dm && dm.getTags().contains(TAG_BOSS) && !dm.isAlive() && dm.getHealth() <= 0f) silentDeath(lv, dm);
             if (!(e instanceof Mob m) || !m.getTags().contains(TAG_BOSS) || !m.isAlive()) continue;
             stripDeath(m);
             freeFromOwner(m);
@@ -1457,7 +1511,8 @@ public final class EndGame {
         }
         if (e instanceof Mob nm && nm.getTags().contains(TAG_BOSS)) { // a boss only dies to players: nothing else, however it happened, may finish it
             Long hit = lastPlayerHit.get(nm.getUUID());
-            if (hit == null || gt - hit > 1200) {
+            Float lastForDeath = lastHp.get(nm.getUUID());
+            if ((hit == null || gt - hit > 1200) && (lastForDeath == null || lastForDeath > nm.getMaxHealth() * 0.30f)) {   // a Death-pathway kill on a boss already near the end counts, though no hit was logged
                 LOGGER.info("[astral] '{}' died with no player hit in the last minute ({}); undone", nm.getName().getString(), event.getSource().type().msgId());
                 event.setCanceled(true);
                 Float l = lastHp.get(nm.getUUID());

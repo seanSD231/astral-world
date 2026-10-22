@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.1.92
+- Raid: rings and the beam now hit anyone flying or hovering; only a real jump avoids them.
+- Raid: the battlefield edge no longer drops flying players to the ground (it kept their height).
+- Raid: new CURSE attack that slows, weakens, makes unlucky and corrupts everyone.
+- Bosses: if an ability such as the Death pathway's withering wind sets a boss to 0 health without a normal death, it now counts as a kill near the end, or the tree returns with the health it had, not at 100%.
+
 ## 0.1.91
 - Raid: meteors are back to their old size until the 50% change, then grow. Rolling rings and the beam are wider; safe circles are smaller.
 - A second copy of a boss can no longer enter the world while the real one is alive (stops summoning the tree back from a spirit store).
