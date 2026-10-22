@@ -2,7 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
-## 0.1.86 — Raid scale (current)
+## 0.1.87 — Hitboxes, fairer raid mechanics (current)
+- Bosses have real hitboxes now (the vanilla scale attribute): the tree is 16x (9.6 wide, 29 tall), sovereigns 4x to 11x.
+- Temptation: the drag is much gentler, 3 s grace, wider aim tolerance, and the meter takes 5 s of failing to fill.
+- Roots scale with the crowd: about 7 for one fighter (near the middle), up to 70 for a crowd; 45 s plus a little per root. Seeds likewise.
+- The tree's health can never be pushed past its next phase threshold, even by abilities that set health directly.
+
+## 0.1.86 — Raid scale
 - The arena is 190 blocks in radius and the raid attacks are sized for the tree: the purple rings now roll past the last roots, meteors and slams are 9 and 13 blocks wide, safe circles are 10 wide.
 - The tree stays on screen in the raid arena however far you go, even when the game stops tracking the boss.
 

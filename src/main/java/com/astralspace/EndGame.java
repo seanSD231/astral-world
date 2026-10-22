@@ -738,7 +738,7 @@ public final class EndGame {
     private static void temptation(ServerLevel lv, int ticks, Set<UUID> failed) {
         Map<UUID, Integer> meter = new HashMap<>();
         float[] pull = {0f, 0f};
-        int[] changeAt = {30};
+        int[] changeAt = {60};
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         for (ServerPlayer p : fighters(lv)) p.sendSystemMessage(Component.literal("Come to me, child... (turn away and CROUCH)").withStyle(ChatFormatting.LIGHT_PURPLE));
         for (int t = 0; t < ticks; t++) {
@@ -748,20 +748,20 @@ public final class EndGame {
                 if (tt % 10 == 0) l.sendParticles(ParticleTypes.CHERRY_LEAVES, boss.x, cur.gy() + 3, boss.z, 20, 6, 3, 6, 0.02);
                 if (tt >= changeAt[0]) {
                     double th = rnd.nextDouble() * Math.PI * 2;
-                    pull[0] = (float) (Math.cos(th) * 2.5);
-                    pull[1] = (float) (Math.sin(th) * 1.6);
+                    pull[0] = (float) (Math.cos(th) * 1.1);
+                    pull[1] = (float) (Math.sin(th) * 0.7);
                     changeAt[0] = tt + 15 + rnd.nextInt(15);
                 }
                 for (ServerPlayer p : fighters(l)) {
                     UUID id = p.getUUID();
                     if (failed.contains(id)) continue;
-                    if (tt < 30) { if (tt % 10 == 0) p.displayClientMessage(Component.literal("Turn away and crouch!").withStyle(ChatFormatting.LIGHT_PURPLE), true); continue; }
+                    if (tt < 60) { if (tt % 10 == 0) p.displayClientMessage(Component.literal("Turn away and crouch!").withStyle(ChatFormatting.LIGHT_PURPLE), true); continue; }
                     double dx = p.getX() - boss.x, dz = p.getZ() - boss.z;
                     float away = (float) (net.minecraft.util.Mth.atan2(-dx, dz) * 57.29578);
                     double dev = Math.hypot(net.minecraft.util.Mth.wrapDegrees(p.getYRot() - away), p.getXRot());
-                    boolean ok = p.isShiftKeyDown() && dev < 45;
+                    boolean ok = p.isShiftKeyDown() && dev < 70;
                     int m = meter.getOrDefault(id, 0);
-                    m = ok ? Math.max(0, m - 1) : m + 1;
+                    m = ok ? Math.max(0, m - 2) : m + 1;
                     meter.put(id, m);
                     if (tt % 2 == 0) // the drag: a relative turn of the camera
                         p.connection.teleport(p.getX(), p.getY(), p.getZ(), pull[0] * 2, pull[1] * 2,
@@ -771,11 +771,11 @@ public final class EndGame {
                     if (tt % 4 == 0) {
                         String h = pull[0] > 0.8 ? "►" : pull[0] < -0.8 ? "◄" : "";
                         String v = pull[1] > 0.5 ? "▼" : pull[1] < -0.5 ? "▲" : "";
-                        int bars = Math.min(10, m / 4);
+                        int bars = Math.min(10, m / 10);
                         p.displayClientMessage(Component.literal("Pulled " + h + v + "  - pull the OTHER way!   " + "█".repeat(bars) + "░".repeat(10 - bars))
                                 .withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.LIGHT_PURPLE), true);
                     }
-                    if (m >= 40) {
+                    if (m >= 100) {
                         failed.add(id);
                         p.sendSystemMessage(Component.literal("You gave in.").withStyle(ChatFormatting.DARK_RED));
                         if (!Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 60)) hit(l, p);
@@ -958,9 +958,10 @@ public final class EndGame {
         activeKind = 2;
         phaseEnd = rt + 800;
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        int nSeeds = Math.min(24, Math.max(6, fighters(lv).size() / 6));
+        int nSeeds = Math.min(24, Math.max(3, fighters(lv).size() / 6));
+        double smax = Math.min(ARENA_R - 55, 40 + nSeeds * 8.0);
         for (int i = 0; i < nSeeds; i++) {
-            double a = Math.PI * 2 * i / nSeeds + rnd.nextDouble() * 0.5, r = 30 + rnd.nextDouble() * (ARENA_R - 55);
+            double a = Math.PI * 2 * i / nSeeds + rnd.nextDouble() * 0.5, r = 25 + rnd.nextDouble() * Math.max(10, smax - 25);
             BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
             if (!lv.getBlockState(b).isAir()) continue;
             lv.setBlock(b, Blocks.SHROOMLIGHT.defaultBlockState(), 3);
@@ -994,18 +995,20 @@ public final class EndGame {
     private static void startRoots(ServerLevel lv) {
         rootsActive = true;
         activeKind = 0;
-        rootsEnd = rt + 600;
+        int players = fighters(lv).size();
+        int n = Math.min(70, 6 + 2 * rootStage + players);   // one fighter: about 7 roots; a crowd: up to 70
+        rootsEnd = rt + Math.min(2400, 900 + 30L * n);          // 45 seconds and a little more for every root
+        double rmax = Math.min(ARENA_R - 45, 45 + n * 3.0);      // few roots stay near the middle, many reach the edge
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        int n = Math.min(70, 14 + 4 * rootStage + fighters(lv).size() / 2);   // more fighters, more roots
         for (int i = 0; i < n; i++) {
-            double a = rnd.nextDouble() * Math.PI * 2, r = 30 + rnd.nextDouble() * (ARENA_R - 45);
+            double a = rnd.nextDouble() * Math.PI * 2, r = 30 + rnd.nextDouble() * Math.max(10, rmax - 30);
             BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
-            if (!lv.getBlockState(b).isAir() || !lv.getBlockState(b.above()).isAir()) continue;
+            if (!lv.getBlockState(b).canBeReplaced() || !lv.getBlockState(b.above()).canBeReplaced()) continue;   // grass and flowers do not stop a root
             lv.setBlock(b, Blocks.MANGROVE_WOOD.defaultBlockState(), 3);
             lv.setBlock(b.above(), Blocks.MANGROVE_WOOD.defaultBlockState(), 3);
             roots.add(b);
         }
-        tellLevel(lv, "Roots surge over the battlefield! The tree cannot be hurt. BURN THE ROOTS within 30 seconds or it heals to full.", ChatFormatting.DARK_GREEN);
+        tellLevel(lv, "Roots surge over the battlefield! The tree cannot be hurt. BURN THE ROOTS (flint and steel, or any fire next to them) before time runs out, or it heals to full.", ChatFormatting.DARK_GREEN);
     }
 
     /** Tells every fighter how far and in which direction the closest of these blocks is, as a compass arrow. */
@@ -1287,12 +1290,28 @@ public final class EndGame {
         guardLevel(dim(server, "raid"));
     }
 
+    /** Hitbox scale (the vanilla scale attribute) per boss: the mob is player-sized but the models are huge, so players need something to hit. */
+    private static final Map<String, Double> HITBOX = Map.of("mercury", 7.0, "venus", 6.0, "mars", 4.0, "jupiter", 7.0, "saturn", 6.0, "uranus", 11.0, "neptune", 8.5, "tree", 16.0);
+
+    private static void sizeHitbox(Mob m) {
+        String n = m.hasCustomName() ? m.getCustomName().getString() : "";
+        Double want = n.startsWith(RAID_NAME) ? HITBOX.get("tree") : n.startsWith("Sovereign of ") ? HITBOX.get(n.substring(13).trim().toLowerCase(java.util.Locale.ROOT)) : null;
+        if (want == null) return;
+        var inst = m.getAttribute(Attributes.SCALE);
+        if (inst != null && Math.abs(inst.getBaseValue() - want) > 0.01) { inst.setBaseValue(want); m.refreshDimensions(); }
+    }
+
     private static void guardLevel(ServerLevel lv) {
         if (lv == null) return;
         for (Entity e : lv.getAllEntities()) {
             if (!(e instanceof Mob m) || !m.getTags().contains(TAG_BOSS) || !m.isAlive()) continue;
             stripDeath(m);
+            sizeHitbox(m);
             float max = m.getMaxHealth(), hp = m.getHealth();
+            if (m.getTags().contains(TAG_RAID) && !rootsActive && rootStage < THRESHOLDS.length && hp < THRESHOLDS[rootStage] * BOSS_HP - 0.5f) { // however it got hurt (an ability that sets health), it cannot pass the next phase
+                hp = THRESHOLDS[rootStage] * BOSS_HP - 0.5f;
+                m.setHealth(hp);
+            }
             Float last = lastHp.get(m.getUUID());
             if (last != null && hp < last - max * MAX_DROP) { hp = Math.max(1f, last - max * MAX_HIT); m.setHealth(hp); }
             lastHp.put(m.getUUID(), hp);
