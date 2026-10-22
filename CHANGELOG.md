@@ -3,7 +3,7 @@
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
 ## 0.1.87 — Hitboxes, fairer raid mechanics (current)
-- Bosses have real hitboxes now (the vanilla scale attribute): the tree is 16x (9.6 wide, 29 tall), sovereigns 4x to 11x.
+- Bosses have real hitboxes now, sized to their models and set through Pehkui (reflection; falls back to the vanilla scale attribute, capped at 16x, if Pehkui is not usable): the tree is 30 wide and 150 tall, sovereigns 8-24 wide and 7-20 tall.
 - Temptation: the drag is much gentler, 3 s grace, wider aim tolerance, and the meter takes 5 s of failing to fill.
 - Roots scale with the crowd: about 7 for one fighter (near the middle), up to 70 for a crowd; 45 s plus a little per root. Seeds likewise.
 - The tree's health can never be pushed past its next phase threshold, even by abilities that set health directly.

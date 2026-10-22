@@ -1290,14 +1290,55 @@ public final class EndGame {
         guardLevel(dim(server, "raid"));
     }
 
-    /** Hitbox scale (the vanilla scale attribute) per boss: the mob is player-sized but the models are huge, so players need something to hit. */
-    private static final Map<String, Double> HITBOX = Map.of("mercury", 7.0, "venus", 6.0, "mars", 4.0, "jupiter", 7.0, "saturn", 6.0, "uranus", 11.0, "neptune", 8.5, "tree", 16.0);
+    /** Hitbox size in blocks (width, height) per boss, matched to the drawn model. The mob itself is player-sized (0.6 x 1.8). */
+    private static final Map<String, double[]> HITBOX = Map.of("mercury", new double[]{14, 13}, "venus", new double[]{24, 10}, "mars", new double[]{8, 7},
+            "jupiter", new double[]{17, 13}, "saturn", new double[]{11, 11}, "uranus", new double[]{18, 20}, "neptune", new double[]{15, 15}, "tree", new double[]{30, 150});
+
+    private static boolean pkOk = false, pkTried = false;
+    private static Object pkWidth, pkHeight;
+    private static java.lang.reflect.Method pkData, pkGet, pkSet;
+
+    /** Pehkui (it is in the pack, loaded through Connector) scales hitboxes without limit and per axis. Reached by reflection so the mod needs no dependency. */
+    private static boolean pehkui(Mob m, float w, float h) {
+        try {
+            if (!pkTried) {
+                pkTried = true;
+                Class<?> types = Class.forName("virtuoel.pehkui.api.ScaleTypes");
+                pkWidth = types.getField("HITBOX_WIDTH").get(null);
+                pkHeight = types.getField("HITBOX_HEIGHT").get(null);
+                for (var me : Class.forName("virtuoel.pehkui.api.ScaleType").getMethods()) if (me.getName().equals("getScaleData") && me.getParameterCount() == 1) pkData = me;
+                Class<?> sd = Class.forName("virtuoel.pehkui.api.ScaleData");
+                pkGet = sd.getMethod("getBaseScale");
+                pkSet = sd.getMethod("setScale", float.class);
+                pkOk = pkData != null;
+                LOGGER.info("[astral] Pehkui found: boss hitboxes use it");
+            }
+            if (!pkOk) return false;
+            Object[][] axes = {{pkWidth, w}, {pkHeight, h}};
+            for (Object[] a : axes) {
+                Object data = pkData.invoke(a[0], m);
+                float cur = ((Number) pkGet.invoke(data)).floatValue(), want = (Float) a[1];
+                if (Math.abs(cur - want) > 0.01f * want) pkSet.invoke(data, want);
+            }
+            return true;
+        } catch (Throwable t) {
+            if (pkOk) LOGGER.warn("[astral] Pehkui could not scale a hitbox, using the vanilla scale attribute instead: {}", String.valueOf(t));
+            else if (pkTried) LOGGER.info("[astral] Pehkui not usable ({}): using the vanilla scale attribute for hitboxes", String.valueOf(t));
+            pkOk = false;
+            return false;
+        }
+    }
 
     private static void sizeHitbox(Mob m) {
         String n = m.hasCustomName() ? m.getCustomName().getString() : "";
-        Double want = n.startsWith(RAID_NAME) ? HITBOX.get("tree") : n.startsWith("Sovereign of ") ? HITBOX.get(n.substring(13).trim().toLowerCase(java.util.Locale.ROOT)) : null;
-        if (want == null) return;
+        double[] box = n.startsWith(RAID_NAME) ? HITBOX.get("tree") : n.startsWith("Sovereign of ") ? HITBOX.get(n.substring(13).trim().toLowerCase(java.util.Locale.ROOT)) : null;
+        if (box == null) return;
         var inst = m.getAttribute(Attributes.SCALE);
+        if (pehkui(m, (float) (box[0] / 0.6), (float) (box[1] / 1.8))) {
+            if (inst != null && Math.abs(inst.getBaseValue() - 1.0) > 0.01) { inst.setBaseValue(1.0); m.refreshDimensions(); }   // not both
+            return;
+        }
+        double want = Math.min(16, Math.max(box[0] / 0.6, box[1] / 1.8));   // the vanilla attribute stops at 16, one scale for both axes
         if (inst != null && Math.abs(inst.getBaseValue() - want) > 0.01) { inst.setBaseValue(want); m.refreshDimensions(); }
     }
 
