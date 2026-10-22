@@ -137,7 +137,7 @@ public final class PlanetGenerator extends ChunkGenerator {
             }
             case "raid" -> { // the sanctuary: flat ground out to the ruins, gentle grassy hills beyond
                 double r = Math.hypot(x, z);
-                h = BASE + smooth(60, 110, r) * (fbm(x, z, 70, 12, 3) - 0.3) * 14;
+                h = BASE + smooth(EndGame.ARENA_R + 20, EndGame.ARENA_R + 70, r) * (fbm(x, z, 70, 12, 3) - 0.3) * 14;
             }
             default -> h = BASE + (fbm(x, z, 120, 10, 3) - 0.5) * 6;
         }
@@ -238,9 +238,11 @@ public final class PlanetGenerator extends ChunkGenerator {
         double r = Math.hypot(x, z);
         BlockState[] stone = {Blocks.STONE_BRICKS.defaultBlockState(), Blocks.MOSSY_STONE_BRICKS.defaultBlockState(), Blocks.CRACKED_STONE_BRICKS.defaultBlockState()};
         // twelve pillars on a ring, each one broken off at its own height
-        for (int k = 0; k < 12; k++) {
-            double a = Math.PI * 2 * k / 12 + 0.13;
-            int cx = (int) Math.round(Math.cos(a) * 46), cz = (int) Math.round(Math.sin(a) * 46);
+        double ring = EndGame.ARENA_R - 4;
+        int pillars = 36;
+        for (int k = 0; k < pillars; k++) {
+            double a = Math.PI * 2 * k / pillars + 0.13;
+            int cx = (int) Math.round(Math.cos(a) * ring), cz = (int) Math.round(Math.sin(a) * ring);
             if (Math.abs(x - cx) <= 1 && Math.abs(z - cz) <= 1) {
                 int top = 5 + (int) (hash(k, 7, 91) * 10) - ((x + z) % 2 == 0 && hash(x, z, 92) < 0.4 ? 2 : 0);
                 for (int y = h + 1; y <= h + top; y++) {
@@ -251,7 +253,7 @@ public final class PlanetGenerator extends ChunkGenerator {
             }
         }
         // low walls between them, mostly fallen
-        if (r >= 45 && r <= 46.9) {
+        if (r >= ring - 1 && r <= ring + 0.9) {
             int wh = (int) (hash(x / 3, 5, z / 3) * 4) - 1;
             for (int y = h + 1; y <= h + wh; y++) chunk.setBlockState(pos.set(x, y, z), stone[(int) (hash(x, y, z) * 3)], false);
             return;

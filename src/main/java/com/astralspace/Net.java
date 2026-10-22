@@ -67,13 +67,23 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
-    /** Server -> client: a danger marker drawn on top of everything (kind 0 filled ring, 1 ring, 2 beam, 3 tall beacon). */
-    public record TelegraphPayload(int kind, float x, float y, float z, float a, float b, int color, int life) implements CustomPacketPayload {
-        public static final Type<TelegraphPayload> TYPE =
+    /** One danger marker (kind 0 filled ring, 1 ring, 2 beam, 3 tall beacon). Sent in batches. */
+    public record TelegraphPayload(int kind, float x, float y, float z, float a, float b, int color, int life) {
+        static void write(RegistryFriendlyByteBuf buf, TelegraphPayload t) {
+            buf.writeByte(t.kind); buf.writeFloat(t.x); buf.writeFloat(t.y); buf.writeFloat(t.z); buf.writeFloat(t.a); buf.writeFloat(t.b); buf.writeInt(t.color); buf.writeShort(t.life);
+        }
+        static TelegraphPayload read(RegistryFriendlyByteBuf buf) {
+            return new TelegraphPayload(buf.readByte(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readInt(), buf.readShort());
+        }
+    }
+
+    /** Server -> client: every danger marker of one tick in a single packet (the raid can hold ~100 players). Drawn on top of everything. */
+    public record TelegraphBatch(java.util.List<TelegraphPayload> items) implements CustomPacketPayload {
+        public static final Type<TelegraphBatch> TYPE =
                 new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "telegraph"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, TelegraphPayload> CODEC = StreamCodec.of(
-                (buf, t) -> { buf.writeByte(t.kind); buf.writeFloat(t.x); buf.writeFloat(t.y); buf.writeFloat(t.z); buf.writeFloat(t.a); buf.writeFloat(t.b); buf.writeInt(t.color); buf.writeShort(t.life); },
-                buf -> new TelegraphPayload(buf.readByte(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readInt(), buf.readShort()));
+        public static final StreamCodec<RegistryFriendlyByteBuf, TelegraphBatch> CODEC = StreamCodec.of(
+                (buf, b) -> { buf.writeVarInt(b.items.size()); for (TelegraphPayload t : b.items) TelegraphPayload.write(buf, t); },
+                buf -> { int n = buf.readVarInt(); java.util.List<TelegraphPayload> l = new java.util.ArrayList<>(n); for (int k = 0; k < n; k++) l.add(TelegraphPayload.read(buf)); return new TelegraphBatch(l); });
 
         @Override
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
@@ -156,11 +166,12 @@ public final class Net {
             ClientState.cutsceneTicks = payload.ticks();
             ClientState.cutsceneStart = System.currentTimeMillis();
         }));
-        registrar.playToClient(TelegraphPayload.TYPE, TelegraphPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
-            long expiry = System.currentTimeMillis() + payload.life() * 50L;
+        registrar.playToClient(TelegraphBatch.TYPE, TelegraphBatch.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             synchronized (ClientState.telegraphs) {
-                if (ClientState.telegraphs.size() < 600)
-                    ClientState.telegraphs.add(new double[]{payload.kind(), payload.x(), payload.y(), payload.z(), payload.a(), payload.b(), payload.color(), expiry});
+                for (TelegraphPayload t : payload.items()) {
+                    if (ClientState.telegraphs.size() >= 2500) break;
+                    ClientState.telegraphs.add(new double[]{t.kind(), t.x(), t.y(), t.z(), t.a(), t.b(), t.color(), System.currentTimeMillis() + t.life() * 50L});
+                }
             }
         }));
         registrar.playToClient(MutePayload.TYPE, MutePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> ClientState.muted = payload.mute()));

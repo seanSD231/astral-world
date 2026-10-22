@@ -557,7 +557,7 @@ public final class EndGame {
     private static final Map<UUID, Long> lastHit = new HashMap<>();
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
     private static final int[][] NEXT = {{2, 4, 3}, {0, 3, 4, 5}, {3, 1, 4, 5}, {0, 1, 2}, {2, 3, 1, 5}, {3, 1, 2}};
-    private static final int[] DURATION = {140, 150, 110, 70, 80, 200, 90};
+    private static final int[] DURATION = {140, 175, 110, 70, 80, 200, 90};
     private static int lastPattern = 3;
 
     private static void startRaid(MinecraftServer server, AstralData d) {
@@ -592,8 +592,9 @@ public final class EndGame {
         for (ServerPlayer p : all) {
             d.raidLives.put(p.getUUID(), LIVES);
             setGameMode(p, GameType.SURVIVAL);
-            double a = Math.PI * 2 * i++ / Math.max(1, all.size());
-            p.teleportTo(lv, 0.5 + Math.cos(a) * SPAWN_R, groundY, 0.5 + Math.sin(a) * SPAWN_R, p.getYRot(), 0f);
+            double a = Math.PI * 2 * i / Math.max(1, all.size());
+            double sr = SPAWN_R - 15 + (i++ % 4) * 10;   // four rings, so a crowd is not stacked on one line
+            p.teleportTo(lv, 0.5 + Math.cos(a) * sr, groundY, 0.5 + Math.sin(a) * sr, p.getYRot(), 0f);
             p.setHealth(p.getMaxHealth());
         }
         tell(server, RAID_NAME + " has come. You have " + LIVES + " lives. Do not be where it strikes.", ChatFormatting.DARK_PURPLE);
@@ -671,8 +672,22 @@ public final class EndGame {
 
     /** A danger marker the clients draw on top of everything (the tree model is far too big to leave this to world particles). */
     private static void tele(ServerLevel lv, int kind, double x, double y, double z, float a, float b, float cr, float cg, float cb, int life) {
-        Net.TelegraphPayload pl = new Net.TelegraphPayload(kind, (float) x, (float) y, (float) z, a, b, rgb(cr, cg, cb), life);
-        for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, pl);
+        teleBuf.computeIfAbsent(lv, k -> new ArrayList<>()).add(new Net.TelegraphPayload(kind, (float) x, (float) y, (float) z, a, b, rgb(cr, cg, cb), life));
+    }
+
+    private static final Map<ServerLevel, List<Net.TelegraphPayload>> teleBuf = new java.util.IdentityHashMap<>();
+
+    /** Once a tick: everything drawn this tick goes out as one packet per player (in chunks), not one packet per marker. */
+    private static void flushTele() {
+        if (teleBuf.isEmpty()) return;
+        for (var e : teleBuf.entrySet()) {
+            List<Net.TelegraphPayload> all = e.getValue();
+            for (int from = 0; from < all.size(); from += 400) {
+                Net.TelegraphBatch pk = new Net.TelegraphBatch(new ArrayList<>(all.subList(from, Math.min(all.size(), from + 400))));
+                for (ServerPlayer p : e.getKey().players()) PacketDistributor.sendToPlayer(p, pk);
+            }
+        }
+        teleBuf.clear();
     }
 
     private static void ringOnly(ServerLevel lv, double x, double z, double r, float cr, float cg, float cb) {
@@ -681,15 +696,12 @@ public final class EndGame {
 
     private static void circle(ServerLevel lv, double x, double z, double r, float cr, float cg, float cb) {
         tele(lv, 0, x, cur.gy(), z, (float) r, 0f, cr, cg, cb, 8);
-        int n = (int) Math.max(12, r * 6);
-        for (int i = 0; i < n; i++) {
-            double a = Math.PI * 2 * i / n;
-            dust(lv, x + Math.cos(a) * r, cur.gy() + 0.2, z + Math.sin(a) * r, cr, cg, cb);
-        }
     }
 
+    private static boolean crowd = false;   // many fighters: fewer bolts and sounds so the server and clients keep up
+
     private static void boom(ServerLevel lv, double x, double z, double r) {
-        LightningBolt b = EntityType.LIGHTNING_BOLT.create(lv);
+        LightningBolt b = crowd && ThreadLocalRandom.current().nextInt(6) != 0 ? null : EntityType.LIGHTNING_BOLT.create(lv);
         if (b != null) { b.moveTo(x, cur.gy(), z); b.setVisualOnly(true); lv.addFreshEntity(b); }
         lv.sendParticles(ParticleTypes.EXPLOSION, x, cur.gy() + 1, z, 6, r / 3, 0.5, r / 3, 0);
     }
@@ -778,6 +790,9 @@ public final class EndGame {
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         final double cx = cur.cx(), cz = cur.cz(), bx = cx, bz = cz;
         notice(lv, which);
+        crowd = fighters(lv).size() > 12;
+        final boolean big = cur.raid();
+        final double reach = big ? ARENA_R : 42;
         switch (which) {
             case 6 -> power(lv);
             case 0 -> { // meteors: red marks under every fighter, they land 1.5 s later
@@ -794,10 +809,10 @@ public final class EndGame {
                 int rings = 2 + rnd.nextInt(2);
                 for (int ring = 0; ring < rings; ring++) {
                     long start = 25 + ring * 30L;
-                    for (int t = 0; t < 50; t++) {
+                    for (int t = 0; t < (big ? 135 : 50); t++) {
                         final int tt = t;
                         at(start + t, l -> {
-                            double r = 2 + tt * 0.6;
+                            double r = 2 + tt * (big ? 0.8 : 0.6);
                             ringOnly(l, cur.cx(), cur.cz(), r, 0.7f, 0.2f, 1f);
                             for (ServerPlayer p : fighters(l)) { // only the ring itself, and only fighters standing on the ground
                                 double dist = Math.hypot(p.getX() - cur.cx(), p.getZ() - cur.cz());
@@ -815,8 +830,8 @@ public final class EndGame {
                     at(t, l -> {
                         double a = a0 + spin * Math.max(0, tt - 20) * Math.toRadians(1.5);
                         boolean live = tt >= 20;
-                        tele(l, 2, bx, cur.gy(), bz, (float) a, 42f, live ? 1f : 1f, live ? 0.9f : 0.2f, live ? 0.3f : 0.2f, 3);
-                        for (double d = 1; d <= 40; d += 1.2) {
+                        tele(l, 2, bx, cur.gy(), bz, (float) a, (float) reach, live ? 1f : 1f, live ? 0.9f : 0.2f, live ? 0.3f : 0.2f, 3);
+                        for (double d = 1; d <= 0; d += 1.2) {
                             double x = bx + Math.cos(a) * d, z = bz + Math.sin(a) * d;
                             if (live) { dust(l, x, cur.gy() + 0.5, z, 1f, 0.9f, 0.3f); }
                             else if (tt % 4 == 0) dust(l, x, cur.gy() + 0.3, z, 1f, 0.2f, 0.2f);
@@ -826,7 +841,7 @@ public final class EndGame {
                             double px = p.getX() - bx, pz = p.getZ() - bz;
                             double along = px * Math.cos(a) + pz * Math.sin(a);
                             double side = Math.abs(-px * Math.sin(a) + pz * Math.cos(a));
-                            if (along > 0 && along < 42 && side < 1.3 && p.getY() < cur.gy() + 1.1) hit(l, p);
+                            if (along > 0 && along < reach + 2 && side < 1.3 && p.getY() < cur.gy() + 1.1) hit(l, p);
                         }
                     });
                 }
@@ -844,16 +859,17 @@ public final class EndGame {
                 at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
             }
             default -> { // the whole arena is struck except for three safe circles
-                double[][] safe = new double[3][2];
-                for (double[] s : safe) { double a = rnd.nextDouble() * Math.PI * 2, d = 4 + rnd.nextDouble() * 14; s[0] = cx + Math.cos(a) * d; s[1] = cz + Math.sin(a) * d; }
-                for (int t = 0; t < 70; t += 5) at(t, l -> { for (double[] s : safe) circle(l, s[0], s[1], 3.2, 0.2f, 1f, 0.3f); });
+                final double sr = big ? 4.8 : 3.2;
+                double[][] safe = new double[big ? Math.max(3, (fighters(lv).size() + 3) / 4) : 3][2];   // a crowd needs room: one circle for every four fighters
+                for (double[] s : safe) { double a = rnd.nextDouble() * Math.PI * 2, d = 4 + rnd.nextDouble() * (big ? reach * 0.8 : 14); s[0] = cx + Math.cos(a) * d; s[1] = cz + Math.sin(a) * d; }
+                for (int t = 0; t < 70; t += 5) at(t, l -> { for (double[] s : safe) circle(l, s[0], s[1], sr, 0.2f, 1f, 0.3f); });
                 at(70, l -> {
                     for (ServerPlayer p : fighters(l)) {
                         boolean ok = false;
-                        for (double[] s : safe) { double dx = p.getX() - s[0], dz = p.getZ() - s[1]; if (dx * dx + dz * dz <= 3.2 * 3.2) ok = true; }
+                        for (double[] s : safe) { double dx = p.getX() - s[0], dz = p.getZ() - s[1]; if (dx * dx + dz * dz <= sr * sr) ok = true; }
                         if (!ok) hit(l, p);
                     }
-                    boom(l, cx, cz, 30);
+                    boom(l, cx, cz, big ? 60 : 30);
                 });
             }
         }
@@ -941,8 +957,9 @@ public final class EndGame {
         activeKind = 2;
         phaseEnd = rt + 800;
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        for (int i = 0; i < 6; i++) {
-            double a = Math.PI * 2 * i / 6 + rnd.nextDouble() * 0.5, r = 18 + rnd.nextDouble() * 22;
+        int nSeeds = Math.min(24, Math.max(6, fighters(lv).size() / 6));
+        for (int i = 0; i < nSeeds; i++) {
+            double a = Math.PI * 2 * i / nSeeds + rnd.nextDouble() * 0.5, r = 30 + rnd.nextDouble() * (ARENA_R - 55);
             BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
             if (!lv.getBlockState(b).isAir()) continue;
             lv.setBlock(b, Blocks.SHROOMLIGHT.defaultBlockState(), 3);
@@ -978,9 +995,9 @@ public final class EndGame {
         activeKind = 0;
         rootsEnd = rt + 600;
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        int n = 14 + 4 * rootStage;
+        int n = Math.min(70, 14 + 4 * rootStage + fighters(lv).size() / 2);   // more fighters, more roots
         for (int i = 0; i < n; i++) {
-            double a = rnd.nextDouble() * Math.PI * 2, r = 20 + rnd.nextDouble() * 22;
+            double a = rnd.nextDouble() * Math.PI * 2, r = 30 + rnd.nextDouble() * (ARENA_R - 45);
             BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
             if (!lv.getBlockState(b).isAir() || !lv.getBlockState(b.above()).isAir()) continue;
             lv.setBlock(b, Blocks.MANGROVE_WOOD.defaultBlockState(), 3);
@@ -1082,7 +1099,7 @@ public final class EndGame {
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             d.raidLives.putIfAbsent(p.getUUID(), LIVES);
             if (p.level() != lv) p.teleportTo(lv, 0.5 + SPAWN_R, groundY, 0.5, p.getYRot(), 0f);
-            else if (p.distanceToSqr(0.5, groundY, 0.5) > 45 * 45) p.teleportTo(lv, 0.5 + SPAWN_R, groundY, 0.5, p.getYRot(), 0f);
+            else if (p.distanceToSqr(0.5, groundY, 0.5) > (ARENA_R + 15) * (ARENA_R + 15)) p.teleportTo(lv, 0.5 + SPAWN_R, groundY, 0.5, p.getYRot(), 0f);
             if (d.raidLives.get(p.getUUID()) <= 0) setGameMode(p, GameType.SPECTATOR);
             else p.displayClientMessage(Component.literal("Lives: " + "♥".repeat(d.raidLives.get(p.getUUID()))).withStyle(ChatFormatting.RED), true);
         }
@@ -1231,7 +1248,8 @@ public final class EndGame {
             "warriorLightConcealment", "warriorLightEvasion", "warriorLightEvasionDistance"}; // the last three: Warrior light form, which makes a boss unhittable
     private static final Map<UUID, Float> lastHp = new HashMap<>();
     private static final Map<UUID, Long> lastPlayerHit = new HashMap<>();   // when a player last hurt each boss
-    private static final double SPAWN_R = 38;     // fighters arrive well outside the tree's trunk (the model's trunk is about 15 blocks wide at the foot)
+    static final double ARENA_R = 160;        // the raid arena: fighters may roam this far from the tree (built for up to ~100 players)
+    private static final double SPAWN_R = 75;     // fighters arrive well outside the tree's trunk (the model's trunk is about 15 blocks wide at the foot)
     private static final float MAX_HIT = 0.10f;     // no single hit takes more than this share of a boss's health
     private static final float MAX_DROP = 0.12f;    // anything that takes more than this in one tick is not a hit but an execution
     private static final float RAID_HIT = 0.02f;    // the Mother Tree: no single hit takes more than this share
@@ -1295,6 +1313,7 @@ public final class EndGame {
     @SubscribeEvent
     public static void onTick(ServerTickEvent.Post event) {
         MinecraftServer server = event.getServer();
+        flushTele();
         AstralData d = AstralData.get(server);
         gt++;
         closeTick(server);
