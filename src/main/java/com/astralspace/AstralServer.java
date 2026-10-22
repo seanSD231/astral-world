@@ -200,8 +200,19 @@ public final class AstralServer {
 
     private static double regenAccum = 0.0;
 
+    private static final java.util.Map<UUID, Long> ascTitleAt = new java.util.HashMap<>();   // when each new god's ascension title is due
+
     private static void secondPass(MinecraftServer server) {
         AstralData d = AstralData.get(server);
+        if (!ascTitleAt.isEmpty()) {
+            long tick = server.getTickCount();
+            ascTitleAt.entrySet().removeIf(e -> {
+                if (e.getValue() > tick) return false;
+                ServerPlayer sp = server.getPlayerList().getPlayer(e.getKey());
+                if (sp != null) title(sp, "Ascension", "The Astral World calls. Use /astral to travel", ChatFormatting.LIGHT_PURPLE);
+                return true;
+            });
+        }
         List<ServerPlayer> players = server.getPlayerList().getPlayers();
         boolean dirty = false;
         int seq0Online = 0;
@@ -232,7 +243,10 @@ public final class AstralServer {
                 LOGGER.info("[astral] {} reached Seq 0 (was Seq {}): {}", p.getGameProfile().getName(), prev == null ? "unknown" : prev, ready ? "sending to the Astral World" : "NOT sent, the 10 minute ascension cooldown is running");
                 if (!ready) continue;
                 goToAstral(server, p);
-                title(p, "Ascension", "The Astral World calls. Use /astral to travel", ChatFormatting.LIGHT_PURPLE);
+                // the stage message ("you feel a strange gaze from above") takes the screen at the same moment, so the title waits for it to clear;
+                // the chat line is immediate and stays, so a new god always learns about /astral
+                p.sendSystemMessage(Component.literal("The Astral World calls. Use /astral to travel between the worlds.").withStyle(ChatFormatting.LIGHT_PURPLE));
+                ascTitleAt.put(id, server.getTickCount() + 20L * 25);
             }
         }
 
