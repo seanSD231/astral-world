@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.1.93
+- Bosses are now immune to the World of Pallor (it shrank their hitbox, drained health outside the phase rules and stripped abilities). Uses LOTM's own protected-structure flag, refreshed every tick.
+
 ## 0.1.92
 - Raid: rings and the beam now hit anyone flying or hovering; only a real jump avoids them.
 - Raid: the battlefield edge no longer drops flying players to the ground (it kept their height).

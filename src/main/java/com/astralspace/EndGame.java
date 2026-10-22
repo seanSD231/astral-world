@@ -1355,6 +1355,7 @@ public final class EndGame {
         m.removeEffect(net.minecraft.world.effect.MobEffects.HARM);
         var tag = m.getPersistentData();
         for (String k : DEATH_FLAGS) if (tag.contains(k)) tag.remove(k);
+        tag.putLong("insideProtectiveStructure", Long.MAX_VALUE);   // LOTM's own flag for 'protected from the World of Pallor': it shrinks, drains and strips abilities from anything else
         for (var inst : new ArrayList<>(m.getActiveEffects()))
             inst.getEffect().unwrapKey().ifPresent(key -> {
                 if (key.location().getNamespace().equals("lotm") && (key.location().getPath().contains("death") || key.location().getPath().contains("doom"))) m.removeEffect(inst.getEffect());
