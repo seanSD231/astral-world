@@ -67,6 +67,18 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -> client: a danger marker drawn on top of everything (kind 0 filled ring, 1 ring, 2 beam, 3 tall beacon). */
+    public record TelegraphPayload(int kind, float x, float y, float z, float a, float b, int color, int life) implements CustomPacketPayload {
+        public static final Type<TelegraphPayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "telegraph"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, TelegraphPayload> CODEC = StreamCodec.of(
+                (buf, t) -> { buf.writeByte(t.kind); buf.writeFloat(t.x); buf.writeFloat(t.y); buf.writeFloat(t.z); buf.writeFloat(t.a); buf.writeFloat(t.b); buf.writeInt(t.color); buf.writeShort(t.life); },
+                buf -> new TelegraphPayload(buf.readByte(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readInt(), buf.readShort()));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** Server -> client: silence the game completely (stage 5) or give the sound back. */
     public record MutePayload(boolean mute) implements CustomPacketPayload {
         public static final Type<MutePayload> TYPE =
@@ -98,6 +110,7 @@ public final class Net {
 
     /** What the client currently knows. Plain fields, safe to load on a server. */
     public static final class ClientState {
+        public static final java.util.List<double[]> telegraphs = new java.util.ArrayList<>();
         public static volatile boolean show;
         public static volatile int hp, max;
         public static volatile String coords = "";
@@ -142,6 +155,13 @@ public final class Net {
             ClientState.cutsceneKind = payload.kind();
             ClientState.cutsceneTicks = payload.ticks();
             ClientState.cutsceneStart = System.currentTimeMillis();
+        }));
+        registrar.playToClient(TelegraphPayload.TYPE, TelegraphPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            long expiry = System.currentTimeMillis() + payload.life() * 50L;
+            synchronized (ClientState.telegraphs) {
+                if (ClientState.telegraphs.size() < 600)
+                    ClientState.telegraphs.add(new double[]{payload.kind(), payload.x(), payload.y(), payload.z(), payload.a(), payload.b(), payload.color(), expiry});
+            }
         }));
         registrar.playToClient(MutePayload.TYPE, MutePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> ClientState.muted = payload.mute()));
         registrar.playToClient(StagePayload.TYPE, StagePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {

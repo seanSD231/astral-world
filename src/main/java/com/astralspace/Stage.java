@@ -204,6 +204,7 @@ public final class Stage {
         long now = server.getTickCount();
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             UUID id = p.getUUID();
+            if (!d.seenStage.containsKey(id)) { d.seenStage.put(id, Math.max(0, d.stage - 1)); d.setDirty(); } // a brand new player gets the current stage's message, not every earlier one
             int seen = d.seenStage.getOrDefault(id, 0);
             if (seen < d.stage) {
                 ArrayDeque<Queued> q = queues.computeIfAbsent(id, k -> new ArrayDeque<>());

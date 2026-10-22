@@ -2,7 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
-## 0.1.79 — Tree transformation cutscene (current)
+## 0.1.83 — Raid readability (current)
+- Raid attack markers (rings, beam, meteor/slam circles) and the root/seed beacons are now drawn by the client on top of everything, so the huge tree model can no longer hide them. A compass in the action bar points to the nearest root or seed.
+- Roots and seeds appear further out (18-42 blocks); fighters arrive at 38 blocks, outside the trunk.
+- The tree can never be hit past its next phase threshold (75/50/25%), however hard. Damage is also capped per second (0.1.82).
+- A brand-new player is shown only the current stage's message, not every earlier one.
+
+## 0.1.79 — Tree transformation cutscene
 - At 50% HP the Mother Tree plays a 13-second cutscene for everyone in the raid: wither, rot, then it swallows flesh and becomes its fleshy form. Letterbox, subtitles, hold SPACE to skip. The fleshy form now stays for good (the server marks it), and Desire's call starts when the scene ends.
 
 ## 0.1.76 — Sovereign powers

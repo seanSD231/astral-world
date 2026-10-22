@@ -593,7 +593,7 @@ public final class EndGame {
             d.raidLives.put(p.getUUID(), LIVES);
             setGameMode(p, GameType.SURVIVAL);
             double a = Math.PI * 2 * i++ / Math.max(1, all.size());
-            p.teleportTo(lv, 0.5 + Math.cos(a) * 14, groundY, 0.5 + Math.sin(a) * 14, p.getYRot(), 0f);
+            p.teleportTo(lv, 0.5 + Math.cos(a) * SPAWN_R, groundY, 0.5 + Math.sin(a) * SPAWN_R, p.getYRot(), 0f);
             p.setHealth(p.getMaxHealth());
         }
         tell(server, RAID_NAME + " has come. You have " + LIVES + " lives. Do not be where it strikes.", ChatFormatting.DARK_PURPLE);
@@ -633,7 +633,7 @@ public final class EndGame {
             p.sendSystemMessage(Component.literal("You have fallen. You can only watch now.").withStyle(ChatFormatting.DARK_RED));
         } else {
             double a = ThreadLocalRandom.current().nextDouble() * Math.PI * 2;
-            p.teleportTo(lv, 0.5 + Math.cos(a) * 14, groundY, 0.5 + Math.sin(a) * 14, p.getYRot(), 0f);
+            p.teleportTo(lv, 0.5 + Math.cos(a) * SPAWN_R, groundY, 0.5 + Math.sin(a) * SPAWN_R, p.getYRot(), 0f);
             p.setHealth(p.getMaxHealth());
             p.sendSystemMessage(Component.literal("Lives left: " + lives).withStyle(ChatFormatting.RED));
         }
@@ -667,7 +667,20 @@ public final class EndGame {
         lv.sendParticles(new DustParticleOptions(new org.joml.Vector3f(r, g, b), 1.6f), x, y, z, 1, 0, 0, 0, 0);
     }
 
+    private static int rgb(float r, float g, float b) { return ((int) (r * 255) << 16) | ((int) (g * 255) << 8) | (int) (b * 255); }
+
+    /** A danger marker the clients draw on top of everything (the tree model is far too big to leave this to world particles). */
+    private static void tele(ServerLevel lv, int kind, double x, double y, double z, float a, float b, float cr, float cg, float cb, int life) {
+        Net.TelegraphPayload pl = new Net.TelegraphPayload(kind, (float) x, (float) y, (float) z, a, b, rgb(cr, cg, cb), life);
+        for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, pl);
+    }
+
+    private static void ringOnly(ServerLevel lv, double x, double z, double r, float cr, float cg, float cb) {
+        tele(lv, 1, x, cur.gy(), z, (float) r, 0f, cr, cg, cb, 4);
+    }
+
     private static void circle(ServerLevel lv, double x, double z, double r, float cr, float cg, float cb) {
+        tele(lv, 0, x, cur.gy(), z, (float) r, 0f, cr, cg, cb, 8);
         int n = (int) Math.max(12, r * 6);
         for (int i = 0; i < n; i++) {
             double a = Math.PI * 2 * i / n;
@@ -785,7 +798,7 @@ public final class EndGame {
                         final int tt = t;
                         at(start + t, l -> {
                             double r = 2 + tt * 0.6;
-                            circle(l, cur.cx(), cur.cz(), r, 0.7f, 0.2f, 1f);
+                            ringOnly(l, cur.cx(), cur.cz(), r, 0.7f, 0.2f, 1f);
                             for (ServerPlayer p : fighters(l)) { // only the ring itself, and only fighters standing on the ground
                                 double dist = Math.hypot(p.getX() - cur.cx(), p.getZ() - cur.cz());
                                 if (Math.abs(dist - r) < 1.0 && p.getY() < cur.gy() + 0.9) hit(l, p);
@@ -802,6 +815,7 @@ public final class EndGame {
                     at(t, l -> {
                         double a = a0 + spin * Math.max(0, tt - 20) * Math.toRadians(1.5);
                         boolean live = tt >= 20;
+                        tele(l, 2, bx, cur.gy(), bz, (float) a, 42f, live ? 1f : 1f, live ? 0.9f : 0.2f, live ? 0.3f : 0.2f, 3);
                         for (double d = 1; d <= 40; d += 1.2) {
                             double x = bx + Math.cos(a) * d, z = bz + Math.sin(a) * d;
                             if (live) { dust(l, x, cur.gy() + 0.5, z, 1f, 0.9f, 0.3f); }
@@ -928,7 +942,7 @@ public final class EndGame {
         phaseEnd = rt + 800;
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         for (int i = 0; i < 6; i++) {
-            double a = Math.PI * 2 * i / 6 + rnd.nextDouble() * 0.5, r = 12 + rnd.nextDouble() * 18;
+            double a = Math.PI * 2 * i / 6 + rnd.nextDouble() * 0.5, r = 18 + rnd.nextDouble() * 22;
             BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
             if (!lv.getBlockState(b).isAir()) continue;
             lv.setBlock(b, Blocks.SHROOMLIGHT.defaultBlockState(), 3);
@@ -946,7 +960,11 @@ public final class EndGame {
         if (seeds.isEmpty()) { endPhase(lv, "Every seed is broken. The tree is exposed!", ChatFormatting.GOLD); return; }
         long left = Math.max(0, (phaseEnd - rt) / 20);
         if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME + "  -  seeds left: " + seeds.size() + "  (" + left + "s)").withStyle(ChatFormatting.RED));
-        for (BlockPos b : seeds) lv.sendParticles(ParticleTypes.CRIMSON_SPORE, b.getX() + 0.5, b.getY() + 1.5, b.getZ() + 0.5, 6, 0.3, 0.5, 0.3, 0);
+        for (BlockPos b : seeds) {
+            lv.sendParticles(ParticleTypes.CRIMSON_SPORE, b.getX() + 0.5, b.getY() + 1.5, b.getZ() + 0.5, 6, 0.3, 0.5, 0.3, 0);
+            tele(lv, 3, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, 0f, 45f, 1f, 0.2f, 0.3f, 30);
+        }
+        compass(lv, seeds, "Nearest seed");
         if (rt >= phaseEnd) {
             healBoss(boss, 0.05f * seeds.size());
             removeSeeds(lv);
@@ -962,7 +980,7 @@ public final class EndGame {
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         int n = 14 + 4 * rootStage;
         for (int i = 0; i < n; i++) {
-            double a = rnd.nextDouble() * Math.PI * 2, r = 6 + rnd.nextDouble() * 28;
+            double a = rnd.nextDouble() * Math.PI * 2, r = 20 + rnd.nextDouble() * 22;
             BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
             if (!lv.getBlockState(b).isAir() || !lv.getBlockState(b.above()).isAir()) continue;
             lv.setBlock(b, Blocks.MANGROVE_WOOD.defaultBlockState(), 3);
@@ -970,6 +988,21 @@ public final class EndGame {
             roots.add(b);
         }
         tellLevel(lv, "Roots surge over the battlefield! The tree cannot be hurt. BURN THE ROOTS within 30 seconds or it heals to full.", ChatFormatting.DARK_GREEN);
+    }
+
+    /** Tells every fighter how far and in which direction the closest of these blocks is, as a compass arrow. */
+    private static void compass(ServerLevel lv, List<BlockPos> targets, String what) {
+        if (targets.isEmpty()) return;
+        String[] arrows = {"↓", "↙", "←", "↖", "↑", "↗", "→", "↘"};
+        for (ServerPlayer p : fighters(lv)) {
+            BlockPos best = null; double bd = Double.MAX_VALUE;
+            for (BlockPos b : targets) { double d = b.distToCenterSqr(p.getX(), p.getY(), p.getZ()); if (d < bd) { bd = d; best = b; } }
+            if (best == null) continue;
+            double want = Math.toDegrees(Math.atan2(-(best.getX() + 0.5 - p.getX()), best.getZ() + 0.5 - p.getZ()));   // the yaw that faces it
+            double rel = net.minecraft.util.Mth.wrapDegrees(want - p.getYRot());                                      // 0 = straight ahead
+            int idx = (int) Math.floorMod(Math.round(rel / 45.0) + 4, 8);                                             // 4 = ahead (arrow up)
+            p.displayClientMessage(Component.literal(what + ": " + arrows[idx] + "  " + (int) Math.sqrt(bd) + " blocks   (" + targets.size() + " left)").withStyle(ChatFormatting.GREEN), true);
+        }
     }
 
     private static void tellLevel(ServerLevel lv, String msg, ChatFormatting c) {
@@ -1004,7 +1037,11 @@ public final class EndGame {
         }
         long left = Math.max(0, (rootsEnd - rt) / 20);
         if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME + "  -  roots left: " + roots.size() + "  (" + left + "s)").withStyle(ChatFormatting.DARK_GREEN));
-        for (BlockPos b : roots) lv.sendParticles(ParticleTypes.HAPPY_VILLAGER, b.getX() + 0.5, b.getY() + 2.3, b.getZ() + 0.5, 3, 0.2, 0.2, 0.2, 0);
+        for (BlockPos b : roots) {
+            lv.sendParticles(ParticleTypes.HAPPY_VILLAGER, b.getX() + 0.5, b.getY() + 2.3, b.getZ() + 0.5, 3, 0.2, 0.2, 0.2, 0);
+            tele(lv, 3, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, 0f, 45f, 0.2f, 1f, 0.3f, 30);
+        }
+        compass(lv, roots, "Nearest root");
         if (rt >= rootsEnd) {
             removeRoots(lv);
             boss.setHealth(BOSS_HP);
@@ -1044,8 +1081,8 @@ public final class EndGame {
         // everyone belongs in the arena
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             d.raidLives.putIfAbsent(p.getUUID(), LIVES);
-            if (p.level() != lv) p.teleportTo(lv, 0.5 + 14, groundY, 0.5, p.getYRot(), 0f);
-            else if (p.distanceToSqr(0.5, groundY, 0.5) > 45 * 45) p.teleportTo(lv, 0.5 + 14, groundY, 0.5, p.getYRot(), 0f);
+            if (p.level() != lv) p.teleportTo(lv, 0.5 + SPAWN_R, groundY, 0.5, p.getYRot(), 0f);
+            else if (p.distanceToSqr(0.5, groundY, 0.5) > 45 * 45) p.teleportTo(lv, 0.5 + SPAWN_R, groundY, 0.5, p.getYRot(), 0f);
             if (d.raidLives.get(p.getUUID()) <= 0) setGameMode(p, GameType.SPECTATOR);
             else p.displayClientMessage(Component.literal("Lives: " + "♥".repeat(d.raidLives.get(p.getUUID()))).withStyle(ChatFormatting.RED), true);
         }
@@ -1194,6 +1231,7 @@ public final class EndGame {
             "warriorLightConcealment", "warriorLightEvasion", "warriorLightEvasionDistance"}; // the last three: Warrior light form, which makes a boss unhittable
     private static final Map<UUID, Float> lastHp = new HashMap<>();
     private static final Map<UUID, Long> lastPlayerHit = new HashMap<>();   // when a player last hurt each boss
+    private static final double SPAWN_R = 38;     // fighters arrive well outside the tree's trunk (the model's trunk is about 15 blocks wide at the foot)
     private static final float MAX_HIT = 0.10f;     // no single hit takes more than this share of a boss's health
     private static final float MAX_DROP = 0.12f;    // anything that takes more than this in one tick is not a hit but an execution
     private static final float RAID_HIT = 0.02f;    // the Mother Tree: no single hit takes more than this share
@@ -1348,6 +1386,7 @@ public final class EndGame {
         if (e.getTags().contains(TAG_RAID)) {
             var le = (net.minecraft.world.entity.LivingEntity) e;
             float a = rateLimit(le, Math.min(event.getAmount() * RAID_DAMAGE, le.getMaxHealth() * RAID_HIT), RAID_RATE);
+            if (!rootsActive && rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * BOSS_HP + 0.5f)); // it can never be hit past the next phase, however hard
             if (a <= 0f) event.setCanceled(true); else event.setAmount(a);
             return;
         }
