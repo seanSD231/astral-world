@@ -557,7 +557,7 @@ public final class EndGame {
     private static final Map<UUID, Long> lastHit = new HashMap<>();
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
     private static final int[][] NEXT = {{2, 4, 3}, {0, 3, 4, 5}, {3, 1, 4, 5}, {0, 1, 2}, {2, 3, 1, 5}, {3, 1, 2}};
-    private static final int[] DURATION = {140, 175, 110, 70, 80, 200, 90};
+    private static final int[] DURATION = {140, 220, 110, 70, 80, 200, 90};
     private static int lastPattern = 3;
 
     private static void startRaid(MinecraftServer server, AstralData d) {
@@ -793,6 +793,7 @@ public final class EndGame {
         crowd = fighters(lv).size() > 12;
         final boolean big = cur.raid();
         final double reach = big ? ARENA_R : 42;
+        final double mr = big ? 9 : 3.5, sl = big ? 13 : 5.5;   // meteor and slam sizes: in the raid they match the tree
         switch (which) {
             case 6 -> power(lv);
             case 0 -> { // meteors: red marks under every fighter, they land 1.5 s later
@@ -800,8 +801,8 @@ public final class EndGame {
                 for (int k = 0; k < shots; k++) at(k * 20L, l -> {
                     for (ServerPlayer p : fighters(l)) {
                         double x = p.getX() + rnd.nextDouble(-3, 3), z = p.getZ() + rnd.nextDouble(-3, 3);
-                        for (int t = 0; t < 30; t += 5) at(t, ll -> circle(ll, x, z, 3.5, 1f, 0.1f, 0.1f));
-                        at(30, ll -> { boom(ll, x, z, 3.5); strike(ll, x, z, 3.5, 99); });
+                        for (int t = 0; t < 30; t += 5) at(t, ll -> circle(ll, x, z, mr, 1f, 0.1f, 0.1f));
+                        at(30, ll -> { boom(ll, x, z, mr); strike(ll, x, z, mr, 99); });
                     }
                 });
             }
@@ -809,14 +810,14 @@ public final class EndGame {
                 int rings = 2 + rnd.nextInt(2);
                 for (int ring = 0; ring < rings; ring++) {
                     long start = 25 + ring * 30L;
-                    for (int t = 0; t < (big ? 135 : 50); t++) {
+                    for (int t = 0; t < (big ? 150 : 50); t++) {
                         final int tt = t;
                         at(start + t, l -> {
-                            double r = 2 + tt * (big ? 0.8 : 0.6);
+                            double r = 2 + tt * (big ? 1.3 : 0.6);
                             ringOnly(l, cur.cx(), cur.cz(), r, 0.7f, 0.2f, 1f);
                             for (ServerPlayer p : fighters(l)) { // only the ring itself, and only fighters standing on the ground
                                 double dist = Math.hypot(p.getX() - cur.cx(), p.getZ() - cur.cz());
-                                if (Math.abs(dist - r) < 1.0 && p.getY() < cur.gy() + 0.9) hit(l, p);
+                                if (Math.abs(dist - r) < (big ? 1.6 : 1.0) && p.getY() < cur.gy() + 0.9) hit(l, p);
                             }
                         });
                     }
@@ -849,8 +850,8 @@ public final class EndGame {
             case 3 -> { // slam: a big red circle under every fighter, 2 s to leave it
                 for (ServerPlayer p : fighters(lv)) {
                     double x = p.getX(), z = p.getZ();
-                    for (int t = 0; t < 40; t += 4) at(t, l -> circle(l, x, z, 5.5, 1f, 0.3f, 0f));
-                    at(40, l -> { boom(l, x, z, 5.5); strike(l, x, z, 5.5, 99); });
+                    for (int t = 0; t < 40; t += 4) at(t, l -> circle(l, x, z, sl, 1f, 0.3f, 0f));
+                    at(40, l -> { boom(l, x, z, sl); strike(l, x, z, sl, 99); });
                 }
             }
             case 5 -> { // temptation: look away from the tree and crouch, or be corrupted
@@ -859,8 +860,8 @@ public final class EndGame {
                 at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
             }
             default -> { // the whole arena is struck except for three safe circles
-                final double sr = big ? 4.8 : 3.2;
-                double[][] safe = new double[big ? Math.max(3, (fighters(lv).size() + 3) / 4) : 3][2];   // a crowd needs room: one circle for every four fighters
+                final double sr = big ? 10 : 3.2;
+                double[][] safe = new double[big ? Math.max(3, (fighters(lv).size() + 4) / 5) : 3][2];   // a crowd needs room: one circle for every five fighters
                 for (double[] s : safe) { double a = rnd.nextDouble() * Math.PI * 2, d = 4 + rnd.nextDouble() * (big ? reach * 0.8 : 14); s[0] = cx + Math.cos(a) * d; s[1] = cz + Math.sin(a) * d; }
                 for (int t = 0; t < 70; t += 5) at(t, l -> { for (double[] s : safe) circle(l, s[0], s[1], sr, 0.2f, 1f, 0.3f); });
                 at(70, l -> {
@@ -1248,7 +1249,7 @@ public final class EndGame {
             "warriorLightConcealment", "warriorLightEvasion", "warriorLightEvasionDistance"}; // the last three: Warrior light form, which makes a boss unhittable
     private static final Map<UUID, Float> lastHp = new HashMap<>();
     private static final Map<UUID, Long> lastPlayerHit = new HashMap<>();   // when a player last hurt each boss
-    static final double ARENA_R = 160;        // the raid arena: fighters may roam this far from the tree (built for up to ~100 players)
+    static final double ARENA_R = 190;        // the raid arena: fighters may roam this far from the tree (built for up to ~100 players)
     private static final double SPAWN_R = 75;     // fighters arrive well outside the tree's trunk (the model's trunk is about 15 blocks wide at the foot)
     private static final float MAX_HIT = 0.10f;     // no single hit takes more than this share of a boss's health
     private static final float MAX_DROP = 0.12f;    // anything that takes more than this in one tick is not a hit but an execution

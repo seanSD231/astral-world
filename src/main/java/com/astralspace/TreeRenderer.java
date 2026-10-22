@@ -86,11 +86,16 @@ public final class TreeRenderer {
         return md;
     }
 
+    /** Where the tree was last seen and whether it was fleshy: the boss entity is only tracked within a limited range, but the tree must stay visible from much further. */
+    private static double lastX = 0.5, lastY = Double.NaN, lastZ = 0.5;
+    private static boolean lastFleshy = false;
+
     private static void onRender(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
         Vec3 cam = event.getCamera().getPosition();
+        boolean treeSeen = false;
         for (Entity boss : mc.level.entitiesForRendering()) {
             String key = keyOf(boss);
             if (key == null) continue;
@@ -98,56 +103,68 @@ public final class TreeRenderer {
             boolean cut = tree && TreeCutscene.active();
             double cs = cut ? TreeCutscene.seconds() : 0;
             if (tree) {
+                treeSeen = true;
                 boolean fleshy = boss.getCustomName().getString().endsWith("\u200B");   // set by the server when the transformation is done
+                lastX = boss.getX(); lastY = boss.getY(); lastZ = boss.getZ(); lastFleshy = fleshy;
                 if (cut) fleshy = cs >= TreeCutscene.SWAP;
                 if (fleshy) key = "tree_rot";
             }
-            Model md = model(key);
-            double t = (System.nanoTime() / 1_000_000L) / 1000.0;
-
-            PoseStack ps = event.getPoseStack();
-            ps.pushPose();
-            ps.translate(boss.getX() - cam.x, boss.getY() - cam.y, boss.getZ() - cam.z);
-            float[] tint = {1f, 1f, 1f};
-            if (cut) {
-                float[] st = TreeCutscene.treeState(cs);   // scale x, scale y, tint r, g, b, shake
-                ps.scale(st[0], st[1], st[0]);
-                ps.mulPose(com.mojang.math.Axis.ZP.rotation((float) Math.sin(cs * 37) * st[5]));
-                ps.mulPose(com.mojang.math.Axis.XP.rotation((float) Math.cos(cs * 31) * st[5]));
-                tint = new float[]{st[2], st[3], st[4]};
-            }
-            if (!tree) {
-                double dx = cam.x - boss.getX(), dz = cam.z - boss.getZ();
-                ps.mulPose(com.mojang.math.Axis.YP.rotation((float) Math.atan2(dx, dz)));
-                float jolt = boss instanceof net.minecraft.world.entity.LivingEntity le2 ? 1f + 0.04f * le2.hurtTime / 10f : 1f;
-                ps.translate(0, Math.sin(t * .9) * .2, 0);       // hovers
-                ps.scale(SOV_SCALE * jolt, SOV_SCALE * jolt, SOV_SCALE * jolt);
-            }
-            Matrix4f mv = new Matrix4f(event.getModelViewMatrix()).mul(ps.last().pose()); // camera rotation lives in the event's view matrix, not the pose stack
-            ps.popPose();
-
-            float fs = RenderSystem.getShaderFogStart(), fe = RenderSystem.getShaderFogEnd();
-            RenderSystem.setShaderFogStart(1.0E7f);
-            RenderSystem.setShaderFogEnd(2.0E7f);
-            RenderSystem.enableDepthTest();
-            RenderSystem.disableCull();
-            RenderSystem.disableBlend();
-            RenderSystem.setShaderColor(tint[0], tint[1], tint[2], 1f);
-            for (int i = 0; i < md.vbs().length; i++) {
-                Matrix4f pm = mv;
-                if (!tree) {
-                    pm = new Matrix4f(mv);
-                    SovAnim.model(key, t, pm);
-                    SovAnim.part(key, md.names()[i], t, md.pivots()[i], pm);
-                }
-                md.vbs()[i].bind();
-                md.vbs()[i].drawWithShader(pm, event.getProjectionMatrix(), GameRenderer.getPositionColorShader());
-            }
-            VertexBuffer.unbind();
-            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-            RenderSystem.enableCull();
-            RenderSystem.setShaderFogStart(fs);
-            RenderSystem.setShaderFogEnd(fe);
+            draw(event, cam, key, boss.getX(), boss.getY(), boss.getZ(), boss, cut, cs);
         }
+        // in the raid arena the tree stays on screen however far you go, even when the game has stopped tracking the boss
+        if (!treeSeen && mc.level.dimension().location().getPath().equals("raid")) {
+            double y = Double.isNaN(lastY) ? mc.player.getY() : lastY;   // the arena floor is flat
+            draw(event, cam, lastFleshy ? "tree_rot" : "tree", lastX, y, lastZ, null, false, 0);
+        }
+    }
+
+    private static void draw(RenderLevelStageEvent event, Vec3 cam, String key, double bx, double by, double bz, Entity boss, boolean cut, double cs) {
+        boolean tree = key.startsWith("tree");
+        Model md = model(key);
+        double t = (System.nanoTime() / 1_000_000L) / 1000.0;
+
+        PoseStack ps = event.getPoseStack();
+        ps.pushPose();
+        ps.translate(bx - cam.x, by - cam.y, bz - cam.z);
+        float[] tint = {1f, 1f, 1f};
+        if (cut) {
+            float[] st = TreeCutscene.treeState(cs);   // scale x, scale y, tint r, g, b, shake
+            ps.scale(st[0], st[1], st[0]);
+            ps.mulPose(com.mojang.math.Axis.ZP.rotation((float) Math.sin(cs * 37) * st[5]));
+            ps.mulPose(com.mojang.math.Axis.XP.rotation((float) Math.cos(cs * 31) * st[5]));
+            tint = new float[]{st[2], st[3], st[4]};
+        }
+        if (!tree) {
+            double dx = cam.x - bx, dz = cam.z - bz;
+            ps.mulPose(com.mojang.math.Axis.YP.rotation((float) Math.atan2(dx, dz)));
+            float jolt = boss instanceof net.minecraft.world.entity.LivingEntity le2 ? 1f + 0.04f * le2.hurtTime / 10f : 1f;
+            ps.translate(0, Math.sin(t * .9) * .2, 0);       // hovers
+            ps.scale(SOV_SCALE * jolt, SOV_SCALE * jolt, SOV_SCALE * jolt);
+        }
+        Matrix4f mv = new Matrix4f(event.getModelViewMatrix()).mul(ps.last().pose()); // camera rotation lives in the event's view matrix, not the pose stack
+        ps.popPose();
+
+        float fs = RenderSystem.getShaderFogStart(), fe = RenderSystem.getShaderFogEnd();
+        RenderSystem.setShaderFogStart(1.0E7f);
+        RenderSystem.setShaderFogEnd(2.0E7f);
+        RenderSystem.enableDepthTest();
+        RenderSystem.disableCull();
+        RenderSystem.disableBlend();
+        RenderSystem.setShaderColor(tint[0], tint[1], tint[2], 1f);
+        for (int i = 0; i < md.vbs().length; i++) {
+            Matrix4f pm = mv;
+            if (!tree) {
+                pm = new Matrix4f(mv);
+                SovAnim.model(key, t, pm);
+                SovAnim.part(key, md.names()[i], t, md.pivots()[i], pm);
+            }
+            md.vbs()[i].bind();
+            md.vbs()[i].drawWithShader(pm, event.getProjectionMatrix(), GameRenderer.getPositionColorShader());
+        }
+        VertexBuffer.unbind();
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+        RenderSystem.enableCull();
+        RenderSystem.setShaderFogStart(fs);
+        RenderSystem.setShaderFogEnd(fe);
     }
 }

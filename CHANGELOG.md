@@ -2,7 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
-## 0.1.84 — Raid arena for a crowd (current)
+## 0.1.86 — Raid scale (current)
+- The arena is 190 blocks in radius and the raid attacks are sized for the tree: the purple rings now roll past the last roots, meteors and slams are 9 and 13 blocks wide, safe circles are 10 wide.
+- The tree stays on screen in the raid arena however far you go, even when the game stops tracking the boss.
+
+## 0.1.84 — Raid arena for a crowd
 - The raid arena is now 160 blocks in radius (was 45), built for up to ~100 players: the beam, rings and safe circles scale to it, there is one safe circle per four fighters, and more roots and seeds spawn the more fighters there are. Fighters arrive on four rings at 60-90 blocks.
 - Markers are sent in one batched packet per tick. With a crowd, only some strikes get a real lightning bolt.
 - The raid terrain is flat out to 180 blocks and the ruined pillar ring is at 156 (36 pillars). Only newly generated chunks use this: delete the raid dimension's region files to get the new layout.
