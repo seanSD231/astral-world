@@ -88,7 +88,7 @@ public final class TreeRenderer {
 
     /** Where the tree was last seen and whether it was fleshy: the boss entity is only tracked within a limited range, but the tree must stay visible from much further. */
     private static double lastX = 0.5, lastY = Double.NaN, lastZ = 0.5;
-    private static boolean lastFleshy = false;
+    private static boolean lastFleshy = false, gone = false;
 
     private static void onRender(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
@@ -96,6 +96,7 @@ public final class TreeRenderer {
         if (mc.level == null || mc.player == null) return;
         Vec3 cam = event.getCamera().getPosition();
         boolean treeSeen = false;
+        if (Net.ClientState.treeGone) { Net.ClientState.treeGone = false; lastY = Double.NaN; gone = true; }
         for (Entity boss : mc.level.entitiesForRendering()) {
             String key = keyOf(boss);
             if (key == null) continue;
@@ -103,7 +104,7 @@ public final class TreeRenderer {
             boolean cut = tree && TreeCutscene.active();
             double cs = cut ? TreeCutscene.seconds() : 0;
             if (tree) {
-                treeSeen = true;
+                treeSeen = true; gone = false;
                 boolean fleshy = boss.getCustomName().getString().endsWith("\u200B");   // set by the server when the transformation is done
                 lastX = boss.getX(); lastY = boss.getY(); lastZ = boss.getZ(); lastFleshy = fleshy;
                 if (cut) fleshy = cs >= TreeCutscene.SWAP;
@@ -112,7 +113,7 @@ public final class TreeRenderer {
             draw(event, cam, key, boss.getX(), boss.getY(), boss.getZ(), boss, cut, cs);
         }
         // in the raid arena the tree stays on screen however far you go, even when the game has stopped tracking the boss
-        if (!treeSeen && mc.level.dimension().location().getPath().equals("raid")) {
+        if (!treeSeen && !gone && mc.level.dimension().location().getPath().equals("raid")) {
             double y = Double.isNaN(lastY) ? mc.player.getY() : lastY;   // the arena floor is flat
             draw(event, cam, lastFleshy ? "tree_rot" : "tree", lastX, y, lastZ, null, false, 0);
         }

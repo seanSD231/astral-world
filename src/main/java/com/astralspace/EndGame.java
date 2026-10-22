@@ -194,7 +194,7 @@ public final class EndGame {
             for (ServerPlayer p : server.getPlayerList().getPlayers()) setGameMode(p, GameType.SURVIVAL);
             d.endPhase = "classic";
             d.endUntil = 0;
-            clearRaidState(server, false);
+            clearRaidState(server, ph.equals("raid"));   // a lost raid sends everyone home from the arena
             releaseAllies(server, d);
             d.setDirty();
             LOGGER.info("[astral] phase 5 again (was {}): the plain end", ph);
@@ -263,6 +263,7 @@ public final class EndGame {
             removeSeeds(raid);
             rootsActive = false;
             for (Entity e : raid.getAllEntities()) if (e.getTags().contains(TAG_RAID)) e.discard();
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(9, 0));   // clients forget where the tree stood
             if (sendHome) {
                 ServerLevel ow = server.overworld();
                 var s = ow.getSharedSpawnPos();
@@ -565,8 +566,10 @@ public final class EndGame {
         if (lv == null) { LOGGER.warn("[astral] raid dimension missing"); Stage.set(server, 5); return; }
         LOGGER.info("[astral] every planet boss is down: the raid begins");
         clearRaidState(server, false);
+        Map<UUID, Integer> seen = new HashMap<>(d.seenStage);   // lowering the stage must not make everyone read the old messages again if the raid is lost
         internal = true;
         try { Stage.set(server, 0); } finally { internal = false; }
+        d.seenStage.putAll(seen);
         d.endPhase = "raid";
         d.endUntil = 0;
         d.raidLives.clear();
@@ -793,7 +796,7 @@ public final class EndGame {
         crowd = fighters(lv).size() > 12;
         final boolean big = cur.raid();
         final double reach = big ? ARENA_R : 42;
-        final double mr = big ? 9 : 3.5, sl = big ? 13 : 5.5;   // meteor and slam sizes: in the raid they match the tree
+        final double mr = big ? 11 : 3.5, sl = big ? 16 : 5.5;   // meteor and slam sizes: in the raid they match the tree
         switch (which) {
             case 6 -> power(lv);
             case 0 -> { // meteors: red marks under every fighter, they land 1.5 s later
@@ -898,6 +901,13 @@ public final class EndGame {
         timed.clear();
         for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(1, CUT_TICKS));
         tellLevel(lv, "The Mother Tree of Desire withers... and something worse wakes inside it.", ChatFormatting.DARK_RED);
+        sfx(lv, SoundEvents.ENDER_DRAGON_GROWL, 2f, 0.5f);
+        for (int t = 40; t < 140; t += 20 - (t - 40) / 12) { final int tt = t; at(t, l -> sfx(l, SoundEvents.WARDEN_HEARTBEAT, 3f, 0.6f + tt / 250f)); }   // a heart that beats faster
+        at(100, l -> sfx(l, SoundEvents.SCULK_SHRIEKER_SHRIEK, 1.5f, 0.5f));
+        at(138, l -> sfx(l, SoundEvents.WITHER_SPAWN, 2f, 0.45f));            // the swap: the flesh takes over
+        at(150, l -> sfx(l, SoundEvents.ZOMBIE_VILLAGER_CONVERTED, 3f, 0.4f));
+        at(185, l -> sfx(l, SoundEvents.WARDEN_EMERGE, 3f, 0.6f));
+        at(235, l -> sfx(l, SoundEvents.WARDEN_ROAR, 3f, 0.6f));
         at(CUT_TICKS, l -> {
             Mob b = findBoss(l, TAG_RAID);
             if (b != null) b.setCustomName(Component.literal(RAID_NAME + "\u200B").withStyle(ChatFormatting.DARK_RED)); // the invisible mark tells clients to draw the fleshy form for good
@@ -905,6 +915,11 @@ public final class EndGame {
             rootsActive = false;
             startCall(l);
         });
+    }
+
+    /** A sound every player in the level hears at full strength, however far from the tree. */
+    private static void sfx(ServerLevel lv, net.minecraft.sounds.SoundEvent e, float vol, float pitch) {
+        for (ServerPlayer p : lv.players()) p.playNotifySound(e, SoundSource.MASTER, vol, pitch);
     }
 
     private static boolean burnt(ServerLevel lv, BlockPos b) {
@@ -1099,11 +1114,21 @@ public final class EndGame {
     private static void secondRaid(MinecraftServer server, AstralData d) {
         ServerLevel lv = dim(server, "raid");
         if (lv == null) return;
-        // everyone belongs in the arena
+        // everyone belongs in the arena; the battlefield grows with the crowd (about 100 blocks alone, the whole arena at 100 players)
+        int crowdSize = 0;
+        for (int v : d.raidLives.values()) if (v > 0) crowdSize++;
+        final double leash = Math.min(ARENA_R, 95 + 9 * Math.sqrt(Math.max(1, crowdSize)));
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             d.raidLives.putIfAbsent(p.getUUID(), LIVES);
             if (p.level() != lv) p.teleportTo(lv, 0.5 + SPAWN_R, groundY, 0.5, p.getYRot(), 0f);
-            else if (p.distanceToSqr(0.5, groundY, 0.5) > (ARENA_R + 15) * (ARENA_R + 15)) p.teleportTo(lv, 0.5 + SPAWN_R, groundY, 0.5, p.getYRot(), 0f);
+            else if (!p.isSpectator() && p.isAlive()) {
+                double px = p.getX() - 0.5, pz = p.getZ() - 0.5, dist = Math.hypot(px, pz);
+                if (dist > leash) { // the battlefield has an edge: nobody outruns the tree
+                    double k = (leash - 12) / dist;
+                    p.teleportTo(lv, 0.5 + px * k, groundY, 0.5 + pz * k, p.getYRot(), p.getXRot());
+                    p.displayClientMessage(Component.literal("The Astral World will not let you flee. Fight!").withStyle(ChatFormatting.DARK_RED), true);
+                } else if (dist > leash - 20) p.displayClientMessage(Component.literal("The edge of the battlefield is near. You cannot run from this.").withStyle(ChatFormatting.RED), true);
+            }
             if (d.raidLives.get(p.getUUID()) <= 0) setGameMode(p, GameType.SPECTATOR);
             else p.displayClientMessage(Component.literal("Lives: " + "♥".repeat(d.raidLives.get(p.getUUID()))).withStyle(ChatFormatting.RED), true);
         }
@@ -1349,7 +1374,7 @@ public final class EndGame {
             stripDeath(m);
             sizeHitbox(m);
             float max = m.getMaxHealth(), hp = m.getHealth();
-            if (m.getTags().contains(TAG_RAID) && !rootsActive && rootStage < THRESHOLDS.length && hp < THRESHOLDS[rootStage] * BOSS_HP - 0.5f) { // however it got hurt (an ability that sets health), it cannot pass the next phase
+            if (m.getTags().contains(TAG_RAID) && rootStage < THRESHOLDS.length && hp < THRESHOLDS[rootStage] * BOSS_HP - 0.5f) { // however it got hurt (an ability that sets health), it cannot pass the next phase
                 hp = THRESHOLDS[rootStage] * BOSS_HP - 0.5f;
                 m.setHealth(hp);
             }
@@ -1466,7 +1491,7 @@ public final class EndGame {
         if (e.getTags().contains(TAG_RAID)) {
             var le = (net.minecraft.world.entity.LivingEntity) e;
             float a = rateLimit(le, Math.min(event.getAmount() * RAID_DAMAGE, le.getMaxHealth() * RAID_HIT), RAID_RATE);
-            if (!rootsActive && rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * BOSS_HP + 0.5f)); // it can never be hit past the next phase, however hard
+            if (rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * BOSS_HP + 0.5f)); // it can never be hit past the next phase, however hard
             if (a <= 0f) event.setCanceled(true); else event.setAmount(a);
             return;
         }

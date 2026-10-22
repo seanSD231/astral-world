@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.1.89
+- Raid: the battlefield now has an edge that grows with the crowd (about 100 blocks for one fighter, the whole arena at 100); going past it puts you back inside, so nobody can outrun the attacks. Meteors and slams are larger.
+- The tree can no longer be dropped below the next phase threshold during a phase either (World of Pallor skipped it while roots stood).
+- Losing the raid sends everyone home, removes the tree model on every client and no longer replays the old stage messages.
+- The tree transformation has sound: growl, a quickening heartbeat, shriek, the swap and a roar.
+
 ## 0.1.87 — Hitboxes, fairer raid mechanics (current)
 - Bosses have real hitboxes now, sized to their models and set through Pehkui (reflection; falls back to the vanilla scale attribute, capped at 16x, if Pehkui is not usable): the tree is 30 wide and 150 tall, sovereigns 8-24 wide and 7-20 tall.
 - Temptation: the drag is much gentler, 3 s grace, wider aim tolerance, and the meter takes 5 s of failing to fill.

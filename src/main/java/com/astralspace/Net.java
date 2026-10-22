@@ -136,6 +136,7 @@ public final class Net {
         /** Cutscene: when it started (ms), how many ticks it lasts, and which one (0 = none). */
         public static volatile long cutsceneStart = 0;
         public static volatile int cutsceneTicks = 0, cutsceneKind = 0;
+        public static volatile boolean treeGone = false;   // the raid ended: forget where the tree stood
         /** Stage 5: all sound is switched off. */
         public static volatile boolean muted = false;
     }
@@ -162,6 +163,7 @@ public final class Net {
             ClientState.flashStart = System.currentTimeMillis();
         }));
         registrar.playToClient(CutscenePayload.TYPE, CutscenePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            if (payload.kind() == 9) { ClientState.treeGone = true; return; }
             ClientState.cutsceneKind = payload.kind();
             ClientState.cutsceneTicks = payload.ticks();
             ClientState.cutsceneStart = System.currentTimeMillis();
