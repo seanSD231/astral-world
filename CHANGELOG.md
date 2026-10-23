@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.1.104
+- Summons are now LOTM giant zombies, werewolves and spirits (fire, frost, earth).
+- New attack Pollen Veil: drifting clouds stack Desire (slow, dizzy, sanity drain).
+- New attack Mirror Bloom: three flowers, one true. False ones burst for 25% health and stop healing for 10s; the true one cleanses; if none is found all wither.
+- New attack Fruit Rain: fruit heals, uncollected fruit sprouts a thrall. After half health the fruit is rotten (25% damage) and thralls are werewolves.
+- Desire's Offer (once per fight, below 40%): one fighter may type accept or refuse. Accepting makes them the tree's ally (buffs, thralls ignore them, only they and the others can hurt each other, no damage to the tree, removed from their scoreboard team, leaderboard shows damage to players only). Refusing costs a life.
+- The leaderboard now prints on a loss too.
+
 ## 0.1.103
 - The beam attack is now a summon: 5 Sequence 4 Beyonders (Desire's Thralls) rise and hunt the players; they vanish when the raid ends.
 - Hardened the Mother Tree form: once she changes she never goes back to the World Tree name or pleading lines.
