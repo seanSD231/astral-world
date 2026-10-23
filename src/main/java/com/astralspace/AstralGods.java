@@ -52,13 +52,13 @@ public final class AstralGods {
     }
 
     /** Colourfulness of the swirls: 3 means 1000% more saturated; and lifted so no colour stays dark. */
-    private static final float VIVID = 11f;
+    private static final float VIVID = 2.6f;
 
     private static int[] vivid(int r, int g, int b) {
         float l = 0.3f * r + 0.59f * g + 0.11f * b;
         float nr = Math.max(0f, l + (r - l) * VIVID), ng = Math.max(0f, l + (g - l) * VIVID), nb = Math.max(0f, l + (b - l) * VIVID);
         float mx = Math.max(1f, Math.max(nr, Math.max(ng, nb)));
-        float k = 255f / mx;          // every colour is lifted to full brightness, so nothing is left dark
+        float k = Math.min(1f, 120f / mx) < 1f ? 1f : 120f / mx;   // colours that are nearly black are lifted a little, the rest keep their brightness
         return new int[]{clamp255(nr * k), clamp255(ng * k), clamp255(nb * k)};
     }
 
@@ -363,7 +363,7 @@ public final class AstralGods {
                 for (double[] v : p) {
                     float[] c = swirlColor(v[0], v[1], ts);
                     float cl = (float) Math.cos(v[1]);
-                    float a = 0.96f; // solid colour over the whole sky: no black showing
+                    float a = 0.7f * c[3] + 0.25f; // a fairly even veil over the whole sky
                     int[] vc = vivid((int) c[0], (int) c[1], (int) c[2]);
                     q.addVertex(m, (float) (Math.cos(v[0]) * cl) * radius, (float) Math.sin(v[1]) * radius, (float) (Math.sin(v[0]) * cl) * radius)
                             .setColor(vc[0], vc[1], vc[2], (int) (a * 255));

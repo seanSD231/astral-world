@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.18
+- The Astral World's background colour is much lower: saturation went from 11x to 2.6x, the "lift everything to full brightness" step is now only a small lift for near-black colours, and the veil is thinner, so the bright colours stop clipping into blue and red.
+
 ## 0.2.17
 - New op-only command `/astralgod` (or `/astralgod on` / `off`): god mode for testing the tree fight. While on, nothing can damage you and you cannot lose lives, including to the 15% meteor.
 
