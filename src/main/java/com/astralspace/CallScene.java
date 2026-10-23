@@ -168,56 +168,6 @@ public final class CallScene {
         return sb.toString();
     }
 
-    /** The Fool: a tall dark figure in a long coat and a top hat, a gold glint where his eyes are. Feet at (cx, baseY). */
-    private static void fool(GuiGraphics g, int cx, int baseY, int hgt, float a, boolean flick) {
-        int al = (int) (255 * a) << 24;
-        int bw = hgt / 4;
-        for (int y = 0; y < hgt; y++) {                                  // long coat, flaring at the hem
-            float t = y / (float) hgt;
-            int half = (int) (bw * (0.45f + 0.55f * t * t + (t < 0.22f ? 0.2f : 0f)));
-            g.fill(cx - half, baseY - hgt + y, cx + half, baseY - hgt + y + 1, al);
-        }
-        int hy = baseY - hgt + (int) (hgt * 0.06f), hw = hgt / 14;
-        g.fill(cx - hw, hy - hgt / 6, cx + hw, hy + hgt / 20, al);          // tall top hat
-        g.fill(cx - hw * 2, hy + hgt / 40, cx + hw * 2, hy + hgt / 20, al); // its brim
-        g.fill(cx - hw, hy - hgt / 20, cx + hw, hy - hgt / 30, ((int) (255 * a) << 24) | 0xC8A040);   // gold band
-        if (!flick) {
-            int ey = hy + hgt / 14, eAl = (int) (255 * a) << 24;
-            g.fill(cx - hw / 2 - 3, ey, cx - hw / 2 + 1, ey + 2, eAl | 0xFFD060);
-            g.fill(cx + hw / 2 - 1, ey, cx + hw / 2 + 3, ey + 2, eAl | 0xFFD060);
-        }
-    }
-
-    /** The Mother Tree: a thick trunk, spreading branches and a round crown, red lights in the crown. Feet at (cx, baseY). */
-    private static void treeFigure(GuiGraphics g, int cx, int baseY, int hgt, float a, boolean flick) {
-        int al = (int) (255 * a) << 24;
-        int tw = hgt / 9;
-        for (int y = 0; y < hgt * 0.62f; y++) {                          // trunk, flaring into roots
-            float t = y / (hgt * 0.62f);
-            int half = (int) (tw * (0.55f + 0.9f * t * t * t));
-            g.fill(cx - half, baseY - (int) (hgt * 0.62f) + y, cx + half, baseY - (int) (hgt * 0.62f) + y + 1, al);
-        }
-        int cy = baseY - (int) (hgt * 0.78f), cr = (int) (hgt * 0.26f);
-        for (int dy = -cr; dy <= cr; dy++) {                              // crown
-            int half = (int) (cr * 1.25f * Math.sqrt(1.0 - (double) dy * dy / ((double) cr * cr)));
-            g.fill(cx - half, cy + dy, cx + half, cy + dy + 1, al);
-        }
-        for (int i = -2; i <= 2; i++) {                                   // branches reaching out
-            if (i == 0) continue;
-            int bx = cx, by = baseY - (int) (hgt * (0.45f + 0.04f * Math.abs(i)));
-            for (int k = 0; k < hgt / 5; k++) {
-                bx += i > 0 ? 1 : -1;
-                by -= (int) (Math.abs(i) * 0.5f) == 0 ? 0 : (k % 3 == 0 ? 1 : 0);
-                g.fill(bx, by, bx + 1, by + Math.max(2, tw / 3), al);
-            }
-        }
-        if (!flick) {
-            int eAl = (int) (255 * a) << 24;
-            g.fill(cx - hgt / 14 - 3, cy, cx - hgt / 14 + 2, cy + 3, eAl | 0xFF1010);
-            g.fill(cx + hgt / 14 - 2, cy, cx + hgt / 14 + 3, cy + 3, eAl | 0xFF1010);
-        }
-    }
-
     /** One line of text, optionally glitching: tearing copies, scrambled letters, a gradient. */
     private static void drawLine(Minecraft mc, GuiGraphics g, String text, int w, int h, int alpha, boolean red, boolean glitchy, long slot, double s) {
         float scale = 1.9f;
@@ -297,15 +247,6 @@ public final class CallScene {
                 g.fill(Math.max(0, off), ty, Math.min(w, w + off), ty + th, col);
             }
             if (tear && hash((int) slot) < 0.25f) g.fill(0, 0, w, h, 0x99000000);   // a hard black flicker
-        }
-        if (s > FIGURES_AT) {                                         // two dark figures in the fog, left and right
-            float a = Math.min(clamp01((s - FIGURES_AT) / 2.5), clamp01((50.5 - s) / 2.0 + 0.4));
-            if (s > 50.5) a = clamp01((d - s) / 2.0) * 0.55f;      // they stay faintly behind the last words
-            boolean flick = hash((int) (slot * 3)) < 0.1f;
-            int hgt = (int) (h * 0.78f), base = (int) (h * 0.97f);
-            int sway = (int) (Math.sin(s * 1.3) * 3);
-            fool(g, (int) (w * 0.14f) + sway, base, hgt, a * (flick ? 0.5f : 1f), flick);
-            treeFigure(g, (int) (w * 0.86f) - sway, base, hgt, a * (flick ? 0.5f : 1f), flick);
         }
         for (int i = 0; i < LINES.length; i++) {                      // the voice
             double t = s - AT[i];
