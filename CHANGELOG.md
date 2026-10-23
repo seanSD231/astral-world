@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.22
+- Heart seeds (and roots) can be broken again. The tree's bigger hit box (0.2.20) covered the spots where they grow, so clicks went to the untouchable tree. While the tree cannot be hurt (roots, seeds, the call, the transformation) its hit box now shrinks to almost nothing, and it grows back afterwards.
+
 ## 0.2.21
 - The two chat messages around the Mother Tree's transformation ("withers..." and "curses you all...") are gone; the cutscene's on-screen text is all that remains.
 

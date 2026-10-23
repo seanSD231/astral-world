@@ -1967,9 +1967,10 @@ public final class EndGame {
         }
     }
 
+    /** While the tree cannot be hurt (roots, seeds, the call, the transformation) its box shrinks to nothing, so clicks reach the roots and seeds that stand inside the big one. */
     private static void sizeHitbox(Mob m) {
         String n = m.hasCustomName() ? m.getCustomName().getString() : "";
-        double[] box = n.startsWith(RAID_NAME) ? HITBOX.get("tree") : n.startsWith("Sovereign of ") ? HITBOX.get(n.substring(13).trim().toLowerCase(java.util.Locale.ROOT)) : null;
+        double[] box = n.startsWith(RAID_NAME) ? (rootsActive ? new double[]{4, 20} : HITBOX.get("tree")) : n.startsWith("Sovereign of ") ? HITBOX.get(n.substring(13).trim().toLowerCase(java.util.Locale.ROOT)) : null;
         if (box == null) return;
         var inst = m.getAttribute(Attributes.SCALE);
         if (pehkui(m, (float) (box[0] / 0.6), (float) (box[1] / 1.8))) {
