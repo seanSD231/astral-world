@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.30
+- Nerfed the Fate curse the same way: it can no longer kill a Seq 0. For a Seq 0 its damage cannot kill, the stacking misfortune is a third as strong and stops (with the bleeding) when they are close to death, and the lethal random effects (wither, poison, bleeding) are left out. A Seq 1 and weaker are hit at full strength and can die.
+
 ## 0.2.29
 - Nerfed the High-Dimensional Overseer curse: it can no longer kill a Seq 0. A Seq 0 gets slow falling for the fall, never has its sanity drained below 15%, and its damage cannot kill. A Seq 1 (and anyone weaker) can still die to it, the fall included.
 

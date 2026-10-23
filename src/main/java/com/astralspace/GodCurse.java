@@ -561,10 +561,21 @@ public final class GodCurse {
                 c.nextAct = now + 10;
             }
             case FATE -> {
-                hurt(p, 8f * k, true);
-                Lotm.addMisfortune(p, 60.0 * c.stage); // the calamities keep stacking
-                fx(p, randomChaosEffect(r), 60, 1);
-                util("applyBleeding", p, 40, 1);
+                boolean seq0 = Lotm.sequence(p) == 0;   // Seq 0 survives fate; Seq 1 and below can be killed by it
+                if (seq0) {
+                    hurt(p, 8f * k, true);   // never kills
+                    if (p.getHealth() > 6f) {   // the stacking calamities and bleeding stop while a Seq 0 is close to death
+                        Lotm.addMisfortune(p, 20.0 * c.stage);
+                        util("applyBleeding", p, 40, 1);
+                    }
+                    var ce = randomChaosEffect(r);
+                    if (ce != MobEffects.WITHER && ce != MobEffects.POISON && !ce.is(ResourceLocation.fromNamespaceAndPath("lotm", "bleeding"))) fx(p, ce, 60, 1);
+                } else {
+                    p.hurt(p.level().damageSources().magic(), 8f * k);   // can kill
+                    Lotm.addMisfortune(p, 60.0 * c.stage); // the calamities keep stacking
+                    fx(p, randomChaosEffect(r), 60, 1);
+                    util("applyBleeding", p, 40, 1);
+                }
                 c.nextAct = now + 10;
             }
             default -> c.nextAct = now + 40;
