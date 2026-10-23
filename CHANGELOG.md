@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.8
+- /cosmos is operator-only.
+
 ## 0.2.7
 - The Astral World is back to what it was (the flat astral floor under the swirling sky). The arena is only in the Cosmos.
 - /cosmos works again: it takes ops, Door Seq 3+ and the Outer Deity Seq 0s to the Cosmos, which is just the night-sky arena field, and /cosmos leave brings you back.

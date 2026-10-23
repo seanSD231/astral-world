@@ -84,10 +84,7 @@ public final class Cosmos {
         return seq == 0 && OUTER_DEITY_PATHWAYS.contains(path);
     }
 
-    private static boolean allowed(net.minecraft.commands.CommandSourceStack src) {
-        if (src.hasPermission(2) || (src.getEntity() instanceof ServerPlayer p && canTravel(p))) return true;
-        return AstralData.get(src.getServer()).endPhase.equals("bosses"); // while the sovereigns reign, everyone may travel
-    }
+    private static boolean allowed(net.minecraft.commands.CommandSourceStack src) { return src.hasPermission(2); }   // operators only
 
     // ------------------------------------------------------------------ places
 
