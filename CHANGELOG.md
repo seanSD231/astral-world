@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.1
+- Seq 0 (and Door Seq 3+) can reach the Astral World again: the ascension teleport, the message and /astral are back. Only the Cosmos and the planets stay removed.
+- The Astral World is now the same round night field with the ancient ruin as the arena, with the same vanilla night sky.
+
 ## 0.2.0
 - The end is now a single fight. The planets, the Cosmos, the sovereign bosses, the evacuation and /cosmos are gone.
 - The arena is a round grassy field under a vanilla night sky (always midnight), with an ancient ruin in the middle and a ring of broken pillars at the edge. Beyond the field there is only sky.
