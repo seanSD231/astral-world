@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.5
+- The Mother Tree arena is in the Cosmos dimension (astral_world:cosmos), a night-sky field with the ruin, separate from the Astral World that Seq 0s visit.
+
 ## 0.2.4
 - The colourful swirls in the Astral World sky are twice as bright (the veil and every vortex). The gods' signs are unchanged.
 - (0.2.3 brightened the world's light instead, which was not what was meant: the light is kept at 0.6 for now.)

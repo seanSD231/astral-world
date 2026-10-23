@@ -198,7 +198,7 @@ public final class EndGame {
         for (ServerPlayer p : server.getPlayerList().getPlayers()) p.sendSystemMessage(c);
     }
 
-    private static ServerLevel dim(MinecraftServer server, String id) { return server.getLevel(Cosmos.key(id)); }
+    private static ServerLevel dim(MinecraftServer server, String id) { return server.getLevel(Cosmos.key(id.equals("raid") ? "cosmos" : id)); }   // the arena lives in the Cosmos dimension
 
     private static void force(ServerLevel lv, int r, boolean on) {
         for (int x = -r; x <= r; x++) for (int z = -r; z <= r; z++) lv.setChunkForced(x, z, on);
@@ -1610,12 +1610,12 @@ public final class EndGame {
      */
     private static void holdSequences(MinecraftServer server) {
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
-            if (p.isSpectator() || !(p.level().dimension().equals(Cosmos.key("raid")) || Cosmos.isPlanetDim(p.level().dimension()))) continue;
+            if (p.isSpectator() || !(p.level().dimension().equals(Cosmos.COSMOS) || Cosmos.isPlanetDim(p.level().dimension()))) continue;
             var tag = p.getPersistentData();
             tag.putInt("sequenceRegressionProtectionTimer", 6000);
             tag.putInt("sequenceImmunityTimer", 6000);
             double sp = Lotm.sanityPercent(p);
-            if (sp >= 0 && sp <= 3 && !p.level().dimension().equals(Cosmos.key("raid"))) Lotm.setSanityPercent(p, 50);   // the raid takes a life for it instead (sanityBreak)
+            if (sp >= 0 && sp <= 3 && !p.level().dimension().equals(Cosmos.COSMOS)) Lotm.setSanityPercent(p, 50);   // the raid takes a life for it instead (sanityBreak)
             int sq = Lotm.sequence(p), kept = raidSeq.getOrDefault(p.getUUID(), -1);
             if (sq < 0) continue;
             if (kept < 0 || sq < kept) raidSeq.put(p.getUUID(), sq);
@@ -2093,7 +2093,7 @@ public final class EndGame {
             if (a <= 0f) { logDrop(e, event, "capped to zero"); event.setCanceled(true); } else event.setAmount(a);
             return;
         }
-        if (e instanceof ServerPlayer p && p.level().dimension().equals(Cosmos.key("raid"))) {
+        if (e instanceof ServerPlayer p && p.level().dimension().equals(Cosmos.COSMOS)) {
             event.setCanceled(true);
             Entity by = event.getSource().getEntity();
             if (by instanceof ServerPlayer a && a != p && traitor != null && (a.getUUID().equals(traitor) || p.getUUID().equals(traitor))) { pvp(a, p, event.getAmount()); return; }   // only the ally and the others can hurt each other
