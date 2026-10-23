@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.11
+- No more hit-box entities for the roots (they lagged and looked wrong). Instead, swinging at a root works: the client checks your aim against the roots and the server verifies it and hurts the tree like a normal hit, using your weapon's damage and attack cooldown. Leftover hit boxes from earlier versions are removed.
+
 ## 0.2.10
 - Root hit boxes are invisible pigs scaled up (slimes are removed in peaceful difficulty and did not work). The server log says how many were built.
 
