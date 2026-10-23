@@ -38,7 +38,7 @@ import java.util.UUID;
  *  - There is no gravity in the Cosmos, and everyone there is corrupted fast.
  *  - Walking up to a planet takes you to that planet's own (blank) dimension; /cosmos leave brings you back.
  */
-@EventBusSubscriber(modid = AstralMod.MOD_ID)
+// The planets and the /cosmos command are gone; only the chunk generators and the dimension keys are still used.
 public final class Cosmos {
     private static final Logger LOGGER = LogUtils.getLogger();
 

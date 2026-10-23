@@ -85,14 +85,7 @@ public final class EndGame {
 
     /** The boss of each planet: a Seq 0 of a pathway that is finished in LOTM. */
     private record BossDef(String planet, String pathway, String title) {}
-    private static final List<BossDef> BOSSES = List.of(
-            new BossDef("mercury", "apprentice", "Sovereign of Mercury"),
-            new BossDef("venus", "spectator", "Sovereign of Venus"),
-            new BossDef("mars", "warrior", "Sovereign of Mars"),
-            new BossDef("jupiter", "sailor", "Sovereign of Jupiter"),
-            new BossDef("saturn", "corpse_collector", "Sovereign of Saturn"),
-            new BossDef("uranus", "monster", "Sovereign of Uranus"),
-            new BossDef("neptune", "bard", "Sovereign of Neptune"));
+    private static final List<BossDef> BOSSES = List.of();   // the planets and their sovereigns are gone: only the Mother Tree remains
     private static final String RAID_PATHWAY = "prisoner";
     private static final String RAID_NAME = "Mother Tree of Desire";
 
@@ -224,8 +217,9 @@ public final class EndGame {
     private static void begin(MinecraftServer server, int old) {
         AstralData d = AstralData.get(server);
         String ph = d.endPhase;
-        if (ph.equals("bosses") || ph.equals("raid")) {
+        if (ph.equals("bosses") || ph.equals("raid") || ph.equals("call")) {
             // phase 5 again: no countdown, the plain end
+            callStart = 0; callStarted = false;
             for (ServerPlayer p : server.getPlayerList().getPlayers()) setGameMode(p, GameType.SURVIVAL);
             d.endPhase = "classic";
             d.endUntil = 0;
@@ -237,26 +231,135 @@ public final class EndGame {
         }
         if (!ph.isEmpty()) resetAll(server);
         d.resumeStage = old >= 1 && old < 5 ? old : Math.max(1, d.resumeStage);
-        boolean door = false;
-        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
-            int seq = Lotm.sequence(p);
-            if (p.isAlive() && !p.isSpectator() && Lotm.isDoor(p) && seq >= 0 && seq <= 2) door = true;
-        }
-        if (door && !d.evacOffered) {
-            d.endPhase = "evac";
-            d.evacOffered = true;
-            d.endUntil = System.currentTimeMillis() + (long) (Settings.evacuationMinutes * 60_000.0);
-        } else {
-            d.endPhase = "classic";
-            d.endUntil = 0;
-        }
+        d.endPhase = "call";   // the Fool is called, then everyone is taken to the arena
+        d.endUntil = 0;
+        callStart = server.getTickCount() + 160;   // a few seconds for "The end is here" to be read
+        callStarted = false;
+        spoken = 0;
         d.setDirty();
-        LOGGER.info("[astral] the end begins: {}", d.endPhase);
+        LOGGER.info("[astral] the end begins: the call");
+    }
+
+    // ------------------------------------------------------------------ the call
+
+    private static long callStart = 0;
+    private static boolean callStarted = false;
+    private static int spoken = 0;
+    private static final String[] PRAYER = {
+            "The Fool that doesn't belong to this era.",
+            "The Mysterious Ruler above the Gray Fog.",
+            "The King of Yellow and Black who wields good luck.",
+            "I pray for your blessing.",
+            "I pray for salvation.",
+            "I pray for you to save us all."};
+    private static final int[] PRAYER_AT = {40, 140, 250, 360, 440, 520};   // ticks after the fog begins (the client draws the same lines)
+    private static final int CALL_TICKS = 640;
+
+    /** The sky turns to grey fog, a voice prays, and then everyone is taken to the arena. */
+    private static void callTick(MinecraftServer server, AstralData d) {
+        long now = server.getTickCount();
+        if (callStart == 0) { callStart = now + 40; callStarted = false; spoken = 0; }   // after a restart
+        long t = now - callStart;
+        if (t < 0) return;
+        if (!callStarted) {
+            callStarted = true;
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(20, CALL_TICKS + 20));
+        }
+        while (spoken < PRAYER.length && t >= PRAYER_AT[spoken]) {
+            Component line = Component.literal(PRAYER[spoken]).withStyle(ChatFormatting.ITALIC, ChatFormatting.GOLD);
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                p.sendSystemMessage(line);
+                p.playNotifySound(SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.MASTER, 1.5f, 0.5f);
+            }
+            spoken++;
+        }
+        if (t >= CALL_TICKS) {
+            callStart = 0; callStarted = false;
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(21, 0));
+                PacketDistributor.sendToPlayer(p, new Net.FlashPayload(255, 3000));
+            }
+            startRaid(server, d);
+        }
+    }
+
+    // ------------------------------------------------------------------ the Fool's blessing
+
+    private static final String[] BLESSINGS = {"hp", "attack", "armor"};
+    private static final ResourceLocation B_HP = ResourceLocation.fromNamespaceAndPath("astral", "blessing_hp"),
+            B_ATK = ResourceLocation.fromNamespaceAndPath("astral", "blessing_attack"),
+            B_ARM = ResourceLocation.fromNamespaceAndPath("astral", "blessing_armor"),
+            B_TGH = ResourceLocation.fromNamespaceAndPath("astral", "blessing_toughness");
+    private static final Set<UUID> blessed = new HashSet<>();
+
+    private static void removeBlessing(ServerPlayer p) {
+        for (var e : new Object[][]{{Attributes.MAX_HEALTH, B_HP}, {Attributes.ATTACK_DAMAGE, B_ATK}, {Attributes.ARMOR, B_ARM}, {Attributes.ARMOR_TOUGHNESS, B_TGH}}) {
+            @SuppressWarnings("unchecked") var inst = p.getAttribute((net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute>) e[0]);
+            if (inst != null) inst.removeModifier((ResourceLocation) e[1]);
+        }
+        blessed.remove(p.getUUID());
+    }
+
+    private static void addBlessingMod(ServerPlayer p, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr, ResourceLocation id, double amount) {
+        var inst = p.getAttribute(attr);
+        if (inst != null && inst.getModifier(id) == null) inst.addPermanentModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(id, amount, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE));
+    }
+
+    /** Everyone arriving in the arena: healed, Sequence 4 at least, told of the Fool's blessing, and offered a choice. */
+    private static void blessPlayer(ServerPlayer p) {
+        p.setHealth(p.getMaxHealth());
+        int sq = Lotm.sequence(p);
+        if (sq > 4 && Lotm.setSequence(p, 4)) {
+            raidSeq.put(p.getUUID(), 4);
+            p.sendSystemMessage(Component.literal("The Fool lifts you to Sequence 4.").withStyle(ChatFormatting.GOLD));
+        }
+        PacketDistributor.sendToPlayer(p, new Net.StagePayload("The Fool's Blessing", 0x3A2A00, 0xFFD870, "You are not alone"));
+        p.sendSystemMessage(Component.literal("You have received the Fool's blessing.").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        offerBlessing(p);
+    }
+
+    private static void offerBlessing(ServerPlayer p) {
+        p.sendSystemMessage(Component.literal("Choose one gift (click):").withStyle(ChatFormatting.YELLOW));
+        p.sendSystemMessage(blessingButton("[+50 max HP]", "hp").append(Component.literal("  ")).append(blessingButton("[+5 attack damage]", "attack"))
+                .append(Component.literal("  ")).append(blessingButton("[+8 armor, +6 armor toughness]", "armor")));
+    }
+
+    private static net.minecraft.network.chat.MutableComponent blessingButton(String label, String id) {
+        return Component.literal(label).withStyle(net.minecraft.network.chat.Style.EMPTY.withColor(ChatFormatting.AQUA).withUnderlined(true)
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/astralblessing " + id)));
+    }
+
+    @SubscribeEvent
+    public static void onBlessingCommand(RegisterCommandsEvent event) {
+        event.getDispatcher().register(Commands.literal("astralblessing")
+                .executes(ctx -> { offerBlessing(ctx.getSource().getPlayerOrException()); return 1; })
+                .then(Commands.argument("gift", com.mojang.brigadier.arguments.StringArgumentType.word()).executes(ctx -> {
+                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                    AstralData d = AstralData.get(ctx.getSource().getServer());
+                    String g = com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "gift");
+                    if (!d.endPhase.equals("raid") || d.raidLives.getOrDefault(p.getUUID(), 0) <= 0) { ctx.getSource().sendFailure(Component.literal("There is no blessing to take now.")); return 0; }
+                    if (!blessed.add(p.getUUID())) { ctx.getSource().sendFailure(Component.literal("You have already chosen.")); return 0; }
+                    switch (g) {
+                        case "hp" -> { addBlessingMod(p, Attributes.MAX_HEALTH, B_HP, 50); p.heal(50); }
+                        case "attack" -> addBlessingMod(p, Attributes.ATTACK_DAMAGE, B_ATK, 5);
+                        case "armor" -> { addBlessingMod(p, Attributes.ARMOR, B_ARM, 8); addBlessingMod(p, Attributes.ARMOR_TOUGHNESS, B_TGH, 6); }
+                        default -> { blessed.remove(p.getUUID()); ctx.getSource().sendFailure(Component.literal("hp, attack or armor")); return 0; }
+                    }
+                    p.sendSystemMessage(Component.literal("The Fool's gift is yours.").withStyle(ChatFormatting.GOLD));
+                    return 1;
+                })));
+    }
+
+    @SubscribeEvent
+    public static void onBlessingLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer p && p.getServer() != null && !AstralData.get(p.getServer()).endPhase.equals("raid")) removeBlessing(p);   // a blessing never outlasts the fight
     }
 
     /** Puts everything back as it was: Earth, the overworld, the bosses. Does not touch the stage. */
     static void resetAll(MinecraftServer server) {
         woken.clear();
+        if (callStarted) for (ServerPlayer p : server.getPlayerList().getPlayers()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(21, 0));
+        callStart = 0; callStarted = false;
         AstralData d = AstralData.get(server);
         boolean was = !d.endPhase.isEmpty() || d.earthGone || !d.bossesDead.isEmpty();
         if (!was) return;
@@ -281,6 +384,7 @@ public final class EndGame {
     /** Removes the bosses and the raid; people in the arena go home when `sendHome` is set. */
     private static void clearRaidState(MinecraftServer server, boolean sendHome) {
         AstralData d = AstralData.get(server);
+        for (ServerPlayer bp : server.getPlayerList().getPlayers()) removeBlessing(bp);
         for (ServerBossEvent b : bars.values()) b.removeAllPlayers();
         bars.clear();
         if (raidBar != null) { raidBar.removeAllPlayers(); raidBar = null; }
@@ -600,7 +704,7 @@ public final class EndGame {
     private static void startRaid(MinecraftServer server, AstralData d) {
         ServerLevel lv = dim(server, "raid");
         if (lv == null) { LOGGER.warn("[astral] raid dimension missing"); Stage.set(server, 5); return; }
-        LOGGER.info("[astral] every planet boss is down: the raid begins");
+        LOGGER.info("[astral] the call is answered: the raid begins");
         clearRaidState(server, false);
         Map<UUID, Integer> seen = new HashMap<>(d.seenStage);   // lowering the stage must not make everyone read the old messages again if the raid is lost
         internal = true;
@@ -636,7 +740,8 @@ public final class EndGame {
             double a = Math.PI * 2 * i / Math.max(1, all.size());
             double sr = SPAWN_R - 15 + (i++ % 4) * 10;   // four rings, so a crowd is not stacked on one line
             p.teleportTo(lv, 0.5 + Math.cos(a) * sr, groundY, 0.5 + Math.sin(a) * sr, p.getYRot(), 0f);
-            p.setHealth(p.getMaxHealth());
+            removeBlessing(p);
+            blessPlayer(p);
         }
         tell(server, RAID_NAME + " has come. You have " + LIVES + " lives. Do not be where it strikes.", ChatFormatting.DARK_PURPLE);
     }
@@ -1522,8 +1627,10 @@ public final class EndGame {
         for (int v : d.raidLives.values()) if (v > 0) crowdSize++;
         final double leash = Math.min(ARENA_R, 95 + 9 * Math.sqrt(Math.max(1, crowdSize)));
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            boolean fresh = !d.raidLives.containsKey(p.getUUID());
             d.raidLives.putIfAbsent(p.getUUID(), LIVES);
             if (p.level() != lv) p.teleportTo(lv, 0.5 + SPAWN_R, groundY, 0.5, p.getYRot(), 0f);
+            if (fresh) blessPlayer(p);
             else if (!p.isSpectator() && p.isAlive()) {
                 double px = p.getX() - 0.5, pz = p.getZ() - 0.5, dist = Math.hypot(px, pz);
                 if (dist > leash) { // the battlefield has an edge: nobody outruns the tree
@@ -1868,6 +1975,7 @@ public final class EndGame {
         gt++;
         closeTick(server);
         if (d.endPhase.isEmpty() || d.endPhase.equals("classic")) return;
+        if (d.endPhase.equals("call")) callTick(server, d);
         if (d.endPhase.equals("raid")) raidTick(server, d);
         processTimed();
         if (d.endPhase.equals("bosses") || d.endPhase.equals("raid")) protectBosses(server);

@@ -237,19 +237,7 @@ public final class AstralServer {
                 d.seq0Paths.remove(id);
                 dirty = true;
             }
-            // a player first seen as Seq 0 counts as ascending too, even if the mod missed the step down from Seq 1 (a restart, a command, a skipped second)
-            if (seq == 0 && (newSeq0 || (prev != null && prev > 0))) {
-                boolean ready = ascensionReady(id);
-                boolean already = inAstral(p);   // a Door at Seq 3 or stronger can already be in the Astral World when it ascends: no teleport, but the message still comes
-                LOGGER.info("[astral] {} reached Seq 0 (was Seq {}): {}", p.getGameProfile().getName(), prev == null ? "unknown" : prev,
-                        !ready ? "NOT sent, the 10 minute ascension cooldown is running" : already ? "already in the Astral World, message only" : "sending to the Astral World");
-                if (!ready) continue;
-                if (!already) goToAstral(server, p);
-                // the stage message ("you feel a strange gaze from above") takes the screen at the same moment, so the title waits for it to clear;
-                // the chat line is immediate and stays, so a new god always learns about /astral
-                p.sendSystemMessage(Component.literal("The Astral World calls. Use /astral to travel between the worlds.").withStyle(ChatFormatting.LIGHT_PURPLE));
-                ascTitleAt.put(id, server.getTickCount() + 20L * 25);
-            }
+            // reaching Seq 0 no longer sends anyone anywhere: the Astral World opens only when the end comes
         }
 
         // regeneration: only while a Seq 0 is in the Astral World
@@ -278,7 +266,7 @@ public final class AstralServer {
             UUID id = p.getUUID();
             if (Lotm.sequence(p) == 0) {
                 hudShown.add(id);
-                PacketDistributor.sendToPlayer(p, new Net.HudPayload(true, d.hp, max, destinationText(server, p)));
+                PacketDistributor.sendToPlayer(p, new Net.HudPayload(true, d.hp, max, ""));
             } else if (hudShown.remove(id)) {
                 PacketDistributor.sendToPlayer(p, new Net.HudPayload(false, 0, 0, ""));
             }
@@ -358,9 +346,9 @@ public final class AstralServer {
         ServerPlayer p = src.getPlayerOrException();
         MinecraftServer server = src.getServer();
         int seq = Lotm.sequence(p);
-        boolean allowed = seq == 0 || doorSafe(p, seq) || src.hasPermission(2);
+        boolean allowed = src.hasPermission(2);   // nobody walks there willingly any more
         if (!allowed) {
-            src.sendFailure(Component.literal("Only a Seq 0, or a Door Seq 3 or stronger, can walk the Astral World."));
+            src.sendFailure(Component.literal("The Astral World is closed. It opens only when the end comes."));
             return 0;
         }
         if (Lotm.inCombat(p)) {

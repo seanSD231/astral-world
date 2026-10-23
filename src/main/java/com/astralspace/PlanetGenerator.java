@@ -35,6 +35,8 @@ public final class PlanetGenerator extends ChunkGenerator {
             com.mojang.serialization.Codec.STRING.fieldOf("planet").forGetter(g -> g.planet)).apply(i, PlanetGenerator::new));
 
     public static final int BASE = 64;
+    /** The arena is a round grassy field of this radius; beyond it there is only sky. */
+    public static final double FIELD_R = EndGame.ARENA_R + 24;
 
     private final String planet;
 
@@ -135,10 +137,7 @@ public final class PlanetGenerator extends ChunkGenerator {
                 double w = Math.abs(fbm(x, z, 70, 9, 4) - 0.5) * 2;             // ridged storm waves
                 h = BASE - 4 + (1 - w) * 22;
             }
-            case "raid" -> { // the sanctuary: flat ground out to the ruins, gentle grassy hills beyond
-                double r = Math.hypot(x, z);
-                h = BASE + smooth(EndGame.ARENA_R + 20, EndGame.ARENA_R + 70, r) * (fbm(x, z, 70, 12, 3) - 0.3) * 14;
-            }
+            case "raid" -> h = BASE;   // a perfectly level field: the fight is built on it
             default -> h = BASE + (fbm(x, z, 120, 10, 3) - 0.5) * 6;
         }
         double dist = Math.hypot(x, z);
@@ -216,6 +215,7 @@ public final class PlanetGenerator extends ChunkGenerator {
         for (int x = x0; x < x0 + 16; x++) {
             for (int z = z0; z < z0 + 16; z++) {
                 int h = height(planet, x, z);
+                if (planet.equals("raid") && Math.hypot(x, z) > FIELD_R) continue;   // the field is a round island in the night
                 chunk.setBlockState(pos.set(x, 0, z), bedrock, false);
                 boolean banded = planet.equals("jupiter") || planet.equals("saturn") || planet.equals("neptune");
                 for (int y = 1; y <= h; y++) {
@@ -233,11 +233,55 @@ public final class PlanetGenerator extends ChunkGenerator {
         return CompletableFuture.completedFuture(chunk);
     }
 
-    /** Ruined pillars, broken low walls, grass tufts and flowers. Left plain on purpose, for builders to finish. */
+    /** The ancient ruin in the middle of the field: a cracked dais, broken columns, fallen stone, and the old ring of pillars at the edge. */
     private static void decorateRaid(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int z, int h) {
         double r = Math.hypot(x, z);
         BlockState[] stone = {Blocks.STONE_BRICKS.defaultBlockState(), Blocks.MOSSY_STONE_BRICKS.defaultBlockState(), Blocks.CRACKED_STONE_BRICKS.defaultBlockState()};
-        // twelve pillars on a ring, each one broken off at its own height
+        // the dais: the ground itself turns to old paving, worn through in places
+        if (r <= 15) {
+            double q = hash(x, 11, z);
+            BlockState floor = r > 13.5 && r <= 15 ? Blocks.CHISELED_STONE_BRICKS.defaultBlockState()
+                    : q < 0.05 ? Blocks.GRASS_BLOCK.defaultBlockState() : q < 0.12 ? Blocks.COBBLESTONE.defaultBlockState() : stone[(int) (hash(x, 12, z) * 3)];
+            chunk.setBlockState(pos.set(x, h, z), floor, false);
+            if (r <= 12 && q > 0.97) chunk.setBlockState(pos.set(x, h + 1, z), Blocks.MOSSY_COBBLESTONE.defaultBlockState(), false);   // a fallen stone
+            return;
+        }
+        // eight great columns, each snapped off at its own height
+        for (int k = 0; k < 8; k++) {
+            double a = Math.PI * 2 * k / 8 + 0.2;
+            int cx = (int) Math.round(Math.cos(a) * 20), cz = (int) Math.round(Math.sin(a) * 20);
+            if (Math.abs(x - cx) <= 1 && Math.abs(z - cz) <= 1) {
+                int top = 6 + (int) (hash(k, 3, 17) * 10) - (x == cx && z == cz ? 0 : (int) (hash(x, z, 18) * 5));
+                for (int y = h + 1; y <= h + top; y++) {
+                    BlockState st = y == h + 1 || y == h + top && top > 11 ? Blocks.CHISELED_STONE_BRICKS.defaultBlockState() : stone[(int) (hash(x, y, z) * 3)];
+                    chunk.setBlockState(pos.set(x, y, z), st, false);
+                }
+                return;
+            }
+            // each column has a fallen piece lying beside it
+            if (z == cz + 3 && x >= cx && x <= cx + 4 && hash(k, 4, 19) < 0.8) {
+                chunk.setBlockState(pos.set(x, h + 1, z), stone[1], false);
+                return;
+            }
+        }
+        // a broken inner wall in arcs, never closed
+        if (r >= 16.5 && r < 17.6) {
+            double ang = Math.atan2(z, x);
+            if (Math.sin(ang * 4 + 0.7) > -0.15) {
+                int wh = (int) (hash(x / 2, 7, z / 2) * 5) - 1;
+                for (int y = h + 1; y <= h + wh; y++) chunk.setBlockState(pos.set(x, y, z), stone[(int) (hash(x, y, z) * 3)], false);
+            }
+            return;
+        }
+        // rubble scattered around the ruin
+        if (r < 46 && hash(x, 9, z) < 0.045) {
+            double q = hash(x, 10, z);
+            BlockState rub = q < 0.3 ? Blocks.MOSSY_COBBLESTONE.defaultBlockState() : q < 0.6 ? Blocks.STONE_BRICK_SLAB.defaultBlockState()
+                    : q < 0.85 ? Blocks.STONE_BRICK_STAIRS.defaultBlockState() : Blocks.CRACKED_STONE_BRICKS.defaultBlockState();
+            chunk.setBlockState(pos.set(x, h + 1, z), rub, false);
+            return;
+        }
+        // thirty-six pillars on the ring at the edge, each one broken off at its own height
         double ring = EndGame.ARENA_R - 4;
         int pillars = 36;
         for (int k = 0; k < pillars; k++) {
@@ -246,8 +290,8 @@ public final class PlanetGenerator extends ChunkGenerator {
             if (Math.abs(x - cx) <= 1 && Math.abs(z - cz) <= 1) {
                 int top = 5 + (int) (hash(k, 7, 91) * 10) - ((x + z) % 2 == 0 && hash(x, z, 92) < 0.4 ? 2 : 0);
                 for (int y = h + 1; y <= h + top; y++) {
-                    BlockState s = y == h + 1 || y == h + top && top > 11 ? Blocks.CHISELED_STONE_BRICKS.defaultBlockState() : stone[(int) (hash(x, y, z) * 3)];
-                    chunk.setBlockState(pos.set(x, y, z), s, false);
+                    BlockState st = y == h + 1 || y == h + top && top > 11 ? Blocks.CHISELED_STONE_BRICKS.defaultBlockState() : stone[(int) (hash(x, y, z) * 3)];
+                    chunk.setBlockState(pos.set(x, y, z), st, false);
                 }
                 return;
             }

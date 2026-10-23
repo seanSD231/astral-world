@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.0
+- The end is now a single fight. The planets, the Cosmos, the sovereign bosses, the evacuation and /cosmos are gone.
+- The arena is a round grassy field under a vanilla night sky (always midnight), with an ancient ruin in the middle and a ring of broken pillars at the edge. Beyond the field there is only sky.
+- When the barrier breaks (phase 5): everyone's view turns to the sky, the world fills with grey fog and drifting coloured lights, and a voice prays to the Fool. Then everyone is taken to the arena, fully healed, and anyone weaker than Sequence 4 is raised to Sequence 4 of their pathway. Everyone receives the Fool's blessing and picks one gift: +50 max HP, +5 attack damage, or +8 armor with +6 armor toughness (/astralblessing).
+- Reaching Seq 0 no longer takes anyone to the Astral World, and /astral is operator-only. Door Seq 3 is no longer sent there either.
+
 ## 0.1.105
 - Every summon is a werewolf (no zombies, spirits or "thralls").
 - Accepting Desire's Offer: Sequence 0 in their pathway, +200 max HP, Strength IV, Resistance I, Speed I, Sharpness X on the held item (if lower), and they leave their LOTM faction. Sequence and HP are restored when the raid ends.
