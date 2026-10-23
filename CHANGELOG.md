@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.13
+- Everyone is immune to all damage during the fog cutscene.
+- The Mother Tree's hit box is much wider (260 x 150), so it covers the whole canopy and trunk. The roots stay separate.
+
 ## 0.2.12
 - The fog cutscene now speaks your seven-line prayer in golden text, then the fog starts to glitch (tearing bars, black flickers, colour splits) along with the text, then "Something heard you / Something is watching you / Something is angry" appear in glitching red-and-black gradient text as the fog darkens. Two dark hooded figures with red eyes appear on the left and right, and then "I've heard your prayers" shows in gold before everyone is teleported.
 - The Mother Tree's health bar now glitches now and then once she is under half health (torn slices, ghosted name, a broken percentage), since the bar is lying.
