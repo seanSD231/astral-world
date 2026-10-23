@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.6
+- The sky is the plain vanilla night again (midnight, full stars).
+- The roots are part of the tree's hitbox: invisible hit boxes lie along every root (and are rebuilt for the new roots when she changes form). Hitting a root hits the tree; one attack touching many roots still counts once.
+- The arena is bigger (radius 260) and the invisible wall is much further out (150 blocks plus more for a crowd).
+- The tree has leaves: broad glowing violet and teal ones while healthy, dry curled yellow, brown and red ones when rotten. They move with their limb and flutter.
+
 ## 0.2.5
 - The Mother Tree arena is in the Cosmos dimension (astral_world:cosmos), a night-sky field with the ruin, separate from the Astral World that Seq 0s visit.
 

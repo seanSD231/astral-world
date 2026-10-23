@@ -384,6 +384,7 @@ public final class EndGame {
     /** Removes the bosses and the raid; people in the arena go home when `sendHome` is set. */
     private static void clearRaidState(MinecraftServer server, boolean sendHome) {
         AstralData d = AstralData.get(server);
+        clearRootBoxes(dim(server, "raid"));
         for (ServerPlayer bp : server.getPlayerList().getPlayers()) removeBlessing(bp);
         for (ServerBossEvent b : bars.values()) b.removeAllPlayers();
         bars.clear();
@@ -732,6 +733,7 @@ public final class EndGame {
             boss.setNoGravity(true);
             lv.addFreshEntity(boss);
         }
+        buildRootBoxes(lv, false);
         List<ServerPlayer> all = new ArrayList<>(server.getPlayerList().getPlayers());
         int i = 0;
         for (ServerPlayer p : all) {
@@ -863,6 +865,68 @@ public final class EndGame {
         lv.sendParticles(ParticleTypes.EXPLOSION, x, cur.gy() + 1, z, 6, r / 3, 0.5, r / 3, 0);
     }
 
+
+
+    // ------------------------------------------------------------------ the roots can be hit
+
+    private static final String TAG_ROOTBOX = "astral_rootbox";
+    private static final List<Mob> rootBoxes = new ArrayList<>();
+    private static boolean rootBoxesRot = false;
+    private static int rootBoxesWanted = 0;
+    private static final Map<UUID, Long> rootHitAt = new HashMap<>();
+
+    private static void clearRootBoxes(ServerLevel lv) {
+        for (Mob m : rootBoxes) m.discard();
+        rootBoxes.clear();
+        if (lv != null) for (Entity e : lv.getAllEntities()) if (e.getTags().contains(TAG_ROOTBOX)) e.discard();
+    }
+
+    /** Invisible slimes lie along every root: hitting one hits the tree. (The model is the same one the clients draw, so the boxes follow the roots.) */
+    private static void buildRootBoxes(ServerLevel lv, boolean rot) {
+        clearRootBoxes(lv);
+        rootBoxesRot = rot;
+        TreeModel m = TreeModel.build(rot);
+        for (int k = 0; k < m.rootAngle.size(); k++) {
+            double a = m.rootAngle.get(k), len = m.rootLen.get(k), r = 22;
+            while (r < len) {
+                double f = (r - 16) / (len - 16);
+                double w = Math.max(4.5, (14 * Math.pow(Math.max(0, 1 - f), 1.1) + 0.6) * 2);
+                net.minecraft.world.entity.monster.Slime sl = EntityType.SLIME.create(lv);
+                if (sl != null) {
+                    sl.setSize(Math.max(1, (int) Math.round(w / 0.52)), true);
+                    sl.setPos(0.5 + Math.cos(a) * r, groundY + 1, 0.5 + Math.sin(a) * r);
+                    sl.addTag(TAG_ROOTBOX);
+                    sl.setNoAi(true); sl.setInvisible(true); sl.setSilent(true); sl.setNoGravity(true); sl.noPhysics = true; sl.setPersistenceRequired();
+                    lv.addFreshEntity(sl);
+                    rootBoxes.add(sl);
+                }
+                r += Math.max(w * 1.1, 6);
+            }
+        }
+        rootBoxesWanted = rootBoxes.size();
+    }
+
+    /** Once a second: boxes that were killed or moved are put right. */
+    private static void rootBoxesSecond(ServerLevel lv) {
+        int alive = 0;
+        for (Mob m : rootBoxes) if (m.isAlive()) alive++;
+        if (rootBoxes.isEmpty() || alive < rootBoxesWanted * 0.8) { buildRootBoxes(lv, rootBoxesRot); return; }
+        for (Mob m : rootBoxes) m.setDeltaMovement(0, 0, 0);
+    }
+
+    /** A hit on a root is a hit on the tree (once per attacker per tick, so an area attack touching ten roots still hits once). */
+    private static boolean forwardRootHit(LivingIncomingDamageEvent event, Entity e) {
+        if (!e.getTags().contains(TAG_ROOTBOX)) return false;
+        event.setCanceled(true);
+        Entity by = event.getSource().getEntity();
+        if (by == null || e.getServer() == null) return true;
+        Long last = rootHitAt.get(by.getUUID());
+        if (last != null && last == gt) return true;
+        rootHitAt.put(by.getUUID(), gt);
+        Mob boss = findBoss((ServerLevel) e.level(), TAG_RAID);
+        if (boss != null && boss != by) boss.hurt(event.getSource(), event.getAmount());
+        return true;
+    }
 
     // ------------------------------------------------------------------ thralls, desire, wounds
 
@@ -1343,6 +1407,7 @@ public final class EndGame {
             cutscene = false;
             rootsActive = false;
             treeFleshy = true;
+            buildRootBoxes(l, true);   // the roots she grows are not the roots she had
             if (raidBar != null) raidBar.setName(barName("", ChatFormatting.DARK_PURPLE));
             tellLevel(l, "The Mother Tree of Desire curses you all. From now on you see her health as she wants you to see it.", ChatFormatting.DARK_RED);
             startCall(l);
@@ -1527,6 +1592,7 @@ public final class EndGame {
         if (boss == null) return;
         float frac = boss.getHealth() / RAID_HP;
         int bucket = (int) Math.floor(frac * 20);
+        rootBoxesSecond(lv);
         offerSecond(lv, frac);
         raidAlliesSecond(lv);
         if (bucket > lineBucket) lineBucket = bucket;   // healed
@@ -1632,7 +1698,7 @@ public final class EndGame {
         // everyone belongs in the arena; the battlefield grows with the crowd (about 100 blocks alone, the whole arena at 100 players)
         int crowdSize = 0;
         for (int v : d.raidLives.values()) if (v > 0) crowdSize++;
-        final double leash = Math.min(ARENA_R, 95 + 9 * Math.sqrt(Math.max(1, crowdSize)));
+        final double leash = Math.min(ARENA_R, 150 + 12 * Math.sqrt(Math.max(1, crowdSize)));
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             boolean fresh = !d.raidLives.containsKey(p.getUUID());
             d.raidLives.putIfAbsent(p.getUUID(), LIVES);
@@ -1797,7 +1863,7 @@ public final class EndGame {
             "warriorLightConcealment", "warriorLightEvasion", "warriorLightEvasionDistance"}; // the last three: Warrior light form, which makes a boss unhittable
     private static final Map<UUID, Float> lastHp = new HashMap<>();
     private static final Map<UUID, Long> lastPlayerHit = new HashMap<>();   // when a player last hurt each boss
-    static final double ARENA_R = 190;        // the raid arena: fighters may roam this far from the tree (built for up to ~100 players)
+    static final double ARENA_R = 260;        // the raid arena: fighters may roam this far from the tree (built for up to ~100 players)
     private static final double SPAWN_R = 75;     // fighters arrive well outside the tree's trunk (the model's trunk is about 15 blocks wide at the foot)
     private static final float MAX_HIT = 0.10f;     // no single hit takes more than this share of a boss's health
     private static final float MAX_DROP = 0.12f;    // anything that takes more than this in one tick is not a hit but an execution
@@ -2067,6 +2133,7 @@ public final class EndGame {
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         Entity e = event.getEntity();
+        if (forwardRootHit(event, e)) return;
         if (traitor != null && (e.getTags().contains(TAG_BOSS) || e.getTags().contains(TAG_MINION)) && event.getSource().getEntity() instanceof ServerPlayer ta && ta.getUUID().equals(traitor)) { event.setCanceled(true); return; }   // the ally cannot hurt the tree or her thralls
         if (rootsActive && e.getTags().contains(TAG_RAID)) { logDrop(e, event, "phase active, untouchable"); event.setCanceled(true); return; } // untouchable while its roots stand
         if (e.getTags().contains(TAG_BOSS) && event.getSource().getEntity() instanceof ServerPlayer atk && e.getServer() != null) {

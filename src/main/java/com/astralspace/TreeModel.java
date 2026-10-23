@@ -22,6 +22,9 @@ final class TreeModel {
     final double[][] limbPivot = new double[12][];
     final java.util.List<java.util.List<double[]>> limbTips = new java.util.ArrayList<>();
     final java.util.Map<String, double[]> centroids = new java.util.HashMap<>();
+    /** Where each buttress root runs: its angle and length (the server builds invisible hit boxes along them). */
+    final java.util.List<Double> rootAngle = new java.util.ArrayList<>(), rootLen = new java.util.ArrayList<>();
+    private final java.util.List<double[]> leafPts = new java.util.ArrayList<>();   // {x, y, z, dirx, diry, dirz} along the twigs
     private void part(String name, double[] pivot) { parts.add(new Object[]{name, floats, pivot}); }
 
     private final Random rnd;
@@ -161,6 +164,7 @@ final class TreeModel {
         double[] rad = new double[seg + 1];
         for (int i = 0; i <= seg; i++) rad[i] = r0 * Math.pow(1 - i / (double) seg, 0.85) + 0.18;
         tube(pts, rad, sides, bark(), false, rot);
+        if (level >= 1) for (int i = 2; i <= seg; i += 2) leafPts.add(new double[]{pts[i][0], pts[i][1], pts[i][2], dd[0], dd[1], dd[2]});
         if (level < maxLevel) {
             int nsub = level == 0 ? 4 : 3;
             for (int m = 0; m < nsub; m++) {
@@ -173,6 +177,24 @@ final class TreeModel {
             tips.add(pts[seg]);
             tips.add(pts[Math.max(0, seg - 4)]);
         }
+    }
+
+    private static final int[][] LEAF_OK = {{90, 70, 185}, {125, 95, 215}, {70, 140, 195}, {155, 105, 225}, {205, 125, 205}, {95, 175, 190}};
+    private static final int[][] LEAF_ROT = {{125, 135, 42}, {155, 112, 42}, {92, 36, 42}, {168, 72, 72}, {72, 82, 36}};
+
+    /** One leaf: a pointed diamond, hung off the twig, drooping more when rotten. */
+    private void leaf(double[] p, double[] d) {
+        double len = rot ? rr(4, 8) : rr(6, 11), wid = len * rr(0.38, 0.55);
+        double[] dir = norm(add(add(d, v(rr(-1, 1), rr(-0.5, 0.6), rr(-1, 1))), v(0, rot ? -0.9 : -0.25, 0)));
+        double[] side = norm(cross(dir, v(rr(-1, 1), 1, rr(-1, 1))));
+        double[] base = p;
+        double[] mid = add(base, mul(dir, len * 0.5));
+        double[] tip = add(add(base, mul(dir, len)), v(0, rot ? -len * 0.3 : -len * 0.12, 0));
+        double[] left = add(mid, mul(side, wid * 0.5)), right = sub(mid, mul(side, wid * 0.5));
+        double[] n = norm(cross(sub(left, base), sub(right, base)));
+        if (n[1] < 0) n = mul(n, -1);
+        int[] col = rot ? LEAF_ROT[rnd.nextInt(LEAF_ROT.length)] : LEAF_OK[rnd.nextInt(LEAF_OK.length)];
+        quad(base, n, left, n, tip, n, right, n, col, false);
     }
 
     private void make() {
@@ -209,6 +231,7 @@ final class TreeModel {
             double a = k * 2 * Math.PI / 16 + rnd.nextDouble() * 0.2;
             double[] d = v(Math.cos(a), 0, Math.sin(a));
             double L = 95 + rnd.nextDouble() * 70, lift = rr(6, 22);
+            rootAngle.add(a); rootLen.add(L);
             double[][] sp = bez(add(mul(d, 16), v(0, 7, 0)), add(mul(d, L * 0.28), v(0, 7 + lift * 0.25, 0)), add(mul(d, L * 0.65), v(0, 3 + lift * 0.12, 0)), add(mul(d, L), v(0, -2.5, 0)), 18);
             double[] rad = new double[sp.length];
             for (int i = 0; i < sp.length; i++) rad[i] = 14 * Math.pow(1 - i / 18.0, 1.1) + 0.6;
@@ -252,7 +275,7 @@ final class TreeModel {
             }
         }
         // branches: twelve great limbs, each splitting twice more (each limb is its own animated part)
-        int[] tipStart = new int[13];
+        int[] tipStart = new int[13], leafStart = new int[13];
         for (int k = 0; k < 12; k++) {
             double a = k * 2 * Math.PI / 12 + rnd.nextDouble() * 0.3;
             double[] d = v(Math.cos(a) * 1.3, 0.55 + rnd.nextDouble() * 0.55, Math.sin(a) * 1.3);
@@ -261,10 +284,21 @@ final class TreeModel {
             limbPivot[k] = st;
             part("limb" + k, st);
             tipStart[k] = tips.size();
+            leafStart[k] = leafPts.size();
             branch(st, d, 78 + rnd.nextDouble() * 30, 9.5, 0, 2);
         }
         tipStart[12] = tips.size();
+        leafStart[12] = leafPts.size();
         for (int k = 0; k < 12; k++) limbTips.add(new java.util.ArrayList<>(tips.subList(tipStart[k], tipStart[k + 1])));
+        // leaves along the twigs: broad glowing violet and teal leaves while healthy, dry, curled and sickly ones once rotten
+        for (int k = 0; k < 12; k++) {
+            part("leaf" + k, limbPivot[k]);
+            for (int i = leafStart[k]; i < leafStart[k + 1]; i++) {
+                double[] lp = leafPts.get(i);
+                int n = rot ? (rnd.nextDouble() < 0.5 ? 1 : 0) : 3;
+                for (int c = 0; c < n; c++) leaf(v(lp[0], lp[1], lp[2]), v(lp[3], lp[4], lp[5]));
+            }
+        }
         // blossoms (healthy) or sparse rotten fruit at every tip, in thirds per limb so they can fall and regrow one group at a time
         int[][] pal = rot ? PAL_ROT : PAL_OK;
         for (int k = 0; k < 12; k++) {

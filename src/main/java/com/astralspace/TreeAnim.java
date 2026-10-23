@@ -133,6 +133,7 @@ final class TreeAnim {
         rot(m, pv, (float) -Math.sin(meta.limbAngle[k]), 0f, (float) Math.cos(meta.limbAngle[k]), lift(a, s, env, k, t));
         rot(m, pv, 0f, 1f, 0f, twist(a, s, env, k));
         if (name.startsWith("vine")) rot(m, pv, 1f, 0f, 0.4f, 0.03 * Math.sin(t * 1.1 + k) * (1 + 2 * env));
+        if (name.startsWith("leaf")) rot(m, pv, 1f, 0f, 0.4f, 0.015 * Math.sin(t * 2.3 + k) * (1 + 3 * env));
         if (name.startsWith("fruit")) {
             int g = name.charAt(name.length() - 1) - '0', idx = k * 3 + g;
             double sc = 1, fall = 0;
