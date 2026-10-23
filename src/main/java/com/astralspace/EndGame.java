@@ -2015,6 +2015,13 @@ public final class EndGame {
             stripDeath(m);
             freeFromOwner(m);
             sizeHitbox(m);
+            if (m.getTags().contains(TAG_RAID)) {   // the tree never moves: hits and the hitbox changing size must not push it up or down
+                var pd = m.getPersistentData();
+                if (!pd.contains("astralHomeY")) { pd.putDouble("astralHomeY", m.getY()); pd.putDouble("astralHomeX", m.getX()); pd.putDouble("astralHomeZ", m.getZ()); }
+                double hx = pd.getDouble("astralHomeX"), hy = pd.getDouble("astralHomeY"), hz = pd.getDouble("astralHomeZ");
+                m.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+                if (Math.abs(m.getX() - hx) > 0.01 || Math.abs(m.getY() - hy) > 0.01 || Math.abs(m.getZ() - hz) > 0.01) m.setPos(hx, hy, hz);
+            }
             float max = m.getMaxHealth(), hp = m.getHealth();
             if (m.getTags().contains(TAG_RAID) && rootStage < THRESHOLDS.length && hp < THRESHOLDS[rootStage] * RAID_HP - 0.5f) { // however it got hurt (an ability that sets health), it cannot pass the next phase
                 hp = THRESHOLDS[rootStage] * RAID_HP - 0.5f;
