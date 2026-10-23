@@ -373,7 +373,7 @@ public final class GodCurse {
             }
             case RAVINGS -> {
                 util("applyFrenzy", p, ticks); // the ravings drive you mad
-                Lotm.loseSanityPercent(p, 50);
+                Lotm.loseSanityPercent(p, Lotm.sequence(p) == 0 ? 20 : 50);   // a Seq 0 keeps more of their mind
                 fx(p, MobEffects.CONFUSION, ticks, 1);
                 fx(p, MobEffects.DIG_SLOWDOWN, ticks, 2);
                 fx(p, lotm("frenzy", MobEffects.WEAKNESS), ticks, 0);
@@ -528,10 +528,15 @@ public final class GodCurse {
                 c.nextAct = now + 20;
             }
             case RAVINGS -> {
+                boolean seq0 = Lotm.sequence(p) == 0;   // Seq 0 survives the ravings; Seq 1 and below can be killed by them
                 p.setRemainingFireTicks(80); // water cannot put this out: it is lit again every second
-                hurt(p, 4f * k, "lava");
-                // lots of random corruption, each time into a different random pathway
-                Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 4 + r.nextInt(7) * k);
+                if (seq0) hurt(p, 4f * k, "lava");   // never kills
+                else {
+                    DamageSource rsrc = Lotm.source("lava", p);
+                    p.hurt(rsrc != null ? rsrc : p.level().damageSources().lava(), 4f * k);   // can kill
+                }
+                // lots of random corruption, each time into a different random pathway (a third of it for a Seq 0)
+                Lotm.addCorruptionPercent(p, Lotm.randomPathway(), seq0 ? 1 + r.nextInt(3) * k / 2 : 4 + r.nextInt(7) * k);
                 if (r.nextInt(3) == 0) Lotm.whisper(p);
                 c.nextAct = now + 10;
             }
