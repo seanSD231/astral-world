@@ -582,6 +582,7 @@ public final class EndGame {
         force(lv, 3, true);
         groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
         timed.clear();
+        raidSeq.clear();
         rt = 0; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false;
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
@@ -1167,6 +1168,7 @@ public final class EndGame {
         cur = new Arena(lv, 0.5, 0.5, groundY, true);
         if (rt % 20 == 0) rootsSecond(lv);
         treeCast(lv);
+        if (rt % 5 == 0) for (ServerPlayer p : fighters(lv)) { double sp = Lotm.sanityPercent(p); if (sp >= 0 && sp <= 3) sanityBreak(p); }   // before LOTM's own collapse
         if (rt >= nextPattern && !cutscene && !fighters(lv).isEmpty()) {
             int[] opts = NEXT[lastPattern];
             int which = opts[ThreadLocalRandom.current().nextInt(opts.length)];
@@ -1192,6 +1194,16 @@ public final class EndGame {
         final double leash = Math.min(ARENA_R, 95 + 9 * Math.sqrt(Math.max(1, crowdSize)));
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             d.raidLives.putIfAbsent(p.getUUID(), LIVES);
+            if (p.level() == lv && !p.isSpectator()) { // nobody regresses in the arena: LOTM's loss of control and sanity collapse are undone
+                int sq = Lotm.sequence(p), kept = raidSeq.getOrDefault(p.getUUID(), -1);
+                if (sq >= 0) {
+                    if (kept < 0 || sq < kept) raidSeq.put(p.getUUID(), sq);
+                    else if (sq > kept && Lotm.setSequence(p, kept)) {
+                        LOGGER.info("[astral] {} was regressed from Seq {} to Seq {} in the raid: put back", p.getGameProfile().getName(), kept, sq);
+                        p.sendSystemMessage(Component.literal("Something tried to tear your sequence away. The Astral World holds it.").withStyle(ChatFormatting.DARK_PURPLE));
+                    }
+                }
+            }
             if (p.level() != lv) p.teleportTo(lv, 0.5 + SPAWN_R, groundY, 0.5, p.getYRot(), 0f);
             else if (!p.isSpectator() && p.isAlive()) {
                 double px = p.getX() - 0.5, pz = p.getZ() - 0.5, dist = Math.hypot(px, pz);
@@ -1640,24 +1652,27 @@ public final class EndGame {
             event.setCanceled(true);
             // LOTM kills a player at 0 sanity with damage it deals to the player itself: the arena blocks all damage, so that death costs a life instead
             Entity by = event.getSource().getEntity();
-            if ((by == p || event.getSource().is(net.minecraft.world.damagesource.DamageTypes.GENERIC_KILL)) && !cutscene && !p.isSpectator() && p.isAlive()
-                    && AstralData.get(p.getServer()).endPhase.equals("raid")) {
-                Long last = sanityDeathAt.get(p.getUUID());
-                if (last == null || gt - last > 100) {
-                    sanityDeathAt.put(p.getUUID(), gt);
-                    LOGGER.info("[astral] {} lost their mind in the raid: a life is taken", p.getGameProfile().getName());
-                    ServerLevel plv = (ServerLevel) p.level();
-                    p.sendSystemMessage(Component.literal("Your mind gives way.").withStyle(ChatFormatting.DARK_PURPLE));
-                    p.setHealth(Math.min(p.getHealth(), 1f));
-                    lastHit.remove(p.getUUID());
-                    loseLife(plv, p);
-                    Lotm.setSanityPercent(p, 50);
-                }
-            }
+            if (by == p || event.getSource().is(net.minecraft.world.damagesource.DamageTypes.GENERIC_KILL)) sanityBreak(p);
         }
     }
 
+    /** A mind that gives way in the raid: costs a life, never a sequence. Sanity is reset so LOTM's own collapse (which regresses and kills) never fires. */
+    private static void sanityBreak(ServerPlayer p) {
+        if (cutscene || p.isSpectator() || !p.isAlive() || p.getServer() == null || !AstralData.get(p.getServer()).endPhase.equals("raid")) return;
+        Long last = sanityDeathAt.get(p.getUUID());
+        if (last != null && gt - last <= 100) return;
+        sanityDeathAt.put(p.getUUID(), gt);
+        LOGGER.info("[astral] {} lost their mind in the raid: a life is taken", p.getGameProfile().getName());
+        ServerLevel plv = (ServerLevel) p.level();
+        Lotm.setSanityPercent(p, 50);
+        p.sendSystemMessage(Component.literal("Your mind gives way.").withStyle(ChatFormatting.DARK_PURPLE));
+        p.setHealth(Math.min(p.getHealth(), 1f));
+        lastHit.remove(p.getUUID());
+        loseLife(plv, p);
+    }
+
     private static final Map<UUID, Long> sanityDeathAt = new HashMap<>();
+    private static final Map<UUID, Integer> raidSeq = new HashMap<>();   // the sequence each fighter carried in, and the best they reach
 
     @SubscribeEvent
     public static void onHeal(LivingHealEvent event) {

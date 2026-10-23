@@ -132,6 +132,7 @@ public final class Lotm {
                 if (m.getName().equals("getMaxSanity") && m.getParameterCount() == 1) getMaxSanity = m;
                 if (m.getName().equals("decreaseSanityUnresisted") && m.getParameterCount() == 2) decreaseSanityUnresisted = m;
                 if (m.getName().equals("setSanity") && m.getParameterCount() == 2) setSanityM = m;
+                if (m.getName().equals("getSanity") && m.getParameterCount() == 1) getSanityM = m;
             }
             LOGGER.info("[astral] LOTM sanity found. getMaxSanity={} decreaseSanityUnresisted={}", getMaxSanity != null, decreaseSanityUnresisted != null);
         } catch (Throwable t) {
@@ -139,7 +140,42 @@ public final class Lotm {
         }
     }
 
-    private static Method setSanityM;
+    private static Method setSanityM, getSanityM;
+    private static Method holderOf, holderSetSequence;
+    private static boolean holderFailed;
+
+    /** Current sanity as a percent of the maximum, or -1 if LOTM could not be called. */
+    public static double sanityPercent(ServerPlayer player) {
+        initSanity();
+        if (getMaxSanity == null || getSanityM == null) return -1;
+        try {
+            int max = (Integer) getMaxSanity.invoke(null, player);
+            return max <= 0 ? -1 : 100.0 * (Integer) getSanityM.invoke(null, player) / max;
+        } catch (Throwable t) { return -1; }
+    }
+
+    /** Puts a player's sequence back (LOTM's own loss-of-control and sanity collapse regress it). Returns false if LOTM could not be called. */
+    public static boolean setSequence(ServerPlayer player, int seq) {
+        if (holderFailed) return false;
+        try {
+            if (holderOf == null) {
+                Class<?> att = Class.forName("net.swimmingtuna.lotm.caps.BeyonderHolderAttacher");
+                Class<?> hold = Class.forName("net.swimmingtuna.lotm.caps.BeyonderHolder");
+                holderOf = att.getMethod("getHolderUnwrap", net.minecraft.world.entity.player.Player.class);
+                holderSetSequence = hold.getMethod("setSequence", int.class);
+            }
+            holderSetSequence.invoke(holderOf.invoke(null, player), seq);
+            return true;
+        } catch (ReflectiveOperationException e) {
+            holderFailed = true;
+            LOGGER.warn("[astral] could not find LOTM's sequence setter, regression is not undone: {}", e.toString());
+            return false;
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not set the sequence: {}", t.toString());
+            return false;
+        }
+    }
+
 
     /** Sets sanity to `percent` of the player's maximum. Returns false if LOTM could not be called. */
     public static boolean setSanityPercent(ServerPlayer player, double percent) {
