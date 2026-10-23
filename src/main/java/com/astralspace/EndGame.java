@@ -95,6 +95,27 @@ public final class EndGame {
     private static boolean internal = false;
     private static final Map<String, ServerBossEvent> bars = new HashMap<>();
     private static ServerBossEvent raidBar;
+    private static boolean treeFleshy = false;   // after the 50% change she is the Mother Tree of Desire; before it, the World Tree
+    private static int lineBucket = 20;          // the last 5% step of her health she has spoken at
+
+    /** The boss bar name: "The World Tree" before the change, the Mother Tree of Desire after it. The clients tell the two forms apart by this name. */
+    private static Component barName(String suffix, ChatFormatting c) {
+        return Component.literal((treeFleshy ? RAID_NAME : "The World Tree") + suffix).withStyle(c);
+    }
+
+    private static final String[] WORLD_TREE_LINES = {
+            "Kill me and the Astral World forgets how to hold the sky.",
+            "Every root you burn remembers your name.",
+            "There is no Earth to return to without me.",
+            "You are cutting the branch you stand on.",
+            "Kill the tree and the seeds of tomorrow go with it.",
+            "I am the reason the ground is solid. Think before you strike.",
+            "Your victory is a world with no roots.",
+            "When I fall, everything that grew from me falls too.",
+            "Killing me is the worst thing you will ever do.",
+            "Spare the tree. The wood remembers who was kind.",
+            "Do you know what rots when a world tree dies?",
+            "Strike again and learn what the sky does without its pillar."};
 
     private EndGame() {}
 
@@ -585,7 +606,7 @@ public final class EndGame {
         groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
         timed.clear();
         raidSeq.clear();
-        rt = 0; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false;
+        rt = 0; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; treeFleshy = false; lineBucket = 20;
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
             boss.addTag(TAG_BOSS);
@@ -947,6 +968,9 @@ public final class EndGame {
             if (b != null) b.setCustomName(Component.literal(RAID_NAME + "\u200B").withStyle(ChatFormatting.DARK_RED)); // the invisible mark tells clients to draw the fleshy form for good
             cutscene = false;
             rootsActive = false;
+            treeFleshy = true;
+            if (raidBar != null) raidBar.setName(barName("", ChatFormatting.DARK_PURPLE));
+            tellLevel(l, "The Mother Tree of Desire curses you all. From now on you see her health as she wants you to see it.", ChatFormatting.DARK_RED);
             startCall(l);
         });
     }
@@ -975,7 +999,7 @@ public final class EndGame {
     private static void endPhase(ServerLevel lv, String msg, ChatFormatting c) {
         rootsActive = false;
         rootStage++;
-        if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME).withStyle(ChatFormatting.DARK_PURPLE));
+        if (raidBar != null) raidBar.setName(barName("", ChatFormatting.DARK_PURPLE));
         tellLevel(lv, msg, c);
     }
 
@@ -1027,7 +1051,7 @@ public final class EndGame {
         });
         if (seeds.isEmpty()) { endPhase(lv, "Every seed is broken. The tree is exposed!", ChatFormatting.GOLD); return; }
         long left = Math.max(0, (phaseEnd - rt) / 20);
-        if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME + "  -  seeds left: " + seeds.size() + "  (" + left + "s)").withStyle(ChatFormatting.RED));
+        if (raidBar != null) raidBar.setName(barName("  -  seeds left: " + seeds.size() + "  (" + left + "s)", ChatFormatting.RED));
         for (BlockPos b : seeds) {
             lv.sendParticles(ParticleTypes.CRIMSON_SPORE, b.getX() + 0.5, b.getY() + 1.5, b.getZ() + 0.5, 6, 0.3, 0.5, 0.3, 0);
             tele(lv, 3, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, 0f, 45f, 1f, 0.2f, 0.3f, 30);
@@ -1121,6 +1145,16 @@ public final class EndGame {
     private static void rootsSecond(ServerLevel lv) {
         Mob boss = findBoss(lv, TAG_RAID);
         if (boss == null) return;
+        float frac = boss.getHealth() / RAID_HP;
+        int bucket = (int) Math.floor(frac * 20);
+        if (bucket > lineBucket) lineBucket = bucket;   // healed
+        else if (bucket < lineBucket) {
+            if (!treeFleshy && frac > 0.5f) {   // every 5% above half she pleads; after the change she no longer does
+                String line = WORLD_TREE_LINES[ThreadLocalRandom.current().nextInt(WORLD_TREE_LINES.length)];
+                tellLevel(lv, "The World Tree: " + line, ChatFormatting.LIGHT_PURPLE);
+            }
+            lineBucket = bucket;
+        }
         if (!rootsActive) {
             if (rootStage < THRESHOLDS.length && boss.getHealth() / RAID_HP <= THRESHOLDS[rootStage]) {
                 if (rootStage == 0) startRoots(lv); else if (rootStage == 1) startTransformation(lv); else startSeeds(lv);
@@ -1142,12 +1176,12 @@ public final class EndGame {
         if (roots.isEmpty()) {
             rootsActive = false;
             rootStage++;
-            if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME).withStyle(ChatFormatting.DARK_PURPLE));
+            if (raidBar != null) raidBar.setName(barName("", ChatFormatting.DARK_PURPLE));
             tellLevel(lv, "The roots burn. The tree is exposed again!", ChatFormatting.GOLD);
             return;
         }
         long left = Math.max(0, (rootsEnd - rt) / 20);
-        if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME + "  -  roots left: " + roots.size() + "  (" + left + "s)").withStyle(ChatFormatting.DARK_GREEN));
+        if (raidBar != null) raidBar.setName(barName("  -  roots left: " + roots.size() + "  (" + left + "s)", ChatFormatting.DARK_GREEN));
         for (BlockPos b : roots) {
             lv.sendParticles(ParticleTypes.HAPPY_VILLAGER, b.getX() + 0.5, b.getY() + 2.3, b.getZ() + 0.5, 3, 0.2, 0.2, 0.2, 0);
             tele(lv, 3, b.getX() + 0.5, b.getY(), b.getZ() + 0.5, 0f, 45f, 0.2f, 1f, 0.3f, 30);
@@ -1158,7 +1192,8 @@ public final class EndGame {
             boss.setHealth(RAID_HP);
             rootsActive = false;
             rootStage = 0;
-            if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME).withStyle(ChatFormatting.DARK_PURPLE));
+            if (raidBar != null) raidBar.setName(barName("", ChatFormatting.DARK_PURPLE));
+            lineBucket = 20;
             tellLevel(lv, "The roots drink. The Mother Tree of Desire is whole again.", ChatFormatting.DARK_RED);
         }
     }
@@ -1237,7 +1272,7 @@ public final class EndGame {
                 if (m != null) { m.addTag(TAG_BOSS); m.addTag(TAG_RAID); m.setNoAi(true); m.setNoGravity(true); if (raidRespawnHp > 0) { m.setHealth(Math.min(RAID_HP, raidRespawnHp)); raidRespawnHp = -1f; } lv.addFreshEntity(m); }
             }
         } else {
-            if (raidBar == null) raidBar = new ServerBossEvent(Component.literal(RAID_NAME).withStyle(ChatFormatting.DARK_PURPLE),
+            if (raidBar == null) raidBar = new ServerBossEvent(barName("", ChatFormatting.DARK_PURPLE),
                     BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.NOTCHED_20);
             raidBar.setProgress(Math.max(0f, Math.min(1f, boss.getHealth() / RAID_HP)));
             for (ServerPlayer p : server.getPlayerList().getPlayers()) raidBar.addPlayer(p);

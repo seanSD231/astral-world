@@ -12,7 +12,8 @@ import net.neoforged.neoforge.common.NeoForge;
  * pustules, ragged edges, dripping).
  */
 public final class TreeBossBar {
-    private static final String NAME = "Mother Tree of Desire";
+    private static final String NAME = "Mother Tree of Desire", EARLY_NAME = "The World Tree";
+    private static final int[] PINK = {0xFFFF8FC8, 0xFFB69CFF, 0xFF7CE8B0}, FLESH = {0xFFD25A62, 0xFF7A1C2E, 0xFFC8D060};
     private static float trail = 1f;
 
     private TreeBossBar() {}
@@ -37,14 +38,19 @@ public final class TreeBossBar {
 
     private static void onBar(CustomizeGuiOverlayEvent.BossEventProgress ev) {
         LerpingBossEvent be = ev.getBossEvent();
-        if (!be.getName().getString().contains(NAME)) return;
+        String title = be.getName().getString();
+        boolean fleshy = title.contains(NAME);
+        if (!fleshy && !title.contains(EARLY_NAME)) return;
         ev.setCanceled(true);
         ev.setIncrement(46);
         Minecraft mc = Minecraft.getInstance();
         GuiGraphics g = ev.getGuiGraphics();
-        float p = Math.max(0f, Math.min(1f, be.getProgress()));
+        float real = Math.max(0f, Math.min(1f, be.getProgress()));
+        // the Mother Tree lies: after the change she shows 65% at her real half, and 0% only when she is really at 0 as -25%
+        float shown = fleshy ? Math.max(real <= 0.5f ? 1.8f * real - 0.25f : real, -0.25f) : real;
+        float p = Math.max(0f, Math.min(1f, shown));
         trail = p >= trail ? p : Math.max(p, trail - 0.003f);
-        boolean rotten = p <= 0.5f;
+        boolean rotten = fleshy;
         double sec = System.currentTimeMillis() / 1000.0;
 
         int w = 340, h = 14, x = (g.guiWidth() - w) / 2, y = ev.getY() + 18;
@@ -93,7 +99,7 @@ public final class TreeBossBar {
             }
         } else {
             // ---- fleshy and disgusting: ragged bone-edged frame, veined pulsing fill, pustules, drips
-            float beat = (float) Math.max(0, Math.sin(sec * (p < 0.25f ? 6.0 : 3.2)));
+            float beat = (float) Math.max(0, Math.sin(sec * (p < 0.2f ? 6.0 : 3.2)));
             beat = beat * beat;
             g.fill(x - 7, y - 7, x + w + 7, y + h + 7, ((int) (0x18 + 0x40 * beat) << 24) | 0xC02030);
             g.fill(x - 4, y - 4, x + w + 4, y + h + 4, 0xFF1A0508);
@@ -145,18 +151,33 @@ public final class TreeBossBar {
             }
         }
 
-        for (int k = 1; k <= 3; k++) {                                                              // the phases at 75, 50 and 25 percent
-            int nx = x + w * k / 4;
+        float[] marks = rotten ? new float[]{0.2f} : new float[]{0.75f, 0.5f};                       // her real 25% reads as 20% once she lies
+        for (float mk : marks) {
+            int nx = x + (int) (w * mk);
             g.fill(nx - 1, y - 3, nx + 1, y + h + 3, 0xFF0B0612);
             g.fill(nx, y - 3, nx + 1, y - 1, rotten ? 0xFFB89A6A : 0xFFFFF2A8);
         }
 
         int cx = g.guiWidth() / 2;
+        int[] pal = rotten ? FLESH : PINK;
         g.pose().pushPose();
         g.pose().translate(cx, y - 16, 0);
         g.pose().scale(1.25f, 1.25f, 1f);
-        g.drawCenteredString(mc.font, be.getName(), 0, 0, rotten ? 0xFFC8D060 : 0xFFFFD6F0);
+        gradientText(g, mc, title, 0, 0, pal, sec, 0.07f);
         g.pose().popPose();
-        g.drawCenteredString(mc.font, Math.round(p * 100) + "%", cx, y + 3, 0xFFFFFFFF);
+        gradientText(g, mc, Math.round(shown * 100) + "%", cx, y + 3, pal, sec, 0.2f);
+    }
+
+    /** Centered text whose colours slide along the letters, cycling through the palette. */
+    private static void gradientText(GuiGraphics g, Minecraft mc, String text, int cx, int y, int[] pal, double sec, float spread) {
+        int total = mc.font.width(text), x = cx - total / 2;
+        for (int i = 0; i < text.length(); i++) {
+            String ch = String.valueOf(text.charAt(i));
+            float t = (float) (((i * spread + sec * 0.45) % 1.0 + 1.0) % 1.0) * pal.length;
+            int a = (int) Math.floor(t) % pal.length;
+            int c = mix(pal[a], pal[(a + 1) % pal.length], t - (float) Math.floor(t));
+            g.drawString(mc.font, ch, x, y, c);
+            x += mc.font.width(ch);
+        }
     }
 }
