@@ -61,7 +61,7 @@ import java.util.function.Consumer;
  *             before it ends, Earth is destroyed. Otherwise the plain end follows.
  *   "bosses"  Earth is gone and the overworld is locked. A boss (Seq 0, 10,000 HP) waits on every other planet.
  *             Defeat them all before the time runs out (each kill adds days) or phase 5 happens again, with no countdown.
- *   "raid"    all bosses fell: stage 0 and an Outer God with 100,000 HP. Everyone is pulled into the arena with 5 lives.
+ *   "raid"    all bosses fell: stage 0 and an Outer God with 1,000,000 HP. Everyone is pulled into the arena with 5 lives.
  *             Losing = phase 5 again with no countdown. Winning = Earth returns and stage 0 lasts recovery_days.
  *   "recover" stage 0 for recovery_days, then the stage from before the first break returns.
  */
@@ -73,7 +73,7 @@ public final class EndGame {
     private static final String TAG_PLANET = "astral_boss_of:";
     private static final float BOSS_HP = 1000f;        // the attribute caps at 1024, so the rest is done by shrinking damage
     private static final float BOSS_DAMAGE = 0.1f;     // 1000 HP / 0.1  = 10,000 effective
-    private static final float RAID_DAMAGE = 0.01f;    // 1000 HP / 0.01 = 100,000 effective
+    private static final float RAID_DAMAGE = 0.001f;   // 1000 HP / 0.001 = 1,000,000 effective
     private static final int LIVES = 5;
     private static final long DAY = 86_400_000L;
 
@@ -1619,7 +1619,7 @@ public final class EndGame {
         for (String t : e.getTags()) if (t.startsWith(TAG_PLANET)) bossDied(server, d, t.substring(TAG_PLANET.length()));
     }
 
-    /** The bosses have 1000 real HP; shrinking every hit makes that 10,000 (planet) or 100,000 (raid). In the arena nobody is hurt, hits cost lives instead. */
+    /** The bosses have 1000 real HP; shrinking every hit makes that 10,000 (planet) or 1,000,000 (raid). In the arena nobody is hurt, hits cost lives instead. */
     private static boolean environmental(net.minecraft.world.damagesource.DamageSource src) {
         return src.is(net.minecraft.tags.DamageTypeTags.IS_FIRE) || src.is(net.minecraft.tags.DamageTypeTags.IS_DROWNING)
                 || src.is(net.minecraft.tags.DamageTypeTags.IS_FREEZING) || src.is(net.minecraft.tags.DamageTypeTags.IS_FALL)
@@ -1646,7 +1646,7 @@ public final class EndGame {
         if (e.getTags().contains(TAG_BOSS) && event.getSource().getEntity() instanceof ServerPlayer atk && e.getServer() != null) {
             AstralData d = AstralData.get(e.getServer());
             lastPlayerHit.put(e.getUUID(), gt);
-            if (tracking(d)) stat(d, atk).damage += event.getAmount(); // counted before shrinking: this is the 10,000 / 100,000 scale
+            if (tracking(d)) stat(d, atk).damage += event.getAmount(); // counted before shrinking: this is the 10,000 / 1,000,000 scale
         }
         if (e.getTags().contains(TAG_BOSS) && !environmental(event.getSource())) for (String t : e.getTags()) if (t.startsWith(TAG_PLANET) && PASSIVE.contains(t.substring(TAG_PLANET.length()))) woken.add(t.substring(TAG_PLANET.length()));
         if (e.getTags().contains(TAG_BOSS)) { // bosses are hurt by players (and their allies' abilities), never by themselves or by each other
