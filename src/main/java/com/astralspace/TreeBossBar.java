@@ -33,7 +33,7 @@ public final class TreeBossBar {
         h ^= h >>> 15;
         h *= 0x85ebca6b;
         h ^= h >>> 13;
-        return (h & 0xFFFF) / 65535f;
+        return (h & 0xFFFF) / 65536f;
     }
 
     private static void onBar(CustomizeGuiOverlayEvent.BossEventProgress ev) {
