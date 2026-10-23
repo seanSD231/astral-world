@@ -69,7 +69,7 @@ import java.util.function.Consumer;
 public final class EndGame {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    static final String TAG_BOSS = "astral_boss", TAG_RAID = "astral_raid";
+    static final String TAG_BOSS = "astral_boss", TAG_RAID = "astral_raid", TAG_MINION = "astral_minion";
     private static final String TAG_PLANET = "astral_boss_of:";
     private static final float BOSS_HP = 1000f;        // the sovereigns: the vanilla cap is 1024, so they keep shrinking damage (BOSS_DAMAGE)
     static final float RAID_HP = 1_000_000f;       // the Mother Tree has real health: AstralMod lifts the vanilla max health cap
@@ -277,7 +277,7 @@ public final class EndGame {
         for (BossDef b : BOSSES) {
             ServerLevel lv = dim(server, b.planet());
             if (lv == null) continue;
-            for (Entity e : lv.getAllEntities()) if (e.getTags().contains(TAG_BOSS)) e.discard();
+            for (Entity e : lv.getAllEntities()) if ((e.getTags().contains(TAG_BOSS) || e.getTags().contains(TAG_MINION))) e.discard();
             force(lv, 1, false);
         }
         ServerLevel raid = dim(server, "raid");
@@ -285,7 +285,7 @@ public final class EndGame {
             removeRoots(raid);
             removeSeeds(raid);
             rootsActive = false;
-            for (Entity e : raid.getAllEntities()) if (e.getTags().contains(TAG_RAID)) e.discard();
+            for (Entity e : raid.getAllEntities()) if (e.getTags().contains(TAG_RAID) || e.getTags().contains(TAG_MINION)) e.discard();
             for (ServerPlayer p : server.getPlayerList().getPlayers()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(9, 0));   // clients forget where the tree stood
             if (sendHome) {
                 ServerLevel ow = server.overworld();
@@ -748,7 +748,7 @@ public final class EndGame {
     private static final String[] NOTICE = {
             "METEORS: red circles mark where meteors will land. Keep moving out of them.",
             "RINGS: purple rings roll out from the boss. JUMP over them.",
-            "BEAM: a line sweeps around the boss. JUMP over it as it reaches you.",
+            "SUMMON: five Sequence 4 Beyonders rise around the boss. Kill them before they overwhelm you.",
             "SLAM: a red circle under you means a strike is coming. RUN out of it.",
             "PURGE: green circles are safe. Stand INSIDE one before the ground is struck.",
             "TEMPTATION: look AWAY from the boss and CROUCH. It drags your view in random directions: pull the OPPOSITE way.",
@@ -879,27 +879,23 @@ public final class EndGame {
                     }
                 }
             }
-            case 2 -> { // a beam sweeping round: jump it
-                double a0 = rnd.nextDouble() * Math.PI * 2;
-                double spin = rnd.nextBoolean() ? 1 : -1;
-                for (int t = 0; t < 100; t++) {
-                    final int tt = t;
-                    at(t, l -> {
-                        double a = a0 + spin * Math.max(0, tt - 20) * Math.toRadians(1.5);
-                        boolean live = tt >= 20;
-                        tele(l, 2, bx, cur.gy(), bz, (float) a, (float) reach, live ? 1f : 1f, live ? 0.9f : 0.2f, live ? 0.3f : 0.2f, 3);
-                        for (double d = 1; d <= 0; d += 1.2) {
-                            double x = bx + Math.cos(a) * d, z = bz + Math.sin(a) * d;
-                            if (live) { dust(l, x, cur.gy() + 0.5, z, 1f, 0.9f, 0.3f); }
-                            else if (tt % 4 == 0) dust(l, x, cur.gy() + 0.3, z, 1f, 0.2f, 0.2f);
-                        }
-                        if (!live) return;
-                        for (ServerPlayer p : fighters(l)) {
-                            double px = p.getX() - bx, pz = p.getZ() - bz;
-                            double along = px * Math.cos(a) + pz * Math.sin(a);
-                            double side = Math.abs(-px * Math.sin(a) + pz * Math.cos(a));
-                            if (along > 0 && along < reach + 2 && side < (big ? 3.2 : 1.3) && !(p.getY() >= cur.gy() + 1.1 && jumping(p))) hit(l, p);
-                        }
+            case 2 -> { // summon: five Sequence 4 Beyonders step out of the ground
+                String[] paths = {"sailor", "monster", "bard", "corpse_collector", "warrior", "spectator", "apprentice", "prisoner"};
+                for (int i = 0; i < 5; i++) {
+                    final int k = i;
+                    at(10 + i * 8, l -> {
+                        double a = rnd.nextDouble() * Math.PI * 2, d = 6 + rnd.nextDouble() * 8;
+                        double x = bx + Math.cos(a) * d, z = bz + Math.sin(a) * d;
+                        circle(l, x, z, 2f, 0.6f, 0.1f, 0.8f);
+                        Mob m = makeMob(l, paths[rnd.nextInt(paths.length)], "Desire's Thrall", x, cur.gy() + 1, z, 4);
+                        if (m == null) return;
+                        m.addTag(TAG_MINION);
+                        var hp = m.getAttribute(Attributes.MAX_HEALTH);
+                        if (hp != null) hp.setBaseValue(300);
+                        m.setHealth(300);
+                        l.addFreshEntity(m);
+                        var near = fighters(l);
+                        if (!near.isEmpty()) m.setTarget(near.get(rnd.nextInt(near.size())));
                     });
                 }
             }
