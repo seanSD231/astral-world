@@ -40,7 +40,10 @@ public final class AstralBarrier {
 
     public static int heal(MinecraftServer server, int amount) { return set(server, get(server) + amount); }
 
-    public static int damage(MinecraftServer server, int amount) { return set(server, get(server) - amount); }
+    /** Testing: while true the barrier takes no damage from the stages, the sieges or the gods. Kept in memory only, so a restart turns it off. */
+    public static volatile boolean frozen = false;
+
+    public static int damage(MinecraftServer server, int amount) { return frozen ? get(server) : set(server, get(server) - amount); }
 
     public static void onBreak(Consumer<MinecraftServer> listener) { BREAK_LISTENERS.add(listener); }
 }

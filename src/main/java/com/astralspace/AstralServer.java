@@ -339,6 +339,10 @@ public final class AstralServer {
                     ctx.getSource().sendSuccess(() -> Component.literal(msg).withStyle(ChatFormatting.LIGHT_PURPLE), false);
                     return 1;
                 }))
+                .then(Commands.literal("freeze")
+                        .executes(ctx -> freezeBarrier(ctx.getSource(), !AstralBarrier.frozen))
+                        .then(Commands.literal("on").executes(ctx -> freezeBarrier(ctx.getSource(), true)))
+                        .then(Commands.literal("off").executes(ctx -> freezeBarrier(ctx.getSource(), false))))
                 .then(Commands.literal("set").then(Commands.argument("hp", IntegerArgumentType.integer(0)).executes(ctx -> {
                     MinecraftServer s = ctx.getSource().getServer();
                     int hp = AstralBarrier.set(s, IntegerArgumentType.getInteger(ctx, "hp"));
@@ -351,6 +355,12 @@ public final class AstralServer {
                     ctx.getSource().sendSuccess(() -> Component.literal("Astral Barrier: " + hp + " / " + AstralBarrier.getMax(s)), true);
                     return 1;
                 }))));
+    }
+
+    private static int freezeBarrier(CommandSourceStack src, boolean on) {
+        AstralBarrier.frozen = on;
+        src.sendSuccess(() -> Component.literal("Astral Barrier damage is now " + (on ? "OFF (frozen, testing). It turns back on with /astralbarrier freeze off or a restart." : "on again.")), true);
+        return 1;
     }
 
     private static int travel(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {

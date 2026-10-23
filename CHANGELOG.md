@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.25
+- New op-only testing command `/astralbarrier freeze` (or `freeze on` / `freeze off`): while on, the barrier takes no damage from the stage timers, the sieges or the gods. `/astralbarrier set` and `add` still work. It is in memory only, so a restart turns it off.
+
 ## 0.2.24
 - Fixed "the curse could not add corruption": the newer LOTM calls its random-pathway method `chooseRandomPathway`, which the mod did not know, so corruption from the Curse attack (and the god curse, and the hits that corrupt) was never applied. It now finds the new name, and falls back to the player's own pathway if there is none.
 
