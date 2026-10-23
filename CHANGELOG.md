@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.14
+- The Astral World's swirling background is 200% more colourful: the saturation of every swirl and of the veil behind them is tripled (brightness unchanged).
+
 ## 0.2.13
 - Everyone is immune to all damage during the fog cutscene.
 - The Mother Tree's hit box is much wider (260 x 150), so it covers the whole canopy and trunk. The roots stay separate.
