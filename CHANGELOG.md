@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.15
+- The Astral World's background is 1000% more colourful: saturation is 11 times the original, every colour is lifted to full brightness, and the veil behind the swirls is almost solid across the whole sky, so little to no black shows.
+
 ## 0.2.14
 - The Astral World's swirling background is 200% more colourful: the saturation of every swirl and of the veil behind them is tripled (brightness unchanged).
 
