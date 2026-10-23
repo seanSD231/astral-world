@@ -38,7 +38,7 @@ import java.util.UUID;
  *  - There is no gravity in the Cosmos, and everyone there is corrupted fast.
  *  - Walking up to a planet takes you to that planet's own (blank) dimension; /cosmos leave brings you back.
  */
-// The planets and the /cosmos command are gone; only the chunk generators and the dimension keys are still used.
+@EventBusSubscriber(modid = AstralMod.MOD_ID)
 public final class Cosmos {
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -121,21 +121,19 @@ public final class Cosmos {
         p.teleportTo(lv, x, y, z, p.getYRot(), 0f);
     }
 
+    /** /cosmos: the Cosmos is only a starry night sky with the arena field in it. Arrive next to the ruin. */
     private static int enter(ServerPlayer p) {
         MinecraftServer server = p.getServer();
         ServerLevel lv = server.getLevel(COSMOS);
         if (lv == null) { p.sendSystemMessage(Component.literal("The Cosmos is not loaded. Is the mod installed correctly?").withStyle(ChatFormatting.RED)); return 0; }
-        if (!p.level().dimension().equals(COSMOS) && planetOf(p.level().dimension()) == null) {
+        if (!p.level().dimension().equals(COSMOS)) {
             origins.put(p.getUUID(), new double[]{p.getX(), p.getY(), p.getZ()});
             originDims.put(p.getUUID(), p.level().dimension().location().toString());
         }
-        double[] h = near(earth());
-        for (ServerPlayer o : companions(p)) {
-            origins.put(o.getUUID(), new double[]{o.getX(), o.getY(), o.getZ()});
-            originDims.put(o.getUUID(), o.level().dimension().location().toString());
-            teleport(o, lv, h[0] + 1, h[1], h[2]);
-        }
-        teleport(p, lv, h[0], h[1], h[2]);
+        lv.getChunk(1, 1);
+        double x = 30.5, z = 0.5;
+        double y = lv.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, (int) x, (int) z) + 1.0;
+        teleport(p, lv, x, y, z);
         return 1;
     }
 
@@ -198,90 +196,7 @@ public final class Cosmos {
         event.getDispatcher().register(Commands.literal("cosmos")
                 .requires(Cosmos::allowed)
                 .executes(ctx -> enter(ctx.getSource().getPlayerOrException()))
-                .then(Commands.literal("leave").executes(ctx -> leave(ctx.getSource().getPlayerOrException())))
-                .then(Commands.literal("to").then(Commands.argument("planet", com.mojang.brigadier.arguments.StringArgumentType.word())
-                        .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
-                                CosmosGenerator.PLANETS.stream().map(CosmosGenerator.Planet::id).toList(), b))
-                        .executes(ctx -> toPlanet(ctx.getSource().getPlayerOrException(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "planet"))))));
+                .then(Commands.literal("leave").executes(ctx -> leave(ctx.getSource().getPlayerOrException())));
     }
 
-    // ------------------------------------------------------------------ the rules of the Cosmos
-
-    /** Seconds a player of each Sequence needs to be fully corrupted in the Cosmos (Seq 9 .. Seq 0). Travellers last twice as long. */
-    private static final double[] SECONDS_TO_MAX = {150, 100, 70, 50, 35, 25, 20, 15, 12, 10}; // index = sequence
-
-    @SubscribeEvent
-    public static void onTick(ServerTickEvent.Post event) {
-        MinecraftServer server = event.getServer();
-        long tick = server.getTickCount();
-        if (tick % 10 != 0) return;
-        long now = System.currentTimeMillis();
-        CosmosGenerator.earthGone = AstralData.get(server).earthGone;
-        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
-            UUID id = p.getUUID();
-            boolean inSpace = p.level().dimension().equals(COSMOS);
-
-            // no gravity out there
-            AttributeInstance g = p.getAttribute(Attributes.GRAVITY);
-            if (g != null) {
-                boolean has = g.getModifier(NO_GRAVITY) != null;
-                if (inSpace && !has) g.addTransientModifier(new AttributeModifier(NO_GRAVITY, -1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
-                else if (!inSpace && has) g.removeModifier(NO_GRAVITY);
-            }
-
-            // the /cosmos command appears / disappears when someone gains or loses the right to use it
-            if (tick % 20 == 0) {
-                boolean can = canTravel(p);
-                Boolean seen = canTravelSeen.put(id, can);
-                if (seen != null && seen != can) server.getCommands().sendCommands(p);
-            }
-
-            if (!inSpace) { visitPathway.remove(id); continue; }
-            ServerLevel lv = p.serverLevel();
-
-            // falling out of range of everything: back to Earth
-            if (p.getY() < -40 || p.getY() > 400) {
-                double[] h = near(earth());
-                teleport(p, lv, h[0], h[1], h[2]);
-                continue;
-            }
-
-            // walking up to a planet
-            Long last = lastPortal.get(id);
-            if (last == null || now - last > PORTAL_COOLDOWN_MS) {
-                for (CosmosGenerator.Planet pl : CosmosGenerator.PLANETS) {
-                    if (pl.id().equals("earth") && CosmosGenerator.earthGone) continue;
-                    double dx = p.getX() - pl.x(), dy = p.getY() - pl.y(), dz = p.getZ() - pl.z();
-                    double reach = pl.r() + 3.5;
-                    if (dx * dx + dy * dy + dz * dz > reach * reach) continue;
-                    if (pl.id().equals("earth")) { // Earth is the overworld
-                        var sp = server.overworld().getSharedSpawnPos();
-                        teleport(p, server.overworld(), sp.getX() + 0.5, sp.getY(), sp.getZ() + 0.5);
-                        p.displayClientMessage(Component.literal(pl.name()).withStyle(ChatFormatting.AQUA), true);
-                        break;
-                    }
-                    ServerLevel dest = server.getLevel(key(pl.id()));
-                    if (dest == null) continue;
-                    dest.getChunk(0, 0); // make sure the landing spot exists
-                    teleport(p, dest, PLANET_SPAWN[0], PLANET_SPAWN[1], PLANET_SPAWN[2]);
-                    p.displayClientMessage(Component.literal(pl.name()).withStyle(ChatFormatting.AQUA), true);
-                    break;
-                }
-                if (!p.level().dimension().equals(COSMOS)) continue;
-            }
-
-            // major corruption: everyone who is not in creative / spectator
-            if (p.isCreative() || p.isSpectator()) { visitPathway.remove(id); continue; }
-            int seq = Lotm.sequence(p);
-            if (seq < 0) continue;
-            if (!visitPathway.containsKey(id)) {
-                Object pathway = Lotm.randomPathway();
-                if (pathway == null) continue;
-                visitPathway.put(id, pathway); // one pathway for the whole visit, so it actually reaches the maximum
-                p.displayClientMessage(Component.literal("The Cosmos is not made for you...").withStyle(ChatFormatting.DARK_PURPLE), true);
-            }
-            double toMax = SECONDS_TO_MAX[Math.max(0, Math.min(9, seq))] * (canTravel(p) ? 2.0 : 1.0);
-            Lotm.addCorruptionPercent(p, visitPathway.get(id), 100.0 / Math.max(1.0, toMax / 0.5)); // this runs every half second
-        }
-    }
 }

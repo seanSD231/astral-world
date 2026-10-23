@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.7
+- The Astral World is back to what it was (the flat astral floor under the swirling sky). The arena is only in the Cosmos.
+- /cosmos works again: it takes ops, Door Seq 3+ and the Outer Deity Seq 0s to the Cosmos, which is just the night-sky arena field, and /cosmos leave brings you back.
+
 ## 0.2.6
 - The sky is the plain vanilla night again (midnight, full stars).
 - The roots are part of the tree's hitbox: invisible hit boxes lie along every root (and are rebuilt for the new roots when she changes form). Hitting a root hits the tree; one attack touching many roots still counts once.

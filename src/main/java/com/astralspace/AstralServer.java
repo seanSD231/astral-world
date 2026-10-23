@@ -101,12 +101,7 @@ public final class AstralServer {
         AstralData d = AstralData.get(server);
         d.returns.put(p.getUUID(), new AstralData.Return(p.level().dimension().location().toString(), p.getX(), p.getY(), p.getZ()));
         d.setDirty();
-        // the Astral World is the round night field now: mirrored X/Z, pulled inside the edge, standing on the ground
-        double x = p.getX(), z = p.getZ(), r = Math.hypot(x, z), lim = PlanetGenerator.FIELD_R - 12;
-        if (r > lim) { x *= lim / r; z *= lim / r; }
-        astral.getChunk((int) Math.floor(x) >> 4, (int) Math.floor(z) >> 4);
-        double y = astral.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, (int) Math.floor(x), (int) Math.floor(z)) + 1.0;
-        p.teleportTo(astral, x, y, z, p.getYRot(), p.getXRot());
+        p.teleportTo(astral, p.getX(), 1.0, p.getZ(), p.getYRot(), p.getXRot());
     }
 
     public static void leaveAstral(MinecraftServer server, ServerPlayer p) {
