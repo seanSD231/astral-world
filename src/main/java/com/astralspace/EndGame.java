@@ -247,15 +247,21 @@ public final class EndGame {
     private static int spoken = 0;
     private static final String[] PRAYER = {
             "The Fool that doesn't belong to this era.",
-            "The Mysterious Ruler above the Gray Fog.",
+            "The mysterious ruler above the gray fog.",
             "The King of Yellow and Black who wields good luck.",
-            "I pray for your blessing.",
-            "I pray for salvation.",
-            "I pray for you to save us all."};
-    private static final int[] PRAYER_AT = {40, 140, 250, 360, 440, 520};   // ticks after the fog begins (the client draws the same lines)
-    private static final int CALL_TICKS = 640;
+            "I pray to you,",
+            "Praying for the strength that stems from mystery,",
+            "And praying for the bestowment that stems from good luck.",
+            "Please grant us the power to protect our home.",
+            "Something heard you",
+            "Something is watching you",
+            "Something is angry",
+            "I've heard your prayers"};
+    // ticks after the fog begins; the client (CallScene) draws the same lines at the same moments. Lines 7-9 are the red ones.
+    private static final int[] PRAYER_AT = {40, 130, 220, 310, 400, 490, 580, 720, 800, 880, 1020};
+    private static final int CALL_TICKS = 1160;
 
-    /** The sky turns to grey fog, a voice prays, and then everyone is taken to the arena. */
+    /** The sky turns to grey fog, a voice prays, something answers, and then everyone is taken to the arena. */
     private static void callTick(MinecraftServer server, AstralData d) {
         long now = server.getTickCount();
         if (callStart == 0) { callStart = now + 40; callStarted = false; spoken = 0; }   // after a restart
@@ -266,10 +272,12 @@ public final class EndGame {
             for (ServerPlayer p : server.getPlayerList().getPlayers()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(20, CALL_TICKS + 20));
         }
         while (spoken < PRAYER.length && t >= PRAYER_AT[spoken]) {
-            Component line = Component.literal(PRAYER[spoken]).withStyle(ChatFormatting.ITALIC, ChatFormatting.GOLD);
+            boolean red = spoken >= 7 && spoken <= 9;
+            Component line = Component.literal(PRAYER[spoken]).withStyle(red ? new ChatFormatting[]{ChatFormatting.ITALIC, ChatFormatting.DARK_RED} : new ChatFormatting[]{ChatFormatting.ITALIC, ChatFormatting.GOLD});
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
                 p.sendSystemMessage(line);
-                p.playNotifySound(SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.MASTER, 1.5f, 0.5f);
+                if (red) p.playNotifySound(SoundEvents.WARDEN_HEARTBEAT, SoundSource.MASTER, 2.0f, 0.6f);
+                else p.playNotifySound(SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.MASTER, 1.5f, 0.5f);
             }
             spoken++;
         }

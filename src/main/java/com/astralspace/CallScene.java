@@ -21,12 +21,19 @@ import net.neoforged.neoforge.common.NeoForge;
 public final class CallScene {
     private static final String[] LINES = {
             "The Fool that doesn't belong to this era.",
-            "The Mysterious Ruler above the Gray Fog.",
+            "The mysterious ruler above the gray fog.",
             "The King of Yellow and Black who wields good luck.",
-            "I pray for your blessing.",
-            "I pray for salvation.",
-            "I pray for you to save us all."};
-    private static final double[] AT = {2.0, 7.0, 12.5, 18.0, 22.0, 26.0};   // the server prints the same lines in chat
+            "I pray to you,",
+            "Praying for the strength that stems from mystery,",
+            "And praying for the bestowment that stems from good luck.",
+            "Please grant us the power to protect our home.",
+            "Something heard you",
+            "Something is watching you",
+            "Something is angry",
+            "I've heard your prayers"};
+    private static final double[] AT = {2.0, 6.5, 11.0, 15.5, 20.0, 24.5, 29.0, 36.0, 40.0, 44.0, 51.0};   // the server prints the same lines in chat
+    private static final double[] LEN = {4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 3.6, 3.6, 3.6, 5.0};
+    private static final double GLITCH_FROM = 32.0, FIGURES_AT = 47.5;
     private static final int[] LIGHTS = {0xFFD870, 0xB48CFF, 0x7FE0D0, 0xFF9AB8, 0x8CB4FF, 0xFFB070};
     private static boolean wasActive = false;
     private static int tick = 0;
@@ -65,7 +72,8 @@ public final class CallScene {
         mc.player.xRotO = -90f;
         if (tick % 60 == 1) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.BEACON_AMBIENT, SoundSource.AMBIENT, 1.2f, 0.5f, false);
         double s = seconds();
-        for (double at : AT) if (Math.abs(s - at) < 0.026) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.AMBIENT, 1.5f, 0.5f, false);
+        for (int i = 0; i < AT.length; i++) if ((i < 7 || i == 10) && Math.abs(s - AT[i]) < 0.026) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.AMBIENT, 1.5f, 0.5f, false);
+        if (s > GLITCH_FROM && s < FIGURES_AT + 3 && tick % 7 == 0 && Math.random() < 0.5) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.ENDERMAN_STARE, SoundSource.AMBIENT, 0.6f, 0.4f + (float) Math.random() * 0.4f, false);
     }
 
     private static void onFrame(RenderFrameEvent.Pre ev) {
@@ -101,9 +109,12 @@ public final class CallScene {
     private static void onFogColor(ViewportEvent.ComputeFogColor ev) {
         if (!active()) return;
         float f = clamp01(seconds() / 3.0);
-        ev.setRed(ev.getRed() + (0.60f - ev.getRed()) * f);
-        ev.setGreen(ev.getGreen() + (0.60f - ev.getGreen()) * f);
-        ev.setBlue(ev.getBlue() + (0.66f - ev.getBlue()) * f);
+        float dark = darkness();
+        float rr = 0.60f + 0.10f * dark, gg = 0.60f * (1 - dark), bb = 0.66f * (1 - dark);
+        if (glitchOn()) { rr = (float) Math.random() * 0.8f; gg = (float) Math.random() * 0.2f; bb = (float) Math.random() * 0.3f; }
+        ev.setRed(ev.getRed() + (rr - ev.getRed()) * f);
+        ev.setGreen(ev.getGreen() + (gg - ev.getGreen()) * f);
+        ev.setBlue(ev.getBlue() + (bb - ev.getBlue()) * f);
     }
 
     /** A soft glowing disc drawn as stacked scanline fills. */
@@ -118,6 +129,97 @@ public final class CallScene {
         }
     }
 
+    /** 0 in the prayer, rising to 1 as something answers. */
+    private static float darkness() { return clamp01((seconds() - GLITCH_FROM) / 8.0) * (seconds() > 50.0 ? clamp01(1 - (seconds() - 50.0) / 2.0) : 1f); }
+
+    /** True on the frames where the whole fog tears. */
+    private static boolean glitchOn() {
+        double s = seconds();
+        if (s < GLITCH_FROM || s > 50.0) return false;
+        long slot = (long) (s * 10);
+        return hash((int) slot) < 0.12f + 0.3f * clamp01((s - GLITCH_FROM) / 10.0);
+    }
+
+    private static float hash(int n) {
+        int h = n * 0x27d4eb2d;
+        h ^= h >>> 15;
+        h *= 0x85ebca6b;
+        h ^= h >>> 13;
+        return (h & 0xFFFF) / 65535f;
+    }
+
+    private static int lerp(int a, int b, float t) {
+        t = Math.max(0f, Math.min(1f, t));
+        int r = (int) (((a >> 16) & 255) * (1 - t) + ((b >> 16) & 255) * t), gg = (int) (((a >> 8) & 255) * (1 - t) + ((b >> 8) & 255) * t), bl = (int) ((a & 255) * (1 - t) + (b & 255) * t);
+        return (r << 16) | (gg << 8) | bl;
+    }
+
+    private static final String JUNK = "#%&@$?!/\\|<>01X";
+
+    private static String scramble(String t, long seed, float amount) {
+        StringBuilder sb = new StringBuilder(t);
+        for (int i = 0; i < sb.length(); i++) if (sb.charAt(i) != ' ' && hash((int) (seed * 31 + i * 7)) < amount) sb.setCharAt(i, JUNK.charAt((int) (hash((int) (seed * 17 + i)) * JUNK.length())));
+        return sb.toString();
+    }
+
+    /** A hooded dark figure with two red eyes, feet at (cx, baseY). */
+    private static void figure(GuiGraphics g, int cx, int baseY, int hgt, float a, boolean flick) {
+        int al = (int) (255 * a) << 24;
+        int bw = hgt / 3;
+        for (int y = 0; y < hgt; y++) {                                  // robe widening towards the ground
+            float t = y / (float) hgt;
+            int half = (int) (bw * (0.35f + 0.75f * t * t + (t < 0.18f ? 0.25f : 0f)));
+            g.fill(cx - half, baseY - hgt + y, cx + half, baseY - hgt + y + 1, al);
+        }
+        int hy = baseY - hgt + (int) (hgt * 0.07f);
+        g.fill(cx - bw / 3, hy - hgt / 12, cx + bw / 3, hy + hgt / 12, al);   // hood
+        if (!flick) {
+            int ey = hy - hgt / 40;
+            int eAl = (int) (255 * a) << 24;
+            g.fill(cx - bw / 5 - 3, ey, cx - bw / 5 + 1, ey + 2, eAl | 0xFF1010);
+            g.fill(cx + bw / 5 - 1, ey, cx + bw / 5 + 3, ey + 2, eAl | 0xFF1010);
+        }
+    }
+
+    /** One line of text, optionally glitching: tearing copies, scrambled letters, a gradient. */
+    private static void drawLine(Minecraft mc, GuiGraphics g, String text, int w, int h, int alpha, boolean red, boolean glitchy, long slot, double s) {
+        float scale = 1.9f;
+        g.pose().pushPose();
+        g.pose().translate(w / 2f, h * 0.62f, 0);
+        g.pose().scale(scale, scale, 1f);
+        boolean burst = glitchy && hash((int) (slot * 3)) < 0.45f;
+        String shownText = burst ? scramble(text, slot, 0.18f) : text;
+        int tw = mc.font.width(shownText), x0 = -tw / 2;
+        int jx = burst ? (int) ((hash((int) (slot * 5)) - 0.5f) * 10) : 0;
+        if (burst) {   // colour-split ghosts
+            g.drawString(mc.font, shownText, x0 - 3 + jx, 0, ((alpha / 2) << 24) | 0xFF0030, false);
+            g.drawString(mc.font, shownText, x0 + 3 + jx, 1, ((alpha / 2) << 24) | 0x20E0FF, false);
+        }
+        if (red) {     // red to black gradient, letter by letter, sliding
+            int x = x0 + jx;
+            for (int i = 0; i < shownText.length(); i++) {
+                String ch = String.valueOf(shownText.charAt(i));
+                float t = (float) (0.5 + 0.5 * Math.sin(s * 3 + i * 0.5));
+                int col = lerp(0xFF1010, 0x180004, t);
+                int dy = burst && hash((int) (slot * 11 + i)) < 0.2f ? (int) ((hash((int) (slot * 13 + i)) - 0.5f) * 6) : 0;
+                g.drawString(mc.font, ch, x + 1, dy + 1, (alpha << 24) | 0x000000, false);
+                g.drawString(mc.font, ch, x, dy, (alpha << 24) | col, false);
+                x += mc.font.width(ch);
+            }
+        } else {
+            g.drawString(mc.font, shownText, x0 + jx, 0, (alpha << 24) | 0xFFF2CC, false);
+        }
+        g.pose().popPose();
+        if (burst) {   // horizontal tears across the text band
+            int by = (int) (h * 0.62f) - 4;
+            for (int i = 0; i < 3; i++) {
+                int ty = by + (int) (hash((int) (slot * 19 + i)) * 24), th = 2 + (int) (hash((int) (slot * 23 + i)) * 4);
+                int off = (int) ((hash((int) (slot * 29 + i)) - 0.5f) * 80);
+                g.fill(w / 2 - 170 + off, ty, w / 2 + 170 + off, ty + th, (red ? 0x66000000 : 0x33FFFFFF) | (red ? 0x300008 : 0xFFE9A0));
+            }
+        }
+    }
+
     private static void onGui(RenderGuiEvent.Post ev) {
         if (!active()) return;
         Minecraft mc = Minecraft.getInstance();
@@ -125,24 +227,47 @@ public final class CallScene {
         int w = g.guiWidth(), h = g.guiHeight();
         double s = seconds(), d = Net.ClientState.cutsceneTicks / 20.0;
         float fade = Math.min(clamp01(s / 3.0), clamp01((d - s) / 1.2));
-        g.fill(0, 0, w, h, ((int) (200 * fade) << 24) | 0x9C9CA8);   // the grey fog itself
+        float dark = darkness();
+        boolean tear = glitchOn();
+        long slot = (long) (s * 12);
+        int fogRgb = lerp(0x9C9CA8, 0x2A0A10, dark);
+        g.fill(0, 0, w, h, ((int) (200 * fade) << 24) | fogRgb);   // the grey fog itself, going dark and red as it answers
         for (int i = 0; i < 12; i++) {                                // lights of colour drifting inside it
             int cx = (int) (w * (0.5 + 0.48 * Math.sin(s * (0.21 + 0.03 * i) + i * 1.7)));
             int cy = (int) (h * (0.5 + 0.42 * Math.cos(s * (0.17 + 0.025 * i) + i * 2.3)));
             int r = (int) (Math.min(w, h) * (0.16 + 0.07 * Math.sin(s * 0.6 + i)));
-            glow(g, cx, cy, r, LIGHTS[i % LIGHTS.length], (int) (120 * fade));
+            glow(g, cx, cy, r, lerp(LIGHTS[i % LIGHTS.length], 0x801018, dark), (int) (120 * fade * (1 - 0.6f * dark)));
+        }
+        if (s > GLITCH_FROM && s < 50.0) {                            // the fog itself glitches
+            float inten = 0.3f + 0.7f * clamp01((s - GLITCH_FROM) / 10.0);
+            int n = tear ? 14 : 3;
+            for (int i = 0; i < n; i++) {
+                if (!tear && hash((int) (slot * 7 + i)) > inten) continue;
+                int ty = (int) (hash((int) (slot * 41 + i)) * h), th = 2 + (int) (hash((int) (slot * 43 + i)) * (tear ? 26 : 8));
+                int off = (int) ((hash((int) (slot * 47 + i)) - 0.5f) * w * 0.5f);
+                int col = hash((int) (slot * 53 + i)) < 0.5f ? 0x66FF1030 : hash((int) (slot * 59 + i)) < 0.5f ? 0x5530F0FF : 0xAA000000;
+                g.fill(Math.max(0, off), ty, Math.min(w, w + off), ty + th, col);
+            }
+            if (tear && hash((int) slot) < 0.25f) g.fill(0, 0, w, h, 0x99000000);   // a hard black flicker
+        }
+        if (s > FIGURES_AT) {                                         // two dark figures in the fog, left and right
+            float a = Math.min(clamp01((s - FIGURES_AT) / 2.5), clamp01((50.5 - s) / 2.0 + 0.4));
+            if (s > 50.5) a = clamp01((d - s) / 2.0) * 0.55f;      // they stay faintly behind the last words
+            boolean flick = hash((int) (slot * 3)) < 0.1f;
+            int hgt = (int) (h * 0.78f), base = (int) (h * 0.97f);
+            int sway = (int) (Math.sin(s * 1.3) * 3);
+            figure(g, (int) (w * 0.14f) + sway, base, hgt, a * (flick ? 0.5f : 1f), flick);
+            figure(g, (int) (w * 0.86f) - sway, base, hgt, a * (flick ? 0.5f : 1f), flick);
         }
         for (int i = 0; i < LINES.length; i++) {                      // the voice
             double t = s - AT[i];
-            if (t < 0 || t > 4.6) continue;
-            float a = clamp01(Math.min(t / 0.8, (4.6 - t) / 1.0));
+            if (t < 0 || t > LEN[i]) continue;
+            float a = clamp01(Math.min(t / 0.8, (LEN[i] - t) / 1.0));
             int alpha = (int) (255 * a);
             if (alpha < 8) continue;
-            g.pose().pushPose();
-            g.pose().translate(w / 2f, h * 0.62f, 0);
-            g.pose().scale(1.9f, 1.9f, 1f);
-            g.drawCenteredString(mc.font, LINES[i], 0, 0, (alpha << 24) | 0xFFF2CC);
-            g.pose().popPose();
+            boolean red = i >= 7 && i <= 9;
+            boolean glitchy = (s > GLITCH_FROM && i < 10) || red;
+            drawLine(mc, g, LINES[i], w, h, alpha, red, glitchy, slot, s);
         }
     }
 }

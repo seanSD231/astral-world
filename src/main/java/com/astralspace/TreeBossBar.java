@@ -158,14 +158,39 @@ public final class TreeBossBar {
             g.fill(nx, y - 3, nx + 1, y - 1, rotten ? 0xFFB89A6A : 0xFFFFF2A8);
         }
 
+        // under half health the bar is a lie, and now and then it slips: slices tear sideways, the name and the number break up
+        long slot = (long) (sec * 8);
+        boolean glitch = fleshy && real <= 0.5f && hash((int) (slot / 3)) < 0.14f;
+        String pct = Math.round(shown * 100) + "%";
+        if (glitch) {
+            int[] tearCols = {0xAA00FFFF, 0xAAFF00AA, 0xCC000000, 0xAAFF2020};
+            for (int i = 0; i < 6; i++) {
+                int ry = y - 2 + (int) (hash((int) (slot * 7 + i)) * (h + 4)), rh = 1 + (int) (hash((int) (slot * 11 + i)) * 4);
+                int off = (int) ((hash((int) (slot * 13 + i)) - 0.5f) * 44), rw = (int) (w * (0.15f + hash((int) (slot * 17 + i)) * 0.6f));
+                int rx = x + (int) (hash((int) (slot * 19 + i)) * (w - rw));
+                g.fill(rx + off, ry, rx + off + rw, ry + rh, tearCols[(int) (hash((int) (slot * 23 + i)) * tearCols.length)]);
+            }
+            float q = hash((int) (slot * 29));
+            pct = q < 0.35f ? (int) (hash((int) (slot * 31)) * 200 - 40) + "%" : q < 0.6f ? "ERR%" : q < 0.8f ? "???" : "-" + (int) (hash((int) (slot * 37)) * 99) + "%";
+        }
+
         int cx = g.guiWidth() / 2;
         int[] pal = rotten ? FLESH : PINK;
+        int gx = glitch ? (int) ((hash((int) (slot * 41)) - 0.5f) * 14) : 0;
+        if (glitch) {   // red and cyan ghosts of the name behind it
+            g.pose().pushPose();
+            g.pose().translate(cx, y - 16, 0);
+            g.pose().scale(1.25f, 1.25f, 1f);
+            g.drawCenteredString(mc.font, title, -3, 0, 0x88FF2030);
+            g.drawCenteredString(mc.font, title, 3, 1, 0x8830F0FF);
+            g.pose().popPose();
+        }
         g.pose().pushPose();
-        g.pose().translate(cx, y - 16, 0);
+        g.pose().translate(cx + gx, y - 16, 0);
         g.pose().scale(1.25f, 1.25f, 1f);
         gradientText(g, mc, title, 0, 0, pal, sec, 0.07f);
         g.pose().popPose();
-        gradientText(g, mc, Math.round(shown * 100) + "%", cx, y + 3, pal, sec, 0.2f);
+        gradientText(g, mc, pct, cx - gx, y + 3, pal, sec, 0.2f);
     }
 
     /** Centered text whose colours slide along the letters, cycling through the palette. */
