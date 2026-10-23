@@ -196,7 +196,7 @@ public final class Cosmos {
         event.getDispatcher().register(Commands.literal("cosmos")
                 .requires(Cosmos::allowed)
                 .executes(ctx -> enter(ctx.getSource().getPlayerOrException()))
-                .then(Commands.literal("leave").executes(ctx -> leave(ctx.getSource().getPlayerOrException())));
+                .then(Commands.literal("leave").executes(ctx -> leave(ctx.getSource().getPlayerOrException()))));
     }
 
 }
