@@ -1424,9 +1424,11 @@ public final class EndGame {
         for (String k : DEATH_FLAGS) if (tag.contains(k)) tag.remove(k);
         for (String k : new ArrayList<>(tag.getAllKeys())) {   // Depravity and Corruption (Hanged Man, Profane Language) wear a boss down outside every phase rule
             String lk = k.toLowerCase(java.util.Locale.ROOT);
-            if (lk.startsWith("profanedepravity") || lk.startsWith("profanedegenerate") || lk.contains("corruption")) tag.remove(k);
+            if (lk.startsWith("profanedepravity") || lk.startsWith("profanedegenerate") || lk.contains("corruption") || lk.contains("curse") || lk.startsWith("strawdoll")) tag.remove(k);   // woven curses, curse dolls and cursed items too
         }
         tag.putLong("insideProtectiveStructure", Long.MAX_VALUE);   // LOTM's own flag for 'protected from the World of Pallor': it shrinks, drains and strips abilities from anything else
+        for (var inst : new ArrayList<>(m.getActiveEffects()))   // every harmful effect (curses, decay, venom, fragility and the rest of the Prisoner's weave) is wiped from a boss
+            if (inst.getEffect().value().getCategory() == net.minecraft.world.effect.MobEffectCategory.HARMFUL) m.removeEffect(inst.getEffect());
         for (var inst : new ArrayList<>(m.getActiveEffects()))
             inst.getEffect().unwrapKey().ifPresent(key -> {
                 if (key.location().getNamespace().equals("lotm") && (key.location().getPath().contains("death") || key.location().getPath().contains("doom"))) m.removeEffect(inst.getEffect());
