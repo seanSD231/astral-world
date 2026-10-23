@@ -25,6 +25,10 @@ final class RootClick {
         if (CallScene.active() || TreeCutscene.active()) return;
         HitResult hr = mc.hitResult;
         if (hr != null && hr.getType() == HitResult.Type.ENTITY) return;   // something real is there: the normal attack handles it
+        if (hr != null && hr.getType() == HitResult.Type.BLOCK && hr instanceof net.minecraft.world.phys.BlockHitResult bh) {   // heart seeds and root blocks are real blocks: swinging at them breaks them, even under the drawn roots
+            var st = mc.level.getBlockState(bh.getBlockPos());
+            if (st.is(net.minecraft.world.level.block.Blocks.SHROOMLIGHT) || st.is(net.minecraft.world.level.block.Blocks.MANGROVE_WOOD)) return;
+        }
         TreeModel m = TreeRenderer.metaNow();
         if (m == null) return;
         Vec3 eye = mc.player.getEyePosition(), look = mc.player.getLookAngle();

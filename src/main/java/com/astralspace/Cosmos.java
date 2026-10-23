@@ -127,9 +127,9 @@ public final class Cosmos {
             origins.put(p.getUUID(), new double[]{p.getX(), p.getY(), p.getZ()});
             originDims.put(p.getUUID(), p.level().dimension().location().toString());
         }
-        lv.getChunk(1, 1);
         double x = 30.5, z = 0.5;
-        double y = lv.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, (int) x, (int) z) + 1.0;
+        lv.getChunk((int) Math.floor(x) >> 4, (int) Math.floor(z) >> 4);   // load the chunk we arrive in (the height of an unloaded one reads as the bedrock floor)
+        double y = PlanetGenerator.spawnY();   // the field is perfectly level: the same height everywhere
         teleport(p, lv, x, y, z);
         return 1;
     }
