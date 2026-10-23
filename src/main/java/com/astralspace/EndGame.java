@@ -761,7 +761,7 @@ public final class EndGame {
 
     // ------------------------------------------------------------------ thralls, desire, wounds
 
-    private static final String[] THRALLS = {"giant_zombie", "werewolf", "spirit", "fire_spirit", "frost_spirit", "earth_spirit"};
+    private static final String[] THRALLS = {"werewolf"};
 
     /** A LOTM zombie, werewolf or spirit rises at the spot; `kind` null picks one at random. */
     private static void spawnThrall(ServerLevel l, double x, double z, String kind) {
@@ -782,7 +782,6 @@ public final class EndGame {
         var hp = m.getAttribute(Attributes.MAX_HEALTH);
         if (hp != null) hp.setBaseValue(300);
         m.setHealth(300);
-        m.setCustomName(Component.literal("Desire's Thrall").withStyle(ChatFormatting.DARK_RED));
         l.addFreshEntity(m);
         var near = fighters(l);
         if (!near.isEmpty()) m.setTarget(near.get(ThreadLocalRandom.current().nextInt(near.size())));
@@ -815,6 +814,45 @@ public final class EndGame {
             Lotm.loseSanityPercent(p, 0.4 * s);
             p.displayClientMessage(Component.literal("Desire x" + s).withStyle(ChatFormatting.LIGHT_PURPLE), true);
         }
+    }
+
+    private static final ResourceLocation DESIRE_HP = ResourceLocation.fromNamespaceAndPath("astral", "desire_hp");
+    private static int traitorSeq = -1;
+
+    /** Sharpness X on the held item, unless it is already higher. */
+    private static void sharpen(ServerPlayer p) {
+        try {
+            var st = p.getMainHandItem();
+            if (st.isEmpty()) return;
+            var holder = p.level().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SHARPNESS);
+            if (net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(holder, st) < 10) st.enchant(holder, 10);
+        } catch (Throwable t) { LOGGER.warn("[astral] could not sharpen: {}", t.toString()); }
+    }
+
+    /** Takes the player out of their LOTM faction (the mod's own FactionData). */
+    private static void leaveLotmFaction(ServerLevel lv, ServerPlayer p) {
+        try {
+            Class<?> c = Class.forName("net.swimmingtuna.lotm.world.worlddata.Faction.FactionData");
+            Object data = c.getMethod("getInstance", ServerLevel.class).invoke(null, lv.getServer().overworld());
+            Object name = c.getMethod("getPlayerFaction", UUID.class).invoke(data, p.getUUID());
+            if (name == null || name.toString().isEmpty()) return;
+            Object ok = c.getMethod("playerLeavesFaction", String.class, UUID.class).invoke(data, name.toString(), p.getUUID());
+            LOGGER.info("[astral] {} left LOTM faction '{}': {}", p.getGameProfile().getName(), name, ok);
+            p.sendSystemMessage(Component.literal("You have left " + name + ".").withStyle(ChatFormatting.DARK_RED));
+        } catch (Throwable t) { LOGGER.warn("[astral] could not remove from LOTM faction: {}", String.valueOf(t.getCause() != null ? t.getCause() : t)); }
+    }
+
+    /** The raid is over: the ally gets their own sequence and health back. */
+    private static void endTraitor(MinecraftServer server) {
+        if (traitor == null) return;
+        ServerPlayer t = server.getPlayerList().getPlayer(traitor);
+        if (t != null) {
+            if (traitorSeq >= 0) Lotm.setSequence(t, traitorSeq);
+            var mh = t.getAttribute(Attributes.MAX_HEALTH);
+            if (mh != null) mh.removeModifier(DESIRE_HP);
+            t.setHealth(Math.min(t.getHealth(), t.getMaxHealth()));
+        }
+        traitorSeq = -1;
     }
 
     private static void pvp(ServerPlayer a, ServerPlayer p, float amount) {
@@ -866,6 +904,12 @@ public final class EndGame {
         var sb = p.getScoreboard();
         var team = sb.getPlayersTeam(p.getScoreboardName());
         if (team != null) sb.removePlayerFromTeam(p.getScoreboardName(), team);   // they no longer belong to any team
+        leaveLotmFaction(lv, p);
+        traitorSeq = Lotm.sequence(p);
+        if (Lotm.setSequence(p, 0)) raidSeq.put(p.getUUID(), 0);   // Sequence 0 of their own pathway
+        var mh = p.getAttribute(Attributes.MAX_HEALTH);
+        if (mh != null && mh.getModifier(DESIRE_HP) == null) { mh.addPermanentModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(DESIRE_HP, 200, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE)); p.heal(200); }
+        sharpen(p);
         tellLevel(lv, p.getGameProfile().getName() + " has taken Desire's hand. They fight for the tree now. Do not trust them.", ChatFormatting.DARK_RED);
         p.sendSystemMessage(Component.literal("You are the tree's ally. Her creatures will not touch you. Hunt the others.").withStyle(ChatFormatting.DARK_PURPLE));
         for (Entity e : lv.getAllEntities()) if (e instanceof Mob m && m.getTags().contains(TAG_MINION) && m.getTarget() == p) m.setTarget(null);
@@ -886,10 +930,10 @@ public final class EndGame {
         if (traitor != null) {
             ServerPlayer t = lv.getServer().getPlayerList().getPlayer(traitor);
             if (t != null && !t.isSpectator() && t.isAlive()) {
-                t.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 60, 2, false, false));
-                t.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, 1, false, false));
-                t.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 60, 1, false, false));
-                t.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 60, 1, false, false));
+                t.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 60, 3, false, false));        // Strength IV
+                t.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, 0, false, false));   // Resistance I
+                t.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 60, 0, false, false));      // Speed I
+                sharpen(t);
             }
         }
         var f = fighters(lv);
@@ -904,7 +948,7 @@ public final class EndGame {
     private static final String[] NOTICE = {
             "METEORS: red circles mark where meteors will land. Keep moving out of them.",
             "RINGS: purple rings roll out from the boss. JUMP over them.",
-            "SUMMON: five zombies, werewolves and spirits rise around the boss. Kill them before they overwhelm you.",
+            "SUMMON: five werewolves rise around the boss. Kill them before they overwhelm you.",
             "SLAM: a red circle under you means a strike is coming. RUN out of it.",
             "PURGE: green circles are safe. Stand INSIDE one before the ground is struck.",
             "TEMPTATION: look AWAY from the boss and CROUCH. It drags your view in random directions: pull the OPPOSITE way.",
@@ -1507,6 +1551,7 @@ public final class EndGame {
         for (var en : d.raidLives.entrySet()) if (en.getValue() > 0 && !en.getKey().equals(traitor)) anyAlive = true;   // the tree's ally does not keep the fight alive
         if (!anyAlive && !d.raidLives.isEmpty()) {
             tell(server, "It is over.", ChatFormatting.DARK_RED);
+            endTraitor(server);
             leaderboard(server, d);
             Stage.set(server, 5); // phase 5 again, no countdown
         }
@@ -1518,6 +1563,7 @@ public final class EndGame {
         for (ServerPlayer p : server.getPlayerList().getPlayers()) p.displayClientMessage(Component.literal("VICTORY").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), true);
         tell(server, "Victory! " + RAID_NAME + " has been defeated.", ChatFormatting.GOLD);
         leaderboard(server, d);
+        endTraitor(server);
         resetAll(server); // everyone goes home to a restored Earth
         internal = true;
         try { Stage.set(server, 0); } finally { internal = false; }

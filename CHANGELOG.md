@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.1.105
+- Every summon is a werewolf (no zombies, spirits or "thralls").
+- Accepting Desire's Offer: Sequence 0 in their pathway, +200 max HP, Strength IV, Resistance I, Speed I, Sharpness X on the held item (if lower), and they leave their LOTM faction. Sequence and HP are restored when the raid ends.
+
 ## 0.1.104
 - Summons are now LOTM giant zombies, werewolves and spirits (fire, frost, earth).
 - New attack Pollen Veil: drifting clouds stack Desire (slow, dizzy, sanity drain).
