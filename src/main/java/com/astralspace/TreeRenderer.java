@@ -128,7 +128,7 @@ public final class TreeRenderer {
         }
         // in the raid arena the tree stays on screen however far you go, even when the game has stopped tracking the boss
         if (!treeSeen && !gone && mc.level.dimension().location().getPath().equals("cosmos")) {
-            double y = Double.isNaN(lastY) ? mc.player.getY() : lastY;   // the arena floor is flat
+            double y = Double.isNaN(lastY) ? PlanetGenerator.BASE + 3.0 : lastY;   // the arena floor is flat and fixed: never follow the player's height (boss spawns at the surface + 2)
             draw(event, cam, lastFleshy ? "tree_rot" : "tree", lastX, y, lastZ, null, false, 0);
         }
     }

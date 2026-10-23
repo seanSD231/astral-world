@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.27
+- Fixed the tree rising and sinking with you when you go to the arena with `/cosmos` (no fight running): with no tree entity around, it was drawn at your own height. It is now drawn at the arena's fixed ground level.
+
 ## 0.2.26
 - The Mother Tree no longer drifts up and down: hits (knockback) and the hit box changing size could push the mob, and it is now put back on its spot every tick with its velocity zeroed.
 
