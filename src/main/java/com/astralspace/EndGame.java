@@ -335,6 +335,26 @@ public final class EndGame {
                 .withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/astralblessing " + id)));
     }
 
+    // ------------------------------------------------------------------ god mode (testing)
+
+    private static final Set<UUID> god = new HashSet<>();
+
+    /** /astralgod: ops only. Toggles immunity for testing the tree's attacks and cutscenes: no damage, no lost lives, no being pulled back. */
+    @SubscribeEvent
+    public static void onGodCommand(RegisterCommandsEvent event) {
+        event.getDispatcher().register(Commands.literal("astralgod").requires(s -> s.hasPermission(2))
+                .executes(ctx -> toggleGod(ctx.getSource().getPlayerOrException(), null))
+                .then(Commands.literal("on").executes(ctx -> toggleGod(ctx.getSource().getPlayerOrException(), true)))
+                .then(Commands.literal("off").executes(ctx -> toggleGod(ctx.getSource().getPlayerOrException(), false))));
+    }
+
+    private static int toggleGod(ServerPlayer p, Boolean want) {
+        boolean on = want != null ? want : !god.contains(p.getUUID());
+        if (on) god.add(p.getUUID()); else god.remove(p.getUUID());
+        p.sendSystemMessage(Component.literal("Astral god mode: " + (on ? "ON. Nothing in the tree fight can hurt you or cost you a life." : "off.")).withStyle(on ? ChatFormatting.GOLD : ChatFormatting.GRAY));
+        return 1;
+    }
+
     @SubscribeEvent
     public static void onBlessingCommand(RegisterCommandsEvent event) {
         event.getDispatcher().register(Commands.literal("astralblessing")
@@ -762,7 +782,7 @@ public final class EndGame {
     }
 
     private static void loseLife(ServerLevel lv, ServerPlayer p) {
-        if (cutscene) return;
+        if (cutscene || god.contains(p.getUUID())) return;
         AstralData d = AstralData.get(lv.getServer());
         long now = lv.getServer().getTickCount();
         Long last = lastHit.get(p.getUUID());
@@ -1520,6 +1540,7 @@ public final class EndGame {
             }
             for (ServerPlayer p : fighters(l)) {
                 if (Math.hypot(p.getX() - cx, p.getZ() - cz) <= ULT_SAFE_R) continue;
+                if (god.contains(p.getUUID())) continue;
                 p.setHealth(Math.min(p.getHealth(), 1f));
                 lastHit.remove(p.getUUID());
                 loseLife(l, p);
@@ -2111,6 +2132,7 @@ public final class EndGame {
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         Entity e = event.getEntity();
+        if (e instanceof ServerPlayer && god.contains(e.getUUID())) { event.setCanceled(true); return; }   // /astralgod
         if (e instanceof ServerPlayer && rt < ultCutsceneUntil) { event.setCanceled(true); return; }   // nobody is hurt while watching the meteor start to fall
         if (e instanceof ServerPlayer && e.getServer() != null && "call".equals(AstralData.get(e.getServer()).endPhase)) { event.setCanceled(true); return; }   // nobody can be hurt while the Fool is called
         if (traitor != null && (e.getTags().contains(TAG_BOSS) || e.getTags().contains(TAG_MINION)) && event.getSource().getEntity() instanceof ServerPlayer ta && ta.getUUID().equals(traitor)) { event.setCanceled(true); return; }   // the ally cannot hurt the tree or her thralls

@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.17
+- New op-only command `/astralgod` (or `/astralgod on` / `off`): god mode for testing the tree fight. While on, nothing can damage you and you cannot lose lives, including to the 15% meteor.
+
 ## 0.2.16
 - On-screen text wraps to the screen width (stage titles and subtitles, the fog prayer, the tree's transformation subtitles), and chat is hidden and blocked during the fog cutscene, so no phase messages or chat cover the words. The prayer is no longer printed in chat.
 - The two figures in the fog are now the Fool (top hat, long coat, gold eyes) on the left and the Mother Tree (trunk, branches, crown, red eyes) on the right, facing each other.
