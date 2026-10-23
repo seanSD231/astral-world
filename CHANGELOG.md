@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.2
+- The Mother Tree now animates every attack. Her model is split into trunk, roots, twelve limbs, their blossoms or fruit, and the hanging vines, each moving on its own (a gentle sway at rest too).
+- Meteors/ultimate: limbs rise and shudder. Rings: roots heave in waves. Summon: roots writhe, limbs droop. Slam: limbs rear up, then crash down with the trunk squashing and dust. Purge: limbs draw in, then burst out. Temptation: slow reaching sway. Power: limbs tremble and recoil with a bright flash. Curse: purple shudder. Pollen: blossoms puff and shed pollen. Mirror bloom: three limbs glow and sparkle. Fruit rain: the limbs shake, the fruit falls off in waves and regrows.
+- Moving limbs shake falling leaves loose (blossom petals while healthy, withered leaves once rotten).
+
 ## 0.2.1
 - Seq 0 (and Door Seq 3+) can reach the Astral World again: the ascension teleport, the message and /astral are back. Only the Cosmos and the planets stay removed.
 - The Astral World is now the same round night field with the ancient ruin as the arena, with the same vanilla night sky.

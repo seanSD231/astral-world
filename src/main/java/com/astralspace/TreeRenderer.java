@@ -47,7 +47,7 @@ public final class TreeRenderer {
     }
 
     /** One drawable model: a buffer per animated part. */
-    private record Model(VertexBuffer[] vbs, String[] names, double[][] pivots) {}
+    private record Model(VertexBuffer[] vbs, String[] names, double[][] pivots, TreeModel meta) {}
 
     private static VertexBuffer upload(float[] d, int from, int to) {
         BufferBuilder bb = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
@@ -67,7 +67,17 @@ public final class TreeRenderer {
         if (md != null) return md;
         if (key.equals("tree") || key.equals("tree_rot")) {
             TreeModel m = TreeModel.build(key.equals("tree_rot"));
-            md = new Model(new VertexBuffer[]{upload(m.data, 0, m.floats)}, new String[]{"body"}, new double[][]{{0, 0, 0}});
+            java.util.List<VertexBuffer> tv = new java.util.ArrayList<>();
+            java.util.List<String> tn = new java.util.ArrayList<>();
+            java.util.List<double[]> tp = new java.util.ArrayList<>();
+            for (int i = 0; i < m.parts.size(); i++) {
+                int from = (Integer) m.parts.get(i)[1], to = i + 1 < m.parts.size() ? (Integer) m.parts.get(i + 1)[1] : m.floats;
+                if (to <= from) continue;
+                tv.add(upload(m.data, from, to));
+                tn.add((String) m.parts.get(i)[0]);
+                tp.add((double[]) m.parts.get(i)[2]);
+            }
+            md = new Model(tv.toArray(new VertexBuffer[0]), tn.toArray(new String[0]), tp.toArray(new double[0][]), m);
         } else {
             Mesh m = SovModels.build(key);
             java.util.List<VertexBuffer> vbs = new java.util.ArrayList<>();
@@ -80,15 +90,19 @@ public final class TreeRenderer {
                 names.add((String) m.parts.get(i)[0]);
                 pivots.add((double[]) m.parts.get(i)[2]);
             }
-            md = new Model(vbs.toArray(new VertexBuffer[0]), names.toArray(new String[0]), pivots.toArray(new double[0][]));
+            md = new Model(vbs.toArray(new VertexBuffer[0]), names.toArray(new String[0]), pivots.toArray(new double[0][]), null);
         }
         MODELS.put(key, md);
         return md;
     }
 
     /** Where the tree was last seen and whether it was fleshy: the boss entity is only tracked within a limited range, but the tree must stay visible from much further. */
-    private static double lastX = 0.5, lastY = Double.NaN, lastZ = 0.5;
-    private static boolean lastFleshy = false, gone = false;
+    static double lastX = 0.5, lastY = Double.NaN, lastZ = 0.5;
+    static boolean lastFleshy = false;
+    private static boolean gone = false;
+
+    /** The tree's mesh data for the form it is in now (limb positions, for the animation's leaves). */
+    static TreeModel metaNow() { return model(lastFleshy ? "tree_rot" : "tree").meta(); }
 
     private static void onRender(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
@@ -151,6 +165,7 @@ public final class TreeRenderer {
         RenderSystem.enableDepthTest();
         RenderSystem.disableCull();
         RenderSystem.disableBlend();
+        if (tree) { float[] ta = TreeAnim.tint(); tint = new float[]{tint[0] * ta[0], tint[1] * ta[1], tint[2] * ta[2]}; }
         RenderSystem.setShaderColor(tint[0], tint[1], tint[2], 1f);
         for (int i = 0; i < md.vbs().length; i++) {
             Matrix4f pm = mv;
@@ -158,6 +173,9 @@ public final class TreeRenderer {
                 pm = new Matrix4f(mv);
                 SovAnim.model(key, t, pm);
                 SovAnim.part(key, md.names()[i], t, md.pivots()[i], pm);
+            } else if (md.meta() != null) {
+                pm = new Matrix4f(mv);
+                TreeAnim.apply(md.meta(), md.names()[i], md.pivots()[i], pm, t);
             }
             md.vbs()[i].bind();
             md.vbs()[i].drawWithShader(pm, event.getProjectionMatrix(), GameRenderer.getPositionColorShader());

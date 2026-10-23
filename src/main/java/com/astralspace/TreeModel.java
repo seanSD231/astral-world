@@ -16,6 +16,14 @@ final class TreeModel {
 
     int quadCount() { return floats / 24; }
 
+    /** Animated sections, each running from its offset to the next one's: {name, float offset, pivot}. trunk, roots, limbK, fruitK_G (a third of limb K's blossoms), vineK. */
+    final java.util.List<Object[]> parts = new java.util.ArrayList<>();
+    final double[] limbAngle = new double[12];
+    final double[][] limbPivot = new double[12][];
+    final java.util.List<java.util.List<double[]>> limbTips = new java.util.ArrayList<>();
+    final java.util.Map<String, double[]> centroids = new java.util.HashMap<>();
+    private void part(String name, double[] pivot) { parts.add(new Object[]{name, floats, pivot}); }
+
     private final Random rnd;
     private final boolean rot;
 
@@ -168,6 +176,7 @@ final class TreeModel {
     }
 
     private void make() {
+        part("trunk", v(0, 0, 0));
         int[] bark = bark();
         int[] vein = rot ? new int[]{255, 80, 40} : new int[]{150, 235, 255};
         // braided trunk: three strands wound round each other
@@ -194,6 +203,7 @@ final class TreeModel {
             }
         }
         double[] top = v(0, 148, 0);
+        part("roots", v(0, 0, 0));
         // buttress roots, flat on the ground and sinking into it
         for (int k = 0; k < 16; k++) {
             double a = k * 2 * Math.PI / 16 + rnd.nextDouble() * 0.2;
@@ -231,6 +241,7 @@ final class TreeModel {
                 for (int i = 0; i < sp.length; i++) rad[i] = 7.5 * Math.pow(1 - i / 20.0, 0.8) + 0.5;
                 tube(sp, rad, 8, bark, false, true);
             }
+            part("trunk", v(0, 0, 0));
             int[][] flesh = {{170, 70, 80}, {140, 50, 60}, {190, 110, 90}, {110, 40, 55}};
             for (int k = 0; k < 70; k++) {
                 double t = rr(0.03, 0.85);
@@ -240,31 +251,53 @@ final class TreeModel {
                 sphere(c, rr(2.5, 7.5), pick(flesh), 5, 8, 0.25, false, 1);
             }
         }
-        // branches: twelve great limbs, each splitting twice more
+        // branches: twelve great limbs, each splitting twice more (each limb is its own animated part)
+        int[] tipStart = new int[13];
         for (int k = 0; k < 12; k++) {
             double a = k * 2 * Math.PI / 12 + rnd.nextDouble() * 0.3;
             double[] d = v(Math.cos(a) * 1.3, 0.55 + rnd.nextDouble() * 0.55, Math.sin(a) * 1.3);
             double[] st = add(top, v(Math.cos(a) * 5, -4 - rnd.nextDouble() * 14, Math.sin(a) * 5));
+            limbAngle[k] = a;
+            limbPivot[k] = st;
+            part("limb" + k, st);
+            tipStart[k] = tips.size();
             branch(st, d, 78 + rnd.nextDouble() * 30, 9.5, 0, 2);
         }
-        // blossoms (healthy) or sparse rotten fruit at every tip
+        tipStart[12] = tips.size();
+        for (int k = 0; k < 12; k++) limbTips.add(new java.util.ArrayList<>(tips.subList(tipStart[k], tipStart[k + 1])));
+        // blossoms (healthy) or sparse rotten fruit at every tip, in thirds per limb so they can fall and regrow one group at a time
         int[][] pal = rot ? PAL_ROT : PAL_OK;
-        for (double[] tp : tips) {
-            int count = rot ? (rnd.nextDouble() < 0.45 ? 1 : 0) : 2;
-            for (int i = 0; i < count; i++)
-                sphere(add(tp, v(rr(-4, 4), rr(-2, 4), rr(-4, 4))), rr(1.5, 3.0), pick(pal), 3, 6, 0.3, false, 1);
+        for (int k = 0; k < 12; k++) {
+            for (int g = 0; g < 3; g++) {
+                String name = "fruit" + k + "_" + g;
+                part(name, limbPivot[k]);
+                double[] cen = v(0, 0, 0);
+                int n = 0;
+                for (int i = g; i < limbTips.get(k).size(); i += 3) {
+                    double[] tp = limbTips.get(k).get(i);
+                    cen = add(cen, tp); n++;
+                    int count = rot ? (rnd.nextDouble() < 0.45 ? 1 : 0) : 2;
+                    for (int c = 0; c < count; c++)
+                        sphere(add(tp, v(rr(-4, 4), rr(-2, 4), rr(-4, 4))), rr(1.5, 3.0), pick(pal), 3, 6, 0.3, false, 1);
+                }
+                centroids.put(name, n == 0 ? v(0, 0, 0) : mul(cen, 1.0 / n));
+            }
         }
-        // hanging roots with glowing bulbs
+        // hanging roots with glowing bulbs, hanging from their own limb
         int vines = rot ? 30 : 55;
-        for (int k = 0; k < vines; k++) {
-            double[] t = tips.get(rnd.nextInt(tips.size()));
-            double L = rr(16, 60);
-            double[][] sp = new double[11][];
-            double[] rad = new double[11];
-            for (int i = 0; i < 11; i++) { sp[i] = add(t, v(Math.sin(i * 0.5) * 1.2, -i * L / 10, Math.cos(i * 0.4) * 1.2)); rad[i] = 0.5; }
-            tube(sp, rad, 4, rot ? new int[]{150, 55, 65} : new int[]{120, 90, 200}, false, false);
-            int[][] bulbs = rot ? new int[][]{{205, 240, 80}, {255, 130, 50}, {170, 40, 50}} : new int[][]{{120, 230, 255}, {255, 120, 220}, {190, 150, 255}};
-            sphere(add(sp[10], v(0, -1.5, 0)), rr(1.4, 2.4), pick(bulbs), 4, 6, 0, true, 1.4);
+        for (int k = 0; k < 12; k++) {
+            part("vine" + k, limbPivot[k]);
+            int mine = vines / 12 + (k < vines % 12 ? 1 : 0);
+            for (int q = 0; q < mine && !limbTips.get(k).isEmpty(); q++) {
+                double[] t = limbTips.get(k).get(rnd.nextInt(limbTips.get(k).size()));
+                double L = rr(16, 60);
+                double[][] sp = new double[11][];
+                double[] rad = new double[11];
+                for (int i = 0; i < 11; i++) { sp[i] = add(t, v(Math.sin(i * 0.5) * 1.2, -i * L / 10, Math.cos(i * 0.4) * 1.2)); rad[i] = 0.5; }
+                tube(sp, rad, 4, rot ? new int[]{150, 55, 65} : new int[]{120, 90, 200}, false, false);
+                int[][] bulbs = rot ? new int[][]{{205, 240, 80}, {255, 130, 50}, {170, 40, 50}} : new int[][]{{120, 230, 255}, {255, 120, 220}, {190, 150, 255}};
+                sphere(add(sp[10], v(0, -1.5, 0)), rr(1.4, 2.4), pick(bulbs), 4, 6, 0, true, 1.4);
+            }
         }
     }
 }

@@ -67,6 +67,20 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -> client: the tree begins this attack animation (the server's pattern number, or 20 for the ultimate). */
+    public record TreeAnimPayload(int attack, int ticks, int seed) implements CustomPacketPayload {
+        public static final Type<TreeAnimPayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "tree_anim"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, TreeAnimPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, TreeAnimPayload::attack,
+                ByteBufCodecs.VAR_INT, TreeAnimPayload::ticks,
+                ByteBufCodecs.VAR_INT, TreeAnimPayload::seed,
+                TreeAnimPayload::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** One danger marker (kind 0 filled ring, 1 ring, 2 beam, 3 tall beacon). Sent in batches. */
     public record TelegraphPayload(int kind, float x, float y, float z, float a, float b, int color, int life) {
         static void write(RegistryFriendlyByteBuf buf, TelegraphPayload t) {
@@ -136,6 +150,8 @@ public final class Net {
         /** Cutscene: when it started (ms), how many ticks it lasts, and which one (0 = none). */
         public static volatile long cutsceneStart = 0;
         public static volatile int cutsceneTicks = 0, cutsceneKind = 0;
+        public static volatile int animAttack = -1, animTicks = 0, animSeed = 0;   // the tree's current attack animation
+        public static volatile long animStart = 0;
         public static volatile boolean treeGone = false;   // the raid ended: forget where the tree stood
         /** Stage 5: all sound is switched off. */
         public static volatile boolean muted = false;
@@ -167,6 +183,12 @@ public final class Net {
             ClientState.cutsceneKind = payload.kind();
             ClientState.cutsceneTicks = payload.ticks();
             ClientState.cutsceneStart = System.currentTimeMillis();
+        }));
+        registrar.playToClient(TreeAnimPayload.TYPE, TreeAnimPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            ClientState.animAttack = payload.attack();
+            ClientState.animTicks = payload.ticks();
+            ClientState.animSeed = payload.seed();
+            ClientState.animStart = System.currentTimeMillis();
         }));
         registrar.playToClient(TelegraphBatch.TYPE, TelegraphBatch.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             synchronized (ClientState.telegraphs) {

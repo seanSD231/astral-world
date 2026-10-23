@@ -1140,6 +1140,7 @@ public final class EndGame {
         notice(lv, which);
         crowd = fighters(lv).size() > 12;
         final boolean big = cur.raid();
+        if (big) sendAnim(lv, which, DURATION[which] + 40);
         final double reach = big ? ARENA_R : 42;
         final double mr = big && rootStage >= 2 ? 11 : 3.5, sl = big ? 16 : 5.5;   // meteor and slam sizes: in the raid they match the tree
         switch (which) {
@@ -1442,7 +1443,13 @@ public final class EndGame {
      * 15%: a giant meteor falls from the sky. It is never announced and nothing marks the ground: the only place it cannot reach is under the tree.
      * Everyone outside ULT_SAFE_R of the trunk loses a whole life when it lands.
      */
+    private static void sendAnim(ServerLevel lv, int which, int ticks) {
+        Net.TreeAnimPayload pk = new Net.TreeAnimPayload(which, ticks, ThreadLocalRandom.current().nextInt(1000));
+        for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, pk);
+    }
+
     private static void ultimate(ServerLevel lv) {
+        sendAnim(lv, 20, 340);
         nextPattern = Math.max(nextPattern, rt + 420);   // no other attack while it falls
         final double cx = 0.5, cz = 0.5, top = cur.gy() + 190;
         LOGGER.info("[astral] the tree's ultimate meteor begins");
