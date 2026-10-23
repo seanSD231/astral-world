@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.20
+- The Mother Tree's real hit box is 2.5 times bigger: 125 wide and 375 tall (was 50 x 150).
+
 ## 0.2.19
 - The two figures are removed from the fog cutscene. The glitching and the red lines go straight into "I've heard your prayers".
 
