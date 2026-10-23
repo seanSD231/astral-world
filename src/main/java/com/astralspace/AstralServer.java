@@ -238,11 +238,13 @@ public final class AstralServer {
                 dirty = true;
             }
             // a player first seen as Seq 0 counts as ascending too, even if the mod missed the step down from Seq 1 (a restart, a command, a skipped second)
-            if (seq == 0 && (newSeq0 || (prev != null && prev > 0)) && !inAstral(p)) {
+            if (seq == 0 && (newSeq0 || (prev != null && prev > 0))) {
                 boolean ready = ascensionReady(id);
-                LOGGER.info("[astral] {} reached Seq 0 (was Seq {}): {}", p.getGameProfile().getName(), prev == null ? "unknown" : prev, ready ? "sending to the Astral World" : "NOT sent, the 10 minute ascension cooldown is running");
+                boolean already = inAstral(p);   // a Door at Seq 3 or stronger can already be in the Astral World when it ascends: no teleport, but the message still comes
+                LOGGER.info("[astral] {} reached Seq 0 (was Seq {}): {}", p.getGameProfile().getName(), prev == null ? "unknown" : prev,
+                        !ready ? "NOT sent, the 10 minute ascension cooldown is running" : already ? "already in the Astral World, message only" : "sending to the Astral World");
                 if (!ready) continue;
-                goToAstral(server, p);
+                if (!already) goToAstral(server, p);
                 // the stage message ("you feel a strange gaze from above") takes the screen at the same moment, so the title waits for it to clear;
                 // the chat line is immediate and stays, so a new god always learns about /astral
                 p.sendSystemMessage(Component.literal("The Astral World calls. Use /astral to travel between the worlds.").withStyle(ChatFormatting.LIGHT_PURPLE));

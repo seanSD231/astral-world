@@ -582,7 +582,7 @@ public final class EndGame {
         force(lv, 3, true);
         groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
         timed.clear();
-        rt = 0; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0;
+        rt = 0; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false;
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
             boss.addTag(TAG_BOSS);
@@ -823,7 +823,7 @@ public final class EndGame {
                         p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.WEAKNESS, 300, 1));
                         p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN, 300, 1));
                         p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.UNLUCK, 300, 2));
-                        Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 15);
+                        if (!Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 35)) LOGGER.warn("[astral] the curse could not add corruption to {}", p.getGameProfile().getName());
                         p.sendSystemMessage(Component.literal("You are cursed.").withStyle(ChatFormatting.DARK_PURPLE));
                     }
                 });
@@ -913,6 +913,8 @@ public final class EndGame {
     private static boolean rootsActive = false;
     private static long rootsEnd = 0;
     private static int rootStage = 0;
+    private static boolean ultimateDone = false;   // the 15% meteor is used once per fight
+    private static final double ULT_SAFE_R = 26;     // under the tree: the trunk is 15 wide and the crown shades the ground around it
     private static final List<BlockPos> roots = new ArrayList<>();
     private static int activeKind = 0;       // 0 roots, 1 desire's call, 2 heart seeds
     private static long phaseEnd = 0;
@@ -1036,6 +1038,44 @@ public final class EndGame {
         }
     }
 
+    /**
+     * 15%: a giant meteor falls from the sky. It is never announced and nothing marks the ground: the only place it cannot reach is under the tree.
+     * Everyone outside ULT_SAFE_R of the trunk loses a whole life when it lands.
+     */
+    private static void ultimate(ServerLevel lv) {
+        nextPattern = Math.max(nextPattern, rt + 420);   // no other attack while it falls
+        final double cx = 0.5, cz = 0.5, top = cur.gy() + 190;
+        LOGGER.info("[astral] the tree's ultimate meteor begins");
+        for (int t = 0; t < 300; t++) {
+            final int tt = t;
+            at(t, l -> {
+                double y = top - (top - cur.gy()) * (tt / 300.0) * (tt / 300.0);   // it speeds up as it falls
+                double size = 6 + tt / 300.0 * 10;
+                l.sendParticles(ParticleTypes.FLAME, cx, y, cz, 30, size * 0.5, size * 0.4, size * 0.5, 0.02);
+                l.sendParticles(ParticleTypes.LAVA, cx, y, cz, 10, size * 0.5, size * 0.4, size * 0.5, 0);
+                l.sendParticles(ParticleTypes.LARGE_SMOKE, cx, y + size * 0.5, cz, 20, size * 0.5, size * 0.6, size * 0.5, 0.05);
+                if (tt % 20 == 0) sfx(l, SoundEvents.WARDEN_HEARTBEAT, 3f, 0.4f + tt / 400f);
+                if (tt == 120) sfx(l, SoundEvents.ENDER_DRAGON_GROWL, 2f, 0.4f);
+                if (tt == 220) sfx(l, SoundEvents.WARDEN_ROAR, 3f, 0.5f);
+            });
+        }
+        at(300, l -> {
+            sfx(l, SoundEvents.GENERIC_EXPLODE.value(), 4f, 0.5f);
+            sfx(l, SoundEvents.LIGHTNING_BOLT_THUNDER, 4f, 0.6f);
+            l.sendParticles(ParticleTypes.EXPLOSION_EMITTER, cx, cur.gy() + 2, cz, 12, 40, 4, 40, 0);
+            for (int k = 0; k < 8; k++) {
+                double a = Math.PI * 2 * k / 8;
+                boom(l, cx + Math.cos(a) * 60, cz + Math.sin(a) * 60, 20);
+            }
+            for (ServerPlayer p : fighters(l)) {
+                if (Math.hypot(p.getX() - cx, p.getZ() - cz) <= ULT_SAFE_R) continue;
+                p.setHealth(Math.min(p.getHealth(), 1f));
+                lastHit.remove(p.getUUID());
+                loseLife(l, p);
+            }
+        });
+    }
+
     private static void startRoots(ServerLevel lv) {
         rootsActive = true;
         activeKind = 0;
@@ -1081,6 +1121,9 @@ public final class EndGame {
         if (!rootsActive) {
             if (rootStage < THRESHOLDS.length && boss.getHealth() / BOSS_HP <= THRESHOLDS[rootStage]) {
                 if (rootStage == 0) startRoots(lv); else if (rootStage == 1) startTransformation(lv); else startSeeds(lv);
+            } else if (rootStage >= THRESHOLDS.length && !ultimateDone && !cutscene && boss.getHealth() / BOSS_HP <= 0.15f) {
+                ultimateDone = true;
+                ultimate(lv);
             }
             return;
         }
