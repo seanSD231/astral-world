@@ -47,8 +47,11 @@ public final class AstralGods {
     private static void vertex(BufferBuilder q, Matrix4f m, float[] d, float[] ax, float a, float b, int r, int g, int bl, float alpha) {
         float x = d[0] + ax[0] * a + ax[3] * b, y = d[1] + ax[1] * a + ax[4] * b, z = d[2] + ax[2] * a + ax[5] * b;
         float l = (float) Math.sqrt(x * x + y * y + z * z);
-        q.addVertex(m, x / l * R, y / l * R, z / l * R).setColor(r, g, bl, (int) (Math.max(0f, Math.min(1f, alpha)) * 255));
+        q.addVertex(m, x / l * R, y / l * R, z / l * R).setColor(r, g, bl, (int) (Math.max(0f, Math.min(1f, alpha * gain)) * 255));
     }
+
+    /** Brightness of whatever is being drawn: the swirls are drawn at double. */
+    private static float gain = 1f;
 
     private static float smooth(float x) { x = Math.max(0f, Math.min(1f, x)); return x * x * (3 - 2 * x); }
 
@@ -346,7 +349,7 @@ public final class AstralGods {
                 for (double[] v : p) {
                     float[] c = swirlColor(v[0], v[1], ts);
                     float cl = (float) Math.cos(v[1]);
-                    float a = 0.32f * c[3] * (0.4f + 0.6f * smoothstep((float) ((v[1] + 0.4) / 0.8))); // thinner toward the ground
+                    float a = 0.64f * c[3] * (0.4f + 0.6f * smoothstep((float) ((v[1] + 0.4) / 0.8))); // thinner toward the ground
                     q.addVertex(m, (float) (Math.cos(v[0]) * cl) * radius, (float) Math.sin(v[1]) * radius, (float) (Math.sin(v[0]) * cl) * radius)
                             .setColor((int) c[0], (int) c[1], (int) c[2], (int) (a * 255));
                 }
@@ -356,6 +359,11 @@ public final class AstralGods {
     }
 
     private static void swirls(Matrix4f m, double t) {
+        gain = 2f;
+        try { swirlsInner(m, t); } finally { gain = 1f; }
+    }
+
+    private static void swirlsInner(Matrix4f m, double t) {
         veil(m, t);
         for (int vi = 0; vi < VORTICES; vi++) {
             BufferBuilder q = begin();
