@@ -1387,7 +1387,6 @@ public final class EndGame {
         cutscene = true;
         timed.clear();
         for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(1, CUT_TICKS));
-        tellLevel(lv, "The Mother Tree of Desire withers... and something worse wakes inside it.", ChatFormatting.DARK_RED);
         sfx(lv, SoundEvents.ENDER_DRAGON_GROWL, 2f, 0.5f);
         for (int t = 40; t < 140; t += 20 - (t - 40) / 12) { final int tt = t; at(t, l -> sfx(l, SoundEvents.WARDEN_HEARTBEAT, 3f, 0.6f + tt / 250f)); }   // a heart that beats faster
         at(100, l -> sfx(l, SoundEvents.SCULK_SHRIEKER_SHRIEK, 1.5f, 0.5f));
@@ -1402,7 +1401,6 @@ public final class EndGame {
             rootsActive = false;
             treeFleshy = true;
             if (raidBar != null) raidBar.setName(barName("", ChatFormatting.DARK_PURPLE));
-            tellLevel(l, "The Mother Tree of Desire curses you all. From now on you see her health as she wants you to see it.", ChatFormatting.DARK_RED);
             startCall(l);
         });
     }

@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.21
+- The two chat messages around the Mother Tree's transformation ("withers..." and "curses you all...") are gone; the cutscene's on-screen text is all that remains.
+
 ## 0.2.20
 - The Mother Tree's real hit box is 2.5 times bigger: 125 wide and 375 tall (was 50 x 150).
 
