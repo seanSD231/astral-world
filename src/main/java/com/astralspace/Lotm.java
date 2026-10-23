@@ -131,10 +131,27 @@ public final class Lotm {
             for (Method m : util.getMethods()) {
                 if (m.getName().equals("getMaxSanity") && m.getParameterCount() == 1) getMaxSanity = m;
                 if (m.getName().equals("decreaseSanityUnresisted") && m.getParameterCount() == 2) decreaseSanityUnresisted = m;
+                if (m.getName().equals("setSanity") && m.getParameterCount() == 2) setSanityM = m;
             }
             LOGGER.info("[astral] LOTM sanity found. getMaxSanity={} decreaseSanityUnresisted={}", getMaxSanity != null, decreaseSanityUnresisted != null);
         } catch (Throwable t) {
             LOGGER.warn("[astral] LOTM sanity not readable, sanity loss is off: {}", t.toString());
+        }
+    }
+
+    private static Method setSanityM;
+
+    /** Sets sanity to `percent` of the player's maximum. Returns false if LOTM could not be called. */
+    public static boolean setSanityPercent(ServerPlayer player, double percent) {
+        initSanity();
+        if (getMaxSanity == null || setSanityM == null) return false;
+        try {
+            int max = (Integer) getMaxSanity.invoke(null, player);
+            setSanityM.invoke(null, player, (int) Math.max(1, Math.round(max * percent / 100.0)));
+            return true;
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not set sanity: {}", t.toString());
+            return false;
         }
     }
 

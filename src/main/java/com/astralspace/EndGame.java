@@ -1636,8 +1636,28 @@ public final class EndGame {
             if (a <= 0f) { logDrop(e, event, "capped to zero"); event.setCanceled(true); } else event.setAmount(a);
             return;
         }
-        if (e instanceof ServerPlayer p && p.level().dimension().equals(Cosmos.key("raid"))) event.setCanceled(true);
+        if (e instanceof ServerPlayer p && p.level().dimension().equals(Cosmos.key("raid"))) {
+            event.setCanceled(true);
+            // LOTM kills a player at 0 sanity with damage it deals to the player itself: the arena blocks all damage, so that death costs a life instead
+            Entity by = event.getSource().getEntity();
+            if ((by == p || event.getSource().is(net.minecraft.world.damagesource.DamageTypes.GENERIC_KILL)) && !cutscene && !p.isSpectator() && p.isAlive()
+                    && AstralData.get(p.getServer()).endPhase.equals("raid")) {
+                Long last = sanityDeathAt.get(p.getUUID());
+                if (last == null || gt - last > 100) {
+                    sanityDeathAt.put(p.getUUID(), gt);
+                    LOGGER.info("[astral] {} lost their mind in the raid: a life is taken", p.getGameProfile().getName());
+                    ServerLevel plv = (ServerLevel) p.level();
+                    p.sendSystemMessage(Component.literal("Your mind gives way.").withStyle(ChatFormatting.DARK_PURPLE));
+                    p.setHealth(Math.min(p.getHealth(), 1f));
+                    lastHit.remove(p.getUUID());
+                    loseLife(plv, p);
+                    Lotm.setSanityPercent(p, 50);
+                }
+            }
+        }
     }
+
+    private static final Map<UUID, Long> sanityDeathAt = new HashMap<>();
 
     @SubscribeEvent
     public static void onHeal(LivingHealEvent event) {
