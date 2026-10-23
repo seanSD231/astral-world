@@ -31,6 +31,7 @@ public final class Lotm {
                     case "addCorruption" -> { if (m.getParameterCount() == 3) addCorruption = m; }
                     case "getMaxCorruption" -> { if (m.getParameterCount() == 1) getMaxCorruption = m; }
                     case "getRandomWorkingPathway" -> { if (m.getParameterCount() == 0) getRandomWorkingPathway = m; }
+                    case "chooseRandomPathway" -> { if (m.getParameterCount() == 0 && getRandomWorkingPathway == null) getRandomWorkingPathway = m; }   // the newer LOTM's name for it
                     default -> { }
                 }
             }
@@ -111,6 +112,7 @@ public final class Lotm {
     /** Adds `percent` of the player's max corruption to one pathway. Returns false if LOTM could not be called. */
     public static boolean addCorruptionPercent(ServerPlayer player, Object pathway, double percent) {
         init();
+        if (pathway == null) pathway = pathway(player);   // no random pathway to be had: the player's own takes it
         if (addCorruption == null || getMaxCorruption == null || pathway == null) return false;
         try {
             int max = (Integer) getMaxCorruption.invoke(null, player);

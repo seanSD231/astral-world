@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.24
+- Fixed "the curse could not add corruption": the newer LOTM calls its random-pathway method `chooseRandomPathway`, which the mod did not know, so corruption from the Curse attack (and the god curse, and the hits that corrupt) was never applied. It now finds the new name, and falls back to the player's own pathway if there is none.
+
 ## 0.2.23
 - Fixed a client crash (ArrayIndexOutOfBounds in the Mother Tree's health bar, in the new under-half glitch): the random helper could return exactly 1.0 and index past the end of a list. It now never reaches 1.0 (the fog cutscene used the same helper).
 
