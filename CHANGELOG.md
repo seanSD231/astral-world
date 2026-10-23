@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.10
+- Root hit boxes are invisible pigs scaled up (slimes are removed in peaceful difficulty and did not work). The server log says how many were built.
+
 ## 0.2.9
 - The Astral World's background is brighter again: the sky and fog colours are doubled, and the swirls and veil are drawn 1.5 times stronger than 0.2.4 (alpha is capped, so the veil gains less).
 

@@ -891,9 +891,12 @@ public final class EndGame {
             while (r < len) {
                 double f = (r - 16) / (len - 16);
                 double w = Math.max(4.5, (14 * Math.pow(Math.max(0, 1 - f), 1.1) + 0.6) * 2);
-                net.minecraft.world.entity.monster.Slime sl = EntityType.SLIME.create(lv);
+                Mob sl = EntityType.PIG.create(lv);   // not a slime: slimes are removed in peaceful; a pig is a plain living thing whose box scales with the scale attribute
                 if (sl != null) {
-                    sl.setSize(Math.max(1, (int) Math.round(w / 0.52)), true);
+                    double sc = Math.max(0.0625, Math.min(16.0, w / 0.9));
+                    var scale = sl.getAttribute(Attributes.SCALE);
+                    if (scale != null) scale.setBaseValue(sc);
+                    sl.refreshDimensions();
                     sl.setPos(0.5 + Math.cos(a) * r, groundY + 1, 0.5 + Math.sin(a) * r);
                     sl.addTag(TAG_ROOTBOX);
                     sl.setNoAi(true); sl.setInvisible(true); sl.setSilent(true); sl.setNoGravity(true); sl.noPhysics = true; sl.setPersistenceRequired();
@@ -904,6 +907,7 @@ public final class EndGame {
             }
         }
         rootBoxesWanted = rootBoxes.size();
+        LOGGER.info("[astral] {} root hit boxes built (rot={})", rootBoxes.size(), rot);
     }
 
     /** Once a second: boxes that were killed or moved are put right. */
