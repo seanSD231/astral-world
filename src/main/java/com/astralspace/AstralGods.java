@@ -349,7 +349,7 @@ public final class AstralGods {
                 for (double[] v : p) {
                     float[] c = swirlColor(v[0], v[1], ts);
                     float cl = (float) Math.cos(v[1]);
-                    float a = 0.64f * c[3] * (0.4f + 0.6f * smoothstep((float) ((v[1] + 0.4) / 0.8))); // thinner toward the ground
+                    float a = 0.9f * c[3] * (0.4f + 0.6f * smoothstep((float) ((v[1] + 0.4) / 0.8))); // thinner toward the ground
                     q.addVertex(m, (float) (Math.cos(v[0]) * cl) * radius, (float) Math.sin(v[1]) * radius, (float) (Math.sin(v[0]) * cl) * radius)
                             .setColor((int) c[0], (int) c[1], (int) c[2], (int) (a * 255));
                 }
@@ -359,7 +359,7 @@ public final class AstralGods {
     }
 
     private static void swirls(Matrix4f m, double t) {
-        gain = 2f;
+        gain = 3f;
         try { swirlsInner(m, t); } finally { gain = 1f; }
     }
 
