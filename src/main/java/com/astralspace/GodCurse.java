@@ -387,6 +387,7 @@ public final class GodCurse {
             case OVERSEER -> {
                 int lev = (3 + c.stage) * 20; // 4 / 5 / 6 seconds of rising, roughly 40-60 blocks
                 fx(p, MobEffects.LEVITATION, lev, 9);
+                if (Lotm.sequence(p) == 0) fx(p, MobEffects.SLOW_FALLING, lev + 600, 0);   // the fall cannot finish a Seq 0 (a Seq 1 and below can still die to it)
                 fx(p, MobEffects.GLOWING, ticks, 0);
                 fx(p, MobEffects.BLINDNESS, ticks, 0);
                 fx(p, lotm("awe", MobEffects.WEAKNESS), ticks, 0);
@@ -547,8 +548,14 @@ public final class GodCurse {
                 c.nextAct = now + 20;
             }
             case OVERSEER -> {
-                Lotm.loseSanityPercent(p, 12); // seeing too much at once
-                hurt(p, 5f * k, "magic");       // fall damage does nothing to high sequences, so it burns the mind and body directly
+                boolean seq0 = Lotm.sequence(p) == 0;   // Seq 0 survives the Overseer; Seq 1 and below can be killed by it
+                double sanity = Lotm.sanityPercent(p);
+                if (!seq0 || sanity < 0 || sanity > 15) Lotm.loseSanityPercent(p, 12); // seeing too much at once (a Seq 0's mind is never emptied)
+                if (seq0) hurt(p, 5f * k, "magic");   // never kills
+                else {
+                    DamageSource osrc = Lotm.source("magic", p);
+                    p.hurt(osrc != null ? osrc : p.level().damageSources().magic(), 5f * k);   // can kill
+                }
                 util("applyAwe", p, 30);
                 Lotm.whisper(p);
                 c.nextAct = now + 10;
