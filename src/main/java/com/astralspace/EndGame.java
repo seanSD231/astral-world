@@ -1185,6 +1185,28 @@ public final class EndGame {
         for (Timed t : due) { cur = t.a(); t.run().accept(t.a().lv()); }
     }
 
+    /**
+     * Nobody regresses in a boss fight: a regress spawns a corrupted rampager (LOTM's fallen persona) that would fight the players.
+     * LOTM's own 10 minute regression protection is kept topped up, a sanity that is about to collapse is lifted, and a sequence that dropped anyway is put back.
+     */
+    private static void holdSequences(MinecraftServer server) {
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            if (p.isSpectator() || !(p.level().dimension().equals(Cosmos.key("raid")) || Cosmos.isPlanetDim(p.level().dimension()))) continue;
+            var tag = p.getPersistentData();
+            tag.putInt("sequenceRegressionProtectionTimer", 6000);
+            tag.putInt("sequenceImmunityTimer", 6000);
+            double sp = Lotm.sanityPercent(p);
+            if (sp >= 0 && sp <= 3 && !p.level().dimension().equals(Cosmos.key("raid"))) Lotm.setSanityPercent(p, 50);   // the raid takes a life for it instead (sanityBreak)
+            int sq = Lotm.sequence(p), kept = raidSeq.getOrDefault(p.getUUID(), -1);
+            if (sq < 0) continue;
+            if (kept < 0 || sq < kept) raidSeq.put(p.getUUID(), sq);
+            else if (sq > kept && Lotm.setSequence(p, kept)) {
+                LOGGER.info("[astral] {} was regressed from Seq {} to Seq {} in a boss fight: put back", p.getGameProfile().getName(), kept, sq);
+                p.sendSystemMessage(Component.literal("Something tried to tear your sequence away. The Astral World holds it.").withStyle(ChatFormatting.DARK_PURPLE));
+            }
+        }
+    }
+
     private static void secondRaid(MinecraftServer server, AstralData d) {
         ServerLevel lv = dim(server, "raid");
         if (lv == null) return;
@@ -1194,16 +1216,6 @@ public final class EndGame {
         final double leash = Math.min(ARENA_R, 95 + 9 * Math.sqrt(Math.max(1, crowdSize)));
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             d.raidLives.putIfAbsent(p.getUUID(), LIVES);
-            if (p.level() == lv && !p.isSpectator()) { // nobody regresses in the arena: LOTM's loss of control and sanity collapse are undone
-                int sq = Lotm.sequence(p), kept = raidSeq.getOrDefault(p.getUUID(), -1);
-                if (sq >= 0) {
-                    if (kept < 0 || sq < kept) raidSeq.put(p.getUUID(), sq);
-                    else if (sq > kept && Lotm.setSequence(p, kept)) {
-                        LOGGER.info("[astral] {} was regressed from Seq {} to Seq {} in the raid: put back", p.getGameProfile().getName(), kept, sq);
-                        p.sendSystemMessage(Component.literal("Something tried to tear your sequence away. The Astral World holds it.").withStyle(ChatFormatting.DARK_PURPLE));
-                    }
-                }
-            }
             if (p.level() != lv) p.teleportTo(lv, 0.5 + SPAWN_R, groundY, 0.5, p.getYRot(), 0f);
             else if (!p.isSpectator() && p.isAlive()) {
                 double px = p.getX() - 0.5, pz = p.getZ() - 0.5, dist = Math.hypot(px, pz);
@@ -1410,6 +1422,10 @@ public final class EndGame {
         m.removeEffect(net.minecraft.world.effect.MobEffects.HARM);
         var tag = m.getPersistentData();
         for (String k : DEATH_FLAGS) if (tag.contains(k)) tag.remove(k);
+        for (String k : new ArrayList<>(tag.getAllKeys())) {   // Depravity and Corruption (Hanged Man, Profane Language) wear a boss down outside every phase rule
+            String lk = k.toLowerCase(java.util.Locale.ROOT);
+            if (lk.startsWith("profanedepravity") || lk.startsWith("profanedegenerate") || lk.contains("corruption")) tag.remove(k);
+        }
         tag.putLong("insideProtectiveStructure", Long.MAX_VALUE);   // LOTM's own flag for 'protected from the World of Pallor': it shrinks, drains and strips abilities from anything else
         for (var inst : new ArrayList<>(m.getActiveEffects()))
             inst.getEffect().unwrapKey().ifPresent(key -> {
@@ -1503,6 +1519,7 @@ public final class EndGame {
     private static void guardLevel(ServerLevel lv) {
         if (lv == null) return;
         for (Entity e : lv.getAllEntities()) {
+            if (e instanceof Mob fp && fp.getPersistentData().getBoolean("isFallenPersona")) { fp.discard(); continue; }   // a regress would spawn a corrupted rampager at the players
             if (e instanceof Mob dm && dm.getTags().contains(TAG_BOSS) && !dm.isAlive() && dm.getHealth() <= 0f) silentDeath(lv, dm);
             if (!(e instanceof Mob m) || !m.getTags().contains(TAG_BOSS) || !m.isAlive()) continue;
             stripDeath(m);
@@ -1547,8 +1564,8 @@ public final class EndGame {
         if (server.getTickCount() % 20 != 0) return;
         switch (d.endPhase) {
             case "evac" -> secondEvac(server, d);
-            case "bosses" -> { ensureAllies(server, d); secondBosses(server, d); }
-            case "raid" -> { ensureAllies(server, d); secondRaid(server, d); }
+            case "bosses" -> { ensureAllies(server, d); holdSequences(server); secondBosses(server, d); }
+            case "raid" -> { ensureAllies(server, d); holdSequences(server); secondRaid(server, d); }
             case "recover" -> secondRecover(server, d);
             default -> { }
         }
