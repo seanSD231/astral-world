@@ -71,9 +71,10 @@ public final class EndGame {
 
     static final String TAG_BOSS = "astral_boss", TAG_RAID = "astral_raid";
     private static final String TAG_PLANET = "astral_boss_of:";
-    private static final float BOSS_HP = 1000f;        // the attribute caps at 1024, so the rest is done by shrinking damage
+    private static final float BOSS_HP = 1000f;        // the sovereigns: the vanilla cap is 1024, so they keep shrinking damage (BOSS_DAMAGE)
+    static final float RAID_HP = 1_000_000f;       // the Mother Tree has real health: AstralMod lifts the vanilla max health cap
     private static final float BOSS_DAMAGE = 0.1f;     // 1000 HP / 0.1  = 10,000 effective
-    private static final float RAID_DAMAGE = 0.001f;   // 1000 HP / 0.001 = 1,000,000 effective
+    private static final float RAID_DAMAGE = 1f;       // no shrinking: her 1,000,000 HP is real
     private static final int LIVES = 5;
     private static final long DAY = 86_400_000L;
 
@@ -376,8 +377,9 @@ public final class EndGame {
         m.setPos(x, y, z);
         m.setPersistenceRequired();
         var hp = m.getAttribute(Attributes.MAX_HEALTH);
-        if (hp != null) hp.setBaseValue(BOSS_HP);
-        m.setHealth(BOSS_HP);
+        float startHp = name.equals(RAID_NAME) ? RAID_HP : BOSS_HP;
+        if (hp != null) hp.setBaseValue(startHp);
+        m.setHealth(startHp);
         m.setCustomName(Component.literal(name).withStyle(ChatFormatting.DARK_RED));
         m.setCustomNameVisible(true);
         if (name.equals(RAID_NAME)) limitTreeAbilities(m);
@@ -977,7 +979,7 @@ public final class EndGame {
         tellLevel(lv, msg, c);
     }
 
-    private static void healBoss(Mob boss, float fraction) { boss.setHealth(Math.min(BOSS_HP, boss.getHealth() + BOSS_HP * fraction)); }
+    private static void healBoss(Mob boss, float fraction) { boss.setHealth(Math.min(RAID_HP, boss.getHealth() + RAID_HP * fraction)); }
 
     private static void removeSeeds(ServerLevel lv) {
         for (BlockPos b : seeds) if (lv.getBlockState(b).is(Blocks.SHROOMLIGHT)) lv.setBlock(b, Blocks.AIR.defaultBlockState(), 3);
@@ -1120,9 +1122,9 @@ public final class EndGame {
         Mob boss = findBoss(lv, TAG_RAID);
         if (boss == null) return;
         if (!rootsActive) {
-            if (rootStage < THRESHOLDS.length && boss.getHealth() / BOSS_HP <= THRESHOLDS[rootStage]) {
+            if (rootStage < THRESHOLDS.length && boss.getHealth() / RAID_HP <= THRESHOLDS[rootStage]) {
                 if (rootStage == 0) startRoots(lv); else if (rootStage == 1) startTransformation(lv); else startSeeds(lv);
-            } else if (rootStage >= THRESHOLDS.length && !ultimateDone && !cutscene && boss.getHealth() / BOSS_HP <= 0.15f) {
+            } else if (rootStage >= THRESHOLDS.length && !ultimateDone && !cutscene && boss.getHealth() / RAID_HP <= 0.15f) {
                 ultimateDone = true;
                 ultimate(lv);
             }
@@ -1153,7 +1155,7 @@ public final class EndGame {
         compass(lv, roots, "Nearest root");
         if (rt >= rootsEnd) {
             removeRoots(lv);
-            boss.setHealth(BOSS_HP);
+            boss.setHealth(RAID_HP);
             rootsActive = false;
             rootStage = 0;
             if (raidBar != null) raidBar.setName(Component.literal(RAID_NAME).withStyle(ChatFormatting.DARK_PURPLE));
@@ -1232,12 +1234,12 @@ public final class EndGame {
         if (boss == null) {
             if (!d.bossesDead.contains("raid")) { // it was lost somehow without dying: bring it back at full strength
                 Mob m = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
-                if (m != null) { m.addTag(TAG_BOSS); m.addTag(TAG_RAID); m.setNoAi(true); m.setNoGravity(true); if (raidRespawnHp > 0) { m.setHealth(Math.min(BOSS_HP, raidRespawnHp)); raidRespawnHp = -1f; } lv.addFreshEntity(m); }
+                if (m != null) { m.addTag(TAG_BOSS); m.addTag(TAG_RAID); m.setNoAi(true); m.setNoGravity(true); if (raidRespawnHp > 0) { m.setHealth(Math.min(RAID_HP, raidRespawnHp)); raidRespawnHp = -1f; } lv.addFreshEntity(m); }
             }
         } else {
             if (raidBar == null) raidBar = new ServerBossEvent(Component.literal(RAID_NAME).withStyle(ChatFormatting.DARK_PURPLE),
                     BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.NOTCHED_20);
-            raidBar.setProgress(Math.max(0f, Math.min(1f, boss.getHealth() / BOSS_HP)));
+            raidBar.setProgress(Math.max(0f, Math.min(1f, boss.getHealth() / RAID_HP)));
             for (ServerPlayer p : server.getPlayerList().getPlayers()) raidBar.addPlayer(p);
         }
         boolean anyAlive = false;
@@ -1528,8 +1530,8 @@ public final class EndGame {
             freeFromOwner(m);
             sizeHitbox(m);
             float max = m.getMaxHealth(), hp = m.getHealth();
-            if (m.getTags().contains(TAG_RAID) && rootStage < THRESHOLDS.length && hp < THRESHOLDS[rootStage] * BOSS_HP - 0.5f) { // however it got hurt (an ability that sets health), it cannot pass the next phase
-                hp = THRESHOLDS[rootStage] * BOSS_HP - 0.5f;
+            if (m.getTags().contains(TAG_RAID) && rootStage < THRESHOLDS.length && hp < THRESHOLDS[rootStage] * RAID_HP - 0.5f) { // however it got hurt (an ability that sets health), it cannot pass the next phase
+                hp = THRESHOLDS[rootStage] * RAID_HP - 0.5f;
                 m.setHealth(hp);
             }
             Float last = lastHp.get(m.getUUID());
@@ -1657,7 +1659,7 @@ public final class EndGame {
         if (e.getTags().contains(TAG_RAID)) {
             var le = (net.minecraft.world.entity.LivingEntity) e;
             float a = rateLimit(le, Math.min(event.getAmount() * RAID_DAMAGE, le.getMaxHealth() * RAID_HIT), RAID_RATE);
-            if (rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * BOSS_HP + 0.5f)); // it can never be hit past the next phase, however hard
+            if (rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * RAID_HP + 0.5f)); // it can never be hit past the next phase, however hard
             if (a <= 0f) { logDrop(e, event, "capped to zero"); event.setCanceled(true); } else event.setAmount(a);
             return;
         }
