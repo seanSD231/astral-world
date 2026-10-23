@@ -81,6 +81,18 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Client -> server: I swung at a root of the tree (no entity there to hit). */
+    public record RootHitPayload(int unused) implements CustomPacketPayload {
+        public static final Type<RootHitPayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "root_hit"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, RootHitPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, RootHitPayload::unused,
+                RootHitPayload::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** One danger marker (kind 0 filled ring, 1 ring, 2 beam, 3 tall beacon). Sent in batches. */
     public record TelegraphPayload(int kind, float x, float y, float z, float a, float b, int color, int life) {
         static void write(RegistryFriendlyByteBuf buf, TelegraphPayload t) {
@@ -189,6 +201,9 @@ public final class Net {
             ClientState.animTicks = payload.ticks();
             ClientState.animSeed = payload.seed();
             ClientState.animStart = System.currentTimeMillis();
+        }));
+        registrar.playToServer(RootHitPayload.TYPE, RootHitPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) EndGame.rootHit(sp);
         }));
         registrar.playToClient(TelegraphBatch.TYPE, TelegraphBatch.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             synchronized (ClientState.telegraphs) {

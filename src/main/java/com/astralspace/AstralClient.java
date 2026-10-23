@@ -62,6 +62,7 @@ public final class AstralClient {
         TreeCutscene.init();
         CallScene.init();
         TreeAnim.init();
+        RootClick.init();
         TelegraphRenderer.init();
         AstralSymbols.init();
         modBus.addListener(AstralClient::registerLayers);

@@ -733,7 +733,6 @@ public final class EndGame {
             boss.setNoGravity(true);
             lv.addFreshEntity(boss);
         }
-        buildRootBoxes(lv, false);
         List<ServerPlayer> all = new ArrayList<>(server.getPlayerList().getPlayers());
         int i = 0;
         for (ServerPlayer p : all) {
@@ -870,66 +869,31 @@ public final class EndGame {
     // ------------------------------------------------------------------ the roots can be hit
 
     private static final String TAG_ROOTBOX = "astral_rootbox";
-    private static final List<Mob> rootBoxes = new ArrayList<>();
-    private static boolean rootBoxesRot = false;
-    private static int rootBoxesWanted = 0;
-    private static final Map<UUID, Long> rootHitAt = new HashMap<>();
 
+    /** Removes any leftover invisible hit-box entities from the earlier versions. */
     private static void clearRootBoxes(ServerLevel lv) {
-        for (Mob m : rootBoxes) m.discard();
-        rootBoxes.clear();
         if (lv != null) for (Entity e : lv.getAllEntities()) if (e.getTags().contains(TAG_ROOTBOX)) e.discard();
     }
 
-    /** Invisible slimes lie along every root: hitting one hits the tree. (The model is the same one the clients draw, so the boxes follow the roots.) */
-    private static void buildRootBoxes(ServerLevel lv, boolean rot) {
-        clearRootBoxes(lv);
-        rootBoxesRot = rot;
-        TreeModel m = TreeModel.build(rot);
-        for (int k = 0; k < m.rootAngle.size(); k++) {
-            double a = m.rootAngle.get(k), len = m.rootLen.get(k), r = 22;
-            while (r < len) {
-                double f = (r - 16) / (len - 16);
-                double w = Math.max(4.5, (14 * Math.pow(Math.max(0, 1 - f), 1.1) + 0.6) * 2);
-                Mob sl = EntityType.PIG.create(lv);   // not a slime: slimes are removed in peaceful; a pig is a plain living thing whose box scales with the scale attribute
-                if (sl != null) {
-                    double sc = Math.max(0.0625, Math.min(16.0, w / 0.9));
-                    var scale = sl.getAttribute(Attributes.SCALE);
-                    if (scale != null) scale.setBaseValue(sc);
-                    sl.refreshDimensions();
-                    sl.setPos(0.5 + Math.cos(a) * r, groundY + 1, 0.5 + Math.sin(a) * r);
-                    sl.addTag(TAG_ROOTBOX);
-                    sl.setNoAi(true); sl.setInvisible(true); sl.setSilent(true); sl.setNoGravity(true); sl.noPhysics = true; sl.setPersistenceRequired();
-                    lv.addFreshEntity(sl);
-                    rootBoxes.add(sl);
-                }
-                r += Math.max(w * 1.1, 6);
-            }
-        }
-        rootBoxesWanted = rootBoxes.size();
-        LOGGER.info("[astral] {} root hit boxes built (rot={})", rootBoxes.size(), rot);
-    }
-
-    /** Once a second: boxes that were killed or moved are put right. */
-    private static void rootBoxesSecond(ServerLevel lv) {
-        int alive = 0;
-        for (Mob m : rootBoxes) if (m.isAlive()) alive++;
-        if (rootBoxes.isEmpty() || alive < rootBoxesWanted * 0.8) { buildRootBoxes(lv, rootBoxesRot); return; }
-        for (Mob m : rootBoxes) m.setDeltaMovement(0, 0, 0);
-    }
-
-    /** A hit on a root is a hit on the tree (once per attacker per tick, so an area attack touching ten roots still hits once). */
-    private static boolean forwardRootHit(LivingIncomingDamageEvent event, Entity e) {
-        if (!e.getTags().contains(TAG_ROOTBOX)) return false;
-        event.setCanceled(true);
-        Entity by = event.getSource().getEntity();
-        if (by == null || e.getServer() == null) return true;
-        Long last = rootHitAt.get(by.getUUID());
-        if (last != null && last == gt) return true;
-        rootHitAt.put(by.getUUID(), gt);
-        Mob boss = findBoss((ServerLevel) e.level(), TAG_RAID);
-        if (boss != null && boss != by) boss.hurt(event.getSource(), event.getAmount());
-        return true;
+    /**
+     * A player swung at a root where there is no entity to hit: the client checked its own aim against the roots and told us.
+     * We check it again against the same root model, then the swing hurts the tree like a normal hit.
+     */
+    static void rootHit(ServerPlayer p) {
+        if (!(p.level() instanceof ServerLevel lv) || !lv.dimension().equals(Cosmos.COSMOS) || p.isSpectator() || !p.isAlive()) return;
+        AstralData d = AstralData.get(lv.getServer());
+        if (!d.endPhase.equals("raid") || p.getUUID().equals(traitor)) return;
+        Mob boss = findBoss(lv, TAG_RAID);
+        if (boss == null) return;
+        Vec3 eye = p.getEyePosition(), look = p.getLookAngle();
+        TreeModel m = TreeModel.build(treeFleshy);
+        double t = m.rayHitRoots(eye.x - boss.getX(), eye.y - boss.getY(), eye.z - boss.getZ(), look.x, look.y, look.z, p.entityInteractionRange() + 2.5);
+        if (t < 0) return;
+        float str = p.getAttackStrengthScale(0.5f);
+        double dmg = p.getAttributeValue(Attributes.ATTACK_DAMAGE) * (0.2 + 0.8 * str * str);
+        p.resetAttackStrengthTicker();
+        p.swing(net.minecraft.world.InteractionHand.MAIN_HAND, true);
+        boss.hurt(p.damageSources().playerAttack(p), (float) dmg);
     }
 
     // ------------------------------------------------------------------ thralls, desire, wounds
@@ -1411,7 +1375,6 @@ public final class EndGame {
             cutscene = false;
             rootsActive = false;
             treeFleshy = true;
-            buildRootBoxes(l, true);   // the roots she grows are not the roots she had
             if (raidBar != null) raidBar.setName(barName("", ChatFormatting.DARK_PURPLE));
             tellLevel(l, "The Mother Tree of Desire curses you all. From now on you see her health as she wants you to see it.", ChatFormatting.DARK_RED);
             startCall(l);
@@ -1596,7 +1559,6 @@ public final class EndGame {
         if (boss == null) return;
         float frac = boss.getHealth() / RAID_HP;
         int bucket = (int) Math.floor(frac * 20);
-        rootBoxesSecond(lv);
         offerSecond(lv, frac);
         raidAlliesSecond(lv);
         if (bucket > lineBucket) lineBucket = bucket;   // healed
@@ -2137,7 +2099,6 @@ public final class EndGame {
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         Entity e = event.getEntity();
-        if (forwardRootHit(event, e)) return;
         if (traitor != null && (e.getTags().contains(TAG_BOSS) || e.getTags().contains(TAG_MINION)) && event.getSource().getEntity() instanceof ServerPlayer ta && ta.getUUID().equals(traitor)) { event.setCanceled(true); return; }   // the ally cannot hurt the tree or her thralls
         if (rootsActive && e.getTags().contains(TAG_RAID)) { logDrop(e, event, "phase active, untouchable"); event.setCanceled(true); return; } // untouchable while its roots stand
         if (e.getTags().contains(TAG_BOSS) && event.getSource().getEntity() instanceof ServerPlayer atk && e.getServer() != null) {

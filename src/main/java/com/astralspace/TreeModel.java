@@ -23,8 +23,37 @@ final class TreeModel {
     final java.util.List<java.util.List<double[]>> limbTips = new java.util.ArrayList<>();
     final java.util.Map<String, double[]> centroids = new java.util.HashMap<>();
     /** Where each buttress root runs: its angle and length (the server builds invisible hit boxes along them). */
+    final java.util.List<double[][]> rootSpine = new java.util.ArrayList<>();
+    final java.util.List<double[]> rootRad = new java.util.ArrayList<>();
     final java.util.List<Double> rootAngle = new java.util.ArrayList<>(), rootLen = new java.util.ArrayList<>();
     private final java.util.List<double[]> leafPts = new java.util.ArrayList<>();   // {x, y, z, dirx, diry, dirz} along the twigs
+    /**
+     * Does a ray (origin and direction relative to the tree's foot) touch a buttress root? Returns the distance along it, or -1.
+     * The roots are treated as chains of balls along their spines (a little fatter than drawn, so a click near a root counts).
+     */
+    double rayHitRoots(double ox, double oy, double oz, double dx, double dy, double dz, double max) {
+        double best = -1;
+        for (int k = 0; k < rootSpine.size(); k++) {
+            double[][] sp = rootSpine.get(k);
+            double[] rad = rootRad.get(k);
+            for (int i = 0; i < sp.length; i++) {
+                for (int half = 0; half < 2; half++) {
+                    if (half == 1 && i == sp.length - 1) continue;
+                    double cx = half == 0 ? sp[i][0] : (sp[i][0] + sp[i + 1][0]) / 2, cy = half == 0 ? sp[i][1] : (sp[i][1] + sp[i + 1][1]) / 2, cz = half == 0 ? sp[i][2] : (sp[i][2] + sp[i + 1][2]) / 2;
+                    double r = Math.max(rad[i], 1.5) + 0.8;
+                    double mx = ox - cx, my = oy - cy, mz = oz - cz;
+                    double b = mx * dx + my * dy + mz * dz, c = mx * mx + my * my + mz * mz - r * r;
+                    if (c > 0 && b > 0) continue;
+                    double disc = b * b - c;
+                    if (disc < 0) continue;
+                    double t = Math.max(0, -b - Math.sqrt(disc));
+                    if (t <= max && (best < 0 || t < best)) best = t;
+                }
+            }
+        }
+        return best;
+    }
+
     private void part(String name, double[] pivot) { parts.add(new Object[]{name, floats, pivot}); }
 
     private final Random rnd;
@@ -235,6 +264,7 @@ final class TreeModel {
             double[][] sp = bez(add(mul(d, 16), v(0, 7, 0)), add(mul(d, L * 0.28), v(0, 7 + lift * 0.25, 0)), add(mul(d, L * 0.65), v(0, 3 + lift * 0.12, 0)), add(mul(d, L), v(0, -2.5, 0)), 18);
             double[] rad = new double[sp.length];
             for (int i = 0; i < sp.length; i++) rad[i] = 14 * Math.pow(1 - i / 18.0, 1.1) + 0.6;
+            rootSpine.add(sp); rootRad.add(rad);
             tube(sp, rad, 8, bark, false, rot);
             if (k % 2 == 0) { // a vein running along the root
                 double[][] vs = new double[sp.length][];
