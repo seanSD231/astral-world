@@ -1554,10 +1554,21 @@ public final class EndGame {
                 || src.is(net.minecraft.world.damagesource.DamageTypes.DRY_OUT) || src.is(net.minecraft.world.damagesource.DamageTypes.HOT_FLOOR);
     }
 
+    private static final Map<UUID, Long> dropLogged = new HashMap<>();
+
+    /** Why a hit on a boss did nothing: logged (at most once a second per boss) so a report of "X does no damage" can be traced. */
+    private static void logDrop(Entity e, LivingIncomingDamageEvent event, String why) {
+        Long last = dropLogged.get(e.getUUID());
+        if (last != null && gt - last < 20) return;
+        dropLogged.put(e.getUUID(), gt);
+        LOGGER.info("[astral] hit on '{}' did nothing ({}): type {}, amount {}, attacker {}, direct {}", e.getName().getString(), why, event.getSource().type().msgId(),
+                event.getAmount(), event.getSource().getEntity(), event.getSource().getDirectEntity());
+    }
+
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         Entity e = event.getEntity();
-        if (rootsActive && e.getTags().contains(TAG_RAID)) { event.setCanceled(true); return; } // untouchable while its roots stand
+        if (rootsActive && e.getTags().contains(TAG_RAID)) { logDrop(e, event, "phase active, untouchable"); event.setCanceled(true); return; } // untouchable while its roots stand
         if (e.getTags().contains(TAG_BOSS) && event.getSource().getEntity() instanceof ServerPlayer atk && e.getServer() != null) {
             AstralData d = AstralData.get(e.getServer());
             lastPlayerHit.put(e.getUUID(), gt);
@@ -1566,20 +1577,20 @@ public final class EndGame {
         if (e.getTags().contains(TAG_BOSS) && !environmental(event.getSource())) for (String t : e.getTags()) if (t.startsWith(TAG_PLANET) && PASSIVE.contains(t.substring(TAG_PLANET.length()))) woken.add(t.substring(TAG_PLANET.length()));
         if (e.getTags().contains(TAG_BOSS)) { // bosses are hurt by players (and their allies' abilities), never by themselves or by each other
             Entity by = event.getSource().getEntity(), direct = event.getSource().getDirectEntity();
-            if (by == e || direct == e || (by instanceof Mob bm && bm.getTags().contains(TAG_BOSS))) { event.setCanceled(true); return; }
+            if (by == e || direct == e || (by instanceof Mob bm && bm.getTags().contains(TAG_BOSS))) { logDrop(e, event, "from the boss itself"); event.setCanceled(true); return; }
         }
-        if (e.getTags().contains(TAG_BOSS) && environmental(event.getSource())) { event.setCanceled(true); return; } // the world cannot kill a sovereign
+        if (e.getTags().contains(TAG_BOSS) && environmental(event.getSource())) { logDrop(e, event, "environmental"); event.setCanceled(true); return; } // the world cannot kill a sovereign
         if (e.getTags().contains(TAG_RAID)) {
             var le = (net.minecraft.world.entity.LivingEntity) e;
             float a = rateLimit(le, Math.min(event.getAmount() * RAID_DAMAGE, le.getMaxHealth() * RAID_HIT), RAID_RATE);
             if (rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * BOSS_HP + 0.5f)); // it can never be hit past the next phase, however hard
-            if (a <= 0f) event.setCanceled(true); else event.setAmount(a);
+            if (a <= 0f) { logDrop(e, event, "capped to zero"); event.setCanceled(true); } else event.setAmount(a);
             return;
         }
         if (e.getTags().contains(TAG_BOSS)) {
             var le = (net.minecraft.world.entity.LivingEntity) e;
             float a = rateLimit(le, Math.min(event.getAmount() * BOSS_DAMAGE, le.getMaxHealth() * MAX_HIT), BOSS_RATE);
-            if (a <= 0f) event.setCanceled(true); else event.setAmount(a);
+            if (a <= 0f) { logDrop(e, event, "capped to zero"); event.setCanceled(true); } else event.setAmount(a);
             return;
         }
         if (e instanceof ServerPlayer p && p.level().dimension().equals(Cosmos.key("raid"))) event.setCanceled(true);
