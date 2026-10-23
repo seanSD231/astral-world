@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.neoforged.neoforge.client.event.ClientChatReceivedEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.MovementInputUpdateEvent;
@@ -49,6 +50,7 @@ public final class CallScene {
         NeoForge.EVENT_BUS.addListener(CallScene::onInteract);
         NeoForge.EVENT_BUS.addListener(CallScene::onFog);
         NeoForge.EVENT_BUS.addListener(CallScene::onFogColor);
+        NeoForge.EVENT_BUS.addListener(CallScene::onChat);
     }
 
     public static boolean active() {
@@ -84,7 +86,11 @@ public final class CallScene {
     }
 
     private static void onGuiLayer(RenderGuiLayerEvent.Pre ev) {
-        if (active() && !ev.getName().equals(VanillaGuiLayers.CHAT)) ev.setCanceled(true);
+        if (active()) ev.setCanceled(true);   // chat too: nothing may cover the words
+    }
+
+    private static void onChat(ClientChatReceivedEvent ev) {
+        if (active()) ev.setCanceled(true);   // no chat messages during the cutscene
     }
 
     private static void onMove(MovementInputUpdateEvent ev) {
@@ -110,7 +116,7 @@ public final class CallScene {
         if (!active()) return;
         float f = clamp01(seconds() / 3.0);
         float dark = darkness();
-        float rr = 0.60f + 0.10f * dark, gg = 0.60f * (1 - dark), bb = 0.66f * (1 - dark);
+        float rr = 0.20f + 0.08f * dark, gg = 0.20f * (1 - dark), bb = 0.23f * (1 - dark);
         if (glitchOn()) { rr = (float) Math.random() * 0.8f; gg = (float) Math.random() * 0.2f; bb = (float) Math.random() * 0.3f; }
         ev.setRed(ev.getRed() + (rr - ev.getRed()) * f);
         ev.setGreen(ev.getGreen() + (gg - ev.getGreen()) * f);
@@ -162,22 +168,53 @@ public final class CallScene {
         return sb.toString();
     }
 
-    /** A hooded dark figure with two red eyes, feet at (cx, baseY). */
-    private static void figure(GuiGraphics g, int cx, int baseY, int hgt, float a, boolean flick) {
+    /** The Fool: a tall dark figure in a long coat and a top hat, a gold glint where his eyes are. Feet at (cx, baseY). */
+    private static void fool(GuiGraphics g, int cx, int baseY, int hgt, float a, boolean flick) {
         int al = (int) (255 * a) << 24;
-        int bw = hgt / 3;
-        for (int y = 0; y < hgt; y++) {                                  // robe widening towards the ground
+        int bw = hgt / 4;
+        for (int y = 0; y < hgt; y++) {                                  // long coat, flaring at the hem
             float t = y / (float) hgt;
-            int half = (int) (bw * (0.35f + 0.75f * t * t + (t < 0.18f ? 0.25f : 0f)));
+            int half = (int) (bw * (0.45f + 0.55f * t * t + (t < 0.22f ? 0.2f : 0f)));
             g.fill(cx - half, baseY - hgt + y, cx + half, baseY - hgt + y + 1, al);
         }
-        int hy = baseY - hgt + (int) (hgt * 0.07f);
-        g.fill(cx - bw / 3, hy - hgt / 12, cx + bw / 3, hy + hgt / 12, al);   // hood
+        int hy = baseY - hgt + (int) (hgt * 0.06f), hw = hgt / 14;
+        g.fill(cx - hw, hy - hgt / 6, cx + hw, hy + hgt / 20, al);          // tall top hat
+        g.fill(cx - hw * 2, hy + hgt / 40, cx + hw * 2, hy + hgt / 20, al); // its brim
+        g.fill(cx - hw, hy - hgt / 20, cx + hw, hy - hgt / 30, ((int) (255 * a) << 24) | 0xC8A040);   // gold band
         if (!flick) {
-            int ey = hy - hgt / 40;
+            int ey = hy + hgt / 14, eAl = (int) (255 * a) << 24;
+            g.fill(cx - hw / 2 - 3, ey, cx - hw / 2 + 1, ey + 2, eAl | 0xFFD060);
+            g.fill(cx + hw / 2 - 1, ey, cx + hw / 2 + 3, ey + 2, eAl | 0xFFD060);
+        }
+    }
+
+    /** The Mother Tree: a thick trunk, spreading branches and a round crown, red lights in the crown. Feet at (cx, baseY). */
+    private static void treeFigure(GuiGraphics g, int cx, int baseY, int hgt, float a, boolean flick) {
+        int al = (int) (255 * a) << 24;
+        int tw = hgt / 9;
+        for (int y = 0; y < hgt * 0.62f; y++) {                          // trunk, flaring into roots
+            float t = y / (hgt * 0.62f);
+            int half = (int) (tw * (0.55f + 0.9f * t * t * t));
+            g.fill(cx - half, baseY - (int) (hgt * 0.62f) + y, cx + half, baseY - (int) (hgt * 0.62f) + y + 1, al);
+        }
+        int cy = baseY - (int) (hgt * 0.78f), cr = (int) (hgt * 0.26f);
+        for (int dy = -cr; dy <= cr; dy++) {                              // crown
+            int half = (int) (cr * 1.25f * Math.sqrt(1.0 - (double) dy * dy / ((double) cr * cr)));
+            g.fill(cx - half, cy + dy, cx + half, cy + dy + 1, al);
+        }
+        for (int i = -2; i <= 2; i++) {                                   // branches reaching out
+            if (i == 0) continue;
+            int bx = cx, by = baseY - (int) (hgt * (0.45f + 0.04f * Math.abs(i)));
+            for (int k = 0; k < hgt / 5; k++) {
+                bx += i > 0 ? 1 : -1;
+                by -= (int) (Math.abs(i) * 0.5f) == 0 ? 0 : (k % 3 == 0 ? 1 : 0);
+                g.fill(bx, by, bx + 1, by + Math.max(2, tw / 3), al);
+            }
+        }
+        if (!flick) {
             int eAl = (int) (255 * a) << 24;
-            g.fill(cx - bw / 5 - 3, ey, cx - bw / 5 + 1, ey + 2, eAl | 0xFF1010);
-            g.fill(cx + bw / 5 - 1, ey, cx + bw / 5 + 3, ey + 2, eAl | 0xFF1010);
+            g.fill(cx - hgt / 14 - 3, cy, cx - hgt / 14 + 2, cy + 3, eAl | 0xFF1010);
+            g.fill(cx + hgt / 14 - 2, cy, cx + hgt / 14 + 3, cy + 3, eAl | 0xFF1010);
         }
     }
 
@@ -185,8 +222,28 @@ public final class CallScene {
     private static void drawLine(Minecraft mc, GuiGraphics g, String text, int w, int h, int alpha, boolean red, boolean glitchy, long slot, double s) {
         float scale = 1.9f;
         g.pose().pushPose();
-        g.pose().translate(w / 2f, h * 0.62f, 0);
+        float maxW = (w * 0.86f) / scale;
+        var rows = mc.font.getSplitter().splitLines(text, (int) maxW, net.minecraft.network.chat.Style.EMPTY);
+        g.pose().translate(w / 2f, h * 0.62f - (rows.size() - 1) * 6f * scale, 0);
         g.pose().scale(scale, scale, 1f);
+        for (int row = 0; row < rows.size(); row++) {
+            g.pose().pushPose();
+            g.pose().translate(0, row * 12f, 0);
+            drawRow(mc, g, rows.get(row).getString(), alpha, red, glitchy, slot + row * 977L, s);
+            g.pose().popPose();
+        }
+        g.pose().popPose();
+        if (glitchy && hash((int) (slot * 3)) < 0.45f) {
+            int by = (int) (h * 0.62f) - 4;
+            for (int i = 0; i < 3; i++) {
+                int ty = by + (int) (hash((int) (slot * 19 + i)) * 24), th = 2 + (int) (hash((int) (slot * 23 + i)) * 4);
+                int off = (int) ((hash((int) (slot * 29 + i)) - 0.5f) * 80);
+                g.fill(w / 2 - 170 + off, ty, w / 2 + 170 + off, ty + th, (red ? 0x66000000 : 0x33FFFFFF) | (red ? 0x300008 : 0xFFE9A0));
+            }
+        }
+    }
+
+    private static void drawRow(Minecraft mc, GuiGraphics g, String text, int alpha, boolean red, boolean glitchy, long slot, double s) {
         boolean burst = glitchy && hash((int) (slot * 3)) < 0.45f;
         String shownText = burst ? scramble(text, slot, 0.18f) : text;
         int tw = mc.font.width(shownText), x0 = -tw / 2;
@@ -209,15 +266,6 @@ public final class CallScene {
         } else {
             g.drawString(mc.font, shownText, x0 + jx, 0, (alpha << 24) | 0xFFF2CC, false);
         }
-        g.pose().popPose();
-        if (burst) {   // horizontal tears across the text band
-            int by = (int) (h * 0.62f) - 4;
-            for (int i = 0; i < 3; i++) {
-                int ty = by + (int) (hash((int) (slot * 19 + i)) * 24), th = 2 + (int) (hash((int) (slot * 23 + i)) * 4);
-                int off = (int) ((hash((int) (slot * 29 + i)) - 0.5f) * 80);
-                g.fill(w / 2 - 170 + off, ty, w / 2 + 170 + off, ty + th, (red ? 0x66000000 : 0x33FFFFFF) | (red ? 0x300008 : 0xFFE9A0));
-            }
-        }
     }
 
     private static void onGui(RenderGuiEvent.Post ev) {
@@ -230,13 +278,13 @@ public final class CallScene {
         float dark = darkness();
         boolean tear = glitchOn();
         long slot = (long) (s * 12);
-        int fogRgb = lerp(0x9C9CA8, 0x2A0A10, dark);
-        g.fill(0, 0, w, h, ((int) (200 * fade) << 24) | fogRgb);   // the grey fog itself, going dark and red as it answers
+        int fogRgb = lerp(0x45454E, 0x12040A, dark);
+        g.fill(0, 0, w, h, ((int) (225 * fade) << 24) | fogRgb);   // the grey fog itself, going dark and red as it answers
         for (int i = 0; i < 12; i++) {                                // lights of colour drifting inside it
             int cx = (int) (w * (0.5 + 0.48 * Math.sin(s * (0.21 + 0.03 * i) + i * 1.7)));
             int cy = (int) (h * (0.5 + 0.42 * Math.cos(s * (0.17 + 0.025 * i) + i * 2.3)));
             int r = (int) (Math.min(w, h) * (0.16 + 0.07 * Math.sin(s * 0.6 + i)));
-            glow(g, cx, cy, r, lerp(LIGHTS[i % LIGHTS.length], 0x801018, dark), (int) (120 * fade * (1 - 0.6f * dark)));
+            glow(g, cx, cy, r, lerp(LIGHTS[i % LIGHTS.length], 0x801018, dark), (int) (80 * fade * (1 - 0.6f * dark)));
         }
         if (s > GLITCH_FROM && s < 50.0) {                            // the fog itself glitches
             float inten = 0.3f + 0.7f * clamp01((s - GLITCH_FROM) / 10.0);
@@ -256,8 +304,8 @@ public final class CallScene {
             boolean flick = hash((int) (slot * 3)) < 0.1f;
             int hgt = (int) (h * 0.78f), base = (int) (h * 0.97f);
             int sway = (int) (Math.sin(s * 1.3) * 3);
-            figure(g, (int) (w * 0.14f) + sway, base, hgt, a * (flick ? 0.5f : 1f), flick);
-            figure(g, (int) (w * 0.86f) - sway, base, hgt, a * (flick ? 0.5f : 1f), flick);
+            fool(g, (int) (w * 0.14f) + sway, base, hgt, a * (flick ? 0.5f : 1f), flick);
+            treeFigure(g, (int) (w * 0.86f) - sway, base, hgt, a * (flick ? 0.5f : 1f), flick);
         }
         for (int i = 0; i < LINES.length; i++) {                      // the voice
             double t = s - AT[i];

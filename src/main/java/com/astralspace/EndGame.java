@@ -272,10 +272,8 @@ public final class EndGame {
             for (ServerPlayer p : server.getPlayerList().getPlayers()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(20, CALL_TICKS + 20));
         }
         while (spoken < PRAYER.length && t >= PRAYER_AT[spoken]) {
-            boolean red = spoken >= 7 && spoken <= 9;
-            Component line = Component.literal(PRAYER[spoken]).withStyle(red ? new ChatFormatting[]{ChatFormatting.ITALIC, ChatFormatting.DARK_RED} : new ChatFormatting[]{ChatFormatting.ITALIC, ChatFormatting.GOLD});
+            boolean red = spoken >= 7 && spoken <= 9;   // the words are on the screen only, not in chat
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
-                p.sendSystemMessage(line);
                 if (red) p.playNotifySound(SoundEvents.WARDEN_HEARTBEAT, SoundSource.MASTER, 2.0f, 0.6f);
                 else p.playNotifySound(SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.MASTER, 1.5f, 0.5f);
             }
@@ -731,7 +729,7 @@ public final class EndGame {
         groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
         timed.clear();
         raidSeq.clear();
-        rt = 0; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; treeFleshy = false; lineBucket = 20;
+        rt = 0; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; ultCutsceneUntil = 0; treeFleshy = false; lineBucket = 20;
         traitor = null; offered = null; offerDone = false; noHeal.clear(); desire.clear(); thrallHitAt.clear();
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
@@ -1488,25 +1486,31 @@ public final class EndGame {
         for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, pk);
     }
 
+    private static final int FALL_TICKS = 600;      // 30 s, the client's MeteorScene.FALL uses the same
+    private static long ultCutsceneUntil = 0;
+
     private static void ultimate(ServerLevel lv) {
-        sendAnim(lv, 20, 340);
-        nextPattern = Math.max(nextPattern, rt + 420);   // no other attack while it falls
+        sendAnim(lv, 20, FALL_TICKS + 40);
+        nextPattern = Math.max(nextPattern, rt + FALL_TICKS + 120);   // no other attack while it falls
+        ultCutsceneUntil = rt + 170;
+        for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(22, 160));   // the cutscene: everyone watches it start to fall
         final double cx = 0.5, cz = 0.5, top = cur.gy() + 190;
         LOGGER.info("[astral] the tree's ultimate meteor begins");
-        for (int t = 0; t < 300; t++) {
+        for (int t = 0; t < FALL_TICKS; t++) {
             final int tt = t;
             at(t, l -> {
-                double y = top - (top - cur.gy()) * (tt / 300.0) * (tt / 300.0);   // it speeds up as it falls
-                double size = 6 + tt / 300.0 * 10;
+                double f = tt / (double) FALL_TICKS;
+                double y = top - (top - cur.gy()) * (0.6 * f + 0.4 * f * f);   // slow: it only speeds up a little near the ground
+                double size = 6 + f * 10;
                 l.sendParticles(ParticleTypes.FLAME, cx, y, cz, 30, size * 0.5, size * 0.4, size * 0.5, 0.02);
                 l.sendParticles(ParticleTypes.LAVA, cx, y, cz, 10, size * 0.5, size * 0.4, size * 0.5, 0);
                 l.sendParticles(ParticleTypes.LARGE_SMOKE, cx, y + size * 0.5, cz, 20, size * 0.5, size * 0.6, size * 0.5, 0.05);
-                if (tt % 20 == 0) sfx(l, SoundEvents.WARDEN_HEARTBEAT, 3f, 0.4f + tt / 400f);
-                if (tt == 120) sfx(l, SoundEvents.ENDER_DRAGON_GROWL, 2f, 0.4f);
-                if (tt == 220) sfx(l, SoundEvents.WARDEN_ROAR, 3f, 0.5f);
+                if (tt % 20 == 0) sfx(l, SoundEvents.WARDEN_HEARTBEAT, 3f, 0.4f + tt / 800f);
+                if (tt == FALL_TICKS * 2 / 5) sfx(l, SoundEvents.ENDER_DRAGON_GROWL, 2f, 0.4f);
+                if (tt == FALL_TICKS * 11 / 15) sfx(l, SoundEvents.WARDEN_ROAR, 3f, 0.5f);
             });
         }
-        at(300, l -> {
+        at(FALL_TICKS, l -> {
             sfx(l, SoundEvents.GENERIC_EXPLODE.value(), 4f, 0.5f);
             sfx(l, SoundEvents.LIGHTNING_BOLT_THUNDER, 4f, 0.6f);
             l.sendParticles(ParticleTypes.EXPLOSION_EMITTER, cx, cur.gy() + 2, cz, 12, 40, 4, 40, 0);
@@ -1907,7 +1911,7 @@ public final class EndGame {
 
     /** Hitbox size in blocks (width, height) per boss, matched to the drawn model. The mob itself is player-sized (0.6 x 1.8). */
     private static final Map<String, double[]> HITBOX = Map.of("mercury", new double[]{14, 13}, "venus", new double[]{24, 10}, "mars", new double[]{8, 7},
-            "jupiter", new double[]{17, 13}, "saturn", new double[]{11, 11}, "uranus", new double[]{18, 20}, "neptune", new double[]{15, 15}, "tree", new double[]{260, 150});
+            "jupiter", new double[]{17, 13}, "saturn", new double[]{11, 11}, "uranus", new double[]{18, 20}, "neptune", new double[]{15, 15}, "tree", new double[]{50, 150});
 
     private static boolean pkOk = false, pkTried = false;
     private static Object pkWidth, pkHeight;
@@ -2107,6 +2111,7 @@ public final class EndGame {
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         Entity e = event.getEntity();
+        if (e instanceof ServerPlayer && rt < ultCutsceneUntil) { event.setCanceled(true); return; }   // nobody is hurt while watching the meteor start to fall
         if (e instanceof ServerPlayer && e.getServer() != null && "call".equals(AstralData.get(e.getServer()).endPhase)) { event.setCanceled(true); return; }   // nobody can be hurt while the Fool is called
         if (traitor != null && (e.getTags().contains(TAG_BOSS) || e.getTags().contains(TAG_MINION)) && event.getSource().getEntity() instanceof ServerPlayer ta && ta.getUUID().equals(traitor)) { event.setCanceled(true); return; }   // the ally cannot hurt the tree or her thralls
         if (rootsActive && e.getTags().contains(TAG_RAID)) { logDrop(e, event, "phase active, untouchable"); event.setCanceled(true); return; } // untouchable while its roots stand

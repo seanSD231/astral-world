@@ -61,6 +61,7 @@ public final class AstralClient {
         TreeBossBar.init();
         TreeCutscene.init();
         CallScene.init();
+        MeteorScene.init();
         TreeAnim.init();
         RootClick.init();
         TelegraphRenderer.init();
@@ -305,10 +306,15 @@ public final class AstralClient {
         if (mc.options.hideGui || mc.player == null) return;
         Font font = mc.font;
         double time = age / 1000.0;
-        drawMovingGradient(g, font, text, 2.0f, g.guiHeight() * 0.28f, alpha, time, Net.ClientState.stageFrom, Net.ClientState.stageTo, true);
+        var titleLines = Wrap.lines(font, text, (int) (g.guiWidth() * 0.86f / 2.0f));
+        for (int li = 0; li < titleLines.size(); li++)
+            drawMovingGradient(g, font, titleLines.get(li), 2.0f, g.guiHeight() * 0.28f + li * 22f, alpha, time, Net.ClientState.stageFrom, Net.ClientState.stageTo, true);
         String sub = Net.ClientState.stageSub;
-        if (sub != null && !sub.isEmpty())
-            drawMovingGradient(g, font, sub, 1.0f, g.guiHeight() * 0.28f + 26f, alpha, time, 0x707080, 0xE0E0F0, false);
+        if (sub != null && !sub.isEmpty()) {
+            var subLines = Wrap.lines(font, sub, (int) (g.guiWidth() * 0.86f));
+            for (int li = 0; li < subLines.size(); li++)
+                drawMovingGradient(g, font, subLines.get(li), 1.0f, g.guiHeight() * 0.28f + 26f + (titleLines.size() - 1) * 22f + li * 11f, alpha, time, 0x707080, 0xE0E0F0, false);
+        }
     }
 
     /**

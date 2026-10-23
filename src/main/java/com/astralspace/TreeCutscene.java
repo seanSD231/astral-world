@@ -206,9 +206,10 @@ public final class TreeCutscene {
             if (alpha < 8) continue;
             boolean fleshy = i >= 3;
             g.pose().pushPose();
-            g.pose().translate(w / 2f, h - bh - 26, 0);
+            var sl = Wrap.lines(mc.font, LINES[i], (int) (w * 0.86f / 1.6f));
+            g.pose().translate(w / 2f, h - bh - 26 - (sl.size() - 1) * 14f, 0);
             g.pose().scale(1.6f, 1.6f, 1f);
-            g.drawCenteredString(mc.font, LINES[i], 0, 0, (alpha << 24) | (fleshy ? 0xC8D060 : 0xFFD6F0));
+            for (int li = 0; li < sl.size(); li++) g.drawCenteredString(mc.font, sl.get(li), 0, li * 10, (alpha << 24) | (fleshy ? 0xC8D060 : 0xFFD6F0));
             g.pose().popPose();
         }
         // fades and the flash at the moment it changes
