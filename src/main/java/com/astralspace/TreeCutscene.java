@@ -83,11 +83,13 @@ public final class TreeCutscene {
     private static final double[][] KEYS = {
             {0.0, 20, 115, 6, 75}, {3.0, 40, 95, 10, 70}, {7.0, 200, 70, 45, 45}, {9.2, 255, 52, 22, 25}, {10.5, 290, 34, 14, 22}, {13.0, 335, 135, 60, 70}};
 
+    private static final double FAR = 1.7, UP = 1.35;   // the camera keeps this much further out and higher than the keyframes below
+
     private static double[] pathAt(double s) {
         double[] a = KEYS[0], b = KEYS[KEYS.length - 1];
         for (int i = 0; i < KEYS.length - 1; i++) if (s <= KEYS[i + 1][0]) { a = KEYS[i]; b = KEYS[i + 1]; break; }
         double t = ease((s - a[0]) / Math.max(0.001, b[0] - a[0]));
-        return new double[]{mix(a[1], b[1], t), mix(a[2], b[2], t), mix(a[3], b[3], t), mix(a[4], b[4], t)};
+        return new double[]{mix(a[1], b[1], t), mix(a[2], b[2], t) * FAR, mix(a[3], b[3], t) * UP, mix(a[4], b[4], t)};
     }
 
     private static void findTree(Minecraft mc) {

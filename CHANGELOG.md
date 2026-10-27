@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.33
+- The tree transformation cutscene camera stays 70% further away (and a bit higher), so the whole tree fits in view.
+
 ## 0.2.32
 - Mother Tree fight: proper attack visuals, drawn on your screen (nothing changes in damage or timing).
   - Meteors fall from the sky as a glowing fireball with a long fiery trail, and burst into a flash, shock ring and fire column where they land.
