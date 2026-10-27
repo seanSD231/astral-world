@@ -721,6 +721,22 @@ public final class EndGame {
             "jupiter", new int[]{1, 2}, "saturn", new int[]{2, 3}, "uranus", new int[]{4, 1}, "neptune", new int[]{5, 0});
     private static final List<Timed> timed = new ArrayList<>();
     private static long rt = 0, nextPattern = 0;
+    private static final int INTRO_TICKS = 200, GRACE_TICKS = 600;   // the camera scene, then 30 seconds of peace
+    private static final double WAKE_R = 45;                         // after the grace the tree wakes when someone is this close, or hits it
+    private static boolean aggro = false;                            // false: the tree has not noticed anyone yet and does not attack
+    private static long graceUntil = 0;
+
+    private static boolean raidPhase(Entity e) { return e.getServer() != null && "raid".equals(AstralData.get(e.getServer()).endPhase); }
+
+    private static void wake(ServerLevel lv, String why) {
+        if (aggro) return;
+        aggro = true;
+        nextPattern = rt + 40;
+        nextTreeCast = rt + 600;
+        LOGGER.info("[astral] the tree wakes: {}", why);
+        tellLevel(lv, "The Mother Tree of Desire wakes.", ChatFormatting.DARK_RED);
+        sfx(lv, SoundEvents.WARDEN_ROAR, 3f, 0.5f);
+    }
     private static double groundY = 4;
     private static final Map<UUID, Long> lastHit = new HashMap<>();
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
@@ -749,7 +765,7 @@ public final class EndGame {
         groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
         timed.clear();
         raidSeq.clear();
-        rt = 0; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; ultCutsceneUntil = 0; treeFleshy = false; lineBucket = 20;
+        rt = 0; aggro = false; graceUntil = INTRO_TICKS + GRACE_TICKS; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; ultCutsceneUntil = 0; treeFleshy = false; lineBucket = 20;
         traitor = null; offered = null; offerDone = false; noHeal.clear(); desire.clear(); thrallHitAt.clear();
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
@@ -770,7 +786,9 @@ public final class EndGame {
             removeBlessing(p);
             blessPlayer(p);
         }
+        for (ServerPlayer p : all) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(23, INTRO_TICKS));   // the camera circles the tree first
         tell(server, RAID_NAME + " has come. You have " + LIVES + " lives. Do not be where it strikes.", ChatFormatting.DARK_PURPLE);
+        tell(server, "She sleeps. For " + (GRACE_TICKS / 20) + " seconds after this she cannot be hurt and will not strike. Afterwards she only wakes if you come within " + (int) WAKE_R + " blocks of her or strike her.", ChatFormatting.LIGHT_PURPLE);
     }
 
     private static List<ServerPlayer> fighters(ServerLevel lv) {
@@ -1662,9 +1680,13 @@ public final class EndGame {
         rt++;
         cur = new Arena(lv, 0.5, 0.5, groundY, true);
         if (rt % 20 == 0) rootsSecond(lv);
-        treeCast(lv);
+        if (aggro) treeCast(lv);
+        else if (rt >= graceUntil && rt % 5 == 0) {
+            for (ServerPlayer p : fighters(lv)) if (Math.hypot(p.getX() - 0.5, p.getZ() - 0.5) < WAKE_R) { wake(lv, p.getGameProfile().getName() + " came too close"); break; }
+        }
+        if (rt == graceUntil && !aggro) tellLevel(lv, "The peace is over. She wakes if you come within " + (int) WAKE_R + " blocks, or strike her.", ChatFormatting.LIGHT_PURPLE);
         if (rt % 5 == 0) for (ServerPlayer p : fighters(lv)) { double sp = Lotm.sanityPercent(p); if (sp >= 0 && sp <= 3) sanityBreak(p); }   // before LOTM's own collapse
-        if (rt >= nextPattern && !cutscene && !fighters(lv).isEmpty()) {
+        if (aggro && rt >= nextPattern && !cutscene && !fighters(lv).isEmpty()) {
             int[] opts = NEXT[lastPattern];
             int which = opts[ThreadLocalRandom.current().nextInt(opts.length)];
             lastPattern = which;
@@ -2152,6 +2174,12 @@ public final class EndGame {
     public static void onDamage(LivingIncomingDamageEvent event) {
         Entity e = event.getEntity();
         if (e instanceof ServerPlayer && god.contains(e.getUUID())) { event.setCanceled(true); return; }   // /astralgod
+        if (e instanceof ServerPlayer && !aggro && rt < INTRO_TICKS && raidPhase(e)) { event.setCanceled(true); return; }   // nobody is hurt while the camera shows the tree
+        if (e.getTags().contains(TAG_RAID) && rt < graceUntil && raidPhase(e)) {   // the tree sleeps: nothing can hurt it
+            event.setCanceled(true);
+            if (event.getSource().getEntity() instanceof ServerPlayer atk) atk.displayClientMessage(Component.literal("She sleeps. She cannot be hurt for " + Math.max(1, (graceUntil - rt + 19) / 20) + " more seconds.").withStyle(ChatFormatting.LIGHT_PURPLE), true);
+            return;
+        }
         if (e instanceof ServerPlayer && rt < ultCutsceneUntil) { event.setCanceled(true); return; }   // nobody is hurt while watching the meteor start to fall
         if (e instanceof ServerPlayer && e.getServer() != null && "call".equals(AstralData.get(e.getServer()).endPhase)) { event.setCanceled(true); return; }   // nobody can be hurt while the Fool is called
         if (traitor != null && (e.getTags().contains(TAG_BOSS) || e.getTags().contains(TAG_MINION)) && event.getSource().getEntity() instanceof ServerPlayer ta && ta.getUUID().equals(traitor)) { event.setCanceled(true); return; }   // the ally cannot hurt the tree or her thralls
@@ -2168,6 +2196,7 @@ public final class EndGame {
         }
         if (e.getTags().contains(TAG_BOSS) && environmental(event.getSource())) { logDrop(e, event, "environmental"); event.setCanceled(true); return; } // the world cannot kill a sovereign
         if (e.getTags().contains(TAG_RAID)) {
+            if (e.level() instanceof ServerLevel wl) wake(wl, "it was struck");
             var le = (net.minecraft.world.entity.LivingEntity) e;
             float a = rateLimit(le, Math.min(event.getAmount() * RAID_DAMAGE, le.getMaxHealth() * RAID_HIT), RAID_RATE);
             if (rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * RAID_HP + 0.5f)); // it can never be hit past the next phase, however hard

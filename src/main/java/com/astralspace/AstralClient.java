@@ -62,6 +62,7 @@ public final class AstralClient {
         TreeCutscene.init();
         CallScene.init();
         MeteorScene.init();
+        IntroScene.init();
         TreeAnim.init();
         RootClick.init();
         TelegraphRenderer.init();

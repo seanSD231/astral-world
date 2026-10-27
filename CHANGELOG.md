@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.34
+- Tree fight start: after the teleport everyone watches a slow camera scene circling the Mother Tree (hold SPACE to skip), then there is a 30 second grace period.
+  - During the scene and the grace period the tree cannot be hurt and does not attack, and nobody takes damage during the scene.
+  - After that the tree stays asleep until a fighter comes within 45 blocks of it or anyone hits it. Then it wakes and the normal attacks begin.
+
 ## 0.2.33
 - The tree transformation cutscene camera stays 70% further away (and a bit higher), so the whole tree fits in view.
 

@@ -22,7 +22,7 @@ final class RootClick {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null || mc.screen != null || Double.isNaN(TreeRenderer.lastY)) return;
         if (!mc.level.dimension().location().getPath().equals("cosmos")) return;
-        if (CallScene.active() || TreeCutscene.active()) return;
+        if (CallScene.active() || TreeCutscene.active() || IntroScene.active()) return;
         HitResult hr = mc.hitResult;
         if (hr != null && hr.getType() == HitResult.Type.ENTITY) return;   // something real is there: the normal attack handles it
         if (hr != null && hr.getType() == HitResult.Type.BLOCK && hr instanceof net.minecraft.world.phys.BlockHitResult bh) {   // heart seeds and root blocks are real blocks: swinging at them breaks them, even under the drawn roots
