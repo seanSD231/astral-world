@@ -874,6 +874,12 @@ public final class EndGame {
         teleBuf.clear();
     }
 
+    /** One attack effect for every player in the level; the clients animate it by themselves (see AttackFx for the kinds). */
+    private static void fx(ServerLevel lv, int kind, double x, double y, double z, double a, double b, double c, int color, int life) {
+        Net.FxPayload pk = new Net.FxPayload(kind, (float) x, (float) y, (float) z, (float) a, (float) b, (float) c, color, life);
+        for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, pk);
+    }
+
     private static void ringOnly(ServerLevel lv, double x, double z, double r, float cr, float cg, float cb) {
         tele(lv, 1, x, cur.gy(), z, (float) r, 0f, cr, cg, cb, 4);
     }
@@ -1204,6 +1210,7 @@ public final class EndGame {
         switch (which) {
             case 6 -> power(lv);
             case 7 -> { // a curse on everyone: cannot be dodged, but it does not cost a life
+                if (!crowd) for (ServerPlayer p : fighters(lv)) fx(lv, 5, p.getX(), p.getY(), p.getZ(), 0, 0, 1.5, rgb(0.55f, 0.15f, 0.8f), 70);
                 for (int t = 0; t < 60; t += 6) at(t, l -> {
                     for (ServerPlayer p : fighters(l)) l.sendParticles(ParticleTypes.WITCH, p.getX(), p.getY() + 1, p.getZ(), 12, 0.6, 0.9, 0.6, 0.05);
                 });
@@ -1225,6 +1232,7 @@ public final class EndGame {
                     for (ServerPlayer p : fighters(l)) {
                         double x = p.getX() + rnd.nextDouble(-3, 3), z = p.getZ() + rnd.nextDouble(-3, 3);
                         for (int t = 0; t < 30; t += 5) at(t, ll -> circle(ll, x, z, mr, 1f, 0.1f, 0.1f));
+                        if (!crowd) fx(l, 0, x, cur.gy(), z, 30, mr, 0, rgb(1f, 0.45f, 0.1f), 62);
                         at(30, ll -> { boom(ll, x, z, mr); strike(ll, x, z, mr, 99); });
                     }
                 });
@@ -1233,6 +1241,7 @@ public final class EndGame {
                 int rings = 2 + rnd.nextInt(2);
                 for (int ring = 0; ring < rings; ring++) {
                     long start = 25 + ring * 30L;
+                    at(start, l -> fx(l, 2, cur.cx(), cur.gy(), cur.cz(), 2, big ? 1.3 : 0.6, 0, rgb(0.7f, 0.25f, 1f), big ? 152 : 52));
                     for (int t = 0; t < (big ? 150 : 50); t++) {
                         final int tt = t;
                         at(start + t, l -> {
@@ -1260,6 +1269,7 @@ public final class EndGame {
                     double a = rnd.nextDouble() * Math.PI * 2, d = 6 + rnd.nextDouble() * (big ? reach * 0.5 : 14), v = rnd.nextDouble() * Math.PI * 2;
                     k[0] = cx + Math.cos(a) * d; k[1] = cz + Math.sin(a) * d; k[2] = Math.cos(v) * 0.08; k[3] = Math.sin(v) * 0.08;
                 }
+                for (double[] k : c) fx(lv, 3, k[0], cur.gy(), k[1], k[2], k[3], cr, rgb(0.7f, 0.2f, 0.9f), 185);
                 for (int t = 0; t < 180; t += 4) {
                     final int tt = t;
                     at(t, l -> {
@@ -1339,6 +1349,7 @@ public final class EndGame {
                 for (ServerPlayer p : fighters(lv)) {
                     double x = p.getX(), z = p.getZ();
                     for (int t = 0; t < 40; t += 4) at(t, l -> circle(l, x, z, sl, 1f, 0.3f, 0f));
+                    if (!crowd) fx(lv, 1, x, cur.gy(), z, 40, sl, 0, rgb(1f, 0.35f, 0.05f), 78);
                     at(40, l -> { boom(l, x, z, sl); strike(l, x, z, sl, 99); });
                 }
             }
@@ -1359,6 +1370,7 @@ public final class EndGame {
                         if (!ok) hit(l, p);
                     }
                     boom(l, cx, cz, big ? 60 : 30);
+                    fx(l, 4, cx, cur.gy(), cz, big ? reach + 10 : 40, 0, 0, rgb(0.85f, 0.4f, 1f), 36);
                 });
             }
         }
@@ -1514,6 +1526,7 @@ public final class EndGame {
         for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(22, 160));   // the cutscene: everyone watches it start to fall
         final double cx = 0.5, cz = 0.5, top = cur.gy() + 190;
         LOGGER.info("[astral] the tree's ultimate meteor begins");
+        fx(lv, 6, cx, cur.gy(), cz, top - cur.gy(), FALL_TICKS, 0, rgb(1f, 0.4f, 0.08f), FALL_TICKS + 70);
         for (int t = 0; t < FALL_TICKS; t++) {
             final int tt = t;
             at(t, l -> {

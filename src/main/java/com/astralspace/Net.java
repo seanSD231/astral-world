@@ -103,6 +103,18 @@ public final class Net {
         }
     }
 
+    /** One attack effect (see AttackFx for the kinds). The client animates it by itself from the moment it arrives. */
+    public record FxPayload(int kind, float x, float y, float z, float a, float b, float c, int color, int life) implements CustomPacketPayload {
+        public static final Type<FxPayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "attack_fx"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, FxPayload> CODEC = StreamCodec.of(
+                (buf, f) -> { buf.writeByte(f.kind); buf.writeFloat(f.x); buf.writeFloat(f.y); buf.writeFloat(f.z); buf.writeFloat(f.a); buf.writeFloat(f.b); buf.writeFloat(f.c); buf.writeInt(f.color); buf.writeShort(f.life); },
+                buf -> new FxPayload(buf.readByte(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readInt(), buf.readShort()));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** Server -> client: every danger marker of one tick in a single packet (the raid can hold ~100 players). Drawn on top of everything. */
     public record TelegraphBatch(java.util.List<TelegraphPayload> items) implements CustomPacketPayload {
         public static final Type<TelegraphBatch> TYPE =
@@ -147,6 +159,7 @@ public final class Net {
     /** What the client currently knows. Plain fields, safe to load on a server. */
     public static final class ClientState {
         public static final java.util.List<double[]> telegraphs = new java.util.ArrayList<>();
+        public static final java.util.List<double[]> fx = new java.util.ArrayList<>();
         public static volatile boolean show;
         public static volatile int hp, max;
         public static volatile String coords = "";
@@ -211,6 +224,12 @@ public final class Net {
                     if (ClientState.telegraphs.size() >= 2500) break;
                     ClientState.telegraphs.add(new double[]{t.kind(), t.x(), t.y(), t.z(), t.a(), t.b(), t.color(), System.currentTimeMillis() + t.life() * 50L});
                 }
+            }
+        }));
+        registrar.playToClient(FxPayload.TYPE, FxPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            synchronized (ClientState.fx) {
+                if (ClientState.fx.size() < 300)
+                    ClientState.fx.add(new double[]{payload.kind(), payload.x(), payload.y(), payload.z(), payload.a(), payload.b(), payload.c(), payload.color(), System.currentTimeMillis(), payload.life()});
             }
         }));
         registrar.playToClient(MutePayload.TYPE, MutePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> ClientState.muted = payload.mute()));

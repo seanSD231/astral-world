@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.32
+- Mother Tree fight: proper attack visuals, drawn on your screen (nothing changes in damage or timing).
+  - Meteors fall from the sky as a glowing fireball with a long fiery trail, and burst into a flash, shock ring and fire column where they land.
+  - Slam: a huge thorn spike crashes down onto the red circle, the ground cracks outward and shards of earth are thrown up.
+  - Rolling rings: a glowing wall of light rolls out of the tree (jump it).
+  - Pollen veil: drifting violet clouds with swirling motes, so you can see where they are.
+  - Curse: dark sparks spiral up every fighter.
+  - Final blast and the 15% meteor: a real blazing meteor with a trail falls the whole 30 s, then a huge dome, shock wall and column when it lands.
+
 ## 0.2.31
 - Nerfed the Ravings curse the same way: it can no longer kill a Seq 0. For a Seq 0 the opening sanity loss is 20% instead of 50%, the corruption it piles on every half second is about a third as much, and the fire damage cannot kill. A Seq 1 and weaker take it at full strength and can die. (Its corruption only started actually applying in 0.2.24, which is probably why it suddenly felt much harder.)
 

@@ -65,6 +65,7 @@ public final class AstralClient {
         TreeAnim.init();
         RootClick.init();
         TelegraphRenderer.init();
+        AttackFx.init();
         AstralSymbols.init();
         modBus.addListener(AstralClient::registerLayers);
         modBus.addListener(AstralClient::registerSky);
