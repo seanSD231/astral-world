@@ -99,6 +99,8 @@ public final class EndGame {
     private static final Map<UUID, Long> noHeal = new HashMap<>();       // player -> tick until which nothing heals them
     private static final Map<UUID, long[]> desire = new HashMap<>();     // player -> {stacks, tick of the last stack}
     private static final Map<UUID, Long> thrallHitAt = new HashMap<>();
+    /** What everyone calls her right now: the World Tree until the change at 50%, the Mother Tree of Desire after it. */
+    private static String treeName() { return treeFleshy ? RAID_NAME : "The World Tree"; }
     private static boolean treeFleshy = false;   // after the 50% change she is the Mother Tree of Desire; before it, the World Tree
     private static int lineBucket = 20;          // the last 5% step of her health she has spoken at
 
@@ -545,7 +547,7 @@ public final class EndGame {
         if (hp != null) hp.setBaseValue(startHp);
         m.setHealth(startHp);
         m.setCustomName(Component.literal(name).withStyle(ChatFormatting.DARK_RED));
-        m.setCustomNameVisible(true);
+        m.setCustomNameVisible(!name.equals(RAID_NAME));   // the tree has no name tag until she is revealed (the clients still find her by the name)
         if (name.equals(RAID_NAME)) limitTreeAbilities(m);
         else if (name.startsWith("Sovereign of ")) silence(m, name.substring(13).toLowerCase(java.util.Locale.ROOT));
         return m;
@@ -734,7 +736,7 @@ public final class EndGame {
         nextPattern = rt + 40;
         nextTreeCast = rt + 600;
         LOGGER.info("[astral] the tree wakes: {}", why);
-        tellLevel(lv, "The Mother Tree of Desire wakes.", ChatFormatting.DARK_RED);
+        tellLevel(lv, treeName() + " wakes.", ChatFormatting.DARK_RED);
         sfx(lv, SoundEvents.WARDEN_ROAR, 3f, 0.5f);
     }
     private static double groundY = 4;
@@ -788,7 +790,7 @@ public final class EndGame {
             blessPlayer(p);
         }
         for (ServerPlayer p : all) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(23, INTRO_TICKS));   // the camera circles the tree first
-        tell(server, RAID_NAME + " has come. You have " + LIVES + " lives. Do not be where it strikes.", ChatFormatting.DARK_PURPLE);
+        tell(server, "The World Tree has come. You have " + LIVES + " lives. Do not be where it strikes.", ChatFormatting.DARK_PURPLE);
         tell(server, "She sleeps. For " + (GRACE_TICKS / 20) + " seconds after this she cannot be hurt and will not strike. Afterwards she only wakes if you come within " + (int) WAKE_R + " blocks of her or strike her.", ChatFormatting.LIGHT_PURPLE);
     }
 
@@ -1442,7 +1444,7 @@ public final class EndGame {
         at(235, l -> sfx(l, SoundEvents.WARDEN_ROAR, 3f, 0.6f));
         at(CUT_TICKS, l -> {
             Mob b = findBoss(l, TAG_RAID);
-            if (b != null) b.setCustomName(Component.literal(RAID_NAME + "\u200B").withStyle(ChatFormatting.DARK_RED)); // the invisible mark tells clients to draw the fleshy form for good
+            if (b != null) { b.setCustomName(Component.literal(RAID_NAME + "\u200B").withStyle(ChatFormatting.DARK_RED)); b.setCustomNameVisible(true); } // the invisible mark tells clients to draw the fleshy form for good
             cutscene = false;
             rootsActive = false;
             treeFleshy = true;
@@ -1492,7 +1494,7 @@ public final class EndGame {
         activeKind = 1;
         phaseEnd = rt + 210;
         callFailed.clear();
-        tellLevel(lv, "The Mother Tree sings. It cannot be hurt while you listen. Do NOT give in: every one who does heals it.", ChatFormatting.LIGHT_PURPLE);
+        tellLevel(lv, treeName() + " sings. It cannot be hurt while you listen. Do NOT give in: every one who does heals it.", ChatFormatting.LIGHT_PURPLE);
         temptation(lv, 200, callFailed);
         at(205, l -> {
             Mob b = findBoss(l, TAG_RAID);
@@ -1686,7 +1688,7 @@ public final class EndGame {
             rootStage = 0;
             if (raidBar != null) raidBar.setName(barName("", ChatFormatting.DARK_PURPLE));
             lineBucket = 20;
-            tellLevel(lv, "The roots drink. The Mother Tree of Desire is whole again.", ChatFormatting.DARK_RED);
+            tellLevel(lv, "The roots drink. " + treeName() + " is whole again.", ChatFormatting.DARK_RED);
         }
     }
 

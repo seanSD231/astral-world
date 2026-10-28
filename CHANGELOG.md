@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.36
+- Before the change at 50% she is only "The World Tree": the name tag over her is hidden (it showed Mother Tree of Desire), and the arrival, waking, roots-drink and "sings" messages and the intro scene say "The World Tree". The name tag and the name in messages switch to Mother Tree of Desire when she is revealed.
+
 ## 0.2.35
 - The ruin under the Mother Tree (paved dais, broken columns, inner wall, rubble) is gone: the middle of the field is plain grass. New fields generate without it, and existing worlds have it cleared when the raid starts. The broken pillars on the far edge stay.
 

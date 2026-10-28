@@ -28,7 +28,7 @@ public final class IntroScene {
 
     /** Seconds, angle (deg), radius, camera height above the tree's base, look-at height. */
     private static final double[][] KEYS = {{0.0, 205, 175, 10, 50}, {3.5, 245, 150, 22, 62}, {7.0, 300, 135, 50, 78}, {10.0, 335, 165, 35, 70}};
-    private static final String[] LINES = {"The Mother Tree of Desire.", "She has heard your prayers.", "Do not wake her until you are ready."};
+    private static final String[] LINES = {"The World Tree.", "She has heard your prayers.", "Do not wake her until you are ready."};
     private static final double[] LINE_AT = {0.8, 3.6, 6.6};
 
     private IntroScene() {}
