@@ -100,7 +100,8 @@ public final class EndGame {
     private static final Map<UUID, long[]> desire = new HashMap<>();     // player -> {stacks, tick of the last stack}
     private static final Map<UUID, Long> thrallHitAt = new HashMap<>();
     /** What everyone calls her right now: the World Tree until the change at 50%, the Mother Tree of Desire after it. */
-    private static String treeName() { return treeFleshy ? RAID_NAME : "The World Tree"; }
+    static final String EARLY_TREE = "The World Tree";
+    private static String treeName() { return treeFleshy ? RAID_NAME : EARLY_TREE; }
     private static boolean treeFleshy = false;   // after the 50% change she is the Mother Tree of Desire; before it, the World Tree
     private static int lineBucket = 20;          // the last 5% step of her health she has spoken at
 
@@ -546,8 +547,8 @@ public final class EndGame {
         float startHp = name.equals(RAID_NAME) ? RAID_HP : BOSS_HP;
         if (hp != null) hp.setBaseValue(startHp);
         m.setHealth(startHp);
-        m.setCustomName(Component.literal(name).withStyle(ChatFormatting.DARK_RED));
-        m.setCustomNameVisible(!name.equals(RAID_NAME));   // the tree has no name tag until she is revealed (the clients still find her by the name)
+        m.setCustomName(Component.literal(name.equals(RAID_NAME) ? EARLY_TREE : name).withStyle(ChatFormatting.DARK_RED));   // the real name only after the reveal (Jade and the like show this name)
+        m.setCustomNameVisible(!name.equals(RAID_NAME));
         if (name.equals(RAID_NAME)) limitTreeAbilities(m);
         else if (name.startsWith("Sovereign of ")) silence(m, name.substring(13).toLowerCase(java.util.Locale.ROOT));
         return m;
@@ -768,7 +769,7 @@ public final class EndGame {
         clearRuin(lv);
         timed.clear();
         raidSeq.clear();
-        rt = 0; aggro = false; graceUntil = INTRO_TICKS + GRACE_TICKS; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; ultCutsceneUntil = 0; treeFleshy = false; lineBucket = 20;
+        rt = 0; aggro = false; graceUntil = INTRO_TICKS + GRACE_TICKS; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; nextUltimate = 0; ultCutsceneUntil = 0; treeFleshy = false; lineBucket = 20;
         traitor = null; offered = null; offerDone = false; noHeal.clear(); desire.clear(); thrallHitAt.clear();
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
@@ -1417,7 +1418,8 @@ public final class EndGame {
     private static boolean rootsActive = false;
     private static long rootsEnd = 0;
     private static int rootStage = 0;
-    private static boolean ultimateDone = false;   // the 15% meteor is used once per fight
+    private static boolean ultimateDone = false;   // (no longer used: the meteor can be reused, see nextUltimate)
+    private static long nextUltimate = 0;          // the 15% meteor is off cooldown from this raid tick on
     private static final double ULT_SAFE_R = 26;     // under the tree: the trunk is 15 wide and the crown shades the ground around it
     private static final List<BlockPos> roots = new ArrayList<>();
     private static int activeKind = 0;       // 0 roots, 1 desire's call, 2 heart seeds
@@ -1585,12 +1587,22 @@ public final class EndGame {
                 double a = Math.PI * 2 * k / 8;
                 boom(l, cx + Math.cos(a) * 60, cz + Math.sin(a) * 60, 20);
             }
+            AstralData ud = AstralData.get(l.getServer());
+            float heal = 0f;
             for (ServerPlayer p : fighters(l)) {
                 if (Math.hypot(p.getX() - cx, p.getZ() - cz) <= ULT_SAFE_R) continue;
                 if (god.contains(p.getUUID())) continue;
+                int before = ud.raidLives.getOrDefault(p.getUUID(), 0);
                 p.setHealth(Math.min(p.getHealth(), 1f));
                 lastHit.remove(p.getUUID());
                 loseLife(l, p);
+                heal += 0.01f;                                                   // everyone it hits feeds her 1%
+                if (before > 0 && ud.raidLives.getOrDefault(p.getUUID(), 0) <= 0) heal += 0.015f;   // and a kill another 1.5%
+            }
+            Mob tree = findBoss(l, TAG_RAID);
+            if (tree != null && heal > 0f) {
+                healBoss(tree, heal);
+                tellLevel(l, "The meteor feeds her: she heals " + String.format("%.1f", heal * 100) + "%.", ChatFormatting.DARK_RED);
             }
         });
     }
@@ -1652,8 +1664,8 @@ public final class EndGame {
         if (!rootsActive) {
             if (rootStage < THRESHOLDS.length && boss.getHealth() / RAID_HP <= THRESHOLDS[rootStage]) {
                 if (rootStage == 0) startRoots(lv); else if (rootStage == 1) startTransformation(lv); else startSeeds(lv);
-            } else if (rootStage >= THRESHOLDS.length && !ultimateDone && !cutscene && boss.getHealth() / RAID_HP <= 0.15f) {
-                ultimateDone = true;
+            } else if (rootStage >= THRESHOLDS.length && !cutscene && rt >= nextUltimate && boss.getHealth() / RAID_HP <= 0.15f) {
+                nextUltimate = rt + 2400 + ThreadLocalRandom.current().nextInt(1201);   // 120 to 180 seconds until it can fall again, drawn anew each time
                 ultimate(lv);
             }
             return;
@@ -2023,7 +2035,7 @@ public final class EndGame {
     /** While the tree cannot be hurt (roots, seeds, the call, the transformation) its box shrinks to nothing, so clicks reach the roots and seeds that stand inside the big one. */
     private static void sizeHitbox(Mob m) {
         String n = m.hasCustomName() ? m.getCustomName().getString() : "";
-        double[] box = n.startsWith(RAID_NAME) ? (rootsActive ? new double[]{4, 20} : HITBOX.get("tree")) : n.startsWith("Sovereign of ") ? HITBOX.get(n.substring(13).trim().toLowerCase(java.util.Locale.ROOT)) : null;
+        double[] box = n.startsWith(RAID_NAME) || n.startsWith(EARLY_TREE) ? (rootsActive ? new double[]{4, 20} : HITBOX.get("tree")) : n.startsWith("Sovereign of ") ? HITBOX.get(n.substring(13).trim().toLowerCase(java.util.Locale.ROOT)) : null;
         if (box == null) return;
         var inst = m.getAttribute(Attributes.SCALE);
         if (pehkui(m, (float) (box[0] / 0.6), (float) (box[1] / 1.8))) {

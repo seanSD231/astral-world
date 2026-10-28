@@ -95,7 +95,7 @@ public final class TreeCutscene {
     private static void findTree(Minecraft mc) {
         Entity best = null;
         for (Entity e : mc.level.entitiesForRendering())
-            if (e.hasCustomName() && e.getCustomName().getString().startsWith("Mother Tree of Desire")) { best = e; break; }
+            if (e.hasCustomName() && e.getCustomName().getString().startsWith("Mother Tree of Desire") || e.hasCustomName() && e.getCustomName().getString().startsWith("The World Tree")) { best = e; break; }
         if (best != null) { tx = best.getX(); ty = best.getY(); tz = best.getZ(); }
         else { tx = 0.5; ty = mc.player.getY(); tz = 0.5; }
     }

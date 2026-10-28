@@ -46,8 +46,11 @@ public final class TreeBossBar {
         Minecraft mc = Minecraft.getInstance();
         GuiGraphics g = ev.getGuiGraphics();
         float real = Math.max(0f, Math.min(1f, be.getProgress()));
+        long gslot = System.currentTimeMillis() / 125;   // under half health the bar now and then glitches: it shows her real health plus or minus up to 15 points, at random
+        boolean glitchNow = fleshy && real <= 0.5f && hash((int) (gslot / 3)) < 0.14f;
+        float glitchShown = real + (hash((int) (gslot * 43)) * 2f - 1f) * 0.15f;
         // the Mother Tree lies: after the change she shows 65% at her real half, and 0% only when she is really at 0 as -25%
-        float shown = fleshy ? Math.max(real <= 0.5f ? 1.8f * real - 0.25f : real, -0.25f) : real;
+        float shown = glitchNow ? glitchShown : fleshy ? Math.max(real <= 0.5f ? 1.8f * real - 0.25f : real, -0.25f) : real;
         float p = Math.max(0f, Math.min(1f, shown));
         trail = p >= trail ? p : Math.max(p, trail - 0.003f);
         boolean rotten = fleshy;
@@ -160,7 +163,7 @@ public final class TreeBossBar {
 
         // under half health the bar is a lie, and now and then it slips: slices tear sideways, the name and the number break up
         long slot = (long) (sec * 8);
-        boolean glitch = fleshy && real <= 0.5f && hash((int) (slot / 3)) < 0.14f;
+        boolean glitch = glitchNow;
         String pct = Math.round(shown * 100) + "%";
         if (glitch) {
             int[] tearCols = {0xAA00FFFF, 0xAAFF00AA, 0xCC000000, 0xAAFF2020};
@@ -170,8 +173,6 @@ public final class TreeBossBar {
                 int rx = x + (int) (hash((int) (slot * 19 + i)) * (w - rw));
                 g.fill(rx + off, ry, rx + off + rw, ry + rh, tearCols[(int) (hash((int) (slot * 23 + i)) * tearCols.length)]);
             }
-            float q = hash((int) (slot * 29));
-            pct = q < 0.35f ? (int) (hash((int) (slot * 31)) * 200 - 40) + "%" : q < 0.6f ? "ERR%" : q < 0.8f ? "???" : "-" + (int) (hash((int) (slot * 37)) * 99) + "%";
         }
 
         int cx = g.guiWidth() / 2;

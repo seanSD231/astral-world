@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.37
+- The 15% meteor can be used again and again: whenever she is at 15% or lower and it is off cooldown. The cooldown is 120 to 180 seconds, drawn fresh each time. If she heals above 15% and drops back, it only falls again once it is off cooldown.
+- The meteor feeds her: 1% of her health for every fighter it hits, and another 1.5% for each one it kills (their last life). Chat says how much she healed.
+- The health bar glitch now shows a random value within 15 points of her real health, on both the number and the bar (at 10% it reads anywhere from -5% to 25%).
+- Until the reveal her real entity name is "The World Tree" (Jade and similar showed Mother Tree of Desire); it changes to Mother Tree of Desire at the reveal.
+
 ## 0.2.36
 - Before the change at 50% she is only "The World Tree": the name tag over her is hidden (it showed Mother Tree of Desire), and the arrival, waking, roots-drink and "sings" messages and the intro scene say "The World Tree". The name tag and the name in messages switch to Mother Tree of Desire when she is revealed.
 

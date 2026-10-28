@@ -32,7 +32,7 @@ public final class TreeRenderer {
     private static String keyOf(Entity e) {
         if (!e.hasCustomName()) return null;
         String n = e.getCustomName().getString();
-        if (n.startsWith(NAME)) return "tree";
+        if (n.startsWith(NAME) || n.startsWith("The World Tree")) return "tree";
         if (n.startsWith("Sovereign of ")) {
             String p = n.substring(13).trim().toLowerCase(java.util.Locale.ROOT);
             for (String s : PLANETS) if (s.equals(p)) return s;
