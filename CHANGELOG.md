@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.39
+- The tree's meteor attack now uses LOTM's own meteors (lotm:meteor_no_hurt): one falls onto every red circle and lands as the circle completes. It breaks no blocks and cannot hurt the tree; the life is still taken by the circle, exactly as before. The mod's impact flash, ring and fire column still play on top. If LOTM's meteor is missing the mod falls back to its own.
+
 ## 0.2.38
 - The health bar glitch now leaves its number behind: when a glitch ends, the bar keeps showing the random value it landed on (her real health plus or minus up to 15 points, and it follows her real health as it changes) until the next glitch picks a new one. Healing back above half clears it.
 

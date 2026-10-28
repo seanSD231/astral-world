@@ -117,10 +117,10 @@ public final class AttackFx {
 
     private static final double DX = 0.32, DZ = 0.18;   // a meteor comes in slightly sideways
 
-    private static void meteor(Pen p, boolean add, double t, double x, double y, double z, double fall, double rad, double life, int col) {
+    private static void meteor(Pen p, boolean add, double t, double x, double y, double z, double fall, double rad, double life, int col, boolean lotmFall) {
         double r = Math.max(1.0, rad * 0.3);
         if (t < fall) {
-            if (!add) return;
+            if (!add || lotmFall) return;   // with LOTM's own meteor the fall belongs to it; this class only adds the impact
             double pr = t / fall, e = pr * pr, H = 85 * (1 - e);
             double hx = x + DX * H, hy = y + H + 0.5, hz = z + DZ * H;
             float in = clamp01(t / 3.0);
@@ -273,7 +273,7 @@ public final class AttackFx {
             int col = (int) f[7];
             double t = (now - f[8]) / 50.0, life = f[9];
             switch (kind) {
-                case 0 -> meteor(pen, add, t, x, y, z, a, b, life, col);
+                case 0 -> meteor(pen, add, t, x, y, z, a, b, life, col, c > 0.5);
                 case 1 -> slam(pen, add, t, x, y, z, a, b, life, col);
                 case 2 -> wave(pen, add, t, x, y, z, a, b, life, col);
                 case 3 -> cloud(pen, add, t, x, y, z, a, b, c, life, col);

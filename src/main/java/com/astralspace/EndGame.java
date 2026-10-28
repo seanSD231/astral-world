@@ -917,6 +917,38 @@ public final class EndGame {
         for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, pk);
     }
 
+    private static boolean lotmMeteorFailed = false;
+
+    /**
+     * One of LOTM's own meteors (lotm:meteor_no_hurt: it only hurts what it lands on, never breaks blocks) falls onto (x, z) and arrives after
+     * `ticks`. Players in the arena cannot be damaged by it (all damage there is blocked), the life is taken by the circle's strike instead.
+     * Returns false when LOTM's meteor is not there (the client then draws its own).
+     */
+    private static boolean lotmMeteor(ServerLevel l, double x, double z, double radius, int ticks) {
+        if (lotmMeteorFailed) return false;
+        try {
+            var type = BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.fromNamespaceAndPath("lotm", "meteor_no_hurt"));
+            if (type.isEmpty()) { lotmMeteorFailed = true; return false; }
+            Entity e = type.get().create(l);
+            if (!(e instanceof net.minecraft.world.entity.projectile.Projectile pr)) { lotmMeteorFailed = true; return false; }
+            double H = 85, sx = x + 0.32 * H, sz = z + 0.18 * H;
+            e.setPos(sx, cur.gy() + H, sz);
+            Mob boss = findBoss(l, TAG_RAID);
+            if (boss != null) pr.setOwner(boss);   // so its blow can never hurt the tree itself
+            e.setDeltaMovement((x - sx) / ticks, -H / ticks, (z - sz) / ticks);
+            try {
+                Class.forName("net.swimmingtuna.lotm.util.BeyonderUtil").getMethod("setScale", Entity.class, float.class).invoke(null, e, (float) Math.max(1.0, radius / 3.5));
+            } catch (Throwable t) { LOGGER.warn("[astral] could not scale the LOTM meteor: {}", String.valueOf(t)); }
+            l.addFreshEntity(e);
+            at(ticks + 25, ll -> { if (e.isAlive()) e.discard(); });   // never leave one behind
+            return true;
+        } catch (Throwable t) {
+            lotmMeteorFailed = true;
+            LOGGER.warn("[astral] LOTM's meteor could not be spawned, using the mod's own: {}", String.valueOf(t));
+            return false;
+        }
+    }
+
     private static void ringOnly(ServerLevel lv, double x, double z, double r, float cr, float cg, float cb) {
         tele(lv, 1, x, cur.gy(), z, (float) r, 0f, cr, cg, cb, 4);
     }
@@ -1269,7 +1301,10 @@ public final class EndGame {
                     for (ServerPlayer p : fighters(l)) {
                         double x = p.getX() + rnd.nextDouble(-3, 3), z = p.getZ() + rnd.nextDouble(-3, 3);
                         for (int t = 0; t < 30; t += 5) at(t, ll -> circle(ll, x, z, mr, 1f, 0.1f, 0.1f));
-                        if (!crowd) fx(l, 0, x, cur.gy(), z, 30, mr, 0, rgb(1f, 0.45f, 0.1f), 62);
+                        if (!crowd) {
+                            boolean lotm = lotmMeteor(l, x, z, mr, 30);
+                            fx(l, 0, x, cur.gy(), z, 30, mr, lotm ? 1 : 0, rgb(1f, 0.45f, 0.1f), 62);   // the impact is always drawn; the fall only when LOTM's meteor is not there
+                        }
                         at(30, ll -> { boom(ll, x, z, mr); strike(ll, x, z, mr, 99); });
                     }
                 });
