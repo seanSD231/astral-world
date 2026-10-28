@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.38
+- The health bar glitch now leaves its number behind: when a glitch ends, the bar keeps showing the random value it landed on (her real health plus or minus up to 15 points, and it follows her real health as it changes) until the next glitch picks a new one. Healing back above half clears it.
+
 ## 0.2.37
 - The 15% meteor can be used again and again: whenever she is at 15% or lower and it is off cooldown. The cooldown is 120 to 180 seconds, drawn fresh each time. If she heals above 15% and drops back, it only falls again once it is off cooldown.
 - The meteor feeds her: 1% of her health for every fighter it hits, and another 1.5% for each one it kills (their last life). Chat says how much she healed.

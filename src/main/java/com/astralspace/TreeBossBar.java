@@ -36,6 +36,8 @@ public final class TreeBossBar {
         return (h & 0xFFFF) / 65536f;
     }
 
+    private static float heldOffset = Float.NaN;   // the last glitch's random shift (in fractions of her health), kept until the next glitch
+
     private static void onBar(CustomizeGuiOverlayEvent.BossEventProgress ev) {
         LerpingBossEvent be = ev.getBossEvent();
         String title = be.getName().getString();
@@ -50,7 +52,10 @@ public final class TreeBossBar {
         boolean glitchNow = fleshy && real <= 0.5f && hash((int) (gslot / 3)) < 0.14f;
         float glitchShown = real + (hash((int) (gslot * 43)) * 2f - 1f) * 0.15f;
         // the Mother Tree lies: after the change she shows 65% at her real half, and 0% only when she is really at 0 as -25%
-        float shown = glitchNow ? glitchShown : fleshy ? Math.max(real <= 0.5f ? 1.8f * real - 0.25f : real, -0.25f) : real;
+        if (!(fleshy && real <= 0.5f)) heldOffset = Float.NaN;                       // healed above half (or not revealed yet): the lie is over
+        else if (glitchNow) heldOffset = glitchShown - real;                          // every glitch picks a new number and it stays until the next glitch
+        float shown = fleshy && real <= 0.5f && !Float.isNaN(heldOffset) ? real + heldOffset
+                : fleshy ? Math.max(real <= 0.5f ? 1.8f * real - 0.25f : real, -0.25f) : real;
         float p = Math.max(0f, Math.min(1f, shown));
         trail = p >= trail ? p : Math.max(p, trail - 0.003f);
         boolean rotten = fleshy;
