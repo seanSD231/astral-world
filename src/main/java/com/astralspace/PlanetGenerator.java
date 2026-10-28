@@ -233,54 +233,10 @@ public final class PlanetGenerator extends ChunkGenerator {
         return CompletableFuture.completedFuture(chunk);
     }
 
-    /** The ancient ruin in the middle of the field: a cracked dais, broken columns, fallen stone, and the old ring of pillars at the edge. */
+    /** The field: grass, flowers and the old ring of broken pillars at the edge. The middle is clear (the tree stands there). */
     private static void decorateRaid(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int z, int h) {
         double r = Math.hypot(x, z);
         BlockState[] stone = {Blocks.STONE_BRICKS.defaultBlockState(), Blocks.MOSSY_STONE_BRICKS.defaultBlockState(), Blocks.CRACKED_STONE_BRICKS.defaultBlockState()};
-        // the dais: the ground itself turns to old paving, worn through in places
-        if (r <= 15) {
-            double q = hash(x, 11, z);
-            BlockState floor = r > 13.5 && r <= 15 ? Blocks.CHISELED_STONE_BRICKS.defaultBlockState()
-                    : q < 0.05 ? Blocks.GRASS_BLOCK.defaultBlockState() : q < 0.12 ? Blocks.COBBLESTONE.defaultBlockState() : stone[(int) (hash(x, 12, z) * 3)];
-            chunk.setBlockState(pos.set(x, h, z), floor, false);
-            if (r <= 12 && q > 0.97) chunk.setBlockState(pos.set(x, h + 1, z), Blocks.MOSSY_COBBLESTONE.defaultBlockState(), false);   // a fallen stone
-            return;
-        }
-        // eight great columns, each snapped off at its own height
-        for (int k = 0; k < 8; k++) {
-            double a = Math.PI * 2 * k / 8 + 0.2;
-            int cx = (int) Math.round(Math.cos(a) * 20), cz = (int) Math.round(Math.sin(a) * 20);
-            if (Math.abs(x - cx) <= 1 && Math.abs(z - cz) <= 1) {
-                int top = 6 + (int) (hash(k, 3, 17) * 10) - (x == cx && z == cz ? 0 : (int) (hash(x, z, 18) * 5));
-                for (int y = h + 1; y <= h + top; y++) {
-                    BlockState st = y == h + 1 || y == h + top && top > 11 ? Blocks.CHISELED_STONE_BRICKS.defaultBlockState() : stone[(int) (hash(x, y, z) * 3)];
-                    chunk.setBlockState(pos.set(x, y, z), st, false);
-                }
-                return;
-            }
-            // each column has a fallen piece lying beside it
-            if (z == cz + 3 && x >= cx && x <= cx + 4 && hash(k, 4, 19) < 0.8) {
-                chunk.setBlockState(pos.set(x, h + 1, z), stone[1], false);
-                return;
-            }
-        }
-        // a broken inner wall in arcs, never closed
-        if (r >= 16.5 && r < 17.6) {
-            double ang = Math.atan2(z, x);
-            if (Math.sin(ang * 4 + 0.7) > -0.15) {
-                int wh = (int) (hash(x / 2, 7, z / 2) * 5) - 1;
-                for (int y = h + 1; y <= h + wh; y++) chunk.setBlockState(pos.set(x, y, z), stone[(int) (hash(x, y, z) * 3)], false);
-            }
-            return;
-        }
-        // rubble scattered around the ruin
-        if (r < 46 && hash(x, 9, z) < 0.045) {
-            double q = hash(x, 10, z);
-            BlockState rub = q < 0.3 ? Blocks.MOSSY_COBBLESTONE.defaultBlockState() : q < 0.6 ? Blocks.STONE_BRICK_SLAB.defaultBlockState()
-                    : q < 0.85 ? Blocks.STONE_BRICK_STAIRS.defaultBlockState() : Blocks.CRACKED_STONE_BRICKS.defaultBlockState();
-            chunk.setBlockState(pos.set(x, h + 1, z), rub, false);
-            return;
-        }
         // thirty-six pillars on the ring at the edge, each one broken off at its own height
         double ring = EndGame.ARENA_R - 4;
         int pillars = 36;

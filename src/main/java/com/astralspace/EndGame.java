@@ -763,6 +763,7 @@ public final class EndGame {
         lv.getChunk(0, 0);
         force(lv, 3, true);
         groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
+        clearRuin(lv);
         timed.clear();
         raidSeq.clear();
         rt = 0; aggro = false; graceUntil = INTRO_TICKS + GRACE_TICKS; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; ultCutsceneUntil = 0; treeFleshy = false; lineBucket = 20;
@@ -789,6 +790,21 @@ public final class EndGame {
         for (ServerPlayer p : all) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(23, INTRO_TICKS));   // the camera circles the tree first
         tell(server, RAID_NAME + " has come. You have " + LIVES + " lives. Do not be where it strikes.", ChatFormatting.DARK_PURPLE);
         tell(server, "She sleeps. For " + (GRACE_TICKS / 20) + " seconds after this she cannot be hurt and will not strike. Afterwards she only wakes if you come within " + (int) WAKE_R + " blocks of her or strike her.", ChatFormatting.LIGHT_PURPLE);
+    }
+
+    /** Older worlds still have the ruin that used to stand under the tree (dais, columns, wall, rubble): turn it back into grass. */
+    private static void clearRuin(ServerLevel lv) {
+        for (int cx = -4; cx <= 3; cx++) for (int cz = -4; cz <= 3; cz++) lv.getChunk(cx, cz);
+        Set<net.minecraft.world.level.block.Block> ruin = Set.of(Blocks.STONE_BRICKS, Blocks.MOSSY_STONE_BRICKS, Blocks.CRACKED_STONE_BRICKS, Blocks.CHISELED_STONE_BRICKS,
+                Blocks.COBBLESTONE, Blocks.MOSSY_COBBLESTONE, Blocks.STONE_BRICK_SLAB, Blocks.STONE_BRICK_STAIRS);
+        BlockPos.MutableBlockPos q = new BlockPos.MutableBlockPos();
+        int base = PlanetGenerator.BASE, n = 0;
+        for (int x = -50; x <= 50; x++) for (int z = -50; z <= 50; z++) {
+            if (Math.hypot(x, z) > 50) continue;
+            if (ruin.contains(lv.getBlockState(q.set(x, base, z)).getBlock())) { lv.setBlock(q, Blocks.GRASS_BLOCK.defaultBlockState(), 2); n++; }
+            for (int y = base + 1; y <= base + 18; y++) if (ruin.contains(lv.getBlockState(q.set(x, y, z)).getBlock())) { lv.setBlock(q, Blocks.AIR.defaultBlockState(), 2); n++; }
+        }
+        LOGGER.info("[astral] cleared {} ruin blocks under the tree", n);
     }
 
     private static List<ServerPlayer> fighters(ServerLevel lv) {

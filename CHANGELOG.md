@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.35
+- The ruin under the Mother Tree (paved dais, broken columns, inner wall, rubble) is gone: the middle of the field is plain grass. New fields generate without it, and existing worlds have it cleared when the raid starts. The broken pillars on the far edge stay.
+
 ## 0.2.34
 - Tree fight start: after the teleport everyone watches a slow camera scene circling the Mother Tree (hold SPACE to skip), then there is a 30 second grace period.
   - During the scene and the grace period the tree cannot be hurt and does not attack, and nobody takes damage during the scene.
