@@ -162,7 +162,7 @@ public final class AttackFx {
         double span = Math.max(8, life - fall), u = Math.min(1, (t - fall) / span), fade = (1 - u) * (1 - u);
         if (!add) {
             p.col(0x1A1210);   // scorched ground
-            flat(p, x, y + 0.12, z, 0, rad * (0.9 + 0.3 * u), 0.55f * (1 - u * u));
+            flat(p, x, y + 0.12, z, 0, rad * (0.9 + 0.3 * u), (float) (0.55 * (1 - u * u)));
             for (int i = 0; i < 16; i++) {   // rock thrown out of the crater, falling back down
                 double az = hash(i * 7.7) * Math.PI * 2, sp = rad * (0.7 + 1.3 * hash(i * 3.1)), hh = rad * (0.8 + 1.4 * hash(i * 5.9));
                 p.col(i % 2 == 0 ? 0x4A3C32 : 0x2B2420);
