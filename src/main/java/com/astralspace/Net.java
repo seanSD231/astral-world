@@ -94,10 +94,11 @@ public final class Net {
     }
 
     /** Server -> client: open the click game of Desire's call (osu-style): `count` circles over `ticks` ticks, laid out from `seed`. */
-    public record OsuStart(int seed, int count, int ticks) implements CustomPacketPayload {
+    public record OsuStart(int game, int seed, int count, int ticks) implements CustomPacketPayload {
         public static final Type<OsuStart> TYPE =
                 new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "osu_start"));
         public static final StreamCodec<RegistryFriendlyByteBuf, OsuStart> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, OsuStart::game,
                 ByteBufCodecs.VAR_INT, OsuStart::seed,
                 ByteBufCodecs.VAR_INT, OsuStart::count,
                 ByteBufCodecs.VAR_INT, OsuStart::ticks,
@@ -246,7 +247,7 @@ public final class Net {
             if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) EndGame.rootHit(sp);
         }));
         registrar.playToClient(OsuStart.TYPE, OsuStart.CODEC, (payload, ctx) -> ctx.enqueueWork(() ->
-                OsuHooks.open(payload.seed(), payload.count(), payload.ticks())));
+                OsuHooks.open(payload.game(), payload.seed(), payload.count(), payload.ticks())));
         registrar.playToServer(OsuResult.TYPE, OsuResult.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) EndGame.osuResult(sp, payload.hits(), payload.total());
         }));
@@ -270,7 +271,7 @@ public final class Net {
                     return;
                 }
                 if (payload.kind() == 11) {   // a fruit was taken (or rotted into a werewolf): its model and beam go
-                    ClientState.fx.removeIf(f -> (int) f[0] == 10 && Math.hypot(f[1] - payload.x(), f[3] - payload.z()) < 1.0);
+                    ClientState.fx.removeIf(f -> ((int) f[0] == 10 || (int) f[0] == 17) && Math.hypot(f[1] - payload.x(), f[3] - payload.z()) < 1.0);
                     return;
                 }
                 if (ClientState.fx.size() < 600)

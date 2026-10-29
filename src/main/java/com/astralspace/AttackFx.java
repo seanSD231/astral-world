@@ -400,6 +400,140 @@ public final class AttackFx {
         tube(p, x, y, z, 14 * inv + 1, clamp01(0.7 * inv), x, y + 160, z, 4 * inv + 0.5, 0f, 12);
     }
 
+    /** The ground ring: burning roots surge up out of the earth along the ring as it rolls out, and keep burning behind it. */
+    private static void rootRing(Pen p, boolean add, double t, double x, double y, double z, double speed, double r0, double life, int col) {
+        double r = r0 + speed * t, env = Math.min(1, Math.min(t / 4.0, (life - t) / 10.0));
+        if (env <= 0 || r < 1) return;
+        float e = clamp01(env);
+        int n = (int) Math.min(110, r * 1.1 + 16);
+        if (!add) {
+            p.col(0x1A0F08);
+            flat(p, x, y + 0.1, z, Math.max(0, r - 5), r + 2.5, 0.45f * e);
+        }
+        for (int k = 0; k < 3; k++) {            // the front and two trails left burning behind it
+            double rr = r - k * 4.5;
+            if (rr < 1) continue;
+            double hk = 1 - 0.28 * k;
+            for (int i = 0; i < n; i += (k == 0 ? 1 : 2)) {
+                double ang = Math.PI * 2 * i / n + hash(i * 1.7) * 0.05, ux = Math.cos(ang), uz = Math.sin(ang);
+                double surge = 0.55 + 0.45 * Math.sin(t * 0.45 + i * 0.9 + k), h = (4.5 + 5.5 * hash(i * 3.1 + k * 11)) * hk * surge;
+                double lean = 0.5 + 1.4 * hash(i * 5.3), side = (hash(i * 7.9) - 0.5) * 1.6;
+                double bx = x + ux * rr, bz = z + uz * rr;
+                double mx = bx + ux * lean, my = y + h * 0.55, mz = bz + uz * lean;
+                double tx = mx + ux * 1.6 - uz * side, ty = y + h, tz = mz + uz * 1.6 + ux * side;
+                if (!add) {
+                    p.col(i % 2 == 0 ? 0x4A2A14 : 0x2E1A0C);
+                    tube(p, bx, y, bz, 0.6, e, mx, my, mz, 0.4, e, 5);
+                    tube(p, mx, my, mz, 0.4, e, tx, ty, tz, 0.08, e, 5);
+                } else {
+                    float fl = (float) (0.7 + 0.3 * Math.sin(t * 0.9 + i));
+                    p.col(0xFF7A1A);
+                    tube(p, tx, ty, tz, 0.55, 0.85f * e * fl, tx - uz * 0.2, ty + 2.2 + hash(i * 2.3 + Math.floor(t * 0.5)) * 1.6, tz + ux * 0.2, 0.02, 0f, 4);
+                    p.col(0xFFD060);
+                    tube(p, tx, ty, tz, 0.28, 0.9f * e * fl, tx, ty + 1.5, tz, 0.02, 0f, 4);
+                    p.col(0xFF5A10);
+                    tube(p, mx, my, mz, 0.5, 0.5f * e * fl, mx, my + 1.3, mz, 0.05, 0f, 4);
+                }
+            }
+        }
+        if (add) {
+            p.col(0xFF5A10);
+            flat(p, x, y + 0.15, z, Math.max(0, r - 1.8), r + 1.8, 0.55f * e);
+            p.col(0xFFD060);
+            flat(p, x, y + 0.18, z, Math.max(0, r - 0.5), r + 0.5, 0.7f * e);
+        }
+    }
+
+    /** A ring in the air: a wave of lightning and swirling leaves, 14 blocks tall so it is plain how far you must move to be out of it. */
+    private static void skyWave(Pen p, boolean add, double t, double x, double y, double z, double speed, double r0, double life) {
+        double r = r0 + speed * t, env = Math.min(1, Math.min(t / 4.0, (life - t) / 10.0)), H = 7;
+        if (env <= 0 || r < 1) return;
+        float e = clamp01(env);
+        int m = (int) Math.max(28, Math.min(130, r * 0.55));
+        if (!add) {
+            int cols[] = {0x58C24A, 0xE0B84A, 0xFF9AC8, 0x7FD66A};
+            int leaves = (int) Math.max(40, Math.min(160, r * 0.9));
+            for (int i = 0; i < leaves; i++) {
+                double a = Math.PI * 2 * i / leaves + t * 0.03 + hash(i * 1.3), rr = r + Math.sin(t * 0.2 + i) * 2.2;
+                double ly = y + (hash(i * 5.7) * 2 - 1) * H + Math.sin(t * 0.3 + i) * 0.8;
+                p.col(cols[i % cols.length]);
+                leaf(p, x + Math.cos(a) * rr, ly, z + Math.sin(a) * rr, t * 0.2 + i, 0.95, 0.4, e);
+            }
+            return;
+        }
+        p.col(0x7FA8FF);
+        wall(p, x, y, z, r, H, 0.4f * e, 0f);
+        wall(p, x, y, z, r, -H, 0.4f * e, 0f);
+        long flick = (long) Math.floor(t * 0.7);
+        double[] px = new double[m], pz = new double[m];
+        for (int i = 0; i < m; i++) {
+            double a = Math.PI * 2 * i / m;
+            px[i] = x + Math.cos(a) * r; pz[i] = z + Math.sin(a) * r;
+            double lx = px[i], lz = pz[i], ly = y - H;
+            p.col(0xD8EEFF);
+            for (int j = 1; j <= 4; j++) {   // a jagged bolt from the bottom of the ring to the top
+                double j2 = j / 4.0, nx = px[i] + (hash(i * 13.0 + j * 7 + flick) - 0.5) * 2.2 * (j < 4 ? 1 : 0), nz = pz[i] + (hash(i * 17.0 + j * 5 + flick) - 0.5) * 2.2 * (j < 4 ? 1 : 0), ny = y - H + 2 * H * j2;
+                tube(p, lx, ly, lz, 0.17, 0.95f * e, nx, ny, nz, 0.17, 0.95f * e, 4);
+                lx = nx; lz = nz; ly = ny;
+            }
+        }
+        p.col(0xFFFFFF);
+        for (int i = 0; i < m; i++) {   // arcs jumping from bolt to bolt
+            int j = (i + 1) % m;
+            double yy = y + (hash(i * 3.3 + flick) - 0.5) * H * 1.4;
+            tube(p, px[i], yy, pz[i], 0.1, 0.8f * e, px[j], yy + (hash(i * 9.1 + flick) - 0.5) * 2.5, pz[j], 0.1, 0.8f * e, 4);
+        }
+    }
+
+    /** A flower: stem, leaves and two rings of petals around a heart, with a beam of light standing on it. Pink and white before the tree changes, crimson and violet after. */
+    private static void flower(Pen p, boolean add, double t, double x, double y, double z, boolean fleshy, double life) {
+        double env = Math.min(1, Math.min(t / 8.0, (life - t) / 8.0));
+        if (env <= 0) return;
+        float e = clamp01(env);
+        double open = ease(t / 14.0), spin = t * 0.025, hy = y + 2.8;
+        int petal = fleshy ? 0xB0102C : 0xFF9AC8, inner = fleshy ? 0x6A1E8C : 0xFFF0F8, heart = fleshy ? 0x1A0008 : 0xFFD54A;
+        if (!add) {
+            p.col(0x3E7A32);
+            tube(p, x, y, z, 0.14, e, x + 0.1, hy, z, 0.1, e, 5);
+            leaf(p, x, y + 0.9, z, spin, 1.1, 0.5, e);
+            leaf(p, x, y + 1.5, z, spin + 2.6, 0.9, 0.5, e);
+            for (int i = 0; i < 9; i++) { p.col(petal); leaf(p, x + 0.1, hy, z, spin + Math.PI * 2 * i / 9, 2.3 * open, 0.3 + 0.1 * Math.sin(t * 0.1 + i), e); }
+            for (int i = 0; i < 7; i++) { p.col(inner); leaf(p, x + 0.1, hy + 0.1, z, spin * 1.4 + Math.PI * 2 * i / 7 + 0.3, 1.5 * open, 0.85, e); }
+            p.col(heart);
+            sphere(p, x + 0.1, hy + 0.1, z, 0.4 * open, e, 5, 8);
+            return;
+        }
+        double flick = 0.8 + 0.2 * Math.sin(t * 0.3);
+        p.col(petal);
+        sphere(p, x, hy, z, 2.6, 0.12f * e, 6, 9);
+        tube(p, x, y, z, 0.45, (float) (0.5 * flick) * e, x, y + 90, z, 0.25, 0f, 8);
+        p.col(fleshy ? 0xFF9AA8 : 0xFFFFFF);
+        tube(p, x, y, z, 0.14, (float) (0.8 * flick) * e, x, y + 90, z, 0.08, 0f, 5);
+        p.col(petal);
+        flat(p, x, y + 0.12, z, 0, 1.5, 0.25f * e);
+    }
+
+    /** Lightning falling all over the arena at once: `count` tall bolts at places taken from the seed. */
+    private static void skyBolts(Pen p, boolean add, double t, double x, double y, double z, double seed, double radius, double count, double life) {
+        if (!add) return;
+        double u = Math.min(1, t / Math.max(4, life)), fl = (1 - u) * (1 - u);
+        float a = clamp01(fl);
+        if (a <= 0.01f) return;
+        long flick = (long) Math.floor(t * 0.5);
+        for (int i = 0; i < (int) count; i++) {
+            double ang = hash(seed + i * 1.7) * Math.PI * 2, rr = radius * Math.sqrt(hash(seed + i * 3.1));
+            double bx = x + Math.cos(ang) * rr, bz = z + Math.sin(ang) * rr, lx = bx, lz = bz, ly = y + 120;
+            p.col(0xC8E0FF);
+            for (int j = 1; j <= 5; j++) {
+                double nx = bx + (hash(i * 13.0 + j * 7 + flick) - 0.5) * 7 * (j < 5 ? 1 : 0), nz = bz + (hash(i * 17.0 + j * 5 + flick) - 0.5) * 7 * (j < 5 ? 1 : 0), ny = y + 120 - 120 * j / 5.0;
+                tube(p, lx, ly, lz, 0.35, a, nx, ny, nz, 0.35, a, 4);
+                lx = nx; lz = nz; ly = ny;
+            }
+            p.col(0xFFFFFF);
+            flat(p, bx, y + 0.15, bz, 0, 3.5, 0.6f * a);
+        }
+    }
+
     private static final java.util.Map<Long, java.util.List<Bolts.Seg>> WEBS = new java.util.HashMap<>();
 
     private static java.util.List<Bolts.Seg> webFor(long seed, double cx, double cz, double reach, int arms) {
@@ -468,28 +602,28 @@ public final class AttackFx {
         flat(p, x, y + 0.1, z, rad * 0.7, rad * 1.1, 0.35f * e);
     }
 
-    private static void ult(Pen p, boolean add, double t, double x, double y, double z, double height, double fall, double life, int col) {
+    private static void ult(Pen p, boolean add, double t, double x, double y, double z, double height, double fall, double life, int col, double sc) {
         if (!add) return;
         if (t < fall) {
-            double f = t / fall, hy = y + height - height * (0.6 * f + 0.4 * f * f), R = 3 + f * 6;
+            double f = t / fall, hy = y + height - height * (0.6 * f + 0.4 * f * f), R = (3 + f * 6) * sc;
             float in = clamp01(t / 20.0);
             p.col(col);
-            tube(p, x, hy, z, R * 1.5, 0.3f * in, x, hy + 110, z, 0.2, 0f, 12);
+            tube(p, x, hy, z, R * 1.5, 0.3f * in, x, hy + 110 * sc, z, 0.2, 0f, 12);
             sphere(p, x, hy, z, R * 2.6, 0.14f * in, 7, 12);
             sphere(p, x, hy, z, R * 1.6, 0.3f * in, 7, 12);
             p.col(0xFFB347);
-            tube(p, x, hy, z, R * 0.85, 0.55f * in, x, hy + 70, z, 0.2, 0f, 10);
+            tube(p, x, hy, z, R * 0.85, 0.55f * in, x, hy + 70 * sc, z, 0.2, 0f, 10);
             p.col(0xFFF1CC);
             sphere(p, x, hy, z, R, 0.95f * in, 8, 14);
             return;
         }
-        double span = Math.max(20, life - fall), u = Math.min(1, (t - fall) / span), inv = 1 - u;
+        double span = Math.max(20, life - fall), u = Math.min(1, (t - fall) / span), inv = 1 - u, k = Math.sqrt(sc);
         p.col(0xFFE6B0);
-        sphere(p, x, y + 4, z, 14 + 90 * Math.sqrt(u), clamp01(0.6 * inv * inv), 8, 14);
+        sphere(p, x, y + 4, z, (14 + 90 * Math.sqrt(u)) * k, clamp01(0.6 * inv * inv), 8, 14);
         p.col(col);
-        wall(p, x, y, z, 110 * (1 - (1 - u) * (1 - u)), 4 + 24 * inv, clamp01(0.9 * inv), 0f);
-        flat(p, x, y + 0.2, z, Math.max(0, 110 * u - 6), 110 * u + 6, clamp01(0.7 * inv));
-        tube(p, x, y, z, 26 * inv + 1, clamp01(0.6 * inv), x, y + 140 * (0.5 + u), z, 6 * inv + 0.5, 0f, 12);
+        wall(p, x, y, z, 110 * k * (1 - (1 - u) * (1 - u)), (4 + 24 * inv) * k, clamp01(0.9 * inv), 0f);
+        flat(p, x, y + 0.2, z, Math.max(0, 110 * k * u - 6), 110 * k * u + 6, clamp01(0.7 * inv));
+        tube(p, x, y, z, (26 * inv + 1) * k, clamp01(0.6 * inv), x, y + 140 * k * (0.5 + u), z, (6 * inv + 0.5) * k, 0f, 12);
     }
 
     // ------------------------------------------------------------------ rendering
@@ -508,9 +642,13 @@ public final class AttackFx {
                 case 10 -> fruit(pen, add, t, x, y, z, a > 0.5, b > 0.5, life);
                 case 13 -> storm(pen, add, t, x, y, z, a, b, c, life, col);
                 case 14 -> purge(pen, add, t, x, y, z, a, b, life, col);
+                case 15 -> rootRing(pen, add, t, x, y, z, a, b, life, col);
+                case 16 -> skyWave(pen, add, t, x, y, z, a, b, life);
+                case 17 -> flower(pen, add, t, x, y, z, a > 0.5, life);
+                case 19 -> skyBolts(pen, add, t, x, y, z, a, b, c, life);
                 case 4 -> blast(pen, add, t, x, y, z, a, life, col);
                 case 5 -> vortex(pen, add, t, x, y, z, c, life, col);
-                case 6 -> ult(pen, add, t, x, y, z, a, b, life, col);
+                case 6 -> ult(pen, add, t, x, y, z, a, b, life, col, c > 0 ? c : 1);
                 default -> { }
             }
         }

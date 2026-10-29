@@ -122,10 +122,12 @@ public final class TreeCutscene {
         double[] p = pathAt(s);
         double ang = Math.toRadians(p[0]);
         double shake = s < SWAP ? 0.15 + 0.5 * ease(s / SWAP) : (s < 10.5 ? 1.2 : 1.2 * Math.exp(-(s - 10.5) * 1.2));
-        double nx = tx + Math.cos(ang) * p[1] + R.nextGaussian() * shake * 0.25, ny = ty + p[2] + R.nextGaussian() * shake * 0.25, nz = tz + Math.sin(ang) * p[1] + R.nextGaussian() * shake * 0.25;
+        // the shake is a slow wobble, not random noise every tick (that was the jitter)
+        double wx = Math.sin(s * 3.1) + 0.5 * Math.sin(s * 7.3 + 1), wy = Math.sin(s * 2.6 + 2) + 0.5 * Math.sin(s * 6.1), wz = Math.sin(s * 3.7 + 4) + 0.5 * Math.sin(s * 8.3 + 3);
+        double nx = tx + Math.cos(ang) * p[1] + wx * shake * 0.12, ny = ty + p[2] + wy * shake * 0.12, nz = tz + Math.sin(ang) * p[1] + wz * shake * 0.12;
         double dx = tx - nx, dy = ty + p[3] - ny, dz = tz - nz;
-        float ny2 = (float) Math.toDegrees(Math.atan2(-dx, dz)) + (float) (R.nextGaussian() * shake * 0.12);
-        float np = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz))) + (float) (R.nextGaussian() * shake * 0.12);
+        float ny2 = (float) Math.toDegrees(Math.atan2(-dx, dz)) + (float) (wy * shake * 0.05);
+        float np = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz))) + (float) (wz * shake * 0.05);
         if (cam == null) return;
         if (snap) { cam.xo = cam.xOld = nx; cam.yo = cam.yOld = ny - cam.getEyeHeight(); cam.zo = cam.zOld = nz; cam.yRotO = ny2; cam.xRotO = np; }
         else { cam.xo = cam.xOld = cam.getX(); cam.yo = cam.yOld = cam.getY(); cam.zo = cam.zOld = cam.getZ(); cam.yRotO = cam.getYRot(); cam.xRotO = cam.getXRot(); }

@@ -30,10 +30,9 @@ public final class CallScene {
             "Please grant us the power to protect our home.",
             "Something heard you",
             "Something is watching you",
-            "Something is angry",
-            "I've heard your prayers"};
-    private static final double[] AT = {2.0, 6.5, 11.0, 15.5, 20.0, 24.5, 29.0, 36.0, 40.0, 44.0, 51.0};   // the server prints the same lines in chat
-    private static final double[] LEN = {4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 3.6, 3.6, 3.6, 5.0};
+            "Something is angry"};
+    private static final double[] AT = {2.0, 6.5, 11.0, 15.5, 20.0, 24.5, 29.0, 36.0, 40.0, 44.0};   // the server prints the same lines in chat
+    private static final double[] LEN = {4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 3.6, 3.6, 3.6};
     private static final double GLITCH_FROM = 32.0, FIGURES_AT = 47.5;
     private static final int[] LIGHTS = {0xFFD870, 0xB48CFF, 0x7FE0D0, 0xFF9AB8, 0x8CB4FF, 0xFFB070};
     private static boolean wasActive = false;
@@ -74,7 +73,7 @@ public final class CallScene {
         mc.player.xRotO = -90f;
         if (tick % 60 == 1) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.BEACON_AMBIENT, SoundSource.AMBIENT, 1.2f, 0.5f, false);
         double s = seconds();
-        for (int i = 0; i < AT.length; i++) if ((i < 7 || i == 10) && Math.abs(s - AT[i]) < 0.026) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.AMBIENT, 1.5f, 0.5f, false);
+        for (int i = 0; i < AT.length; i++) if (i < 7 && Math.abs(s - AT[i]) < 0.026) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.AMBIENT, 1.5f, 0.5f, false);
         if (s > GLITCH_FROM && s < FIGURES_AT + 3 && tick % 7 == 0 && Math.random() < 0.5) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.ENDERMAN_STARE, SoundSource.AMBIENT, 0.6f, 0.4f + (float) Math.random() * 0.4f, false);
     }
 

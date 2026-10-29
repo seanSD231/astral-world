@@ -27,7 +27,7 @@ public final class IntroScene {
     private static final java.util.Random R = new java.util.Random();
 
     /** Seconds, angle (deg), radius, camera height above the tree's base, look-at height. */
-    private static final double[][] KEYS = {{0.0, 205, 175, 10, 50}, {3.5, 245, 150, 22, 62}, {7.0, 300, 135, 50, 78}, {10.0, 335, 165, 35, 70}};
+    private static final double[][] KEYS = {{0.0, 205, 300, 30, 70}, {3.5, 245, 270, 45, 72}, {7.0, 300, 250, 70, 76}, {10.0, 335, 290, 55, 74}};   // far enough out to see the whole tree
     private static final String[] LINES = {"The World Tree.", "She has heard your prayers.", "Do not wake her until you are ready."};
     private static final double[] LINE_AT = {0.8, 3.6, 6.6};
 
@@ -115,7 +115,7 @@ public final class IntroScene {
     }
 
     private static void onGuiLayer(RenderGuiLayerEvent.Pre ev) {
-        if (running && !ev.getName().equals(VanillaGuiLayers.CHAT)) ev.setCanceled(true);
+        if (running && !ev.getName().equals(VanillaGuiLayers.CHAT) && !ev.getName().getPath().equals("stage_text")) ev.setCanceled(true);
     }
 
     private static void onGui(RenderGuiEvent.Post ev) {

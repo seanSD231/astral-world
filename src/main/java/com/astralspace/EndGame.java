@@ -258,11 +258,10 @@ public final class EndGame {
             "Please grant us the power to protect our home.",
             "Something heard you",
             "Something is watching you",
-            "Something is angry",
-            "I've heard your prayers"};
+            "Something is angry"};
     // ticks after the fog begins; the client (CallScene) draws the same lines at the same moments. Lines 7-9 are the red ones.
-    private static final int[] PRAYER_AT = {40, 130, 220, 310, 400, 490, 580, 720, 800, 880, 1020};
-    private static final int CALL_TICKS = 1160;
+    private static final int[] PRAYER_AT = {40, 130, 220, 310, 400, 490, 580, 720, 800, 880};
+    private static final int CALL_TICKS = 1020;   // the scene ends with the error; the last line comes after, as a title
 
     /** The sky turns to grey fog, a voice prays, something answers, and then everyone is taken to the arena. */
     private static void callTick(MinecraftServer server, AstralData d) {
@@ -289,6 +288,8 @@ public final class EndGame {
                 PacketDistributor.sendToPlayer(p, new Net.FlashPayload(255, 3000));
             }
             startRaid(server, d);
+            // the last words are not part of the scene: a title, golden fading to black
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) PacketDistributor.sendToPlayer(p, new Net.StagePayload("I've heard your prayers.", 0x0A0600, 0xFFD24A, ""));
         }
     }
 
@@ -322,7 +323,9 @@ public final class EndGame {
             raidSeq.put(p.getUUID(), 4);
             chat(p, Component.literal("The Fool lifts you to Sequence 4.").withStyle(ChatFormatting.GOLD));
         }
-        PacketDistributor.sendToPlayer(p, new Net.StagePayload("The Fool's Blessing", 0x3A2A00, 0xFFD870, "You are not alone"));
+        if (introQueue) introChat.add(() -> PacketDistributor.sendToPlayer(p, new Net.StagePayload("The Fool's Blessing", 0x3A2A00, 0xFFD870, "You are not alone")));
+        else PacketDistributor.sendToPlayer(p, new Net.StagePayload("The Fool's Blessing", 0x3A2A00, 0xFFD870, "You are not alone"));
+        giftDue.put(p.getUUID(), gt + (introQueue ? INTRO_TICKS + CHAT_AFTER_EXTRA : 0) + 1200);   // 60 seconds to choose
         chat(p, Component.literal("You have received the Fool's blessing.").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         offerBlessing(p);
     }
@@ -368,6 +371,7 @@ public final class EndGame {
                     String g = com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "gift");
                     if (!d.endPhase.equals("raid") || d.raidLives.getOrDefault(p.getUUID(), 0) <= 0) { ctx.getSource().sendFailure(Component.literal("There is no blessing to take now.")); return 0; }
                     if (!blessed.add(p.getUUID())) { ctx.getSource().sendFailure(Component.literal("You have already chosen.")); return 0; }
+                    giftDue.remove(p.getUUID());
                     switch (g) {
                         case "hp" -> { addBlessingMod(p, Attributes.MAX_HEALTH, B_HP, 50); p.heal(50); }
                         case "attack" -> addBlessingMod(p, Attributes.ATTACK_DAMAGE, B_ATK, 5);
@@ -636,6 +640,21 @@ public final class EndGame {
         }
     }
 
+    /** Whoever has not chosen a gift 60 seconds after it was offered gets a random one. */
+    private static void giftSecond(ServerLevel lv) {
+        if (giftDue.isEmpty()) return;
+        for (var it = giftDue.entrySet().iterator(); it.hasNext(); ) {
+            var en = it.next();
+            if (gt < en.getValue() || introQueue) continue;
+            it.remove();
+            ServerPlayer p = lv.getServer().getPlayerList().getPlayer(en.getKey());
+            if (p == null || blessed.contains(p.getUUID())) continue;
+            String g = BLESSINGS[ThreadLocalRandom.current().nextInt(BLESSINGS.length)];
+            p.sendSystemMessage(Component.literal("You hesitated. The Fool chooses for you.").withStyle(ChatFormatting.GOLD));
+            lv.getServer().getCommands().performPrefixedCommand(p.createCommandSourceStack().withSuppressedOutput(), "astralblessing " + g);
+        }
+    }
+
     // ---- the Cursing Aura (a Prisoner ability the tree can cast): "your legs stop agreeing with you"
 
     private static final String CURSING_AURA = "net.swimmingtuna.lotm.item.BeyonderAbilities.Prisoner.CursingAura";
@@ -782,13 +801,16 @@ public final class EndGame {
     private static final Map<UUID, Long> lastHit = new HashMap<>();
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
     // two followers each (index = attack): 0 meteors, 1 rings, 2 summon, 3 slam, 4 purge, 5 temptation, 6 (power, unused), 7 curse, 8 pollen, 9 mirror bloom, 10 fruit, 11 storm (lightning web)
-    private static final int[][] NEXT = {{3, 2}, {11, 4}, {3, 5}, {1, 7}, {5, 10}, {8, 1}, {0, 1}, {9, 0}, {4, 9}, {10, 2}, {8, 0}, {0, 3}};
-    private static final int[] DURATION = {140, 220, 110, 70, 190, 200, 90, 130, 200, 230, 210, 130};
+    private static final int[][] NEXT = {{3, 2}, {11, 4}, {3, 5}, {1, 7}, {5, 10}, {8, 1}, {0, 1}, {9, 0}, {13, 9}, {10, 2}, {14, 0}, {0, 3}, {3, 5}, {5, 9}, {3, 2}};
+    private static final int[] DURATION = {140, 220, 110, 70, 190, 200, 90, 130, 200, 230, 210, 130, 330, 190, 190};
     private static int lastPattern = 3;
+    private static long nextTempest = 0;
 
     /** Chat held back while the opening camera scene plays. */
     private static final List<Runnable> introChat = new ArrayList<>();
     private static boolean introQueue = false;
+    private static final int CHAT_AFTER_EXTRA = 80;   // the client starts the scene a few seconds after the server (loading): chat waits for that
+    private static final Map<UUID, Long> giftDue = new HashMap<>();   // player -> tick when the Fool picks their gift for them
     private static void chat(ServerPlayer p, Component c) {
         if (introQueue) introChat.add(() -> p.sendSystemMessage(c)); else p.sendSystemMessage(c);
     }
@@ -816,7 +838,7 @@ public final class EndGame {
         timed.clear();
         raidSeq.clear();
         introChat.clear(); introQueue = true;
-        rt = 0; aggro = false; graceUntil = INTRO_TICKS + GRACE_TICKS; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; nextUltimate = 0; ultCutsceneUntil = 0; clouds.clear(); fruits.clear(); summonSeals.clear(); summonMobs.clear(); globes.clear(); pendingUse.clear(); dazedUntil = 0; temptUntil = 0; bloomTrue = null; kingdomDone = false; kingdomEnd = 0; ultFallUntil = 0; ultImmuneUntil = 0; treeFleshy = false; lineBucket = 20;
+        rt = 0; aggro = false; graceUntil = INTRO_TICKS + GRACE_TICKS; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; nextTempest = 0; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; nextUltimate = 0; ultCutsceneUntil = 0; clouds.clear(); fruits.clear(); summonSeals.clear(); summonMobs.clear(); globes.clear(); pendingUse.clear(); dazedUntil = 0; temptUntil = 0; bloomTrue = null; kingdomDone = false; kingdomEnd = 0; ultFallUntil = 0; ultImmuneUntil = 0; treeFleshy = false; lineBucket = 20;
         traitor = null; offered = null; offerDone = false; echo = null; resetGrowth(); noHeal.clear(); bloomNoHeal.clear(); sanityLock.clear(); lifeDamage.clear(); desire.clear(); thrallHitAt.clear();
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
@@ -1046,6 +1068,16 @@ public final class EndGame {
     private static void fx(ServerLevel lv, int kind, double x, double y, double z, double a, double b, double c, int color, int life) {
         Net.FxPayload pk = new Net.FxPayload(kind, (float) x, (float) y, (float) z, (float) a, (float) b, (float) c, color, life);
         for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, pk);
+    }
+
+    private static boolean lightningy(net.minecraft.world.damagesource.DamageSource src) {
+        try {
+            String id = src.getMsgId() == null ? "" : src.getMsgId().toLowerCase();
+            Entity d = src.getDirectEntity(), b = src.getEntity();
+            String dn = d == null ? "" : d.getClass().getName().toLowerCase(), bn = b == null ? "" : b.getClass().getName().toLowerCase();
+            return src.is(net.minecraft.tags.DamageTypeTags.IS_LIGHTNING) || id.contains("lightning") || id.contains("thunder") || id.contains("electric")
+                || dn.contains("lightning") || dn.contains("thunder") || bn.contains("lightning") || bn.contains("thunder");
+        } catch (Throwable t) { return false; }
     }
 
     private static boolean lotmMeteorFailed = false;
@@ -1576,7 +1608,10 @@ public final class EndGame {
             "POLLEN: purple clouds drift across the arena. Standing in one stacks Desire: it slows you, clouds your head and drains your mind. Stay out of them.",
             "MIRROR BLOOM: three flowers appear and only one is true. Touch a false one and it bursts for a quarter of your health and stops all healing. The true one cleanses everyone. Look closely at the sparks. If nobody finds it, they all wither.",
             "FRUIT: fruit falls across the arena. Take it before it ripens or it sprouts a werewolf. Later, the fruit is rotten.",
-            "METEOR STORM: red circles mark where the meteors land, all at once. Red lines show where lightning will branch out of each impact straight after. Stay off both."};
+            "METEOR STORM: red circles mark where the meteors land, all at once. Red lines show where lightning will branch out of each impact straight after. Stay off both.",
+            "TEMPEST: lightning strikes everywhere at once, so stand inside a blue circle. Then meteors fall everywhere, so stand inside a green circle. Then lightning webs the whole arena: find a gap between the red lines.",
+            "RHYTHM: a screen opens with lanes of falling notes. Press the keys as they reach the line.",
+            "THREAD: a screen opens with a glowing thread. Trace along it with your mouse without leaving it."};
 
     /** The first time a player meets an attack, they are told how to avoid it. */
     private static void notice(ServerLevel lv, int which) {
@@ -1663,6 +1698,8 @@ public final class EndGame {
         final double mr = big ? (rootStage >= 2 ? 16 : 8) : 3.5, sl = big ? 24 : 5.5;   // meteor and slam sizes: in the raid they match the tree
         switch (which) {
             case 6 -> power(lv);
+            case 13 -> miniAttack(lv, 1);
+            case 14 -> miniAttack(lv, 2);
             case 7 -> { // a curse on everyone: cannot be dodged, but it does not cost a life
                 if (!crowd) for (ServerPlayer p : fighters(lv)) fx(lv, 5, p.getX(), p.getY(), p.getZ(), 0, 0, 1.5, rgb(0.55f, 0.15f, 0.8f), 70);
                 for (int t = 0; t < 60; t += 6) at(t, l -> {
@@ -1700,7 +1737,7 @@ public final class EndGame {
                     long start = 25 + ring * 30L;
                     final List<Double> sky = new ArrayList<>();   // the heights of the sky rings, worked out when the ring is sent
                     at(start, l -> {
-                        fx(l, 2, cur.cx(), cur.gy(), cur.cz(), 2, big ? 1.3 : 0.6, 0, rgb(0.7f, 0.25f, 1f), big ? 152 : 52);
+                        fx(l, 15, cur.cx(), cur.gy(), cur.cz(), big ? 1.3 : 0.6, 2, 0, 0, big ? 152 : 52);
                         List<Double> ys = new ArrayList<>();
                         for (ServerPlayer p : fighters(l)) if (p.getY() > cur.gy() + FLY_H) ys.add(p.getY());
                         java.util.Collections.sort(ys);
@@ -1715,13 +1752,12 @@ public final class EndGame {
                         final int tt = t;
                         at(start + t, l -> {
                             double r = 2 + tt * (big ? 1.3 : 0.6);
-                            ringOnly(l, cur.cx(), cur.cz(), r, 0.7f, 0.2f, 1f);
-                            for (double y : sky) tele(l, 1, cur.cx(), y, cur.cz(), (float) r, 0f, 0.5f, 0.8f, 1f, 4);
+                            if (tt == 0) for (double y : sky) fx(l, 16, cur.cx(), y, cur.cz(), big ? 1.3 : 0.6, 2, 0, 0, big ? 152 : 52);
                             for (ServerPlayer p : fighters(l)) { // only the ring itself, and only fighters standing on the ground
                                 double dist = Math.hypot(p.getX() - cur.cx(), p.getZ() - cur.cz());
                                 if (Math.abs(dist - r) >= (big ? 3.0 : 1.0)) continue;
                                 if (p.getY() > cur.gy() + FLY_H) {   // up in the air: only a sky ring at their height can hit them
-                                    for (double y : sky) if (Math.abs(p.getY() - y) < 3.0) { hit(l, p); break; }
+                                    for (double y : sky) if (Math.abs(p.getY() - y) < 7.0) { hit(l, p); break; }
                                 } else if (!(p.getY() >= cur.gy() + 0.9 && jumping(p))) hit(l, p);
                             }
                         });
@@ -1782,6 +1818,8 @@ public final class EndGame {
                 bloomTrue = f[real];
                 bloomRevealUntil = 0;
                 at(205, l -> bloomTrue = null);
+                at(0, l -> { for (double[] k : f) fx(l, 17, k[0], cur.gy(), k[1], treeFleshy ? 1 : 0, 0, 0, 0, 215); });
+                at(204, l -> { for (double[] k : f) fx(l, 11, k[0], cur.gy(), k[1], 0, 0, 0, 0, 1); });
                 for (int t = 0; t <= 200; t += 2) {
                     final int tt = t;
                     at(t, l -> {
@@ -1793,17 +1831,18 @@ public final class EndGame {
                         for (int i = 0; i < 3 && !done[0]; i++) {
                             if (gone[i]) continue;
                             double x = f[i][0], z = f[i][1];
-                            if (tt % 8 == 0) circle(l, x, z, 1.4, 1f, 0.5f, 0.9f);
-                            l.sendParticles(ParticleTypes.ENCHANT, x, cur.gy() + 1.2, z, 6, 0.3, 0.6, 0.3, 0.1);
+                            if (tt % 4 == 0) l.sendParticles(ParticleTypes.ENCHANT, x, cur.gy() + 1.2, z, 4, 0.3, 0.6, 0.3, 0.1);
                             if (tt % 12 == 0) l.sendParticles(i == real ? ParticleTypes.HAPPY_VILLAGER : ParticleTypes.WITCH, x, cur.gy() + 1.2, z, 3, 0.25, 0.4, 0.25, 0);
                             for (ServerPlayer p : fighters(l)) {
                                 if (Math.hypot(p.getX() - x, p.getZ() - z) > 1.8 || Math.abs(p.getY() - cur.gy()) > 4) continue;
                                 if (i == real) {
                                     done[0] = true;
+                                    for (double[] k : f) fx(l, 11, k[0], cur.gy(), k[1], 0, 0, 0, 0, 1);
                                     l.sendParticles(ParticleTypes.HAPPY_VILLAGER, x, cur.gy() + 1.2, z, 40, 1, 1, 1, 0.1);
                                     for (ServerPlayer q : fighters(l)) { desire.remove(q.getUUID()); treeHeal(q, q.getMaxHealth() * 0.25f); q.displayClientMessage(Component.literal("The true bloom: you are cleansed.").withStyle(ChatFormatting.GREEN), true); }
                                 } else {
                                     gone[i] = true;
+                                    fx(l, 11, x, cur.gy(), z, 0, 0, 0, 0, 1);
                                     boom(l, x, z, 4);
                                     for (ServerPlayer q : fighters(l)) if (Math.hypot(q.getX() - x, q.getZ() - z) < 4.5) soften(l, q, 0.25f);
                                 }
@@ -1900,6 +1939,72 @@ public final class EndGame {
                         if (p.getY() >= cur.gy() + 12) continue;
                         for (List<Bolts.Seg> web : webs) if (Bolts.distance(web, p.getX(), p.getZ()) < 1.7) { hit(l, p); break; }
                     }
+                });
+            }
+            case 12 -> { // tempest (below 35%): lightning everywhere (find a safe circle), then meteors everywhere (different safe circles), then a web of lightning over the whole arena (find a gap)
+                final double sr = 7;
+                final int t1 = 90, t2 = 80 + 90 + 50, t3 = 80 + 90 + 90 + 50 + 70;
+                final List<double[]> safeA = new ArrayList<>(), safeB = new ArrayList<>();
+                for (List<double[]> sf : List.of(safeA, safeB)) {
+                    for (ServerPlayer p : fighters(lv)) {
+                        boolean covered = false;
+                        for (double[] q : sf) if (Math.hypot(p.getX() - q[0], p.getZ() - q[1]) < 24) { covered = true; break; }
+                        if (covered || sf.size() >= 14) continue;
+                        double a = rnd.nextDouble() * Math.PI * 2, d = 8 + rnd.nextDouble() * 12;
+                        sf.add(new double[]{p.getX() + Math.cos(a) * d, p.getZ() + Math.sin(a) * d});
+                    }
+                    while (sf.size() < 4) { double a = rnd.nextDouble() * Math.PI * 2, d = 10 + rnd.nextDouble() * (reach * 0.6); sf.add(new double[]{cx + Math.cos(a) * d, cz + Math.sin(a) * d}); }
+                }
+                // 1: lightning everywhere
+                for (int t = 0; t < t1; t += 5) at(t, l -> { for (double[] q : safeA) circle(l, q[0], q[1], sr, 0.3f, 0.6f, 1f); });
+                at(t1, l -> {
+                    sfx(l, SoundEvents.LIGHTNING_BOLT_THUNDER, 5f, 0.7f);
+                    fx(l, 19, cx, cur.gy(), cz, rnd.nextInt(100000), reach, 70, 0, 20);
+                    for (ServerPlayer p : fighters(l)) {
+                        boolean ok = false;
+                        for (double[] q : safeA) if (Math.hypot(p.getX() - q[0], p.getZ() - q[1]) <= sr) ok = true;
+                        for (double[] g : globes) if (gt <= g[3] && p.distanceToSqr(g[0], g[1], g[2]) <= g[4] * g[4]) ok = true;
+                        if (!ok) hit(l, p);
+                    }
+                });
+                // 2: meteors everywhere, different circles are safe
+                final int m0 = t1 + 50;
+                for (int t = m0; t < t2 - 40; t += 5) at(t, l -> { for (double[] q : safeB) circle(l, q[0], q[1], sr, 0.3f, 1f, 0.4f); });
+                at(m0, l -> {
+                    List<double[]> mets = new ArrayList<>();
+                    for (int tries = 0; tries < 400 && mets.size() < 24; tries++) {
+                        double a = rnd.nextDouble() * Math.PI * 2, d = Math.sqrt(rnd.nextDouble()) * reach;
+                        double x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+                        boolean okp = true;
+                        for (double[] q : safeB) if (Math.hypot(x - q[0], z - q[1]) < sr + 6) { okp = false; break; }
+                        for (double[] q : mets) if (Math.hypot(x - q[0], z - q[1]) < 12) { okp = false; break; }
+                        if (okp) mets.add(new double[]{x, z});
+                    }
+                    for (double[] h : mets) {
+                        final double x = h[0], z = h[1];
+                        for (int t = 0; t < 40; t += 5) at(t, ll -> circle(ll, x, z, 8, 1f, 0.1f, 0.1f));
+                        fx(l, 0, x, cur.gy(), z, 40, 8, 0, rgb(1f, 0.45f, 0.1f), 62);
+                        at(40, ll -> { boom(ll, x, z, 8); strike(ll, x, z, 8, 99); });
+                    }
+                });
+                // 3: the whole arena webbed in lightning: find a gap
+                at(t2 + 5, l -> {
+                    final int flash = 70;
+                    final List<List<Bolts.Seg>> webs = new ArrayList<>();
+                    double[][] src = {{cx, cz}, {cx + reach * 0.5, cz}, {cx - reach * 0.5, cz}, {cx, cz + reach * 0.5}, {cx, cz - reach * 0.5}};
+                    for (double[] o : src) {
+                        long seed = rnd.nextInt(1_000_000);
+                        int arms = o == src[0] ? 18 : 10;
+                        webs.add(Bolts.web(seed, o[0], o[1], reach * (o == src[0] ? 1.0 : 0.8), arms));
+                        fx(l, 13, o[0], cur.gy(), o[1], seed, reach * (o == src[0] ? 1.0 : 0.8), flash, arms, flash + 24);
+                    }
+                    at(flash, ll -> {
+                        sfx(ll, SoundEvents.LIGHTNING_BOLT_THUNDER, 5f, 0.6f);
+                        for (ServerPlayer p : fighters(ll)) {
+                            if (p.getY() >= cur.gy() + 12) continue;
+                            for (List<Bolts.Seg> web : webs) if (Bolts.distance(web, p.getX(), p.getZ()) < 1.7) { hit(ll, p); break; }
+                        }
+                    });
                 });
             }
             default -> { // purge: the tree gathers its power for 7 seconds, then everything not inside a safe circle is struck
@@ -2021,19 +2126,15 @@ public final class EndGame {
         osuHits.clear();
         temptation(lv, 100, callFailed, 3);   // the first five seconds: turn away and crouch
         at(100, l -> {   // then the cursor is free and the click game begins
-            int seed = ThreadLocalRandom.current().nextInt(1_000_000);
-            for (ServerPlayer p : fighters(l)) {
-                if (callFailed.contains(p.getUUID())) continue;
-                p.sendSystemMessage(Component.literal("Now click the wishes before they close.").withStyle(ChatFormatting.LIGHT_PURPLE));
-                PacketDistributor.sendToPlayer(p, new Net.OsuStart(seed, OSU_COUNT, OSU_TICKS));
-            }
+            int game = ThreadLocalRandom.current().nextInt(3);
+            miniOpen(l, game, callFailed, MINI_HINT[game]);
         });
         at(205, l -> {
             for (ServerPlayer p : fighters(l)) {
                 UUID id = p.getUUID();
                 if (callFailed.contains(id)) continue;
                 int[] r = osuHits.get(id);
-                boolean ok = r != null && r[1] == OSU_COUNT && r[0] >= OSU_COUNT - OSU_MISSES;
+                boolean ok = r != null && r[1] == miniCount && r[0] >= miniNeed;
                 if (ok) continue;
                 callFailed.add(id);
                 p.sendSystemMessage(Component.literal("You gave in.").withStyle(ChatFormatting.DARK_RED));
@@ -2045,12 +2146,43 @@ public final class EndGame {
         });
     }
 
-    private static final int OSU_COUNT = 14, OSU_TICKS = 100, OSU_MISSES = 4;
     private static final Map<UUID, int[]> osuHits = new HashMap<>();
+    private static int miniCount = 10, miniNeed = 6, miniTicks = 100;
+    private static long miniStart = -1000;
+    private static final String[] MINI_HINT = {"Now click the wishes before they close.", "Now press the keys as the notes reach the line.", "Now follow the light along the thread."};
 
-    /** A client reports how its click game went. Only counted while the call runs and not before the game could have ended. */
+    /** Opens a minigame on every fighter's screen (except those skipped) and remembers what a pass needs: 60% of it. */
+    private static void miniOpen(ServerLevel l, int game, Set<UUID> skip, String hint) {
+        int seed = ThreadLocalRandom.current().nextInt(1_000_000);
+        miniCount = game == 0 ? 10 : game == 1 ? 12 : 16;
+        miniTicks = 100;
+        miniNeed = (int) Math.ceil(miniCount * 0.6);
+        miniStart = rt;
+        osuHits.clear();
+        for (ServerPlayer p : fighters(l)) {
+            if (skip.contains(p.getUUID())) continue;
+            p.sendSystemMessage(Component.literal(hint).withStyle(ChatFormatting.LIGHT_PURPLE));
+            PacketDistributor.sendToPlayer(p, new Net.OsuStart(game, seed, miniCount, miniTicks));
+        }
+    }
+
+    /** An attack made of a minigame: whoever does not reach 60% is struck. */
+    private static void miniAttack(ServerLevel lv, int game) {
+        miniOpen(lv, game, new HashSet<>(), MINI_HINT[game]);
+        at(miniTicks + 25, l -> {
+            for (ServerPlayer p : fighters(l)) {
+                int[] r = osuHits.get(p.getUUID());
+                if (r != null && r[1] == miniCount && r[0] >= miniNeed) continue;
+                p.sendSystemMessage(Component.literal("You failed it.").withStyle(ChatFormatting.DARK_RED));
+                hit(l, p);
+            }
+            miniStart = -1000;
+        });
+    }
+
+    /** A client reports how its minigame went. Only counted after it could have ended and before the answer is read. */
     static void osuResult(ServerPlayer p, int hits, int total) {
-        if (!rootsActive || activeKind != 1 || rt < phaseEnd - 210 + 100 + OSU_TICKS - 10) return;   // too early to be real
+        if (rt < miniStart + miniTicks - 10 || rt > miniStart + miniTicks + 90) return;
         osuHits.put(p.getUUID(), new int[]{Math.max(0, Math.min(hits, total)), total});
     }
 
@@ -2155,15 +2287,15 @@ public final class EndGame {
         nextPattern = Math.max(nextPattern, rt + FALL_TICKS + 120);   // no other attack while it falls
         ultCutsceneUntil = rt + 170;
         for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(22, 160));   // the cutscene: everyone watches it start to fall
-        final double cx = 0.5, cz = 0.5, top = cur.gy() + 190;
+        final double cx = 0.5, cz = 0.5, top = cur.gy() + 520;
         LOGGER.info("[astral] the tree's ultimate meteor begins");
-        fx(lv, 6, cx, cur.gy(), cz, top - cur.gy(), FALL_TICKS, 0, rgb(1f, 0.4f, 0.08f), FALL_TICKS + 70);
+        fx(lv, 6, cx, cur.gy(), cz, top - cur.gy(), FALL_TICKS, 3, rgb(1f, 0.4f, 0.08f), FALL_TICKS + 70);
         for (int t = 0; t < FALL_TICKS; t++) {
             final int tt = t;
             at(t, l -> {
                 double f = tt / (double) FALL_TICKS;
                 double y = top - (top - cur.gy()) * (0.6 * f + 0.4 * f * f);   // slow: it only speeds up a little near the ground
-                double size = 6 + f * 10;
+                double size = 20 + f * 30;
                 l.sendParticles(ParticleTypes.FLAME, cx, y, cz, 30, size * 0.5, size * 0.4, size * 0.5, 0.02);
                 l.sendParticles(ParticleTypes.LAVA, cx, y, cz, 10, size * 0.5, size * 0.4, size * 0.5, 0);
                 l.sendParticles(ParticleTypes.LARGE_SMOKE, cx, y + size * 0.5, cz, 20, size * 0.5, size * 0.6, size * 0.5, 0.05);
@@ -2306,11 +2438,11 @@ public final class EndGame {
         if (lv == null) return;
         rt++;
         cur = new Arena(lv, 0.5, 0.5, groundY, true);
-        if (introQueue && rt >= INTRO_TICKS) { introQueue = false; for (Runnable r : introChat) r.run(); introChat.clear(); }
+        if (introQueue && rt >= INTRO_TICKS + CHAT_AFTER_EXTRA) { introQueue = false; for (Runnable r : introChat) r.run(); introChat.clear(); }
         sanityLockTick(lv);
         echoTick(lv);
         counterTick(lv);
-        if (rt % 20 == 0) { rootsSecond(lv); auraSecond(lv); }
+        if (rt % 20 == 0) { rootsSecond(lv); auraSecond(lv); giftSecond(lv); }
         if (aggro) treeCast(lv);
         else if (rt >= graceUntil && rt % 5 == 0) {
             for (ServerPlayer p : fighters(lv)) if (Math.hypot(p.getX() - 0.5, p.getZ() - 0.5) < WAKE_R) { wake(lv, p.getGameProfile().getName() + " came too close"); break; }
@@ -2319,6 +2451,9 @@ public final class EndGame {
         if (aggro && rt >= nextPattern && !cutscene && !(rootsActive && activeKind == 1) && !fighters(lv).isEmpty()) {
             int[] opts = NEXT[lastPattern];
             int which = opts[ThreadLocalRandom.current().nextInt(opts.length)];
+            Mob tb = findBoss(lv, TAG_RAID);
+            boolean tempest = tb != null && tb.getHealth() < RAID_HP * 0.35f && rt >= nextTempest;
+            if (tempest) { which = 12; nextTempest = rt + 1500; }
             if (which == 4 && disharmony(lv)) which = 10;   // the purge is never used while anyone's legs disagree with them (the Cursing Aura)
             lastPattern = which;
             pattern(lv, which);
@@ -2830,7 +2965,8 @@ public final class EndGame {
         if (e.getTags().contains(TAG_RAID)) {
             if (e.level() instanceof ServerLevel wl) wake(wl, "it was struck");
             var le = (net.minecraft.world.entity.LivingEntity) e;
-            float a = rateLimit(le, Math.min(event.getAmount() * RAID_DAMAGE * (rt < dazedUntil ? 1.25f : 1f), le.getMaxHealth() * RAID_HIT), RAID_RATE);   // dazed: 25% more, still under her caps
+            float res = lightningy(event.getSource()) ? 0.4f : 1f;   // she resists lightning: 60% less
+            float a = rateLimit(le, Math.min(event.getAmount() * RAID_DAMAGE * res * (rt < dazedUntil ? 1.25f : 1f), le.getMaxHealth() * RAID_HIT * res), RAID_RATE);   // dazed: 25% more, still under her caps
             if (rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * RAID_HP)); // the hit that crosses a phase line is cut down to land exactly on it (and starts the phase), never skipped
             if (a <= 0f) { logDrop(e, event, "capped to zero"); event.setCanceled(true); } else event.setAmount(a);
             return;

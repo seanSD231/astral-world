@@ -18,7 +18,7 @@ import net.neoforged.neoforge.common.NeoForge;
 public final class MeteorScene {
     /** Seconds the meteor needs to land (the server uses the same numbers). */
     public static final double FALL = 30.0;
-    private static final double TOP = 190.0;
+    private static final double TOP = 520.0;
     private static float startYaw, startPitch;
     private static boolean wasActive = false;
 

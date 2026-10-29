@@ -2,6 +2,20 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.43
+Tree fight changes.
+- **Phase 5 cutscene:** players are teleported right after the error part. The last line ("I've heard your prayers.") now appears as golden-black gradient text instead of part of the scene.
+- **Opening scene:** zoomed out so you can see the whole tree. Chat messages now arrive a little later, after the scene has really finished.
+- **Gifts:** if nobody picks one within 60 seconds, a random gift is chosen.
+- **Rings:** much bigger. The sky ring is now a tall wave of lightning and leaves (you must move well clear of its height), and the ground ring is a surge of burning roots.
+- **Mirror Bloom:** the flowers now have a real model, with a beam of light showing each spot in the tree's colours (pink, then crimson after the change). The circle is gone.
+- **New attack, Tempest (below 35%):** lightning strikes the whole arena at once (stand in a safe circle), then meteors fall everywhere (different safe circles), then lightning webs the entire arena and you must find a gap.
+- **Meteor Storm:** the lightning branches are more random and split into more, smaller branches.
+- **Lightning resistance:** the Mother Tree takes 60% less damage from lightning.
+- **50% cutscene:** smoother, much less jitter.
+- **Minigames:** the click game is easier (10 circles, bigger, more forgiving, 60% to pass). Two new ones, a rhythm game (D F J K or arrow keys) and a thread-following game. Desire's Call picks one at random, and each also exists as its own attack.
+- **15% meteor:** far bigger, and it starts much higher so it no longer begins inside the tree.
+
 ## 0.2.42
 Tree fight changes.
 - **Start of the fight:** you arrive 20 blocks further from the tree. Nothing is said in chat until the opening camera scene is over, and the "she sleeps / the peace is over" warnings are gone. The ring of stone pillars at the edge of the arena is gone.

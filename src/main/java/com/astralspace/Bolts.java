@@ -20,22 +20,24 @@ public final class Bolts {
         double base = r.nextDouble() * Math.PI * 2;
         for (int i = 0; i < arms; i++) {
             double ang = base + Math.PI * 2 * i / arms + (r.nextDouble() - 0.5) * 0.35;
-            grow(r, out, cx, cz, ang, reach * (0.7 + r.nextDouble() * 0.3), 0);
+            grow(r, out, cx, cz, ang, reach * (0.7 + r.nextDouble() * 0.3), 0, 120 + arms * 30);
         }
         return out;
     }
 
-    private static void grow(Random r, List<Seg> out, double x, double z, double ang, double len, int depth) {
+    private static void grow(Random r, List<Seg> out, double x, double z, double ang, double len, int depth, int cap) {
         double done = 0;
-        while (done < len && out.size() < 160) {
-            double step = Math.min(len - done, 9 + r.nextDouble() * 8);
-            ang += (r.nextDouble() - 0.5) * (depth == 0 ? 0.7 : 1.0);   // wild: the bolt twists as it goes
+        while (done < len && out.size() < cap) {
+            double step = Math.min(len - done, (depth == 0 ? 7 : 4) + r.nextDouble() * (depth == 0 ? 7 : 5));
+            ang += (r.nextDouble() - 0.5) * (depth == 0 ? 0.9 : 1.4);   // wild: the bolt twists as it goes
             double nx = x + Math.cos(ang) * step, nz = z + Math.sin(ang) * step;
             out.add(new Seg(x, z, nx, nz, depth));
             x = nx; z = nz; done += step;
-            if (depth < 3 && done > 10 && r.nextDouble() < (depth == 0 ? 0.5 : 0.38)) {
-                double side = r.nextBoolean() ? 1 : -1;
-                grow(r, out, x, z, ang + side * (0.5 + r.nextDouble() * 0.7), (len - done) * (0.3 + r.nextDouble() * 0.4) + 6, depth + 1);
+            for (int br = 0; br < 2; br++) {
+                if (depth < 4 && done > 6 && r.nextDouble() < (depth == 0 ? 0.55 : 0.4) / (br + 1)) {
+                    double side = r.nextBoolean() ? 1 : -1;
+                    grow(r, out, x, z, ang + side * (0.4 + r.nextDouble() * 1.1), (len - done) * (0.25 + r.nextDouble() * 0.4) + 4, depth + 1, cap);
+                }
             }
         }
     }
