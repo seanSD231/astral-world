@@ -1538,7 +1538,7 @@ public final class EndGame {
             "POLLEN: purple clouds drift across the arena. Standing in one stacks Desire: it slows you, clouds your head and drains your mind. Stay out of them.",
             "MIRROR BLOOM: three flowers appear and only one is true. Touch a false one and it bursts for a quarter of your health and stops all healing. The true one cleanses everyone. Look closely at the sparks. If nobody finds it, they all wither.",
             "FRUIT: fruit falls across the arena. Take it before it ripens or it sprouts a werewolf. Later, the fruit is rotten.",
-            "STORM: red lines on the ground show where lightning will branch across the arena. Stay off them: the safe ground is between the lines."};
+            "METEOR STORM: red circles mark where the meteors land, all at once. Red lines show where lightning will branch out of each impact straight after. Stay off both."};
 
     /** The first time a player meets an attack, they are told how to avoid it. */
     private static void notice(ServerLevel lv, int which) {
@@ -1825,21 +1825,42 @@ public final class EndGame {
                 temptation(lv, 160, failed);
                 at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
             }
-            case 11 -> { // storm: red lines show where the lightning branches, then all of it strikes at once
-                final int warn = 60;
-                final long seed = rnd.nextInt(1_000_000);
-                final double webReach = big ? 190 : 40;
-                final List<Bolts.Seg> web = Bolts.web(seed, cx, cz, webReach);
-                fx(lv, 13, cx, cur.gy(), cz, seed, webReach, warn, 0, warn + 24);
-                at(warn, l -> {
+            case 11 -> { // meteor storm: every meteor lands at once, then lightning branches wildly out of each impact along the red lines
+                final int fall = 40, flash = 46;
+                final List<double[]> spots = new ArrayList<>();
+                for (ServerPlayer p : fighters(lv)) {
+                    double x = p.getX() + rnd.nextDouble(-3, 3), z = p.getZ() + rnd.nextDouble(-3, 3);
+                    boolean near = false;
+                    for (double[] h : spots) if (Math.hypot(h[0] - x, h[1] - z) < 10) { near = true; break; }
+                    if (!near && spots.size() < 14) spots.add(new double[]{x, z});
+                }
+                final List<List<Bolts.Seg>> webs = new ArrayList<>();
+                for (double[] h : spots) {
+                    final double x = h[0], z = h[1];
+                    final long seed = rnd.nextInt(1_000_000);
+                    final int arms = 6 + rnd.nextInt(3);
+                    final double wr = big ? 90 : 30;
+                    webs.add(Bolts.web(seed, x, z, wr, arms));
+                    for (int t = 0; t < fall; t += 5) at(t, ll -> circle(ll, x, z, mr, 1f, 0.1f, 0.1f));
+                    boolean lotm = lotmMeteor(lv, x, z, mr, fall);
+                    fx(lv, 0, x, cur.gy(), z, fall, mr, lotm ? 1 : 0, rgb(1f, 0.45f, 0.1f), 62);
+                    fx(lv, 13, x, cur.gy(), z, seed, wr, flash, arms, flash + 24);
+                    at(fall, ll -> { boom(ll, x, z, mr); strike(ll, x, z, mr, 99); });
+                }
+                at(flash, l -> {
                     sfx(l, SoundEvents.LIGHTNING_BOLT_THUNDER, 4f, 0.8f);
                     int shown = 0;
-                    for (int k = 0; k < web.size() && shown < 14; k += Math.max(1, web.size() / 14)) {   // a few real bolts along the web
-                        Bolts.Seg sg = web.get(k);
-                        LightningBolt lb = EntityType.LIGHTNING_BOLT.create(l);
-                        if (lb != null) { lb.moveTo(sg.x1(), cur.gy(), sg.z1()); lb.setVisualOnly(true); l.addFreshEntity(lb); shown++; }
+                    for (List<Bolts.Seg> web : webs) {
+                        for (int k = 3; k < web.size() && shown < 24; k += Math.max(1, web.size() / 2)) {   // a couple of real bolts per web
+                            Bolts.Seg sg = web.get(k);
+                            LightningBolt lb = EntityType.LIGHTNING_BOLT.create(l);
+                            if (lb != null) { lb.moveTo(sg.x1(), cur.gy(), sg.z1()); lb.setVisualOnly(true); l.addFreshEntity(lb); shown++; }
+                        }
                     }
-                    for (ServerPlayer p : fighters(l)) if (p.getY() < cur.gy() + 12 && Bolts.distance(web, p.getX(), p.getZ()) < 1.7) hit(l, p);
+                    for (ServerPlayer p : fighters(l)) {
+                        if (p.getY() >= cur.gy() + 12) continue;
+                        for (List<Bolts.Seg> web : webs) if (Bolts.distance(web, p.getX(), p.getZ()) < 1.7) { hit(l, p); break; }
+                    }
                 });
             }
             default -> { // purge: the tree gathers its power for 7 seconds, then everything not inside a safe circle is struck

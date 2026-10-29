@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * The Storm attack's web of lightning. The server and every client build the same web from the same seed, so only the seed
+ * The Meteor Storm's web of lightning, branching out from each impact. The server and every client build the same web from the same seed, so only the seed
  * is sent: the server uses it to find who is struck, the clients use it to draw the red warning lines and then the bolts.
  */
 public final class Bolts {
@@ -14,10 +14,9 @@ public final class Bolts {
     /** One piece of the web: from (x0, z0) to (x1, z1); depth 0 is a main arm, higher is a branch off a branch. */
     public record Seg(double x0, double z0, double x1, double z1, int depth) {}
 
-    public static List<Seg> web(long seed, double cx, double cz, double reach) {
+    public static List<Seg> web(long seed, double cx, double cz, double reach, int arms) {
         Random r = new Random(seed);
         List<Seg> out = new ArrayList<>();
-        int arms = 9 + r.nextInt(4);
         double base = r.nextDouble() * Math.PI * 2;
         for (int i = 0; i < arms; i++) {
             double ang = base + Math.PI * 2 * i / arms + (r.nextDouble() - 0.5) * 0.35;
@@ -28,13 +27,13 @@ public final class Bolts {
 
     private static void grow(Random r, List<Seg> out, double x, double z, double ang, double len, int depth) {
         double done = 0;
-        while (done < len && out.size() < 420) {
+        while (done < len && out.size() < 160) {
             double step = Math.min(len - done, 9 + r.nextDouble() * 8);
-            ang += (r.nextDouble() - 0.5) * (depth == 0 ? 0.5 : 0.8);
+            ang += (r.nextDouble() - 0.5) * (depth == 0 ? 0.7 : 1.0);   // wild: the bolt twists as it goes
             double nx = x + Math.cos(ang) * step, nz = z + Math.sin(ang) * step;
             out.add(new Seg(x, z, nx, nz, depth));
             x = nx; z = nz; done += step;
-            if (depth < 3 && done > 10 && r.nextDouble() < (depth == 0 ? 0.42 : 0.3)) {
+            if (depth < 3 && done > 10 && r.nextDouble() < (depth == 0 ? 0.5 : 0.38)) {
                 double side = r.nextBoolean() ? 1 : -1;
                 grow(r, out, x, z, ang + side * (0.5 + r.nextDouble() * 0.7), (len - done) * (0.3 + r.nextDouble() * 0.4) + 6, depth + 1);
             }

@@ -10,7 +10,7 @@ Tree fight changes.
 - **Fruit:** real fruit (apples with a stem and leaf, mouldy when rotten) fall with a golden beam, red once she has transformed. The circle under them is gone.
 - **Fog:** the pollen veil is now a huge bank of drifting mist (about three times wider) with no circle.
 - **Meteors:** the mod's own meteors are much bigger and look better: a tumbling rock with glowing cracks, a fire and smoke trail, thrown debris and a hot crater.
-- **Storm (new attack):** red lines mark where lightning will branch across the arena, then every branch strikes at once.
+- **Meteor Storm (new variant of the meteors):** every meteor lands at the same moment, then lightning branches wildly out of each impact across the arena. Red lines show where the branches will strike.
 - **Purge:** it now gives 7 seconds. A safe circle appears near everyone, the tree visibly winds up and the purge ends in a huge explosion.
 - **Temptation:** the drag on your view turns smoothly instead of jumping.
 

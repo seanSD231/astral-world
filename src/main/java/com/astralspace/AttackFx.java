@@ -402,9 +402,9 @@ public final class AttackFx {
 
     private static final java.util.Map<Long, java.util.List<Bolts.Seg>> WEBS = new java.util.HashMap<>();
 
-    private static java.util.List<Bolts.Seg> webFor(long seed, double cx, double cz, double reach) {
-        if (WEBS.size() > 6) WEBS.clear();
-        return WEBS.computeIfAbsent(seed, k -> Bolts.web(k, cx, cz, reach));
+    private static java.util.List<Bolts.Seg> webFor(long seed, double cx, double cz, double reach, int arms) {
+        if (WEBS.size() > 40) WEBS.clear();
+        return WEBS.computeIfAbsent(seed * 100 + arms, k -> Bolts.web(k / 100, cx, cz, reach, (int) (k % 100)));
     }
 
     /** A flat ribbon on the ground from (x0, z0) to (x1, z1), w wide. */
@@ -415,10 +415,10 @@ public final class AttackFx {
         p.quad(x0 - nx, y, z0 - nz, a, x0 + nx, y, z0 + nz, a, x1 + nx, y, z1 + nz, a, x1 - nx, y, z1 - nz, a);
     }
 
-    /** The Storm: red lines show where the lightning will branch, then all of it strikes at the same moment. */
-    private static void storm(Pen p, boolean add, double t, double x, double y, double z, double seed, double reach, double warn, double life) {
+    /** The Meteor Storm: red lines show where the lightning will branch out of each impact; it strikes right after the meteors land. */
+    private static void storm(Pen p, boolean add, double t, double x, double y, double z, double seed, double reach, double warn, double life, int arms) {
         if (!add) return;
-        java.util.List<Bolts.Seg> web = webFor((long) seed, x, z, reach);
+        java.util.List<Bolts.Seg> web = webFor((long) seed, x, z, reach, arms);
         if (t < warn) {
             float in = clamp01(t / 8.0);
             double pulse = 0.65 + 0.35 * Math.sin(t * 0.55);
@@ -506,7 +506,7 @@ public final class AttackFx {
                 case 2 -> wave(pen, add, t, x, y, z, a, b, life, col);
                 case 3 -> cloud(pen, add, t, x, y, z, a, b, c, life, col);
                 case 10 -> fruit(pen, add, t, x, y, z, a > 0.5, b > 0.5, life);
-                case 13 -> storm(pen, add, t, x, y, z, a, b, c, life);
+                case 13 -> storm(pen, add, t, x, y, z, a, b, c, life, col);
                 case 14 -> purge(pen, add, t, x, y, z, a, b, life, col);
                 case 4 -> blast(pen, add, t, x, y, z, a, life, col);
                 case 5 -> vortex(pen, add, t, x, y, z, c, life, col);
