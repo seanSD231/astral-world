@@ -2766,7 +2766,7 @@ public final class EndGame {
 
     /** Hitbox size in blocks (width, height) per boss, matched to the drawn model. The mob itself is player-sized (0.6 x 1.8). */
     private static final Map<String, double[]> HITBOX = Map.of("mercury", new double[]{14, 13}, "venus", new double[]{24, 10}, "mars", new double[]{8, 7},
-            "jupiter", new double[]{17, 13}, "saturn", new double[]{11, 11}, "uranus", new double[]{18, 20}, "neptune", new double[]{15, 15}, "tree", new double[]{300, 160});
+            "jupiter", new double[]{17, 13}, "saturn", new double[]{11, 11}, "uranus", new double[]{18, 20}, "neptune", new double[]{15, 15}, "tree", new double[]{24, 150});
 
     private static boolean pkOk = false, pkTried = false;
     private static Object pkWidth, pkHeight;
@@ -2817,6 +2817,60 @@ public final class EndGame {
         if (inst != null && Math.abs(inst.getBaseValue() - want) > 0.01) { inst.setBaseValue(want); m.refreshDimensions(); }
     }
 
+    // ---- the tree's hitbox is several boxes: the trunk (the boss itself) and invisible parts for the root plate and the canopy that pass every hit on to her
+    static final String TAG_PART = "astral_part";
+    private static final double[][] TREE_PARTS = {{300, 26, 0}, {290, 105, 122}};   // width, height, height of the box's floor above the tree's foot (the trunk is the boss's own box)
+    private static final Map<Integer, UUID> partIds = new HashMap<>();
+    private static net.minecraft.world.scores.PlayerTeam partTeam;
+
+    /** Keeps the tree's extra hitboxes in place and the right size. While she cannot be hurt (roots, seeds, call, transformation) they shrink away like the trunk does. */
+    private static void treeParts(ServerLevel lv, Mob boss) {
+        var sb = lv.getScoreboard();
+        if (partTeam == null || sb.getPlayerTeam("astral_parts") == null) {
+            partTeam = sb.getPlayerTeam("astral_parts") != null ? sb.getPlayerTeam("astral_parts") : sb.addPlayerTeam("astral_parts");
+            partTeam.setCollisionRule(net.minecraft.world.scores.Team.CollisionRule.NEVER);
+        }
+        for (int i = 0; i < TREE_PARTS.length; i++) {
+            double[] pd = TREE_PARTS[i];
+            Entity ex = partIds.get(i) == null ? null : lv.getEntity(partIds.get(i));
+            Mob part;
+            if (ex instanceof Mob pm && pm.isAlive()) part = pm;
+            else {
+                part = EntityType.IRON_GOLEM.create(lv);
+                if (part == null) return;
+                part.addTag(TAG_PART);
+                part.setNoAi(true); part.setNoGravity(true); part.setSilent(true); part.setInvisible(true); part.setPersistenceRequired();
+                part.noPhysics = true;
+                var mh = part.getAttribute(Attributes.MAX_HEALTH);
+                if (mh != null) mh.setBaseValue(1_000_000.0);
+                part.setHealth(1_000_000f);
+                part.moveTo(boss.getX(), boss.getY() + pd[2], boss.getZ());
+                lv.addFreshEntity(part);
+                sb.addPlayerToTeam(part.getStringUUID(), partTeam);
+                partIds.put(i, part.getUUID());
+            }
+            part.getPersistentData().putUUID("partOf", boss.getUUID());
+            part.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+            if (Math.abs(part.getX() - boss.getX()) > 0.01 || Math.abs(part.getY() - (boss.getY() + pd[2])) > 0.01 || Math.abs(part.getZ() - boss.getZ()) > 0.01) part.setPos(boss.getX(), boss.getY() + pd[2], boss.getZ());
+            double w = rootsActive ? 1 : pd[0], h = rootsActive ? 1 : pd[1];
+            if (!pehkui(part, (float) (w / 1.4), (float) (h / 2.7))) {
+                var inst = part.getAttribute(Attributes.SCALE);
+                double want = Math.min(16, Math.max(w / 1.4, h / 2.7));
+                if (inst != null && Math.abs(inst.getBaseValue() - want) > 0.01) { inst.setBaseValue(want); part.refreshDimensions(); }
+            }
+        }
+    }
+
+    /** Parts whose tree is gone are removed. */
+    private static void sweepParts(ServerLevel lv) {
+        for (Entity e : lv.getAllEntities()) {
+            if (!e.getTags().contains(TAG_PART)) continue;
+            if (!e.getPersistentData().hasUUID("partOf")) { e.discard(); continue; }
+            Entity b = lv.getEntity(e.getPersistentData().getUUID("partOf"));
+            if (b == null || !b.isAlive() || !partIds.containsValue(e.getUUID())) e.discard();
+        }
+    }
+
     private static final Set<UUID> silentHandled = new HashSet<>();
     private static float raidRespawnHp = -1f;
 
@@ -2844,6 +2898,7 @@ public final class EndGame {
 
     private static void guardLevel(ServerLevel lv) {
         if (lv == null) return;
+        sweepParts(lv);
         for (Entity e : lv.getAllEntities()) {
             if (e instanceof Mob fp && fp.getPersistentData().getBoolean("isFallenPersona")) { fp.discard(); continue; }   // a regress would spawn a corrupted rampager at the players
             if (e instanceof Mob dm && dm.getTags().contains(TAG_BOSS) && !dm.isAlive() && dm.getHealth() <= 0f) silentDeath(lv, dm);
@@ -2851,6 +2906,7 @@ public final class EndGame {
             stripDeath(m);
             freeFromOwner(m);
             sizeHitbox(m);
+            if (m.getTags().contains(TAG_RAID)) treeParts(lv, m);
             if (m.getTags().contains(TAG_RAID)) {   // the tree never moves: hits and the hitbox changing size must not push it up or down
                 var pd = m.getPersistentData();
                 if (!pd.contains("astralHomeY")) { pd.putDouble("astralHomeY", m.getY()); pd.putDouble("astralHomeX", m.getX()); pd.putDouble("astralHomeZ", m.getZ()); }
@@ -2975,6 +3031,15 @@ public final class EndGame {
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         Entity e = event.getEntity();
+        if (e.getTags().contains(TAG_PART)) {   // a hit on one of her extra hitboxes is a hit on her
+            event.setCanceled(true);
+            if (!environmental(event.getSource()) && e.getPersistentData().hasUUID("partOf") && e.level() instanceof ServerLevel pl) {
+                Entity tree = pl.getEntity(e.getPersistentData().getUUID("partOf"));
+                Entity by = event.getSource().getEntity();
+                if (tree instanceof Mob tm && tm.isAlive() && by != tm && !(by instanceof Mob bm && (bm.getTags().contains(TAG_PART) || bm.getTags().contains(TAG_BOSS)))) tm.hurt(event.getSource(), event.getAmount());
+            }
+            return;
+        }
         if (e instanceof ServerPlayer && god.contains(e.getUUID())) { event.setCanceled(true); return; }   // /astralgod
         if (e instanceof ServerPlayer && !aggro && rt < INTRO_TICKS && raidPhase(e)) { event.setCanceled(true); return; }   // nobody is hurt while the camera shows the tree
         if (e.getTags().contains(TAG_RAID) && rt < graceUntil && raidPhase(e)) {   // the tree sleeps: nothing can hurt it

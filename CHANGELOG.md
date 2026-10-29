@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.47
+- **Tree hitbox, done properly:** the trunk keeps a narrow box (24 wide, 150 tall) and two invisible parts add the flat root plate (300 wide, 26 tall) and the canopy (290 wide, 105 tall, from 122 up). Anything that hits a part hits her. The parts don't push players and shrink away whenever she can't be hurt, like the trunk does. The sizes are in `TREE_PARTS` to fine-tune.
+
 ## 0.2.46
 - **Hitbox:** now covers the whole tree, 300 wide (the full canopy) and 160 tall. To be fine-tuned.
 
