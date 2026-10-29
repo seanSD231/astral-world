@@ -93,6 +93,33 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -> client: open the click game of Desire's call (osu-style): `count` circles over `ticks` ticks, laid out from `seed`. */
+    public record OsuStart(int seed, int count, int ticks) implements CustomPacketPayload {
+        public static final Type<OsuStart> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "osu_start"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, OsuStart> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, OsuStart::seed,
+                ByteBufCodecs.VAR_INT, OsuStart::count,
+                ByteBufCodecs.VAR_INT, OsuStart::ticks,
+                OsuStart::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    /** Client -> server: how the click game went. */
+    public record OsuResult(int hits, int total) implements CustomPacketPayload {
+        public static final Type<OsuResult> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "osu_result"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, OsuResult> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, OsuResult::hits,
+                ByteBufCodecs.VAR_INT, OsuResult::total,
+                OsuResult::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** One danger marker (kind 0 filled ring, 1 ring, 2 beam, 3 tall beacon). Sent in batches. */
     public record TelegraphPayload(int kind, float x, float y, float z, float a, float b, int color, int life) {
         static void write(RegistryFriendlyByteBuf buf, TelegraphPayload t) {
@@ -218,6 +245,11 @@ public final class Net {
         registrar.playToServer(RootHitPayload.TYPE, RootHitPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) EndGame.rootHit(sp);
         }));
+        registrar.playToClient(OsuStart.TYPE, OsuStart.CODEC, (payload, ctx) -> ctx.enqueueWork(() ->
+                OsuHooks.open(payload.seed(), payload.count(), payload.ticks())));
+        registrar.playToServer(OsuResult.TYPE, OsuResult.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) EndGame.osuResult(sp, payload.hits(), payload.total());
+        }));
         registrar.playToClient(TelegraphBatch.TYPE, TelegraphBatch.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             synchronized (ClientState.telegraphs) {
                 for (TelegraphPayload t : payload.items()) {
@@ -228,6 +260,15 @@ public final class Net {
         }));
         registrar.playToClient(FxPayload.TYPE, FxPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             synchronized (ClientState.fx) {
+                if (payload.kind() == 9) {   // dispel: take away the pollen clouds near this spot, wherever they have drifted to by now
+                    long nowMs = System.currentTimeMillis();
+                    ClientState.fx.removeIf(f -> {
+                        if ((int) f[0] != 3) return false;
+                        double t = (nowMs - f[8]) / 50.0;
+                        return Math.hypot(f[1] + f[4] * t - payload.x(), f[3] + f[5] * t - payload.z()) < payload.a() + 8;
+                    });
+                    return;
+                }
                 if (ClientState.fx.size() < 300)
                     ClientState.fx.add(new double[]{payload.kind(), payload.x(), payload.y(), payload.z(), payload.a(), payload.b(), payload.c(), payload.color(), System.currentTimeMillis(), payload.life()});
             }

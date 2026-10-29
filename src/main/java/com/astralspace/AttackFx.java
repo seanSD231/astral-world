@@ -145,41 +145,88 @@ public final class AttackFx {
         tube(p, x, y, z, rad * 0.35 * (1 - u) + 0.1, clamp01(0.55 * (1 - u)), x, y + ch, z, rad * 0.12 * (1 - u) + 0.05, 0f, 10);
     }
 
-    private static void slam(Pen p, boolean add, double t, double x, double y, double z, double drop, double rad, double life, int col) {
+    /** A leaf or petal lying at an angle: a diamond with its tip along `ang`, tilted up by `tilt`. */
+    private static void leaf(Pen p, double x, double y, double z, double ang, double size, double tilt, float a) {
+        double ca = Math.cos(ang), sa = Math.sin(ang), w = size * 0.4;
+        double tx = x + ca * size, tz = z + sa * size, ty = y + Math.sin(tilt) * size;
+        double mx = x + ca * size * 0.45, mz = z + sa * size * 0.45, my = y + Math.sin(tilt) * size * 0.45;
+        double px = -sa * w, pz = ca * w;
+        p.quad(x, y, z, a, mx + px, my, mz + pz, a, tx, ty, tz, a * 0.4f, mx - px, my, mz - pz, a);
+    }
+
+    /**
+     * The slam: a bud falls onto the circle and bursts open into a flower, throwing petals and leaves.
+     * Before the change (The World Tree) it is a blossom of pink and white petals with gold and green leaves.
+     * After it (the Mother Tree of Desire) it is a dark flower of crimson and violet petals, thorns and rotten leaves with red veins in the ground.
+     */
+    private static void slam(Pen p, boolean add, double t, double x, double y, double z, double drop, double rad, double life, int col, boolean fleshy) {
+        int petalA = fleshy ? 0xC0103A : 0xFFB7D5, petalB = fleshy ? 0x7A1FA0 : 0xFFFFFF, core = fleshy ? 0xFF4060 : 0xFFD060;
+        int leafC = fleshy ? 0x8A3A20 : 0x7CFC5A, litter = fleshy ? 0x2A0A18 : 0x2E6B1E;
         double hold = 8;
         if (t < drop + hold) {
             if (!add) return;
             double pr = Math.min(1, t / drop), tip = y + 48 * (1 - pr * pr);
             float al = clamp01(t < drop ? 1 : 1 - (t - drop) / hold);
-            p.col(col);
-            tube(p, x, tip, z, 0.0, 0.0f, x, tip + 36, z, rad * 0.4, 0.0f, 10);
-            tube(p, x, tip, z, 0.0, 0.8f * al, x, tip + 22, z, rad * 0.3, 0.55f * al, 10);
-            p.col(0xFFF0C8);
-            tube(p, x, tip, z, 0.0, 0.9f * al, x, tip + 10, z, rad * 0.12, 0.7f * al, 8);
+            for (int k = 0; k < 8; k++) {   // the bud: eight petals folded over its tip
+                double ang = Math.PI * 2 * k / 8;
+                p.col(k % 2 == 0 ? petalA : petalB);
+                tube(p, x, tip, z, 0.0, 0.0f, x + Math.cos(ang) * rad * 0.2, tip + 10, z + Math.sin(ang) * rad * 0.2, rad * 0.07, 0.9f * al, 4);
+                tube(p, x + Math.cos(ang) * rad * 0.2, tip + 10, z + Math.sin(ang) * rad * 0.2, rad * 0.07, 0.9f * al, x, tip + 20, z, 0.0, 0.2f * al, 4);
+            }
+            p.col(core);
+            tube(p, x, tip, z, 0.0, 0.9f * al, x, tip + 8, z, rad * 0.05, 0.6f * al, 6);
+            p.col(leafC);
+            for (int j = 0; j < 14; j++) {   // leaves spiralling in the air above it
+                double ang = j * 0.9 + t * 0.25, hh = tip + 6 + j * 2.6, rr = rad * (0.18 + 0.02 * j);
+                leaf(p, x + Math.cos(ang) * rr, hh, z + Math.sin(ang) * rr, ang + 1.2, 1.4, 0.5, 0.8f * al);
+            }
         }
         if (t < drop) return;
         double span = Math.max(10, life - drop), u = Math.min(1, (t - drop) / span);
         if (add) {
-            p.col(col);
-            wall(p, x, y, z, rad * (0.35 + 1.0 * u), 1.6 + 1.2 * (1 - u), clamp01(0.8 * (1 - u)), 0f);
-            flat(p, x, y + 0.12, z, rad * (0.35 + 1.0 * u) - 0.6, rad * (0.35 + 1.0 * u) + 0.6, clamp01(0.7 * (1 - u)));
-            double rise = Math.min(1, u * 3);   // shards of earth thrown up at the edge of the circle
-            if (u < 0.6) for (int k = 0; k < 14; k++) {
-                double ang = Math.PI * 2 * k / 14 + hash(k + x), rr = rad * (0.8 + 0.25 * hash(k * 7 + z)), hh = (2.2 + 2.6 * hash(k * 3.1)) * Math.sin(Math.PI * Math.min(1, u / 0.6));
-                tube(p, x + Math.cos(ang) * rr, y, z + Math.sin(ang) * rr, 0.35, clamp01(0.7 * (1 - u)), x + Math.cos(ang) * rr, y + hh, z + Math.sin(ang) * rr, 0.0, 0f, 5);
+            double open = Math.min(1, u * 2.5), L = rad * (0.3 + 1.0 * u);
+            float al = clamp01(0.85 * (1 - u));
+            for (int k = 0; k < 14; k++) {   // the bloom: fourteen petals, alternating colours
+                double ang = Math.PI * 2 * k / 14 + 0.2 * u, lift = 2.5 * Math.sin(Math.PI * Math.min(1, u * 1.6)) * (0.5 + 0.5 * hash(k + x));
+                p.col(k % 2 == 0 ? petalA : petalB);
+                double mx = x + Math.cos(ang) * L * 0.5, mz = z + Math.sin(ang) * L * 0.5;
+                tube(p, x, y + 0.4, z, 1.1 * (1 - open * 0.5), al, mx, y + 0.4 + lift, mz, rad * 0.06, al, 4);
+                tube(p, mx, y + 0.4 + lift, mz, rad * 0.06, al, x + Math.cos(ang) * L, y + 0.3, z + Math.sin(ang) * L, 0.0, al * 0.3f, 4);
             }
-            if (rise < 1) { p.col(0xFFE0A0); sphere(p, x, y + 0.5, z, rad * 0.6 * rise, clamp01(0.6 * (1 - rise)), 5, 9); }
+            p.col(core);
+            flat(p, x, y + 0.12, z, L - 0.5, L + 0.5, clamp01(0.7 * (1 - u)));
+            if (open < 1) sphere(p, x, y + 0.6, z, rad * 0.55 * open, clamp01(0.55 * (1 - open)), 5, 9);
+            if (fleshy) {   // thorns along the rim
+                p.col(0x400018);
+                for (int k = 0; k < 18; k++) {
+                    double ang = Math.PI * 2 * k / 18 + hash(k * 2.3 + z), th = (1.0 + 2.2 * hash(k * 5.1)) * Math.sin(Math.PI * Math.min(1, u * 1.4));
+                    tube(p, x + Math.cos(ang) * L, y, z + Math.sin(ang) * L, 0.3, al, x + Math.cos(ang) * (L + 0.6), y + th, z + Math.sin(ang) * (L + 0.6), 0.0, 0f, 4);
+                }
+            }
+            p.col(leafC);
+            for (int k = 0; k < 30; k++) {   // leaves thrown up and out, spinning as they fall
+                double ang = Math.PI * 2 * hash(k * 3.7 + x), sp = rad * (0.5 + 1.1 * hash(k * 1.3 + z)) * u;
+                double hh = (6 + 10 * hash(k * 9.1)) * (4 * u * (1 - u)) + 0.3;
+                leaf(p, x + Math.cos(ang) * sp, y + hh, z + Math.sin(ang) * sp, ang + u * 9 * (hash(k) + 0.5), 1.1 + hash(k * 4.4), 0.7, clamp01(0.9 * (1 - u)));
+            }
         } else {
-            p.col(0x1A0505);
+            p.col(litter);
             float al = clamp01(0.9 * (1 - u * u));
             double reach = rad * (0.35 + 0.85 * Math.min(1, u * 4));
-            for (int k = 0; k < 11; k++) {   // jagged cracks, each in five bends
-                double ang = Math.PI * 2 * k / 11 + hash(k * 1.7 + x) * 0.5, px = x, pz = z, step = reach / 5;
-                for (int s = 0; s < 5; s++) {
-                    double na = ang + (hash(k * 13 + s * 5 + z) - 0.5) * 0.7, nx = px + Math.cos(na) * step, nz = pz + Math.sin(na) * step;
-                    double w = 0.5 * (1 - s / 6.0), wx = -Math.sin(na) * w, wz = Math.cos(na) * w;
-                    p.quad(px - wx, y + 0.1, pz - wz, al, px + wx, y + 0.1, pz + wz, al, nx + wx * 0.7, y + 0.1, nz + wz * 0.7, al, nx - wx * 0.7, y + 0.1, nz - wz * 0.7, al);
-                    px = nx; pz = nz; ang = na;
+            for (int k = 0; k < 34; k++) {   // petals and leaves left lying on the ground
+                double ang = Math.PI * 2 * hash(k * 2.9 + x), dist = reach * Math.sqrt(hash(k * 6.7 + z));
+                leaf(p, x + Math.cos(ang) * dist, y + 0.08, z + Math.sin(ang) * dist, hash(k * 11.3) * 6.28, 0.9 + hash(k * 1.9), 0.0, al);
+            }
+            if (fleshy) {   // red veins in the ground, running out from the circle's heart
+                p.col(0x500010);
+                for (int k = 0; k < 11; k++) {
+                    double ang = Math.PI * 2 * k / 11 + hash(k * 1.7 + x) * 0.5, px = x, pz = z, step = reach / 5;
+                    for (int s2 = 0; s2 < 5; s2++) {
+                        double na = ang + (hash(k * 13 + s2 * 5 + z) - 0.5) * 0.7, nx = px + Math.cos(na) * step, nz = pz + Math.sin(na) * step;
+                        double w = 0.4 * (1 - s2 / 6.0), wx = -Math.sin(na) * w, wz = Math.cos(na) * w;
+                        p.quad(px - wx, y + 0.1, pz - wz, al, px + wx, y + 0.1, pz + wz, al, nx + wx * 0.7, y + 0.1, nz + wz * 0.7, al, nx - wx * 0.7, y + 0.1, nz - wz * 0.7, al);
+                        px = nx; pz = nz; ang = na;
+                    }
                 }
             }
         }
@@ -274,7 +321,7 @@ public final class AttackFx {
             double t = (now - f[8]) / 50.0, life = f[9];
             switch (kind) {
                 case 0 -> meteor(pen, add, t, x, y, z, a, b, life, col, c > 0.5);
-                case 1 -> slam(pen, add, t, x, y, z, a, b, life, col);
+                case 1 -> slam(pen, add, t, x, y, z, a, b, life, col, c > 0.5);
                 case 2 -> wave(pen, add, t, x, y, z, a, b, life, col);
                 case 3 -> cloud(pen, add, t, x, y, z, a, b, c, life, col);
                 case 4 -> blast(pen, add, t, x, y, z, a, life, col);

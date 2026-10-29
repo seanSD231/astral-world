@@ -2,6 +2,22 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.40
+The big rework of the tree fight, from the design document.
+- **Hits:** a hit now doubles the corruption you already have (1% on a random pathway if you have none), takes 15% of your max health, and blocks all healing for 60 seconds. A life is lost at 0 health. Hit grace is 1 second. Everyone has 3 lives, and you come back 100 blocks from the tree with your corruption cleared. After a hit your sanity cannot drop for 30 seconds.
+- **Every attack** gives every fighter 5% corruption on a random pathway, hit or dodged.
+- **Anti-heal:** each werewolf attack adds 5 seconds, stacking. Heals that come from the tree's own attacks (sweet fruit, the true bloom, holy clouds) ignore it.
+- **Attack order:** each attack can now be followed by only two others, so the fight can be read.
+- **Numbers:** giving in to temptation is 50% corruption, the curse is 10%, rotten fruit costs 15%. "Thralls" are now just werewolves. No effects are skipped for big groups any more.
+- **Rings:** fighters more than 5 blocks up are no longer hit by the ground ring; instead a sky ring is sent at their height.
+- **Slam:** the strike is now a falling bud that bursts into a flower. Before 50% it is pink and white blossom with gold and green leaves; after, a crimson and violet bloom with thorns, rotten leaves and red veins in the ground.
+- **Desire's call (50%):** five seconds of the temptation rules, then your cursor is freed for a five second click game. Her attacks pause for the whole call.
+- **Refusing Desire's offer** (or not answering) starts a memory game with four flowers, three rounds. Failing it costs a life.
+- **Divine Kingdom (under 10%):** she raises LOTM's Divine Kingdom: Thorn Paradise once. It ends after 20 seconds, or when the lives lost reach 80% of the fighters who were there.
+- **During the 15% meteor** she takes no damage until it lands.
+- **The traitor** now starts at Strength I, Resistance I, Speed I and Sharpness X and grows with each kill they are credited with (80% of the damage). Order Strength, Strength, Resistance, Speed; caps Strength V, Resistance IV, Speed II; once capped, each kill heals them 10%.
+- **Pathway counters:** several Beyonder abilities now change how some attacks play out. They are not explained in game.
+
 ## 0.2.39
 - The tree's meteor attack now uses LOTM's own meteors (lotm:meteor_no_hurt): one falls onto every red circle and lands as the circle completes. It breaks no blocks and cannot hurt the tree; the life is still taken by the circle, exactly as before. The mod's impact flash, ring and fire column still play on top. If LOTM's meteor is missing the mod falls back to its own.
 

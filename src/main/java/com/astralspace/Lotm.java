@@ -125,6 +125,40 @@ public final class Lotm {
         }
     }
 
+    /**
+     * Doubles the corruption the player already has on every pathway (capped at the maximum). With none at all, adds 1% on a random pathway instead.
+     * Returns false if LOTM could not be called.
+     */
+    public static boolean doubleCorruption(ServerPlayer player) {
+        try {
+            Class<?> init = Class.forName("net.swimmingtuna.lotm.init.BeyonderClassInit");
+            Class<?> util = Class.forName("net.swimmingtuna.lotm.util.BeyonderUtil");
+            Class<?> bc = Class.forName("net.swimmingtuna.lotm.beyonder.api.BeyonderClass");
+            Method all = init.getMethod("getAllPathways");
+            Method get = util.getMethod("getCorruption", net.minecraft.world.entity.Entity.class, bc);
+            Method set = util.getMethod("setCorruption", net.minecraft.world.entity.Entity.class, bc, int.class);
+            Method max = util.getMethod("getMaxCorruption", net.minecraft.world.entity.Entity.class);
+            int cap = (Integer) max.invoke(null, player);
+            boolean any = false;
+            for (Object pw : (java.util.List<?>) all.invoke(null)) {
+                int cur = (Integer) get.invoke(null, player, pw);
+                if (cur <= 0) continue;
+                any = true;
+                set.invoke(null, player, pw, Math.min(cap > 0 ? cap : Integer.MAX_VALUE, cur * 2));
+            }
+            if (!any) return addCorruptionPercent(player, randomPathway(), 1);
+            return true;
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not double corruption: {}", String.valueOf(t.getCause() != null ? t.getCause() : t));
+            return false;
+        }
+    }
+
+    /** Clears all corruption on every pathway. */
+    public static void clearCorruption(ServerPlayer player) {
+        util("clearCorruption", player);
+    }
+
     private static synchronized void initSanity() {
         if (sanityLoaded) return;
         sanityLoaded = true;
