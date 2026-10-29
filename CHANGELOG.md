@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.41
+- **Astral Barrier:** it now starts at 50 HP when the first Seq 0 appears, instead of 0.
+
 ## 0.2.40
 The big rework of the tree fight, from the design document.
 - **Hits:** a hit now doubles the corruption you already have (1% on a random pathway if you have none), takes 15% of your max health, and blocks all healing for 60 seconds. A life is lost at 0 health. Hit grace is 1 second. Everyone has 3 lives, and you come back 100 blocks from the tree with your corruption cleared. After a hit your sanity cannot drop for 30 seconds.

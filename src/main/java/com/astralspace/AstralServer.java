@@ -47,6 +47,7 @@ public final class AstralServer {
     private static final int DOOR_SURVIVES_AT_OR_BELOW = 3;
     // barrier HP healed PER MINUTE for each Seq 0 in the Astral World
     private static final int REGEN_NORMAL = 5;
+    private static final int START_HP = 50; // HP the barrier has when the first Seq 0 ever appears
     private static final int REGEN_DOOR = 10; // a Door Seq 0 counts as two Seq 0s for healing the barrier
     /** Seconds until corruption is maxed, by Sequence. */
     private static final Map<Integer, Double> SECONDS_TO_MAX = Map.of(
@@ -231,7 +232,10 @@ public final class AstralServer {
                 if (d.seq0.put(id, name(p)) == null) {
                     newSeq0 = true;
                     dirty = true;
-                    if (d.stage == 0 && d.endPhase.isEmpty()) Stage.set(server, 1); // the first Seq 0 ever: the Outer Gods take notice
+                    if (d.stage == 0 && d.endPhase.isEmpty()) {
+                        d.hp = Math.min(START_HP, AstralBarrier.getMax(server)); // the barrier begins at 50 HP, not 0
+                        Stage.set(server, 1); // the first Seq 0 ever: the Outer Gods take notice
+                    }
                 }
             } else if (d.seq0.remove(id) != null) {
                 d.seq0Paths.remove(id);
