@@ -636,6 +636,44 @@ public final class EndGame {
         }
     }
 
+    // ---- the Cursing Aura (a Prisoner ability the tree can cast): "your legs stop agreeing with you"
+
+    private static final String CURSING_AURA = "net.swimmingtuna.lotm.item.BeyonderAbilities.Prisoner.CursingAura";
+    private static final String[] DISHARMONY = {"disharmony", "disharmonyUntil", "disharmonyReverseMode", "disharmonyReverseTicks"};
+    private static final long AURA_TICKS = 300;   // the aura is switched off 15 seconds after it starts
+    private static long auraSince = -1;
+
+    private static boolean auraActive(Mob boss) {
+        try { return (Boolean) Class.forName(CURSING_AURA).getMethod("isActive", net.minecraft.world.entity.LivingEntity.class).invoke(null, boss); }
+        catch (Throwable t) { return false; }
+    }
+
+    private static void cleanse(ServerPlayer p) {
+        var tag = p.getPersistentData();
+        for (String k : DISHARMONY) tag.remove(k);
+    }
+
+    /** Is the aura on, or does anyone still carry its disharmony? */
+    private static boolean disharmony(ServerLevel lv) {
+        Mob boss = findBoss(lv, TAG_RAID);
+        if (boss != null && auraActive(boss)) return true;
+        for (ServerPlayer p : fighters(lv)) if (p.getPersistentData().getInt("disharmony") > 0) return true;
+        return false;
+    }
+
+    /** Every second: the aura never lasts longer than AURA_TICKS, and the Astral god (testing) never feels it. */
+    private static void auraSecond(ServerLevel lv) {
+        for (ServerPlayer p : lv.players()) if (god.contains(p.getUUID())) cleanse(p);
+        Mob boss = findBoss(lv, TAG_RAID);
+        if (boss == null || !auraActive(boss)) { auraSince = -1; return; }
+        if (auraSince < 0) { auraSince = rt; return; }
+        if (rt - auraSince < AURA_TICKS) return;
+        auraSince = -1;
+        try { Class.forName(CURSING_AURA).getMethod("deactivate", net.minecraft.world.entity.LivingEntity.class).invoke(null, boss); }
+        catch (Throwable t) { LOGGER.warn("[astral] could not switch the Cursing Aura off: {}", String.valueOf(t)); }
+        for (ServerPlayer p : lv.players()) cleanse(p);   // everybody's legs agree with them again
+    }
+
     private static Mob findBoss(ServerLevel lv, String tag) {
         for (Entity e : lv.getAllEntities()) if (e instanceof Mob m && m.isAlive() && e.getTags().contains(tag)) return m;
         return null;
@@ -744,8 +782,8 @@ public final class EndGame {
     private static final Map<UUID, Long> lastHit = new HashMap<>();
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
     // two followers each (index = attack): 0 meteors, 1 rings, 2 summon, 3 slam, 4 purge, 5 temptation, 6 (power, unused), 7 curse, 8 pollen, 9 mirror bloom, 10 fruit, 11 storm (lightning web)
-    private static final int[][] NEXT = {{3, 2}, {11, 4}, {3, 5}, {1, 7}, {7, 10}, {8, 1}, {0, 1}, {9, 0}, {4, 9}, {10, 2}, {8, 0}, {0, 3}};
-    private static final int[] DURATION = {140, 220, 110, 70, 190, 140, 90, 130, 200, 230, 210, 130};
+    private static final int[][] NEXT = {{3, 2}, {11, 4}, {3, 5}, {1, 7}, {5, 10}, {8, 1}, {0, 1}, {9, 0}, {4, 9}, {10, 2}, {8, 0}, {0, 3}};
+    private static final int[] DURATION = {140, 220, 110, 70, 190, 200, 90, 130, 200, 230, 210, 130};
     private static int lastPattern = 3;
 
     /** Chat held back while the opening camera scene plays. */
@@ -1566,7 +1604,7 @@ public final class EndGame {
     private static void temptation(ServerLevel lv, int ticks, Set<UUID> failed, int fill) {
         Map<UUID, Integer> meter = new HashMap<>();
         float[] pull = {0f, 0f};
-        final int warm = fill > 1 ? 60 : 30;   // the warning before the drag starts (the call keeps its longer one)
+        final int warm = 60;   // the warning before the drag starts
         double[] dir = {ThreadLocalRandom.current().nextDouble() * Math.PI * 2, 0.0};   // the drag's direction and how fast it is turning
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         for (ServerPlayer p : fighters(lv)) p.sendSystemMessage(Component.literal("Come to me, child... (turn away and CROUCH)").withStyle(ChatFormatting.LIGHT_PURPLE));
@@ -1822,9 +1860,9 @@ public final class EndGame {
             }
             case 5 -> { // temptation: look away from the tree and crouch, or be corrupted
                 Set<UUID> failed = new HashSet<>();
-                temptUntil = gt + 115;
-                temptation(lv, 110, failed);
-                at(115, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
+                temptUntil = gt + 165;
+                temptation(lv, 160, failed);
+                at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
             }
             case 11 -> { // meteor storm: every meteor lands at once, then lightning branches wildly out of each impact along the red lines
                 final int fall = 40, flash = 46;
@@ -2272,7 +2310,7 @@ public final class EndGame {
         sanityLockTick(lv);
         echoTick(lv);
         counterTick(lv);
-        if (rt % 20 == 0) rootsSecond(lv);
+        if (rt % 20 == 0) { rootsSecond(lv); auraSecond(lv); }
         if (aggro) treeCast(lv);
         else if (rt >= graceUntil && rt % 5 == 0) {
             for (ServerPlayer p : fighters(lv)) if (Math.hypot(p.getX() - 0.5, p.getZ() - 0.5) < WAKE_R) { wake(lv, p.getGameProfile().getName() + " came too close"); break; }
@@ -2281,7 +2319,7 @@ public final class EndGame {
         if (aggro && rt >= nextPattern && !cutscene && !(rootsActive && activeKind == 1) && !fighters(lv).isEmpty()) {
             int[] opts = NEXT[lastPattern];
             int which = opts[ThreadLocalRandom.current().nextInt(opts.length)];
-            if (which == 4 && gt < temptUntil + 40) which = 10;   // the purge is never used while the view is being dragged
+            if (which == 4 && disharmony(lv)) which = 10;   // the purge is never used while anyone's legs disagree with them (the Cursing Aura)
             lastPattern = which;
             pattern(lv, which);
             nextPattern = rt + DURATION[which] + 90 + ThreadLocalRandom.current().nextInt(60);   // longer gaps: the attacks are bigger now

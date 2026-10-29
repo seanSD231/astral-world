@@ -12,8 +12,8 @@ Tree fight changes.
 - **Meteors:** the mod's own meteors are much bigger and look better: a tumbling rock with glowing cracks, a fire and smoke trail, thrown debris and a hot crater.
 - **Meteor Storm (new variant of the meteors):** every meteor lands at the same moment, then lightning branches wildly out of each impact across the arena. Red lines show where the branches will strike.
 - **Purge:** it now gives 7 seconds. A safe circle appears near everyone, the tree visibly winds up and the purge ends in a huge explosion.
-- **Temptation:** the drag on your view turns smoothly instead of jumping, and it is shorter (about 5.5 seconds). The Astral god is never dragged by it.
-- **Purge** is never used while the view is being dragged, and is no longer followed by temptation.
+- **Temptation:** the drag on your view turns smoothly instead of jumping. The Astral god is never dragged by it.
+- **Cursing Aura ("your legs stop agreeing with you"):** it is switched off after 15 seconds and everyone's legs agree with them again, the Astral god never feels it, and the tree never uses the Purge while it is on or anyone still has it.
 - **Bigger attacks, longer gaps:** meteors and the slam are bigger (meteors double their size before the tree transforms), and there are about 3 more seconds between attacks.
 
 ## 0.2.41
