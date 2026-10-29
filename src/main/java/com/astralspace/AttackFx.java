@@ -490,7 +490,7 @@ public final class AttackFx {
         double env = Math.min(1, Math.min(t / 8.0, (life - t) / 8.0));
         if (env <= 0) return;
         float e = clamp01(env);
-        double open = ease(t / 14.0), spin = t * 0.025, hy = y + 2.8;
+        double open = Math.min(1, t / 14.0) * (2 - Math.min(1, t / 14.0)), spin = t * 0.025, hy = y + 2.8;
         int petal = fleshy ? 0xB0102C : 0xFF9AC8, inner = fleshy ? 0x6A1E8C : 0xFFF0F8, heart = fleshy ? 0x1A0008 : 0xFFD54A;
         if (!add) {
             p.col(0x3E7A32);
