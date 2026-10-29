@@ -61,8 +61,8 @@ final class TreeAnim {
             case 2 -> v = -0.14 * env + 0.05 * Math.sin(s * 5 + k * 1.7) * env;
             case 3 -> v = s < 1.9 ? 0.55 * smooth((s - 0.2) / 1.7) + 0.03 * Math.sin(s * 30 + k) * smooth(s / 1.5)
                     : s < 2.15 ? lerp(0.55, -0.45, (s - 1.9) / 0.25) : -0.45 * (1 - smooth((s - 2.15) / 1.2));
-            case 4 -> v = s < 3.2 ? -0.28 * smooth(s / 3.0) + 0.03 * Math.sin(s * 18 + k) * smooth(s / 3.0)
-                    : s < 3.5 ? lerp(-0.28, 0.5, (s - 3.2) / 0.3) : 0.5 * (1 - smooth((s - 3.5) / 1.0));
+            case 4 -> v = s < 6.8 ? -0.28 * smooth(s / 6.6) + 0.03 * Math.sin(s * 18 + k) * smooth(s / 6.6)
+                    : s < 7.1 ? lerp(-0.28, 0.5, (s - 6.8) / 0.3) : 0.5 * (1 - smooth((s - 7.1) / 1.0));
             case 5 -> v = 0.12 * Math.sin(s * 0.9 + k * 0.8) * env;
             case 6 -> v = s < 3.6 ? 0.3 * smooth(s / 3.4) + 0.06 * Math.sin(s * 24 + k) * smooth(s / 3.4)
                     : s < 3.9 ? lerp(0.3, -0.25, (s - 3.6) / 0.3) : -0.25 * (1 - smooth((s - 3.9) / 0.9));
@@ -93,7 +93,7 @@ final class TreeAnim {
         switch (a) {
             case 1 -> sy = 1 + 0.012 * Math.sin(s * 7) * env;
             case 3 -> sy = 1 - 0.045 * Math.exp(-Math.pow((s - 2.1) / 0.18, 2)) + 0.02 * smooth(s / 1.8) * (s < 1.9 ? 1 : 0);
-            case 4 -> sy = s < 3.2 ? 1 - 0.02 * smooth(s / 3.0) : 1 + 0.03 * Math.exp(-Math.pow((s - 3.35) / 0.3, 2));
+            case 4 -> sy = s < 6.8 ? 1 - 0.02 * smooth(s / 6.6) : 1 + 0.03 * Math.exp(-Math.pow((s - 6.95) / 0.3, 2));
             case 5 -> tiltZ += 0.025 * Math.sin(s * 0.8) * env;
             case 6, 20 -> { tiltX = 0.006 * Math.sin(s * 25) * env; tiltZ += 0.006 * Math.cos(s * 23) * env; }
             case 7 -> { tiltX = 0.008 * Math.sin(s * 34) * env; }
@@ -110,7 +110,7 @@ final class TreeAnim {
             case 1 -> heave = 1.4 * Math.max(0, Math.sin(s * 6.5)) * env;
             case 2 -> heave = 2.2 * env * (0.5 + 0.5 * Math.sin(s * 5));
             case 3 -> heave = -1.5 * Math.exp(-Math.pow((s - 2.1) / 0.2, 2));
-            case 4 -> heave = s < 3.2 ? 0.4 * Math.sin(s * 9) * env : 1.8 * Math.exp(-Math.pow((s - 3.4) / 0.3, 2));
+            case 4 -> heave = s < 6.8 ? 0.4 * Math.sin(s * 9) * env : 1.8 * Math.exp(-Math.pow((s - 7.0) / 0.3, 2));
             case 6 -> heave = 0.35 * Math.sin(s * 28) * env;
             case 7 -> heave = 0.25 * Math.sin(s * 31) * env;
             case 20 -> { sc = 1 - 0.03 * env; heave = 0.4 * Math.sin(s * 22) * env; }
@@ -174,7 +174,7 @@ final class TreeAnim {
             case 1 -> 1;
             case 2 -> 3 * env;
             case 3 -> s > 1.9 && s < 2.5 ? 28 : 2 * smooth(s / 1.5);
-            case 4 -> s > 3.2 && s < 3.8 ? 28 : 3;
+            case 4 -> s > 6.8 && s < 7.4 ? 28 : 3;
             case 5 -> 3 * env;
             case 6 -> 6 * env;
             case 7 -> 4 * env;
@@ -213,7 +213,7 @@ final class TreeAnim {
             else mc.level.addParticle(ParticleTypes.CHERRY_LEAVES, x, y, z, R.nextGaussian() * 0.05, -0.1, R.nextGaussian() * 0.05);
         }
         // dust thrown up round the foot for the attacks that hit the ground
-        boolean slam = a == 3 && Math.abs(s - 2.1) < 0.15, purge = a == 4 && Math.abs(s - 3.4) < 0.2, ring = a == 1 && tick % 8 == 0, up = a == 2 && tick % 4 == 0;
+        boolean slam = a == 3 && Math.abs(s - 2.1) < 0.15, purge = a == 4 && Math.abs(s - 7.0) < 0.2, ring = a == 1 && tick % 8 == 0, up = a == 2 && tick % 4 == 0;
         if (slam || purge || ring || up) {
             int c = slam || purge ? 36 : 12;
             for (int i = 0; i < c; i++) {

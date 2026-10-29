@@ -233,31 +233,8 @@ public final class PlanetGenerator extends ChunkGenerator {
         return CompletableFuture.completedFuture(chunk);
     }
 
-    /** The field: grass, flowers and the old ring of broken pillars at the edge. The middle is clear (the tree stands there). */
+    /** The field: grass and flowers (the old ring of broken pillars at the edge is gone). The middle is clear (the tree stands there). */
     private static void decorateRaid(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int z, int h) {
-        double r = Math.hypot(x, z);
-        BlockState[] stone = {Blocks.STONE_BRICKS.defaultBlockState(), Blocks.MOSSY_STONE_BRICKS.defaultBlockState(), Blocks.CRACKED_STONE_BRICKS.defaultBlockState()};
-        // thirty-six pillars on the ring at the edge, each one broken off at its own height
-        double ring = EndGame.ARENA_R - 4;
-        int pillars = 36;
-        for (int k = 0; k < pillars; k++) {
-            double a = Math.PI * 2 * k / pillars + 0.13;
-            int cx = (int) Math.round(Math.cos(a) * ring), cz = (int) Math.round(Math.sin(a) * ring);
-            if (Math.abs(x - cx) <= 1 && Math.abs(z - cz) <= 1) {
-                int top = 5 + (int) (hash(k, 7, 91) * 10) - ((x + z) % 2 == 0 && hash(x, z, 92) < 0.4 ? 2 : 0);
-                for (int y = h + 1; y <= h + top; y++) {
-                    BlockState st = y == h + 1 || y == h + top && top > 11 ? Blocks.CHISELED_STONE_BRICKS.defaultBlockState() : stone[(int) (hash(x, y, z) * 3)];
-                    chunk.setBlockState(pos.set(x, y, z), st, false);
-                }
-                return;
-            }
-        }
-        // low walls between them, mostly fallen
-        if (r >= ring - 1 && r <= ring + 0.9) {
-            int wh = (int) (hash(x / 3, 5, z / 3) * 4) - 1;
-            for (int y = h + 1; y <= h + wh; y++) chunk.setBlockState(pos.set(x, y, z), stone[(int) (hash(x, y, z) * 3)], false);
-            return;
-        }
         // grass and flowers where the ground is grass
         if (hash(x, 3, z) < 0.35 && chunk.getBlockState(pos.set(x, h, z)).is(Blocks.GRASS_BLOCK)) {
             double q = hash(x, 4, z);

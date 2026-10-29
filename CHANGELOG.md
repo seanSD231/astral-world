@@ -2,6 +2,18 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.42
+Tree fight changes.
+- **Start of the fight:** you arrive 20 blocks further from the tree. Nothing is said in chat until the opening camera scene is over, and the "she sleeps / the peace is over" warnings are gone. The ring of stone pillars at the edge of the arena is gone.
+- **Corruption:** every attack now gives 2% (was 5%), and a hit adds at most 10% of your corruption cap per pathway instead of fully doubling it. The Astral god (testing) takes no corruption from attacks.
+- **Phases:** the hit that crosses 75%, 50% or 25% now lands exactly on the line and starts the phase, instead of being cut to almost nothing or thrown away.
+- **Fruit:** real fruit (apples with a stem and leaf, mouldy when rotten) fall with a golden beam, red once she has transformed. The circle under them is gone.
+- **Fog:** the pollen veil is now a huge bank of drifting mist (about three times wider) with no circle.
+- **Meteors:** the mod's own meteors are much bigger and look better: a tumbling rock with glowing cracks, a fire and smoke trail, thrown debris and a hot crater.
+- **Storm (new attack):** red lines mark where lightning will branch across the arena, then every branch strikes at once.
+- **Purge:** it now gives 7 seconds. A safe circle appears near everyone, the tree visibly winds up and the purge ends in a huge explosion.
+- **Temptation:** the drag on your view turns smoothly instead of jumping.
+
 ## 0.2.41
 - **Astral Barrier:** it now starts at 50 HP when the first Seq 0 appears, instead of 0.
 

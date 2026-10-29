@@ -144,7 +144,8 @@ public final class Lotm {
                 int cur = (Integer) get.invoke(null, player, pw);
                 if (cur <= 0) continue;
                 any = true;
-                set.invoke(null, player, pw, Math.min(cap > 0 ? cap : Integer.MAX_VALUE, cur * 2));
+                int add = cap > 0 ? Math.min(cur, Math.max(1, cap / 10)) : cur;   // doubles, but a single hit adds at most 10% of the cap per pathway
+                set.invoke(null, player, pw, Math.min(cap > 0 ? cap : Integer.MAX_VALUE, cur + add));
             }
             if (!any) return addCorruptionPercent(player, randomPathway(), 1);
             return true;

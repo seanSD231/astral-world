@@ -269,7 +269,11 @@ public final class Net {
                     });
                     return;
                 }
-                if (ClientState.fx.size() < 300)
+                if (payload.kind() == 11) {   // a fruit was taken (or rotted into a werewolf): its model and beam go
+                    ClientState.fx.removeIf(f -> (int) f[0] == 10 && Math.hypot(f[1] - payload.x(), f[3] - payload.z()) < 1.0);
+                    return;
+                }
+                if (ClientState.fx.size() < 600)
                     ClientState.fx.add(new double[]{payload.kind(), payload.x(), payload.y(), payload.z(), payload.a(), payload.b(), payload.c(), payload.color(), System.currentTimeMillis(), payload.life()});
             }
         }));

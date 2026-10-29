@@ -320,16 +320,16 @@ public final class EndGame {
         int sq = Lotm.sequence(p);
         if (sq > 4 && Lotm.setSequence(p, 4)) {
             raidSeq.put(p.getUUID(), 4);
-            p.sendSystemMessage(Component.literal("The Fool lifts you to Sequence 4.").withStyle(ChatFormatting.GOLD));
+            chat(p, Component.literal("The Fool lifts you to Sequence 4.").withStyle(ChatFormatting.GOLD));
         }
         PacketDistributor.sendToPlayer(p, new Net.StagePayload("The Fool's Blessing", 0x3A2A00, 0xFFD870, "You are not alone"));
-        p.sendSystemMessage(Component.literal("You have received the Fool's blessing.").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        chat(p, Component.literal("You have received the Fool's blessing.").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         offerBlessing(p);
     }
 
     private static void offerBlessing(ServerPlayer p) {
-        p.sendSystemMessage(Component.literal("Choose one gift (click):").withStyle(ChatFormatting.YELLOW));
-        p.sendSystemMessage(blessingButton("[+50 max HP]", "hp").append(Component.literal("  ")).append(blessingButton("[+5 attack damage]", "attack"))
+        chat(p, Component.literal("Choose one gift (click):").withStyle(ChatFormatting.YELLOW));
+        chat(p, blessingButton("[+50 max HP]", "hp").append(Component.literal("  ")).append(blessingButton("[+5 attack damage]", "attack"))
                 .append(Component.literal("  ")).append(blessingButton("[+8 armor, +6 armor toughness]", "armor")));
     }
 
@@ -743,10 +743,17 @@ public final class EndGame {
     private static double groundY = 4;
     private static final Map<UUID, Long> lastHit = new HashMap<>();
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
-    // two followers each (index = attack): 0 meteors, 1 rings, 2 summon, 3 slam, 4 purge, 5 temptation, 6 (power, unused), 7 curse, 8 pollen, 9 mirror bloom, 10 fruit
-    private static final int[][] NEXT = {{3, 2}, {0, 4}, {3, 5}, {1, 7}, {5, 10}, {8, 1}, {0, 1}, {9, 0}, {4, 9}, {10, 2}, {8, 0}};
-    private static final int[] DURATION = {140, 220, 110, 70, 80, 200, 90, 130, 200, 230, 210};
+    // two followers each (index = attack): 0 meteors, 1 rings, 2 summon, 3 slam, 4 purge, 5 temptation, 6 (power, unused), 7 curse, 8 pollen, 9 mirror bloom, 10 fruit, 11 storm (lightning web)
+    private static final int[][] NEXT = {{3, 2}, {11, 4}, {3, 5}, {1, 7}, {5, 10}, {8, 1}, {0, 1}, {9, 0}, {4, 9}, {10, 2}, {8, 0}, {0, 3}};
+    private static final int[] DURATION = {140, 220, 110, 70, 190, 200, 90, 130, 200, 230, 210, 130};
     private static int lastPattern = 3;
+
+    /** Chat held back while the opening camera scene plays. */
+    private static final List<Runnable> introChat = new ArrayList<>();
+    private static boolean introQueue = false;
+    private static void chat(ServerPlayer p, Component c) {
+        if (introQueue) introChat.add(() -> p.sendSystemMessage(c)); else p.sendSystemMessage(c);
+    }
 
     private static void startRaid(MinecraftServer server, AstralData d) {
         ServerLevel lv = dim(server, "raid");
@@ -770,6 +777,7 @@ public final class EndGame {
         clearRuin(lv);
         timed.clear();
         raidSeq.clear();
+        introChat.clear(); introQueue = true;
         rt = 0; aggro = false; graceUntil = INTRO_TICKS + GRACE_TICKS; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; nextUltimate = 0; ultCutsceneUntil = 0; clouds.clear(); fruits.clear(); summonSeals.clear(); summonMobs.clear(); globes.clear(); pendingUse.clear(); dazedUntil = 0; temptUntil = 0; bloomTrue = null; kingdomDone = false; kingdomEnd = 0; ultFallUntil = 0; ultImmuneUntil = 0; treeFleshy = false; lineBucket = 20;
         traitor = null; offered = null; offerDone = false; echo = null; resetGrowth(); noHeal.clear(); bloomNoHeal.clear(); sanityLock.clear(); lifeDamage.clear(); desire.clear(); thrallHitAt.clear();
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
@@ -792,8 +800,8 @@ public final class EndGame {
             blessPlayer(p);
         }
         for (ServerPlayer p : all) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(23, INTRO_TICKS));   // the camera circles the tree first
-        tell(server, "The World Tree has come. You have " + LIVES + " lives. Do not be where it strikes.", ChatFormatting.DARK_PURPLE);
-        tell(server, "She sleeps. For " + (GRACE_TICKS / 20) + " seconds after this she cannot be hurt and will not strike. Afterwards she only wakes if you come within " + (int) WAKE_R + " blocks of her or strike her.", ChatFormatting.LIGHT_PURPLE);
+        // nothing in chat until the camera scene is over: everything said now is queued and sent when the scene ends
+        introChat.add(() -> tellLevel(lv, "The World Tree has come. You have " + LIVES + " lives. Do not be where it strikes.", ChatFormatting.DARK_PURPLE));
     }
 
     /** Older worlds still have the ruin that used to stand under the tree (dais, columns, wall, rubble): turn it back into grass. */
@@ -807,6 +815,20 @@ public final class EndGame {
             if (Math.hypot(x, z) > 50) continue;
             if (ruin.contains(lv.getBlockState(q.set(x, base, z)).getBlock())) { lv.setBlock(q, Blocks.GRASS_BLOCK.defaultBlockState(), 2); n++; }
             for (int y = base + 1; y <= base + 18; y++) if (ruin.contains(lv.getBlockState(q.set(x, y, z)).getBlock())) { lv.setBlock(q, Blocks.AIR.defaultBlockState(), 2); n++; }
+        }
+        // the old ring of broken pillars at the edge of the field (new worlds no longer generate it)
+        double ringR = ARENA_R - 4;
+        for (int k = 0; k < 36; k++) {
+            double a = Math.PI * 2 * k / 36 + 0.13;
+            int cx = (int) Math.round(Math.cos(a) * ringR), cz = (int) Math.round(Math.sin(a) * ringR);
+            lv.getChunk(cx >> 4, cz >> 4);
+            for (int x = cx - 1; x <= cx + 1; x++) for (int z = cz - 1; z <= cz + 1; z++) {
+                int gy = lv.getHeight(Heightmap.Types.WORLD_SURFACE, x, z);
+                for (int y = gy; y > gy - 18; y--) {
+                    if (ruin.contains(lv.getBlockState(q.set(x, y, z)).getBlock())) { lv.setBlock(q, Blocks.AIR.defaultBlockState(), 2); n++; }
+                    else if (y < gy - 1 && !lv.getBlockState(q).isAir()) break;
+                }
+            }
         }
         LOGGER.info("[astral] cleared {} ruin blocks under the tree", n);
     }
@@ -927,6 +949,12 @@ public final class EndGame {
     }
 
     /** A hit: in the raid it costs a life, around a planet boss it is a hard but survivable blow (practice for the raid). */
+    /** Corruption from the tree's attacks on a random pathway. The Astral god (testing) never takes any. */
+    private static boolean corrupt(ServerPlayer p, int percent) {
+        if (god.contains(p.getUUID())) return true;
+        return Lotm.addCorruptionPercent(p, Lotm.randomPathway(), percent);
+    }
+
     private static void hit(ServerLevel lv, ServerPlayer p) {
         if (cur != null && cur.raid()) { loseLife(lv, p); return; }
         long now = lv.getServer().getTickCount();
@@ -1310,7 +1338,11 @@ public final class EndGame {
             case "purification", "areapurification" -> {
                 if (sq >= 0 && sq <= 1) for (Cloud c : clouds) if (c.mode == 0 && Math.hypot(c.nowX() - p.getX(), c.nowZ() - p.getZ()) <= 12 * m) c.mode = 1;
                 for (Fruits fs : fruits) for (int i = 0; i < fs.pos.length; i++)
-                    if (!fs.taken[i] && !fs.sweet[i] && Math.hypot(fs.pos[i][0] - p.getX(), fs.pos[i][1] - p.getZ()) <= 25 * m) fs.sweet[i] = true;
+                    if (!fs.taken[i] && !fs.sweet[i] && Math.hypot(fs.pos[i][0] - p.getX(), fs.pos[i][1] - p.getZ()) <= 25 * m) {
+                        fs.sweet[i] = true;
+                        fx(lv, 11, fs.pos[i][0], cur.gy(), fs.pos[i][1], 0, 0, 0, 0, 1);   // the model becomes a sweet one
+                        fx(lv, 10, fs.pos[i][0], cur.gy(), fs.pos[i][1], 0, treeFleshy ? 1 : 0, 0, 0, 120);
+                    }
             }
             case "manipulateemotion" -> { for (Cloud c : clouds) if (c.mode == 0 && Math.hypot(c.nowX() - p.getX(), c.nowZ() - p.getZ()) <= 12 * m) c.mode = 2; }
             case "windmanipulation", "hurricane", "tornado", "trickwind" -> {
@@ -1505,7 +1537,8 @@ public final class EndGame {
             "CURSE: purple smoke gathers on every one of you. In a few seconds the whole battlefield is cursed: slowed, weakened, unlucky and corrupted. It cannot be dodged, so stay alive and stay together.",
             "POLLEN: purple clouds drift across the arena. Standing in one stacks Desire: it slows you, clouds your head and drains your mind. Stay out of them.",
             "MIRROR BLOOM: three flowers appear and only one is true. Touch a false one and it bursts for a quarter of your health and stops all healing. The true one cleanses everyone. Look closely at the sparks. If nobody finds it, they all wither.",
-            "FRUIT: fruit falls across the arena. Take it before it ripens or it sprouts a werewolf. Later, the fruit is rotten."};
+            "FRUIT: fruit falls across the arena. Take it before it ripens or it sprouts a werewolf. Later, the fruit is rotten.",
+            "STORM: red lines on the ground show where lightning will branch across the arena. Stay off them: the safe ground is between the lines."};
 
     /** The first time a player meets an attack, they are told how to avoid it. */
     private static void notice(ServerLevel lv, int which) {
@@ -1533,7 +1566,7 @@ public final class EndGame {
     private static void temptation(ServerLevel lv, int ticks, Set<UUID> failed, int fill) {
         Map<UUID, Integer> meter = new HashMap<>();
         float[] pull = {0f, 0f};
-        int[] changeAt = {60};
+        double[] dir = {ThreadLocalRandom.current().nextDouble() * Math.PI * 2, 0.0};   // the drag's direction and how fast it is turning
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         for (ServerPlayer p : fighters(lv)) p.sendSystemMessage(Component.literal("Come to me, child... (turn away and CROUCH)").withStyle(ChatFormatting.LIGHT_PURPLE));
         for (int t = 0; t < ticks; t++) {
@@ -1541,12 +1574,10 @@ public final class EndGame {
             at(t, l -> {
                 Vec3 boss = new Vec3(cur.cx(), cur.gy() + 2, cur.cz());
                 if (tt % 10 == 0) l.sendParticles(ParticleTypes.CHERRY_LEAVES, boss.x, cur.gy() + 3, boss.z, 20, 6, 3, 6, 0.02);
-                if (tt >= changeAt[0]) {
-                    double th = rnd.nextDouble() * Math.PI * 2;
-                    pull[0] = (float) (Math.cos(th) * 1.1);
-                    pull[1] = (float) (Math.sin(th) * 0.7);
-                    changeAt[0] = tt + 15 + rnd.nextInt(15);
-                }
+                dir[1] = Math.max(-0.06, Math.min(0.06, dir[1] * 0.97 + (rnd.nextDouble() - 0.5) * 0.014));   // the turn speeds up and slows down on its own: no sudden changes
+                dir[0] += dir[1];
+                pull[0] = (float) (Math.cos(dir[0]) * 1.1);
+                pull[1] = (float) (Math.sin(dir[0]) * 0.7);
                 for (ServerPlayer p : fighters(l)) {
                     UUID id = p.getUUID();
                     if (failed.contains(id)) continue;
@@ -1558,8 +1589,8 @@ public final class EndGame {
                     int m = meter.getOrDefault(id, 0);
                     m = ok ? Math.max(0, m - 2) : m + fill;
                     meter.put(id, m);
-                    if (tt % 2 == 0) // the drag: a relative turn of the camera
-                        p.connection.teleport(p.getX(), p.getY(), p.getZ(), pull[0] * 2, pull[1] * 2,
+                    // the drag: a small relative turn of the camera every tick
+                    p.connection.teleport(p.getX(), p.getY(), p.getZ(), pull[0], pull[1],
                                 java.util.EnumSet.of(net.minecraft.world.entity.RelativeMovement.X, net.minecraft.world.entity.RelativeMovement.Y,
                                         net.minecraft.world.entity.RelativeMovement.Z, net.minecraft.world.entity.RelativeMovement.Y_ROT,
                                         net.minecraft.world.entity.RelativeMovement.X_ROT));
@@ -1573,7 +1604,7 @@ public final class EndGame {
                     if (m >= 100) {
                         failed.add(id);
                         p.sendSystemMessage(Component.literal("You gave in.").withStyle(ChatFormatting.DARK_RED));
-                        if (!Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 50)) hit(l, p);
+                        if (!corrupt(p, 50)) hit(l, p);
                     }
                 }
             });
@@ -1585,7 +1616,7 @@ public final class EndGame {
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         final double cx = cur.cx(), cz = cur.cz(), bx = cx, bz = cz;
         notice(lv, which);
-        if (cur.raid()) for (ServerPlayer p : fighters(lv)) Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 5);   // every attack corrupts everyone a little, hit or dodged
+        if (cur.raid()) for (ServerPlayer p : fighters(lv)) corrupt(p, 2);   // every attack corrupts everyone a little, hit or dodged
         crowd = false;   // no effects are skipped for big groups: lag is fixed elsewhere
         final boolean big = cur.raid();
         if (big) sendAnim(lv, which, DURATION[which] + 40);
@@ -1605,7 +1636,7 @@ public final class EndGame {
                         p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.WEAKNESS, 300, 1));
                         p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN, 300, 1));
                         p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.UNLUCK, 300, 2));
-                        if (!Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 10)) LOGGER.warn("[astral] the curse could not add corruption to {}", p.getGameProfile().getName());
+                        if (!corrupt(p, 10)) LOGGER.warn("[astral] the curse could not add corruption to {}", p.getGameProfile().getName());
                         p.sendSystemMessage(Component.literal("You are cursed.").withStyle(ChatFormatting.DARK_PURPLE));
                     }
                 });
@@ -1672,7 +1703,7 @@ public final class EndGame {
             }
             case 8 -> { // pollen veil: clouds of Desire drift over the arena; standing in one stacks Desire
                 final int n = big ? 3 : 2;
-                final double cr = big ? 8 : 5;
+                final double cr = big ? 24 : 9;   // a bank of fog, not a puff
                 final List<Cloud> mine = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
                     double a = rnd.nextDouble() * Math.PI * 2, d = 6 + rnd.nextDouble() * (big ? reach * 0.5 : 14), v = rnd.nextDouble() * Math.PI * 2;
@@ -1688,8 +1719,7 @@ public final class EndGame {
                             if (k.mode == 3) continue;   // blown away
                             double x = k.x + k.vx * tt, z = k.z + k.vz * tt;
                             float cr1 = k.mode == 1 ? 1f : k.mode == 2 ? 0.3f : 0.7f, cg1 = k.mode == 1 ? 0.9f : k.mode == 2 ? 0.7f : 0.2f, cb1 = k.mode == 1 ? 0.4f : k.mode == 2 ? 1f : 0.9f;
-                            circle(l, x, z, k.r, cr1, cg1, cb1);
-                            l.sendParticles(k.mode == 1 ? ParticleTypes.END_ROD : k.mode == 2 ? ParticleTypes.ENCHANT : ParticleTypes.WITCH, x, cur.gy() + 1, z, 14, k.r / 2, 0.8, k.r / 2, 0.02);
+                            l.sendParticles(k.mode == 1 ? ParticleTypes.END_ROD : k.mode == 2 ? ParticleTypes.ENCHANT : ParticleTypes.WITCH, x, cur.gy() + 1, z, 30, k.r / 2, 0.8, k.r / 2, 0.02);
                             if (k.mode == 0 && tt >= 20 && tt % 8 == 0) { for (ServerPlayer p : fighters(l)) if (Math.hypot(p.getX() - x, p.getZ() - z) < k.r && p.getY() < cur.gy() + 6) addDesire(p); }
                             else if (k.mode != 0) {
                                 for (ServerPlayer p : fighters(l)) {
@@ -1757,6 +1787,7 @@ public final class EndGame {
                 boolean[] sweet = new boolean[n];
                 for (int i = 0; i < n; i++) sweet[i] = !sour;
                 Fruits fs = new Fruits(f, taken, sweet);
+                for (int i = 0; i < n; i++) fx(lv, 10, f[i][0], cur.gy(), f[i][1], sweet[i] ? 0 : 1, sour ? 1 : 0, 0, 0, 175);   // the model and its beam
                 fruits.add(fs);
                 at(175, l -> fruits.remove(fs));
                 for (int t = 0; t <= 170; t += 2) {
@@ -1766,12 +1797,12 @@ public final class EndGame {
                             if (taken[i]) continue;
                             double x = f[i][0], z = f[i][1];
                             final boolean rotten = !sweet[i];
-                            if (tt % 8 == 0) circle(l, x, z, 1.5, rotten ? 0.6f : 1f, rotten ? 0.1f : 0.85f, rotten ? 0.2f : 0.2f);
-                            l.sendParticles(rotten ? ParticleTypes.SOUL_FIRE_FLAME : ParticleTypes.END_ROD, x, cur.gy() + 1.2, z, 3, 0.2, 0.5, 0.2, 0.01);
-                            if (tt == 170) { taken[i] = true; spawnThrall(l, x, z, "werewolf"); continue; }
+                            if (tt % 6 == 0) l.sendParticles(rotten ? ParticleTypes.SOUL_FIRE_FLAME : ParticleTypes.END_ROD, x, cur.gy() + 1.2, z, 3, 0.2, 0.5, 0.2, 0.01);
+                            if (tt == 170) { taken[i] = true; fx(l, 11, x, cur.gy(), z, 0, 0, 0, 0, 1); spawnThrall(l, x, z, "werewolf"); continue; }
                             for (ServerPlayer p : fighters(l)) {
                                 if (Math.hypot(p.getX() - x, p.getZ() - z) > 1.8 || Math.abs(p.getY() - cur.gy()) > 4) continue;
                                 taken[i] = true;
+                                fx(l, 11, x, cur.gy(), z, 0, 0, 0, 0, 1);
                                 if (rotten) { soften(l, p, 0.15f); p.displayClientMessage(Component.literal("The fruit was rotten.").withStyle(ChatFormatting.DARK_RED), true); }
                                 else { treeHeal(p, p.getMaxHealth() * 0.3f); desire.remove(p.getUUID()); p.displayClientMessage(Component.literal("Sweet. You feel whole.").withStyle(ChatFormatting.GOLD), true); }
                                 break;
@@ -1794,12 +1825,41 @@ public final class EndGame {
                 temptation(lv, 160, failed);
                 at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
             }
-            default -> { // the whole arena is struck except for three safe circles
+            case 11 -> { // storm: red lines show where the lightning branches, then all of it strikes at once
+                final int warn = 60;
+                final long seed = rnd.nextInt(1_000_000);
+                final double webReach = big ? 190 : 40;
+                final List<Bolts.Seg> web = Bolts.web(seed, cx, cz, webReach);
+                fx(lv, 13, cx, cur.gy(), cz, seed, webReach, warn, 0, warn + 24);
+                at(warn, l -> {
+                    sfx(l, SoundEvents.LIGHTNING_BOLT_THUNDER, 4f, 0.8f);
+                    int shown = 0;
+                    for (int k = 0; k < web.size() && shown < 14; k += Math.max(1, web.size() / 14)) {   // a few real bolts along the web
+                        Bolts.Seg sg = web.get(k);
+                        LightningBolt lb = EntityType.LIGHTNING_BOLT.create(l);
+                        if (lb != null) { lb.moveTo(sg.x1(), cur.gy(), sg.z1()); lb.setVisualOnly(true); l.addFreshEntity(lb); shown++; }
+                    }
+                    for (ServerPlayer p : fighters(l)) if (p.getY() < cur.gy() + 12 && Bolts.distance(web, p.getX(), p.getZ()) < 1.7) hit(l, p);
+                });
+            }
+            default -> { // purge: the tree gathers its power for 7 seconds, then everything not inside a safe circle is struck
+                final int windup = 140;
                 final double sr = big ? 7 : 3.2;
-                double[][] safe = new double[big ? Math.max(3, (fighters(lv).size() + 4) / 5) : 3][2];   // a crowd needs room: one circle for every five fighters
-                for (double[] s : safe) { double a = rnd.nextDouble() * Math.PI * 2, d = 4 + rnd.nextDouble() * (big ? reach * 0.8 : 14); s[0] = cx + Math.cos(a) * d; s[1] = cz + Math.sin(a) * d; }
-                for (int t = 0; t < 70; t += 5) at(t, l -> { for (double[] s : safe) circle(l, s[0], s[1], sr, 0.2f, 1f, 0.3f); });
-                at(70, l -> {
+                final List<double[]> safe = new ArrayList<>();
+                if (big) {
+                    // a safe circle is put 10 to 22 blocks from every fighter who has none within reach, so everybody can get to one in time
+                    for (ServerPlayer p : fighters(lv)) {
+                        boolean covered = false;
+                        for (double[] s : safe) if (Math.hypot(p.getX() - s[0], p.getZ() - s[1]) < 30) { covered = true; break; }
+                        if (covered || safe.size() >= 16) continue;
+                        double a = rnd.nextDouble() * Math.PI * 2, d = 10 + rnd.nextDouble() * 12;
+                        safe.add(new double[]{p.getX() + Math.cos(a) * d, p.getZ() + Math.sin(a) * d});
+                    }
+                }
+                while (safe.size() < 3) { double a = rnd.nextDouble() * Math.PI * 2, d = 4 + rnd.nextDouble() * (big ? 40 : 14); safe.add(new double[]{cx + Math.cos(a) * d, cz + Math.sin(a) * d}); }
+                for (int t = 0; t < windup; t += 5) at(t, l -> { for (double[] s : safe) circle(l, s[0], s[1], sr, 0.2f, 1f, 0.3f); });
+                if (big) fx(lv, 14, cx, cur.gy(), cz, windup, ARENA_R, 0, rgb(0.85f, 0.4f, 1f), windup + 60);   // the tree winds up and bursts
+                at(windup, l -> {
                     for (ServerPlayer p : fighters(l)) {
                         boolean ok = false;
                         for (double[] s : safe) { double dx = p.getX() - s[0], dz = p.getZ() - s[1]; if (dx * dx + dz * dz <= sr * sr) ok = true; }
@@ -1807,7 +1867,8 @@ public final class EndGame {
                         if (!ok) hit(l, p);
                     }
                     boom(l, cx, cz, big ? 60 : 30);
-                    fx(l, 4, cx, cur.gy(), cz, big ? reach + 10 : 40, 0, 0, rgb(0.85f, 0.4f, 1f), 36);
+                    sfx(l, SoundEvents.GENERIC_EXPLODE.value(), 4f, 0.6f);
+                    if (!big) fx(l, 4, cx, cur.gy(), cz, 40, 0, 0, rgb(0.85f, 0.4f, 1f), 36);
                 });
             }
         }
@@ -1916,7 +1977,7 @@ public final class EndGame {
                 if (ok) continue;
                 callFailed.add(id);
                 p.sendSystemMessage(Component.literal("You gave in.").withStyle(ChatFormatting.DARK_RED));
-                if (!Lotm.addCorruptionPercent(p, Lotm.randomPathway(), 50)) hit(l, p);
+                if (!corrupt(p, 50)) hit(l, p);
             }
             Mob b = findBoss(l, TAG_RAID);
             if (b != null) healBoss(b, 0.10f * callFailed.size());
@@ -2185,6 +2246,7 @@ public final class EndGame {
         if (lv == null) return;
         rt++;
         cur = new Arena(lv, 0.5, 0.5, groundY, true);
+        if (introQueue && rt >= INTRO_TICKS) { introQueue = false; for (Runnable r : introChat) r.run(); introChat.clear(); }
         sanityLockTick(lv);
         echoTick(lv);
         counterTick(lv);
@@ -2193,7 +2255,6 @@ public final class EndGame {
         else if (rt >= graceUntil && rt % 5 == 0) {
             for (ServerPlayer p : fighters(lv)) if (Math.hypot(p.getX() - 0.5, p.getZ() - 0.5) < WAKE_R) { wake(lv, p.getGameProfile().getName() + " came too close"); break; }
         }
-        if (rt == graceUntil && !aggro) tellLevel(lv, "The peace is over. She wakes if you come within " + (int) WAKE_R + " blocks, or strike her.", ChatFormatting.LIGHT_PURPLE);
         if (rt % 5 == 0) for (ServerPlayer p : fighters(lv)) { double sp = Lotm.sanityPercent(p); if (sp >= 0 && sp <= 3) sanityBreak(p); }   // before LOTM's own collapse
         if (aggro && rt >= nextPattern && !cutscene && !(rootsActive && activeKind == 1) && !fighters(lv).isEmpty()) {
             int[] opts = NEXT[lastPattern];
@@ -2405,7 +2466,7 @@ public final class EndGame {
     private static final Map<UUID, Float> lastHp = new HashMap<>();
     private static final Map<UUID, Long> lastPlayerHit = new HashMap<>();   // when a player last hurt each boss
     static final double ARENA_R = 260;        // the raid arena: fighters may roam this far from the tree (built for up to ~100 players)
-    private static final double SPAWN_R = 100;    // fighters arrive well outside the tree's trunk (the model's trunk is about 15 blocks wide at the foot)
+    private static final double SPAWN_R = 120;    // fighters arrive well outside the tree's trunk (the model's trunk is about 15 blocks wide at the foot)
     private static final float MAX_HIT = 0.10f;     // no single hit takes more than this share of a boss's health
     private static final float MAX_DROP = 0.12f;    // anything that takes more than this in one tick is not a hit but an execution
     private static final float RAID_HIT = 0.02f;    // the Mother Tree: no single hit takes more than this share
@@ -2567,8 +2628,8 @@ public final class EndGame {
                 if (Math.abs(m.getX() - hx) > 0.01 || Math.abs(m.getY() - hy) > 0.01 || Math.abs(m.getZ() - hz) > 0.01) m.setPos(hx, hy, hz);
             }
             float max = m.getMaxHealth(), hp = m.getHealth();
-            if (m.getTags().contains(TAG_RAID) && rootStage < THRESHOLDS.length && hp < THRESHOLDS[rootStage] * RAID_HP - 0.5f) { // however it got hurt (an ability that sets health), it cannot pass the next phase
-                hp = THRESHOLDS[rootStage] * RAID_HP - 0.5f;
+            if (m.getTags().contains(TAG_RAID) && rootStage < THRESHOLDS.length && hp < THRESHOLDS[rootStage] * RAID_HP) { // however it got hurt (an ability that sets health), it cannot pass the next phase
+                hp = THRESHOLDS[rootStage] * RAID_HP;   // lands exactly on the line, which starts the phase
                 m.setHealth(hp);
             }
             Float last = lastHp.get(m.getUUID());
@@ -2709,7 +2770,7 @@ public final class EndGame {
             if (e.level() instanceof ServerLevel wl) wake(wl, "it was struck");
             var le = (net.minecraft.world.entity.LivingEntity) e;
             float a = rateLimit(le, Math.min(event.getAmount() * RAID_DAMAGE * (rt < dazedUntil ? 1.25f : 1f), le.getMaxHealth() * RAID_HIT), RAID_RATE);   // dazed: 25% more, still under her caps
-            if (rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * RAID_HP + 0.5f)); // it can never be hit past the next phase, however hard
+            if (rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * RAID_HP)); // the hit that crosses a phase line is cut down to land exactly on it (and starts the phase), never skipped
             if (a <= 0f) { logDrop(e, event, "capped to zero"); event.setCanceled(true); } else event.setAmount(a);
             return;
         }

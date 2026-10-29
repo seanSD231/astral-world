@@ -120,29 +120,66 @@ public final class AttackFx {
     private static void meteor(Pen p, boolean add, double t, double x, double y, double z, double fall, double rad, double life, int col, boolean lotmFall) {
         double r = Math.max(1.0, rad * 0.3);
         if (t < fall) {
-            if (!add || lotmFall) return;   // with LOTM's own meteor the fall belongs to it; this class only adds the impact
+            if (lotmFall) return;   // with LOTM's own meteor the fall belongs to it; this class only adds the impact
             double pr = t / fall, e = pr * pr, H = 85 * (1 - e);
             double hx = x + DX * H, hy = y + H + 0.5, hz = z + DZ * H;
             float in = clamp01(t / 3.0);
-            double nl = Math.sqrt(DX * DX + 1 + DZ * DZ), tx = DX / nl, ty = 1 / nl, tz = DZ / nl, L = 14 + 34 * pr;
-            p.col(col);
-            tube(p, hx, hy, hz, r * 1.35, 0.38f * in, hx + tx * L * 1.1, hy + ty * L * 1.1, hz + tz * L * 1.1, 0.05, 0f, 10);
-            sphere(p, hx, hy, hz, r * 1.5, 0.28f * in, 6, 10);
+            double nl = Math.sqrt(DX * DX + 1 + DZ * DZ), tx = DX / nl, ty = 1 / nl, tz = DZ / nl, L = 18 + 40 * pr;
+            if (!add) {
+                // a long smoke trail and the rock itself: a tumbling cluster of dark chunks
+                p.col(0x2A2522);
+                tube(p, hx, hy, hz, r * 1.5, 0.45f * in, hx + tx * L * 2.4, hy + ty * L * 2.4, hz + tz * L * 2.4, 0.3, 0f, 10);
+                p.col(0x3A3029);
+                sphere(p, hx, hy, hz, r * 0.95, in, 6, 9);
+                for (int i = 0; i < 10; i++) {
+                    double ang = t * 0.16 * (i % 2 == 0 ? 1 : -1) + i * 0.63, el = hash(i * 5.1) * 2 - 1, rr = r * (0.7 + 0.35 * hash(i * 2.7));
+                    p.col(i % 2 == 0 ? 0x4A3C32 : 0x2B2420);
+                    box(p, hx + Math.cos(ang) * rr * Math.sqrt(1 - el * el), hy + el * rr, hz + Math.sin(ang) * rr * Math.sqrt(1 - el * el), r * (0.4 + 0.4 * hash(i * 1.9)), in);
+                }
+                return;
+            }
+            p.col(0xFF3A10);
+            tube(p, hx, hy, hz, r * 1.5, 0.5f * in, hx + tx * L * 1.4, hy + ty * L * 1.4, hz + tz * L * 1.4, 0.05, 0f, 10);
+            p.col(0xFF8A1E);
+            tube(p, hx, hy, hz, r * 1.1, 0.7f * in, hx + tx * L, hy + ty * L, hz + tz * L, 0.04, 0f, 10);
+            p.col(0xFFE08A);
+            tube(p, hx, hy, hz, r * 0.6, 0.85f * in, hx + tx * L * 0.7, hy + ty * L * 0.7, hz + tz * L * 0.7, 0.03, 0f, 8);
+            p.col(0xFF9A2E);   // lava glowing through the cracks of the rock
+            for (int i = 0; i < 9; i++) {
+                double az = hash(i * 3.3) * Math.PI * 2 + t * 0.1, el = hash(i * 8.8) * 2 - 1, k = Math.sqrt(1 - el * el);
+                box(p, hx + Math.cos(az) * k * r, hy + el * r, hz + Math.sin(az) * k * r, r * 0.26, 0.95f * in);
+            }
             p.col(0xFFB347);
-            tube(p, hx, hy, hz, r * 0.8, 0.65f * in, hx + tx * L * 0.8, hy + ty * L * 0.8, hz + tz * L * 0.8, 0.04, 0f, 8);
-            p.col(0xFFF1CC);
-            sphere(p, hx, hy, hz, r * 0.8, 0.95f * in, 6, 10);
+            sphere(p, hx, hy, hz, r * 1.4, 0.3f * in, 6, 9);
+            p.col(0xFFD27A);   // sparks thrown off the tail
+            for (int i = 0; i < 16; i++) {
+                double along = (hash(i * 4.4 + Math.floor(t * 0.5)) * 0.9) * L, ox = (hash(i * 6.1) - 0.5) * r * 2.4, oz = (hash(i * 9.7) - 0.5) * r * 2.4, oy = (hash(i * 2.2) - 0.5) * r * 2.4;
+                double sx = hx + tx * along + ox, sy = hy + ty * along + oy, sz = hz + tz * along + oz;
+                tube(p, sx, sy, sz, 0.09, 0.9f * in, sx + tx * 4, sy + ty * 4, sz + tz * 4, 0.02, 0f, 4);
+            }
             return;
         }
         double span = Math.max(8, life - fall), u = Math.min(1, (t - fall) / span), fade = (1 - u) * (1 - u);
-        if (!add) return;
+        if (!add) {
+            p.col(0x1A1210);   // scorched ground
+            flat(p, x, y + 0.12, z, 0, rad * (0.9 + 0.3 * u), 0.55f * (1 - u * u));
+            for (int i = 0; i < 16; i++) {   // rock thrown out of the crater, falling back down
+                double az = hash(i * 7.7) * Math.PI * 2, sp = rad * (0.7 + 1.3 * hash(i * 3.1)), hh = rad * (0.8 + 1.4 * hash(i * 5.9));
+                p.col(i % 2 == 0 ? 0x4A3C32 : 0x2B2420);
+                box(p, x + Math.cos(az) * sp * Math.min(1, u * 1.6), y + 0.3 + hh * 4 * u * (1 - u), z + Math.sin(az) * sp * Math.min(1, u * 1.6), 0.5 + 0.5 * hash(i * 1.3), clamp01(1.2 * (1 - u)));
+            }
+            return;
+        }
         p.col(0xFFE6B0);
         sphere(p, x, y + 0.3, z, rad * (0.35 + 1.1 * Math.sqrt(u)), (float) (0.75 * fade), 6, 12);
         p.col(col);
         flat(p, x, y + 0.15, z, Math.max(0, rad * (0.3 + 1.7 * u) - rad * 0.3), rad * (0.3 + 1.7 * u), clamp01(0.9 * (1 - u)));
         wall(p, x, y, z, rad * (0.5 + 1.9 * u), 2.5 + rad * 0.35 * (1 - u), clamp01(0.85 * (1 - u)), 0f);
+        wall(p, x, y, z, rad * (0.2 + 3.2 * u), 1.5 + rad * 0.2 * (1 - u), clamp01(0.5 * (1 - u)), 0f);   // a second, faster shockwave
         double ch = rad * 3 * (0.4 + u);
         tube(p, x, y, z, rad * 0.35 * (1 - u) + 0.1, clamp01(0.55 * (1 - u)), x, y + ch, z, rad * 0.12 * (1 - u) + 0.05, 0f, 10);
+        p.col(0xFF5A14);   // the crater glows red-hot
+        flat(p, x, y + 0.2, z, 0, rad * 0.8, clamp01(0.7 * (1 - u)));
     }
 
     /** A leaf or petal lying at an angle: a diamond with its tip along `ang`, tilted up by `tilt`. */
@@ -244,22 +281,166 @@ public final class AttackFx {
         wall(p, x, y, z, Math.max(0.2, r - 0.5), 0.9, 0.55f * e, 0f);
     }
 
+    /** A flat disc that fades smoothly from its middle to nothing at the rim, so many of them overlap into mist with no visible edge. */
+    private static void softDisc(Pen p, double cx, double y, double cz, double r, float a) {
+        if (r < 0.5 || a <= 0.003) return;
+        final int rings = 4, seg = 20;
+        for (int k = 0; k < rings; k++) {
+            double r0 = r * k / rings, r1 = r * (k + 1) / rings;
+            float a0 = (float) (a * Math.pow(1 - (double) k / rings, 1.6)), a1 = (float) (a * Math.pow(1 - (double) (k + 1) / rings, 1.6));
+            for (int i = 0; i < seg; i++) {
+                double t0 = Math.PI * 2 * i / seg, t1 = Math.PI * 2 * (i + 1) / seg;
+                p.quad(cx + Math.cos(t0) * r0, y, cz + Math.sin(t0) * r0, a0, cx + Math.cos(t0) * r1, y, cz + Math.sin(t0) * r1, a1,
+                        cx + Math.cos(t1) * r1, y, cz + Math.sin(t1) * r1, a1, cx + Math.cos(t1) * r0, y, cz + Math.sin(t1) * r0, a0);
+            }
+        }
+    }
+
+    /** Fog: a huge bank of layered, drifting mist. No circle, no edge: it just thins out. */
     private static void cloud(Pen p, boolean add, double t, double x0, double y, double z0, double vx, double vz, double rad, double life, int col) {
-        double env = Math.min(1, Math.min(t / 12.0, (life - t) / 12.0));
+        double env = Math.min(1, Math.min(t / 25.0, (life - t) / 25.0));
         if (env <= 0) return;
         float e = clamp01(env);
         double x = x0 + vx * t, z = z0 + vz * t;
         p.col(col);
         if (!add) {
-            double[] hs = {0.35, 1.4, 2.6, 3.8}, rs = {1.0, 0.92, 0.75, 0.5};
-            for (int i = 0; i < 4; i++) flat(p, x, y + hs[i], z, 0, rad * rs[i], 0.17f * e);
-        } else {
-            for (int i = 0; i < 8; i++) {
-                double ang = t * 0.035 * (i % 2 == 0 ? 1 : -1) + i * 0.785, rr = rad * (0.25 + 0.55 * hash(i * 3.3));
-                sphere(p, x + Math.cos(ang) * rr, y + 0.8 + 2.6 * hash(i * 9.1) + Math.sin(t * 0.07 + i) * 0.3, z + Math.sin(ang) * rr, rad * 0.2, 0.2f * e, 4, 7);
+            for (int i = 0; i < 6; i++) {   // the body: stacked layers, each turning a little differently
+                double ang = t * 0.006 * (i % 2 == 0 ? 1 : -1) + i * 1.1, off = rad * 0.1;
+                softDisc(p, x + Math.cos(ang) * off, y + 0.15 + i * 0.75, z + Math.sin(ang) * off, rad * (1.1 - 0.06 * i), 0.17f * e);
             }
-            wall(p, x, y, z, rad, 0.6, 0.35f * e, 0f);
+            for (int j = 0; j < 11; j++) {   // thick patches drifting round inside it
+                double ang = j * 0.571 + t * 0.005 * (j % 2 == 0 ? 1 : -1), rr = rad * (0.15 + 0.65 * hash(j * 3.3));
+                softDisc(p, x + Math.cos(ang) * rr, y + 0.3 + hash(j * 7.7) * 3.4, z + Math.sin(ang) * rr, rad * (0.3 + 0.25 * hash(j * 1.7)), 0.14f * e);
+            }
+        } else {
+            p.col(0xD9B8F0);
+            for (int j = 0; j < 8; j++) {   // paler wisps on top, rolling the other way
+                double ang = j * 0.785 - t * 0.007, rr = rad * (0.2 + 0.6 * hash(j * 5.3));
+                softDisc(p, x + Math.cos(ang) * rr, y + 0.8 + hash(j * 2.9) * 3.0, z + Math.sin(ang) * rr, rad * (0.28 + 0.2 * hash(j * 8.1)), 0.07f * e);
+            }
+            p.col(col);
+            for (int j = 0; j < 16; j++) {   // tall thin streamers rising out of the mist
+                double ang = hash(j * 4.1) * Math.PI * 2 + t * 0.004, rr = rad * (0.1 + 0.8 * hash(j * 6.7)), h = 4 + 4 * hash(j * 9.3), w = 2.5 + 2 * hash(j * 1.1);
+                double px = x + Math.cos(ang) * rr, pz = z + Math.sin(ang) * rr, dx = -Math.sin(ang) * w, dz = Math.cos(ang) * w;
+                p.quad(px - dx, y, pz - dz, 0f, px + dx, y, pz + dz, 0f, px + dx * 0.4, y + h, pz + dz * 0.4, 0f, px - dx * 0.4, y + h, pz - dz * 0.4, 0f);
+                p.quad(px - dx, y, pz - dz, 0.1f * e, px + dx, y, pz + dz, 0.1f * e, px + dx * 0.4, y + h, pz + dz * 0.4, 0f, px - dx * 0.4, y + h, pz - dz * 0.4, 0f);
+            }
         }
+    }
+
+    /** A fruit hanging in the air over the spot: an apple with a stem and a leaf, and a beam of light so it can be found from far away. */
+    private static void fruit(Pen p, boolean add, double t, double x, double y, double z, boolean rotten, boolean red, double life) {
+        double env = Math.min(1, Math.min(t / 4.0, (life - t) / 8.0));
+        if (env <= 0) return;
+        float e = clamp01(env);
+        double fallT = 12, cy;
+        if (t < fallT) { double u = t / fallT; cy = y + 1.5 + 30 * (1 - u * u); } else cy = y + 1.5 + Math.sin((t - fallT) * 0.12) * 0.18;
+        double spin = t * 0.09;
+        if (!add) {
+            p.col(rotten ? 0x4F3A30 : 0xD92B2B);
+            sphere(p, x, cy, z, 0.52, e, 7, 10);
+            for (int s = -1; s <= 1; s += 2) sphere(p, x + Math.cos(spin) * 0.2 * s, cy + 0.04, z + Math.sin(spin) * 0.2 * s, 0.46, e, 6, 9);   // the two lobes of an apple
+            if (rotten) {
+                p.col(0x6D8A3A);   // mould
+                for (int i = 0; i < 5; i++) {
+                    double az = hash(i * 3.7) * Math.PI * 2 + spin, el = hash(i * 6.1) * 1.4 - 0.7;
+                    sphere(p, x + Math.cos(az) * 0.58 * Math.cos(el), cy + Math.sin(el) * 0.55, z + Math.sin(az) * 0.58 * Math.cos(el), 0.14, e, 4, 6);
+                }
+            }
+            p.col(0x5A3A1E);
+            tube(p, x, cy + 0.45, z, 0.06, e, x + 0.08, cy + 0.9, z, 0.04, e, 5);
+            p.col(rotten ? 0x7A7A32 : 0x3FAE3A);
+            leaf(p, x + 0.06, cy + 0.82, z, spin, 0.55, 0.45, e);
+            leaf(p, x + 0.06, cy + 0.82, z, spin + Math.PI, 0.4, 0.45, e);
+            return;
+        }
+        // the glow, the shine and the beam
+        p.col(rotten ? 0x9A5AC8 : 0xFFD54A);
+        sphere(p, x, cy, z, 1.0, 0.16f * e, 6, 9);
+        if (!rotten) { p.col(0xFFF3C0); sphere(p, x - 0.2, cy + 0.25, z - 0.15, 0.12, 0.8f * e, 4, 6); }
+        double flick = 0.8 + 0.2 * Math.sin(t * 0.35);
+        p.col(red ? 0xFF2A2A : 0xFFD54A);
+        tube(p, x, y, z, 0.38, (float) (0.5 * flick) * e, x, y + 70, z, 0.2, 0f, 8);
+        p.col(red ? 0xFF9A8A : 0xFFF3C0);
+        tube(p, x, y, z, 0.12, (float) (0.8 * flick) * e, x, y + 70, z, 0.07, 0f, 5);
+        p.col(red ? 0xFF2A2A : 0xFFD54A);
+        flat(p, x, y + 0.12, z, 0, 0.9, 0.25f * e);   // a small pool of light where the beam stands
+    }
+
+    /** The Purge: the tree gathers a ball of light above itself (rays pour in), then it bursts across the whole arena. */
+    private static void purge(Pen p, boolean add, double t, double x, double y, double z, double windup, double maxR, double life, int col) {
+        if (!add) return;
+        double cy = y + 42;
+        if (t < windup) {
+            double f = t / windup, pulse = 1 + 0.12 * Math.sin(t * 0.9);
+            float in = clamp01(t / 10.0);
+            p.col(col);
+            sphere(p, x, cy, z, (3 + 13 * f * f) * pulse, (0.25f + 0.35f * (float) f) * in, 8, 14);
+            sphere(p, x, cy, z, (6 + 22 * f * f) * pulse, 0.1f * in, 8, 14);
+            p.col(0xFFFFFF);
+            sphere(p, x, cy, z, (1.5 + 7 * f * f) * pulse, (0.5f + 0.4f * (float) f) * in, 8, 12);
+            p.col(col);
+            for (int j = 0; j < 28; j++) {   // light streaming in from all round
+                double az = hash(j * 3.9) * Math.PI * 2, el = (hash(j * 7.1) - 0.3) * 1.2, d = 70 * (1 - ((f * 2.2 + hash(j * 1.7)) % 1.0)) + 6;
+                double ux = Math.cos(az) * Math.cos(el), uy = Math.sin(el), uz = Math.sin(az) * Math.cos(el);
+                tube(p, x + ux * d, cy + uy * d, z + uz * d, 0.28, 0.7f * in, x + ux * d * 0.8, cy + uy * d * 0.8, z + uz * d * 0.8, 0.05, 0f, 4);
+            }
+            flat(p, x, y + 0.15, z, 0, 60 * (1 - f) + 10, 0.1f * (float) f);   // the ground trembles in towards the trunk
+            return;
+        }
+        double span = Math.max(10, life - windup), u = Math.min(1, (t - windup) / span), inv = 1 - u;
+        p.col(0xFFFFFF);
+        sphere(p, x, cy, z, 16 + 40 * Math.sqrt(u), clamp01(0.9 * inv * inv * inv), 10, 16);
+        p.col(col);
+        sphere(p, x, cy, z, 18 + maxR * 0.8 * Math.sqrt(u), clamp01(0.45 * inv * inv), 12, 20);
+        double r = maxR * (1 - inv * inv);
+        wall(p, x, y, z, r, 8 + 40 * inv, clamp01(0.9 * inv), 0f);
+        wall(p, x, y, z, r * 0.75, 4 + 20 * inv, clamp01(0.6 * inv), 0f);
+        flat(p, x, y + 0.2, z, Math.max(0, r - 14), r, clamp01(0.85 * inv));
+        tube(p, x, y, z, 14 * inv + 1, clamp01(0.7 * inv), x, y + 160, z, 4 * inv + 0.5, 0f, 12);
+    }
+
+    private static final java.util.Map<Long, java.util.List<Bolts.Seg>> WEBS = new java.util.HashMap<>();
+
+    private static java.util.List<Bolts.Seg> webFor(long seed, double cx, double cz, double reach) {
+        if (WEBS.size() > 6) WEBS.clear();
+        return WEBS.computeIfAbsent(seed, k -> Bolts.web(k, cx, cz, reach));
+    }
+
+    /** A flat ribbon on the ground from (x0, z0) to (x1, z1), w wide. */
+    private static void strip(Pen p, double x0, double z0, double x1, double z1, double y, double w, float a) {
+        double dx = x1 - x0, dz = z1 - z0, l = Math.sqrt(dx * dx + dz * dz);
+        if (l < 1e-3) return;
+        double nx = -dz / l * w / 2, nz = dx / l * w / 2;
+        p.quad(x0 - nx, y, z0 - nz, a, x0 + nx, y, z0 + nz, a, x1 + nx, y, z1 + nz, a, x1 - nx, y, z1 - nz, a);
+    }
+
+    /** The Storm: red lines show where the lightning will branch, then all of it strikes at the same moment. */
+    private static void storm(Pen p, boolean add, double t, double x, double y, double z, double seed, double reach, double warn, double life) {
+        if (!add) return;
+        java.util.List<Bolts.Seg> web = webFor((long) seed, x, z, reach);
+        if (t < warn) {
+            float in = clamp01(t / 8.0);
+            double pulse = 0.65 + 0.35 * Math.sin(t * 0.55);
+            p.col(0xFF1A1A);
+            for (Bolts.Seg s : web) {
+                strip(p, s.x0(), s.z0(), s.x1(), s.z1(), y + 0.12, 3.4, 0.16f * in);
+                strip(p, s.x0(), s.z0(), s.x1(), s.z1(), y + 0.14, s.depth() == 0 ? 0.9 : 0.6, (float) (0.85 * pulse) * in);
+            }
+            return;
+        }
+        double u = Math.min(1, (t - warn) / Math.max(4, life - warn)), flash = (1 - u) * (1 - u);
+        float fl = clamp01(flash);
+        p.col(0xB8D8FF);
+        for (Bolts.Seg s : web) {
+            double h = s.depth() == 0 ? 26 : 18;
+            strip(p, s.x0(), s.z0(), s.x1(), s.z1(), y + 0.15, 3.0, 0.5f * fl);
+            p.quad(s.x0(), y, s.z0(), 0.55f * fl, s.x1(), y, s.z1(), 0.55f * fl, s.x1(), y + h, s.z1(), 0f, s.x0(), y + h, s.z0(), 0f);
+        }
+        p.col(0xFFFFFF);
+        for (Bolts.Seg s : web) strip(p, s.x0(), s.z0(), s.x1(), s.z1(), y + 0.18, 0.8, fl);
+        p.col(0xE8F0FF);
+        tube(p, x, y, z, 2.2 * (1 - u) + 0.3, fl, x, y + 130, z, 0.6, 0f, 8);
     }
 
     private static void blast(Pen p, boolean add, double t, double x, double y, double z, double maxR, double life, int col) {
@@ -324,6 +505,9 @@ public final class AttackFx {
                 case 1 -> slam(pen, add, t, x, y, z, a, b, life, col, c > 0.5);
                 case 2 -> wave(pen, add, t, x, y, z, a, b, life, col);
                 case 3 -> cloud(pen, add, t, x, y, z, a, b, c, life, col);
+                case 10 -> fruit(pen, add, t, x, y, z, a > 0.5, b > 0.5, life);
+                case 13 -> storm(pen, add, t, x, y, z, a, b, c, life);
+                case 14 -> purge(pen, add, t, x, y, z, a, b, life, col);
                 case 4 -> blast(pen, add, t, x, y, z, a, life, col);
                 case 5 -> vortex(pen, add, t, x, y, z, c, life, col);
                 case 6 -> ult(pen, add, t, x, y, z, a, b, life, col);
