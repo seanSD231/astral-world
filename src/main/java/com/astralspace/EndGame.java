@@ -1320,22 +1320,9 @@ public final class EndGame {
         if (p == null) return;
         if (!accept) {
             p.sendSystemMessage(Component.literal("\"Then you are only another root to burn.\"").withStyle(ChatFormatting.DARK_RED));
-            startEcho(lv, p);   // refusing starts a memory game: losing it costs a life
             return;
         }
-        // taking her hand is a trial: follow the thread. Fail and she lets go of you.
-        miniOpen(lv, 2, otherThan(lv, p), "Take her hand: follow the light along the thread.");
-        at(miniTicks + 25, l -> {
-            int[] r = osuHits.get(p.getUUID());
-            if (r != null && r[1] == miniCount && r[0] >= miniNeed) acceptOffer(l, p);
-            else { p.sendSystemMessage(Component.literal("The thread slips from your fingers. She lets go of you.").withStyle(ChatFormatting.GRAY)); miniStart = -1000; }
-        });
-    }
-
-    private static Set<UUID> otherThan(ServerLevel lv, ServerPlayer p) {
-        Set<UUID> skip = new HashSet<>();
-        for (ServerPlayer q : fighters(lv)) if (!q.getUUID().equals(p.getUUID())) skip.add(q.getUUID());
-        return skip;
+        acceptOffer(lv, p);
     }
 
     private static void acceptOffer(ServerLevel lv, ServerPlayer p) {

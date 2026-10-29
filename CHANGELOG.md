@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.49
+- **Accepting her offer:** no minigame, it just works again.
+- **Refusing her offer:** the memory game is gone; she only says her line.
+
 ## 0.2.48
 Tree fight changes.
 - **Cutscenes:** the camera now stays inside the part of the world that is loaded around you (outside it you only saw a few blocks of ground, the "dirt block"). The opening camera stays on your side of the tree. Camera moves are tick-based, so the phase change glides instead of jittering. Cutscene text is now high on the screen, clear of the chat.
