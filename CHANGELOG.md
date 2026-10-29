@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.44
+- **Click game:** circles are back to their original size and count; they just appear 15% slower.
+
 ## 0.2.43
 Tree fight changes.
 - **Phase 5 cutscene:** players are teleported right after the error part. The last line ("I've heard your prayers.") now appears as golden-black gradient text instead of part of the scene.
@@ -13,7 +16,7 @@ Tree fight changes.
 - **Meteor Storm:** the lightning branches are more random and split into more, smaller branches.
 - **Lightning resistance:** the Mother Tree takes 60% less damage from lightning.
 - **50% cutscene:** smoother, much less jitter.
-- **Minigames:** the click game is easier (10 circles, bigger, more forgiving, 60% to pass). Two new ones, a rhythm game (D F J K or arrow keys) and a thread-following game. Desire's Call picks one at random, and each also exists as its own attack.
+- **Minigames:** the click game keeps its original circles, but they appear 15% slower. Two new ones, a rhythm game (D F J K or arrow keys) and a thread-following game. Desire's Call picks one at random, and each also exists as its own attack.
 - **15% meteor:** far bigger, and it starts much higher so it no longer begins inside the tree.
 
 ## 0.2.42

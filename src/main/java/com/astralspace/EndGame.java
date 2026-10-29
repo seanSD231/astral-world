@@ -2120,7 +2120,7 @@ public final class EndGame {
     private static void startCall(ServerLevel lv) {
         rootsActive = true;
         activeKind = 1;
-        phaseEnd = rt + 210;
+        phaseEnd = rt + 225;
         callFailed.clear();
         tellLevel(lv, treeName() + " sings. It cannot be hurt while you listen. Do NOT give in: every one who does heals it.", ChatFormatting.LIGHT_PURPLE);
         osuHits.clear();
@@ -2129,7 +2129,7 @@ public final class EndGame {
             int game = ThreadLocalRandom.current().nextInt(3);
             miniOpen(l, game, callFailed, MINI_HINT[game]);
         });
-        at(205, l -> {
+        at(220, l -> {
             for (ServerPlayer p : fighters(l)) {
                 UUID id = p.getUUID();
                 if (callFailed.contains(id)) continue;
@@ -2154,9 +2154,9 @@ public final class EndGame {
     /** Opens a minigame on every fighter's screen (except those skipped) and remembers what a pass needs: 60% of it. */
     private static void miniOpen(ServerLevel l, int game, Set<UUID> skip, String hint) {
         int seed = ThreadLocalRandom.current().nextInt(1_000_000);
-        miniCount = game == 0 ? 10 : game == 1 ? 12 : 16;
-        miniTicks = 100;
-        miniNeed = (int) Math.ceil(miniCount * 0.6);
+        miniCount = game == 0 ? 14 : game == 1 ? 12 : 16;
+        miniTicks = game == 0 ? 115 : 100;   // the click game: circles appear 15% slower
+        miniNeed = game == 0 ? 10 : (int) Math.ceil(miniCount * 0.6);
         miniStart = rt;
         osuHits.clear();
         for (ServerPlayer p : fighters(l)) {

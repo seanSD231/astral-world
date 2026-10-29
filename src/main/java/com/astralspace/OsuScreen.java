@@ -12,8 +12,8 @@ import net.neoforged.neoforge.network.PacketDistributor;
  * The layout comes from the seed the server sent. When the time is up the result is sent back and the screen closes.
  */
 public final class OsuScreen extends Screen {
-    private static final int APPROACH = 20;      // ticks a ring takes to close
-    private static final int WINDOW = 9;         // ticks either side of the moment it closes in which a click counts
+    private static final int APPROACH = 16;      // ticks a ring takes to close
+    private static final int WINDOW = 6;         // ticks either side of the moment it closes in which a click counts
     private final int total, duration;
     private final double[] px, py;
     private final int[] at;
@@ -51,7 +51,7 @@ public final class OsuScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
-        double rad = 38;
+        double rad = 30;
         for (int i = 0; i < total; i++) {
             if (done[i] || tick < at[i] - APPROACH) continue;
             double cx = px[i] * width, cy = py[i] * height;
@@ -96,8 +96,8 @@ public final class OsuScreen extends Screen {
                 continue;
             }
             int alpha = (int) Math.min(255, since * 40);
-            disc(g, cx, cy, 34, (alpha * 3 / 4 << 24) | 0xA0103A);
-            disc(g, cx, cy, 27, (alpha * 3 / 4 << 24) | 0x601070);
+            disc(g, cx, cy, 30, (alpha * 3 / 4 << 24) | 0xA0103A);
+            disc(g, cx, cy, 24, (alpha * 3 / 4 << 24) | 0x601070);
             double k = Math.max(0, 1 - since / APPROACH);
             ring(g, cx, cy, 30 + (int) (k * 70), (alpha << 24) | 0xFFC0E0);
             g.drawCenteredString(font, String.valueOf(i + 1), cx, cy - 4, 0xFFFFFF);
