@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.50
+- **15% meteor:** the "take cover behind the tree" line is gone.
+
 ## 0.2.49
 - **Accepting her offer:** no minigame, it just works again.
 - **Refusing her offer:** the memory game is gone; she only says her line.

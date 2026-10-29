@@ -2326,7 +2326,6 @@ public final class EndGame {
         ultCutsceneUntil = rt + 170;
         for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(22, 160));   // the cutscene: everyone watches it start to fall
         final double cx = 0.5, cz = 0.5, top = cur.gy() + 1100;
-        tellLevel(lv, "A meteor is coming. Run and take cover behind the tree!", ChatFormatting.RED);   // (more cover will be added later)
         LOGGER.info("[astral] the tree's ultimate meteor begins");
         fx(lv, 6, cx, cur.gy(), cz, top - cur.gy(), FALL_TICKS, 9, rgb(1f, 0.4f, 0.08f), FALL_TICKS + 70);
         for (int t = 0; t < FALL_TICKS; t++) {
