@@ -622,7 +622,7 @@ public final class AttackFx {
             sphere(p, x, hy, z, R, 0.95f * in, 8, 14);
             return;
         }
-        double span = Math.max(20, life - fall), u = Math.min(1, (t - fall) / span), inv = 1 - u, k = Math.sqrt(sc);
+        double span = Math.max(20, life - fall), u = Math.min(1, (t - fall) / span), inv = 1 - u, k = sc * 0.6;
         p.col(0xFFE6B0);
         sphere(p, x, y + 4, z, (14 + 90 * Math.sqrt(u)) * k, clamp01(0.6 * inv * inv), 8, 14);
         p.col(col);

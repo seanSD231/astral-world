@@ -104,6 +104,14 @@ public final class TreeRenderer {
     /** The tree's mesh data for the form it is in now (limb positions, for the animation's leaves). */
     static TreeModel metaNow() { return model(lastFleshy ? "tree_rot" : "tree").meta(); }
 
+    /** The camera of a cutscene must stay inside the chunks the game has loaded around the player, or all it shows is a few blocks of ground. */
+    static double[] keepLoaded(Minecraft mc, double x, double z) {
+        double lim = Math.max(64, mc.options.getEffectiveRenderDistance() * 16 - 24);
+        double dx = x - mc.player.getX(), dz = z - mc.player.getZ(), d = Math.hypot(dx, dz);
+        if (d <= lim) return new double[]{x, z};
+        return new double[]{mc.player.getX() + dx * lim / d, mc.player.getZ() + dz * lim / d};
+    }
+
     private static void onRender(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
         Minecraft mc = Minecraft.getInstance();
@@ -145,8 +153,8 @@ public final class TreeRenderer {
         if (cut) {
             float[] st = TreeCutscene.treeState(cs);   // scale x, scale y, tint r, g, b, shake
             ps.scale(st[0], st[1], st[0]);
-            ps.mulPose(com.mojang.math.Axis.ZP.rotation((float) Math.sin(cs * 37) * st[5]));
-            ps.mulPose(com.mojang.math.Axis.XP.rotation((float) Math.cos(cs * 31) * st[5]));
+            ps.mulPose(com.mojang.math.Axis.ZP.rotation((float) Math.sin(cs * 11) * st[5]));
+            ps.mulPose(com.mojang.math.Axis.XP.rotation((float) Math.cos(cs * 9) * st[5]));
             tint = new float[]{st[2], st[3], st[4]};
         }
         if (!tree) {

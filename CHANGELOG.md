@@ -2,6 +2,18 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.48
+Tree fight changes.
+- **Cutscenes:** the camera now stays inside the part of the world that is loaded around you (outside it you only saw a few blocks of ground, the "dirt block"). The opening camera stays on your side of the tree. Camera moves are tick-based, so the phase change glides instead of jittering. Cutscene text is now high on the screen, clear of the chat.
+- **Ground ring:** back to a plain purple wave. The sky ring stays a lightning-and-leaves wave.
+- **Damage to the tree:** every hit is now evened out. Weak attacks (low sequences) really hurt her, huge ones are squeezed, and a stronger hit is still always worth more. Ocean of Lightning only drains her at 0.08% of her health a second. Nothing hurts her inside her divine kingdom.
+- **Hitbox:** measured from the model. The trunk box is 120 wide and 84 tall, and seven invisible boxes (roots, lower trunk, canopy in layers, top) wrap the rest, up to 360 wide and 250 tall. Swinging at the drawn roots still works through them.
+- **Pollen:** 25% smaller than before, and it now appears far from the tree.
+- **Slowness:** the tree no longer slows you (Desire and the curse).
+- **Minigames:** the random memory/thread attacks are gone. Desire's Call is the click game (25% slower). Taking her hand (accepting her offer) is now a thread-following trial, and fail it and she lets go of you. Refusing still starts the old memory game.
+- **Meteor Storm:** lightning now spreads over the whole arena, not just where players stand.
+- **15% meteor:** 3x bigger, starts far higher, and the explosion is 3x bigger. You run and take cover behind the tree (more cover to come).
+
 ## 0.2.47
 - **Tree hitbox, done properly:** the trunk keeps a narrow box (24 wide, 150 tall) and two invisible parts add the flat root plate (300 wide, 26 tall) and the canopy (290 wide, 105 tall, from 122 up). Anything that hits a part hits her. The parts don't push players and shrink away whenever she can't be hurt, like the trunk does. The sizes are in `TREE_PARTS` to fine-tune.
 

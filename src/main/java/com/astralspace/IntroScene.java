@@ -24,6 +24,7 @@ public final class IntroScene {
     private static ArmorStand cam;
     private static double tx, ty, tz;
     private static int skipHeld = 0, tick = 0;
+    private static double baseAng = 270;
     private static final java.util.Random R = new java.util.Random();
 
     /** Seconds, angle (deg), radius, camera height above the tree's base, look-at height. */
@@ -69,8 +70,9 @@ public final class IntroScene {
     private static void place(double s, boolean snap) {
         if (cam == null) return;
         double[] p = pathAt(s);
-        double ang = Math.toRadians(p[0]);
+        double ang = Math.toRadians(baseAng + (p[0] - 270) * 0.4);   // on the side the player stands, where the world is loaded
         double nx = tx + Math.cos(ang) * p[1], ny = ty + p[2] + 1.6, nz = tz + Math.sin(ang) * p[1];
+        double[] kl = TreeRenderer.keepLoaded(Minecraft.getInstance(), nx, nz); nx = kl[0]; nz = kl[1];
         double dx = tx - nx, dy = ty + p[3] - ny, dz = tz - nz;
         float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz)), pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
         if (snap) { cam.xo = cam.xOld = nx; cam.yo = cam.yOld = ny - cam.getEyeHeight(); cam.zo = cam.zOld = nz; cam.yRotO = yaw; cam.xRotO = pitch; }
@@ -82,6 +84,7 @@ public final class IntroScene {
     private static void begin(Minecraft mc) {
         running = true; skipped = false; skipHeld = 0; tick = 0;
         findTree(mc);
+        baseAng = Math.toDegrees(Math.atan2(mc.player.getZ() - tz, mc.player.getX() - tx));
         cam = new ArmorStand(mc.level, tx, ty + 10, tz);
         cam.setInvisible(true);
         mc.setCameraEntity(cam);
@@ -106,7 +109,7 @@ public final class IntroScene {
         boolean jump = InputConstants.isKeyDown(mc.getWindow().getWindow(), mc.options.keyJump.getKey().getValue());
         skipHeld = jump ? skipHeld + 1 : 0;
         if (skipHeld > 20) { skipped = true; end(mc); return; }
-        place(seconds(), false);
+        place(tick / 20.0, false);
         for (int i = 0; i < 6; i++) {   // blossoms drift down around her
             double x = tx + R.nextGaussian() * 40, z = tz + R.nextGaussian() * 40, y = ty + 25 + R.nextDouble() * 90;
             mc.level.addParticle(ParticleTypes.CHERRY_LEAVES, x, y, z, R.nextGaussian() * 0.04, -0.12 - R.nextDouble() * 0.15, R.nextGaussian() * 0.04);
@@ -136,7 +139,7 @@ public final class IntroScene {
             if (alpha < 8) continue;
             g.pose().pushPose();
             var sl = Wrap.lines(mc.font, LINES[i], (int) (w * 0.86f / 1.6f));
-            g.pose().translate(w / 2f, h - bh - 26 - (sl.size() - 1) * 14f, 0);
+            g.pose().translate(w / 2f, h * 0.22f, 0);   // high up, clear of the chat
             g.pose().scale(1.6f, 1.6f, 1f);
             for (int li = 0; li < sl.size(); li++) g.drawCenteredString(mc.font, sl.get(li), 0, li * 10, (alpha << 24) | 0xFFD6F0);
             g.pose().popPose();

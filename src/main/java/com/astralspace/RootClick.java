@@ -24,7 +24,7 @@ final class RootClick {
         if (!mc.level.dimension().location().getPath().equals("cosmos")) return;
         if (CallScene.active() || TreeCutscene.active() || IntroScene.active()) return;
         HitResult hr = mc.hitResult;
-        if (hr != null && hr.getType() == HitResult.Type.ENTITY) return;   // something real is there: the normal attack handles it
+        if (hr != null && hr.getType() == HitResult.Type.ENTITY && !(((net.minecraft.world.phys.EntityHitResult) hr).getEntity() instanceof net.minecraft.world.entity.animal.IronGolem g && g.isInvisible())) return;   // something real is there: the normal attack handles it (her own invisible hitboxes don't count)
         if (hr != null && hr.getType() == HitResult.Type.BLOCK && hr instanceof net.minecraft.world.phys.BlockHitResult bh) {   // heart seeds and root blocks are real blocks: swinging at them breaks them, even under the drawn roots
             var st = mc.level.getBlockState(bh.getBlockPos());
             if (st.is(net.minecraft.world.level.block.Blocks.SHROOMLIGHT) || st.is(net.minecraft.world.level.block.Blocks.MANGROVE_WOOD)) return;

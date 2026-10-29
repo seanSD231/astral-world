@@ -125,6 +125,7 @@ public final class TreeCutscene {
         // the shake is a slow wobble, not random noise every tick (that was the jitter)
         double wx = Math.sin(s * 3.1) + 0.5 * Math.sin(s * 7.3 + 1), wy = Math.sin(s * 2.6 + 2) + 0.5 * Math.sin(s * 6.1), wz = Math.sin(s * 3.7 + 4) + 0.5 * Math.sin(s * 8.3 + 3);
         double nx = tx + Math.cos(ang) * p[1] + wx * shake * 0.12, ny = ty + p[2] + wy * shake * 0.12, nz = tz + Math.sin(ang) * p[1] + wz * shake * 0.12;
+        double[] kl = TreeRenderer.keepLoaded(Minecraft.getInstance(), nx, nz); nx = kl[0]; nz = kl[1];
         double dx = tx - nx, dy = ty + p[3] - ny, dz = tz - nz;
         float ny2 = (float) Math.toDegrees(Math.atan2(-dx, dz)) + (float) (wy * shake * 0.05);
         float np = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz))) + (float) (wz * shake * 0.05);
@@ -149,7 +150,7 @@ public final class TreeCutscene {
         boolean jump = InputConstants.isKeyDown(mc.getWindow().getWindow(), mc.options.keyJump.getKey().getValue());
         skipHeld = jump ? skipHeld + 1 : 0;
         if (skipHeld > 20) { skipped = true; end(mc); return; }
-        place(s, false);
+        place(tick / 20.0, false);   // by tick, not by the clock: the camera moves the same amount every tick, so it glides
 
         // ---- the show
         if (s < SWAP) {                                                    // withering: blossoms and leaves rain down, ash rises
@@ -211,7 +212,7 @@ public final class TreeCutscene {
             boolean fleshy = i >= 3;
             g.pose().pushPose();
             var sl = Wrap.lines(mc.font, LINES[i], (int) (w * 0.86f / 1.6f));
-            g.pose().translate(w / 2f, h - bh - 26 - (sl.size() - 1) * 14f, 0);
+            g.pose().translate(w / 2f, h * 0.22f, 0);   // high up, clear of the chat
             g.pose().scale(1.6f, 1.6f, 1f);
             for (int li = 0; li < sl.size(); li++) g.drawCenteredString(mc.font, sl.get(li), 0, li * 10, (alpha << 24) | (fleshy ? 0xC8D060 : 0xFFD6F0));
             g.pose().popPose();
