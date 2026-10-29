@@ -97,7 +97,7 @@ public final class TreeCutscene {
         for (Entity e : mc.level.entitiesForRendering())
             if (e.hasCustomName() && e.getCustomName().getString().startsWith("Mother Tree of Desire") || e.hasCustomName() && e.getCustomName().getString().startsWith("The World Tree")) { best = e; break; }
         if (best != null) { tx = best.getX(); ty = best.getY(); tz = best.getZ(); }
-        else { tx = 0.5; ty = mc.player.getY(); tz = 0.5; }
+        else { tx = TreeRenderer.lastX; ty = Double.isNaN(TreeRenderer.lastY) ? PlanetGenerator.BASE + 3.0 : TreeRenderer.lastY; tz = TreeRenderer.lastZ; }   // not tracked right now: where she was last seen, never the player's own height
     }
 
     // ------------------------------------------------------------------ events

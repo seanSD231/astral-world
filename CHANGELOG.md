@@ -2,6 +2,21 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.45
+Fixes and tree-fight changes.
+- **Barrier:** if the only Seq 0 dies and another rises, the barrier starts at 50 HP again instead of 0.
+- **World tree scene:** when the tree isn't loaded yet, the cutscene camera now uses her real position instead of your height (that could put it inside the ground, a "dirt block").
+- **Pollen:** the clouds are 5x wider.
+- **Desire:** its counter now shares the action bar line with your lives instead of covering them.
+- **Fruit:** a proper peach-shaped fruit model; the beam is pink before the change and crimson after, like the tree.
+- **Summon:** the werewolf summon attack is removed.
+- **Minigames:** Desire's Call is always the click game (no change to its speed from 0.2.44). The rhythm game is gone; a memory game (repeat the order four pads light up) replaces it as its own attack, and the thread game stays as another.
+- **Lightning storms:** faster, with much more sound (charge-up, thunder and impact layers, and explosions on every meteor). Tempest is faster too.
+- **Lightning resistance:** Star of Lightning can no longer hurt her at all, and Ocean of Lightning only drains her slowly (0.3% of her health a second at most).
+- **Hitbox:** 40 wide and 150 tall, to match the tree (it was 125 by 375).
+- **Ground ring:** redone as a ridge of earth with burning thorns, instead of the odd curved roots.
+- **Phase lines:** she can no longer heal on her own (that is what stopped you reaching 25% and the others); she only heals through the fight's own mechanics.
+
 ## 0.2.44
 - **Click game:** circles are back to their original size and count; they just appear 15% slower.
 

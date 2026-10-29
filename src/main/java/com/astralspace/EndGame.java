@@ -801,7 +801,7 @@ public final class EndGame {
     private static final Map<UUID, Long> lastHit = new HashMap<>();
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
     // two followers each (index = attack): 0 meteors, 1 rings, 2 summon, 3 slam, 4 purge, 5 temptation, 6 (power, unused), 7 curse, 8 pollen, 9 mirror bloom, 10 fruit, 11 storm (lightning web)
-    private static final int[][] NEXT = {{3, 2}, {11, 4}, {3, 5}, {1, 7}, {5, 10}, {8, 1}, {0, 1}, {9, 0}, {13, 9}, {10, 2}, {14, 0}, {0, 3}, {3, 5}, {5, 9}, {3, 2}};
+    private static final int[][] NEXT = {{3, 8}, {11, 4}, {3, 5}, {1, 7}, {5, 10}, {8, 1}, {0, 1}, {9, 0}, {13, 9}, {10, 0}, {14, 0}, {0, 3}, {3, 5}, {5, 9}, {3, 0}};
     private static final int[] DURATION = {140, 220, 110, 70, 190, 200, 90, 130, 200, 230, 210, 130, 330, 190, 190};
     private static int lastPattern = 3;
     private static long nextTempest = 0;
@@ -1080,6 +1080,27 @@ public final class EndGame {
         } catch (Throwable t) { return false; }
     }
 
+    /** A LOTM lightning that was aimed at something (Star of Lightning homes onto a target); the Ocean's rain is not. */
+    private static boolean starBolt(Entity d) {
+        if (d == null || !d.getClass().getName().contains("LightningEntity")) return false;
+        try { return d.getClass().getMethod("getTargetEntity").invoke(d) != null; } catch (Throwable t) { return false; }
+    }
+
+    /** The crack of a whole web of lightning going off: layered thunder, and real (harmless) bolts along the lines for the sound and the flash. */
+    private static void stormSounds(ServerLevel l, List<List<Bolts.Seg>> webs) {
+        sfx(l, SoundEvents.LIGHTNING_BOLT_THUNDER, 6f, 0.7f);
+        sfx(l, SoundEvents.LIGHTNING_BOLT_IMPACT, 6f, 1.0f);
+        sfx(l, SoundEvents.TRIDENT_THUNDER.value(), 6f, 0.8f);
+        int shown = 0;
+        for (List<Bolts.Seg> web : webs) {
+            for (int k = 0; k < web.size() && shown < 40; k += Math.max(2, web.size() / 6)) {
+                Bolts.Seg sg = web.get(k);
+                LightningBolt lb = EntityType.LIGHTNING_BOLT.create(l);
+                if (lb != null) { lb.moveTo(sg.x1(), cur.gy(), sg.z1()); lb.setVisualOnly(true); l.addFreshEntity(lb); shown++; }
+            }
+        }
+    }
+
     private static boolean lotmMeteorFailed = false;
 
     /**
@@ -1215,7 +1236,6 @@ public final class EndGame {
             if (s >= 3) p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, s / 3 - 1, false, false));
             if (s >= 6) p.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 120, 0, false, false));
             Lotm.loseSanityPercent(p, 0.4 * s);
-            p.displayClientMessage(Component.literal("Desire x" + s).withStyle(ChatFormatting.LIGHT_PURPLE), true);
         }
     }
 
@@ -1610,7 +1630,7 @@ public final class EndGame {
             "FRUIT: fruit falls across the arena. Take it before it ripens or it sprouts a werewolf. Later, the fruit is rotten.",
             "METEOR STORM: red circles mark where the meteors land, all at once. Red lines show where lightning will branch out of each impact straight after. Stay off both.",
             "TEMPEST: lightning strikes everywhere at once, so stand inside a blue circle. Then meteors fall everywhere, so stand inside a green circle. Then lightning webs the whole arena: find a gap between the red lines.",
-            "RHYTHM: a screen opens with lanes of falling notes. Press the keys as they reach the line.",
+            "MEMORY: a screen opens with four coloured pads. Remember the order they light up, then click them in the same order.",
             "THREAD: a screen opens with a glowing thread. Trace along it with your mouse without leaving it."};
 
     /** The first time a player meets an attack, they are told how to avoid it. */
@@ -1778,7 +1798,7 @@ public final class EndGame {
             }
             case 8 -> { // pollen veil: clouds of Desire drift over the arena; standing in one stacks Desire
                 final int n = big ? 3 : 2;
-                final double cr = big ? 24 : 9;   // a bank of fog, not a puff
+                final double cr = big ? 120 : 45;   // a bank of fog, not a puff (5x as wide as before)
                 final List<Cloud> mine = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
                     double a = rnd.nextDouble() * Math.PI * 2, d = 6 + rnd.nextDouble() * (big ? reach * 0.5 : 14), v = rnd.nextDouble() * Math.PI * 2;
@@ -1794,7 +1814,7 @@ public final class EndGame {
                             if (k.mode == 3) continue;   // blown away
                             double x = k.x + k.vx * tt, z = k.z + k.vz * tt;
                             float cr1 = k.mode == 1 ? 1f : k.mode == 2 ? 0.3f : 0.7f, cg1 = k.mode == 1 ? 0.9f : k.mode == 2 ? 0.7f : 0.2f, cb1 = k.mode == 1 ? 0.4f : k.mode == 2 ? 1f : 0.9f;
-                            l.sendParticles(k.mode == 1 ? ParticleTypes.END_ROD : k.mode == 2 ? ParticleTypes.ENCHANT : ParticleTypes.WITCH, x, cur.gy() + 1, z, 30, k.r / 2, 0.8, k.r / 2, 0.02);
+                            l.sendParticles(k.mode == 1 ? ParticleTypes.END_ROD : k.mode == 2 ? ParticleTypes.ENCHANT : ParticleTypes.WITCH, x, cur.gy() + 1, z, 140, k.r / 2, 1.5, k.r / 2, 0.02);
                             if (k.mode == 0 && tt >= 20 && tt % 8 == 0) { for (ServerPlayer p : fighters(l)) if (Math.hypot(p.getX() - x, p.getZ() - z) < k.r && p.getY() < cur.gy() + 6) addDesire(p); }
                             else if (k.mode != 0) {
                                 for (ServerPlayer p : fighters(l)) {
@@ -1904,7 +1924,7 @@ public final class EndGame {
                 at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
             }
             case 11 -> { // meteor storm: every meteor lands at once, then lightning branches wildly out of each impact along the red lines
-                final int fall = 40, flash = 46;
+                final int fall = 26, flash = 30;
                 final List<double[]> spots = new ArrayList<>();
                 for (ServerPlayer p : fighters(lv)) {
                     double x = p.getX() + rnd.nextDouble(-3, 3), z = p.getZ() + rnd.nextDouble(-3, 3);
@@ -1923,10 +1943,11 @@ public final class EndGame {
                     boolean lotm = lotmMeteor(lv, x, z, mr, fall);
                     fx(lv, 0, x, cur.gy(), z, fall, mr, lotm ? 1 : 0, rgb(1f, 0.45f, 0.1f), 62);
                     fx(lv, 13, x, cur.gy(), z, seed, wr, flash, arms, flash + 24);
-                    at(fall, ll -> { boom(ll, x, z, mr); strike(ll, x, z, mr, 99); });
+                    at(fall, ll -> { boom(ll, x, z, mr); strike(ll, x, z, mr, 99); sfx(ll, SoundEvents.GENERIC_EXPLODE.value(), 3f, 0.7f + (float) rnd.nextDouble() * 0.5f); });
                 }
+                at(0, l -> sfx(l, SoundEvents.WARDEN_SONIC_CHARGE, 4f, 0.8f));
                 at(flash, l -> {
-                    sfx(l, SoundEvents.LIGHTNING_BOLT_THUNDER, 4f, 0.8f);
+                    stormSounds(l, webs);
                     int shown = 0;
                     for (List<Bolts.Seg> web : webs) {
                         for (int k = 3; k < web.size() && shown < 24; k += Math.max(1, web.size() / 2)) {   // a couple of real bolts per web
@@ -1943,7 +1964,7 @@ public final class EndGame {
             }
             case 12 -> { // tempest (below 35%): lightning everywhere (find a safe circle), then meteors everywhere (different safe circles), then a web of lightning over the whole arena (find a gap)
                 final double sr = 7;
-                final int t1 = 90, t2 = 80 + 90 + 50, t3 = 80 + 90 + 90 + 50 + 70;
+                final int t1 = 60, m0 = t1 + 35, mf = 28, t2 = m0 + mf + 20;
                 final List<double[]> safeA = new ArrayList<>(), safeB = new ArrayList<>();
                 for (List<double[]> sf : List.of(safeA, safeB)) {
                     for (ServerPlayer p : fighters(lv)) {
@@ -1958,7 +1979,9 @@ public final class EndGame {
                 // 1: lightning everywhere
                 for (int t = 0; t < t1; t += 5) at(t, l -> { for (double[] q : safeA) circle(l, q[0], q[1], sr, 0.3f, 0.6f, 1f); });
                 at(t1, l -> {
-                    sfx(l, SoundEvents.LIGHTNING_BOLT_THUNDER, 5f, 0.7f);
+                    sfx(l, SoundEvents.LIGHTNING_BOLT_THUNDER, 6f, 0.7f);
+                    sfx(l, SoundEvents.LIGHTNING_BOLT_IMPACT, 6f, 0.9f);
+                    sfx(l, SoundEvents.GENERIC_EXPLODE.value(), 3f, 0.5f);
                     fx(l, 19, cx, cur.gy(), cz, rnd.nextInt(100000), reach, 70, 0, 20);
                     for (ServerPlayer p : fighters(l)) {
                         boolean ok = false;
@@ -1968,9 +1991,10 @@ public final class EndGame {
                     }
                 });
                 // 2: meteors everywhere, different circles are safe
-                final int m0 = t1 + 50;
-                for (int t = m0; t < t2 - 40; t += 5) at(t, l -> { for (double[] q : safeB) circle(l, q[0], q[1], sr, 0.3f, 1f, 0.4f); });
+                for (int t = m0; t < m0 + mf; t += 5) at(t, l -> { for (double[] q : safeB) circle(l, q[0], q[1], sr, 0.3f, 1f, 0.4f); });
+                at(m0 - 10, l -> sfx(l, SoundEvents.WARDEN_SONIC_CHARGE, 4f, 0.7f));
                 at(m0, l -> {
+                    sfx(l, SoundEvents.ENDER_DRAGON_GROWL, 3f, 0.6f);
                     List<double[]> mets = new ArrayList<>();
                     for (int tries = 0; tries < 400 && mets.size() < 24; tries++) {
                         double a = rnd.nextDouble() * Math.PI * 2, d = Math.sqrt(rnd.nextDouble()) * reach;
@@ -1982,14 +2006,15 @@ public final class EndGame {
                     }
                     for (double[] h : mets) {
                         final double x = h[0], z = h[1];
-                        for (int t = 0; t < 40; t += 5) at(t, ll -> circle(ll, x, z, 8, 1f, 0.1f, 0.1f));
-                        fx(l, 0, x, cur.gy(), z, 40, 8, 0, rgb(1f, 0.45f, 0.1f), 62);
-                        at(40, ll -> { boom(ll, x, z, 8); strike(ll, x, z, 8, 99); });
+                        for (int t = 0; t < mf; t += 4) at(t, ll -> circle(ll, x, z, 8, 1f, 0.1f, 0.1f));
+                        fx(l, 0, x, cur.gy(), z, mf, 8, 0, rgb(1f, 0.45f, 0.1f), mf + 22);
+                        at(mf, ll -> { boom(ll, x, z, 8); strike(ll, x, z, 8, 99); sfx(ll, SoundEvents.GENERIC_EXPLODE.value(), 2f, 0.8f + (float) rnd.nextDouble() * 0.4f); });
                     }
                 });
                 // 3: the whole arena webbed in lightning: find a gap
                 at(t2 + 5, l -> {
-                    final int flash = 70;
+                    final int flash = 40;
+                    sfx(l, SoundEvents.WARDEN_SONIC_CHARGE, 4f, 0.5f);
                     final List<List<Bolts.Seg>> webs = new ArrayList<>();
                     double[][] src = {{cx, cz}, {cx + reach * 0.5, cz}, {cx - reach * 0.5, cz}, {cx, cz + reach * 0.5}, {cx, cz - reach * 0.5}};
                     for (double[] o : src) {
@@ -1999,7 +2024,7 @@ public final class EndGame {
                         fx(l, 13, o[0], cur.gy(), o[1], seed, reach * (o == src[0] ? 1.0 : 0.8), flash, arms, flash + 24);
                     }
                     at(flash, ll -> {
-                        sfx(ll, SoundEvents.LIGHTNING_BOLT_THUNDER, 5f, 0.6f);
+                        stormSounds(ll, webs);
                         for (ServerPlayer p : fighters(ll)) {
                             if (p.getY() >= cur.gy() + 12) continue;
                             for (List<Bolts.Seg> web : webs) if (Bolts.distance(web, p.getX(), p.getZ()) < 1.7) { hit(ll, p); break; }
@@ -2109,7 +2134,9 @@ public final class EndGame {
         tellLevel(lv, msg, c);
     }
 
-    private static void healBoss(Mob boss, float fraction) { boss.setHealth(Math.min(RAID_HP, boss.getHealth() + RAID_HP * fraction)); }
+    private static long healOkUntil = 0;   // only the fight's own heals (a failed call, seeds, the meteor, the roots) may raise her health
+
+    private static void healBoss(Mob boss, float fraction) { healOkUntil = gt + 4; boss.setHealth(Math.min(RAID_HP, boss.getHealth() + RAID_HP * fraction)); }
 
     private static void removeSeeds(ServerLevel lv) {
         for (BlockPos b : seeds) if (lv.getBlockState(b).is(Blocks.SHROOMLIGHT)) lv.setBlock(b, Blocks.AIR.defaultBlockState(), 3);
@@ -2126,7 +2153,7 @@ public final class EndGame {
         osuHits.clear();
         temptation(lv, 100, callFailed, 3);   // the first five seconds: turn away and crouch
         at(100, l -> {   // then the cursor is free and the click game begins
-            int game = ThreadLocalRandom.current().nextInt(3);
+            int game = 0;   // Desire's call is always the click game; the others are their own attacks
             miniOpen(l, game, callFailed, MINI_HINT[game]);
         });
         at(220, l -> {
@@ -2149,13 +2176,13 @@ public final class EndGame {
     private static final Map<UUID, int[]> osuHits = new HashMap<>();
     private static int miniCount = 10, miniNeed = 6, miniTicks = 100;
     private static long miniStart = -1000;
-    private static final String[] MINI_HINT = {"Now click the wishes before they close.", "Now press the keys as the notes reach the line.", "Now follow the light along the thread."};
+    private static final String[] MINI_HINT = {"Now click the wishes before they close.", "Now remember the order, then click the pads the same way.", "Now follow the light along the thread."};
 
     /** Opens a minigame on every fighter's screen (except those skipped) and remembers what a pass needs: 60% of it. */
     private static void miniOpen(ServerLevel l, int game, Set<UUID> skip, String hint) {
         int seed = ThreadLocalRandom.current().nextInt(1_000_000);
-        miniCount = game == 0 ? 14 : game == 1 ? 12 : 16;
-        miniTicks = game == 0 ? 115 : 100;   // the click game: circles appear 15% slower
+        miniCount = game == 0 ? 14 : game == 1 ? 6 : 16;
+        miniTicks = game == 0 ? 115 : game == 1 ? 160 : 100;   // the click game: circles appear 15% slower
         miniNeed = game == 0 ? 10 : (int) Math.ceil(miniCount * 0.6);
         miniStart = rt;
         osuHits.clear();
@@ -2424,6 +2451,7 @@ public final class EndGame {
         compass(lv, roots, "Nearest root");
         if (rt >= rootsEnd) {
             removeRoots(lv);
+            healOkUntil = gt + 4;
             boss.setHealth(RAID_HP);
             rootsActive = false;
             rootStage = 0;
@@ -2511,7 +2539,12 @@ public final class EndGame {
                 } else if (dist > leash - 20) p.displayClientMessage(Component.literal("The edge of the battlefield is near. You cannot run from this.").withStyle(ChatFormatting.RED), true);
             }
             if (d.raidLives.get(p.getUUID()) <= 0) setGameMode(p, GameType.SPECTATOR);
-            else p.displayClientMessage(Component.literal("Lives: " + "♥".repeat(d.raidLives.get(p.getUUID()))).withStyle(ChatFormatting.RED), true);
+            else {
+                long[] dz = desire.get(p.getUUID());
+                Component bar = Component.literal("Lives: " + "♥".repeat(d.raidLives.get(p.getUUID()))).withStyle(ChatFormatting.RED);
+                if (dz != null && dz[0] > 0) bar = bar.copy().append(Component.literal("    Desire x" + dz[0]).withStyle(ChatFormatting.LIGHT_PURPLE));   // one line: Desire no longer covers the lives
+                p.displayClientMessage(bar, true);
+            }
         }
         Mob boss = findBoss(lv, TAG_RAID);
         if (boss == null) {
@@ -2671,8 +2704,10 @@ public final class EndGame {
     private static final Map<UUID, long[]> rateWin = new HashMap<>();   // boss -> {window start tick, damage taken in the window (as float bits)}
 
     /** Caps what a boss can lose per second so multi-hit abilities (Pillar of Lightning and the like) cannot chain past the per-hit cap. Returns the allowed amount. */
-    private static float rateLimit(net.minecraft.world.entity.LivingEntity e, float amount, float rate) {
-        long[] w = rateWin.computeIfAbsent(e.getUUID(), k -> new long[]{gt, Float.floatToIntBits(0f)});
+    private static float rateLimit(net.minecraft.world.entity.LivingEntity e, float amount, float rate) { return rateLimit(e, e.getUUID(), amount, rate); }
+
+    private static float rateLimit(net.minecraft.world.entity.LivingEntity e, UUID key, float amount, float rate) {
+        long[] w = rateWin.computeIfAbsent(key, k -> new long[]{gt, Float.floatToIntBits(0f)});
         if (gt - w[0] >= 20) { w[0] = gt; w[1] = Float.floatToIntBits(0f); }
         float used = Float.intBitsToFloat((int) w[1]);
         float allowed = Math.max(0f, e.getMaxHealth() * rate - used);
@@ -2731,7 +2766,7 @@ public final class EndGame {
 
     /** Hitbox size in blocks (width, height) per boss, matched to the drawn model. The mob itself is player-sized (0.6 x 1.8). */
     private static final Map<String, double[]> HITBOX = Map.of("mercury", new double[]{14, 13}, "venus", new double[]{24, 10}, "mars", new double[]{8, 7},
-            "jupiter", new double[]{17, 13}, "saturn", new double[]{11, 11}, "uranus", new double[]{18, 20}, "neptune", new double[]{15, 15}, "tree", new double[]{125, 375});
+            "jupiter", new double[]{17, 13}, "saturn", new double[]{11, 11}, "uranus", new double[]{18, 20}, "neptune", new double[]{15, 15}, "tree", new double[]{40, 150});
 
     private static boolean pkOk = false, pkTried = false;
     private static Object pkWidth, pkHeight;
@@ -2829,6 +2864,7 @@ public final class EndGame {
                 m.setHealth(hp);
             }
             Float last = lastHp.get(m.getUUID());
+            if (m.getTags().contains(TAG_RAID) && last != null && hp > last + 0.5f && gt > healOkUntil) { hp = last; m.setHealth(hp); }   // no natural regeneration, no healing from anything else: she only heals when the fight says so
             if (last != null && hp < last - max * MAX_DROP) { hp = Math.max(1f, last - max * MAX_HIT); m.setHealth(hp); }
             lastHp.put(m.getUUID(), hp);
         }
@@ -2965,8 +3001,11 @@ public final class EndGame {
         if (e.getTags().contains(TAG_RAID)) {
             if (e.level() instanceof ServerLevel wl) wake(wl, "it was struck");
             var le = (net.minecraft.world.entity.LivingEntity) e;
-            float res = lightningy(event.getSource()) ? 0.4f : 1f;   // she resists lightning: 60% less
-            float a = rateLimit(le, Math.min(event.getAmount() * RAID_DAMAGE * res * (rt < dazedUntil ? 1.25f : 1f), le.getMaxHealth() * RAID_HIT * res), RAID_RATE);   // dazed: 25% more, still under her caps
+            boolean zap = lightningy(event.getSource());
+            if (zap && starBolt(event.getSource().getDirectEntity())) { logDrop(e, event, "star of lightning: she shrugs it off"); event.setCanceled(true); return; }   // Star of Lightning cannot hurt her at all
+            float res = zap ? 0.4f : 1f;   // she resists lightning: 60% less
+            float a = rateLimit(le, Math.min(event.getAmount() * RAID_DAMAGE * res * (rt < dazedUntil ? 1.25f : 1f), le.getMaxHealth() * RAID_HIT * res), RAID_RATE);
+            if (zap) a = rateLimit(le, new UUID(le.getUUID().getMostSignificantBits() ^ 0x5A5AL, le.getUUID().getLeastSignificantBits()), a, 0.003f);   // Ocean of Lightning only drains her: 0.3% of her health a second at most   // dazed: 25% more, still under her caps
             if (rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * RAID_HP)); // the hit that crosses a phase line is cut down to land exactly on it (and starts the phase), never skipped
             if (a <= 0f) { logDrop(e, event, "capped to zero"); event.setCanceled(true); } else event.setAmount(a);
             return;

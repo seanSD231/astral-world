@@ -235,6 +235,8 @@ public final class AstralServer {
                     if (d.stage == 0 && d.endPhase.isEmpty()) {
                         d.hp = Math.min(START_HP, AstralBarrier.getMax(server)); // the barrier begins at 50 HP, not 0
                         Stage.set(server, 1); // the first Seq 0 ever: the Outer Gods take notice
+                    } else if (d.seq0.size() == 1 && d.endPhase.isEmpty() && d.hp < START_HP) {
+                        d.hp = Math.min(START_HP, AstralBarrier.getMax(server)); // the only Seq 0 died and another rose: the barrier starts at 50 again, not 0
                     }
                 }
             } else if (d.seq0.remove(id) != null) {
@@ -270,7 +272,7 @@ public final class AstralServer {
             regenAccum -= whole;
             hp = Math.min(max, hp + whole);
         }
-        else if (hp > max) hp = max; // fewer Seq 0s than before
+        else if (hp > max && max > 0) hp = max; // fewer Seq 0s than before (but with none left the barrier keeps what it had)
         if (hp != d.hp) { d.hp = hp; dirty = true; }
         if (dirty) d.setDirty();
 

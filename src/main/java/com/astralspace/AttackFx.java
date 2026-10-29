@@ -328,43 +328,55 @@ public final class AttackFx {
         }
     }
 
-    /** A fruit hanging in the air over the spot: an apple with a stem and a leaf, and a beam of light so it can be found from far away. */
+    /** A fruit hanging in the air over the spot: a peach-shaped fruit turned from a profile, with a cleft, a stem and leaves, and a beam in the tree's colours so it can be found from far away. */
     private static void fruit(Pen p, boolean add, double t, double x, double y, double z, boolean rotten, boolean red, double life) {
         double env = Math.min(1, Math.min(t / 4.0, (life - t) / 8.0));
         if (env <= 0) return;
         float e = clamp01(env);
         double fallT = 12, cy;
-        if (t < fallT) { double u = t / fallT; cy = y + 1.5 + 30 * (1 - u * u); } else cy = y + 1.5 + Math.sin((t - fallT) * 0.12) * 0.18;
-        double spin = t * 0.09;
+        if (t < fallT) { double u = t / fallT; cy = y + 1.8 + 30 * (1 - u * u); } else cy = y + 1.8 + Math.sin((t - fallT) * 0.12) * 0.2;
+        double spin = t * 0.06;
+        int tint = red ? 0xE0183C : 0xFF8AC0;
         if (!add) {
-            p.col(rotten ? 0x4F3A30 : 0xD92B2B);
-            sphere(p, x, cy, z, 0.52, e, 7, 10);
-            for (int s = -1; s <= 1; s += 2) sphere(p, x + Math.cos(spin) * 0.2 * s, cy + 0.04, z + Math.sin(spin) * 0.2 * s, 0.46, e, 6, 9);   // the two lobes of an apple
+            int skinLo = rotten ? 0x4A3A34 : red ? 0x9A0F2A : 0xFF7FB0, skinHi = rotten ? 0x6A5A3A : red ? 0xD81E3E : 0xFFB48A;
+            int rings = 9;
+            double R = 0.62;
+            for (int i = 0; i < rings; i++) {      // a peach: round, widest below the middle, dimpled on top and tapering to the base
+                double u0 = i / (double) rings, u1 = (i + 1) / (double) rings;
+                double y0 = cy - R + u0 * 2 * R, y1 = cy - R + u1 * 2 * R;
+                double r0 = R * Math.pow(Math.sin(Math.PI * u0), 0.62) * (1.0 - 0.06 * u0), r1 = R * Math.pow(Math.sin(Math.PI * u1), 0.62) * (1.0 - 0.06 * u1);
+                if (u1 > 0.82) { r1 = Math.max(r1, 0.05); }
+                p.col(i % 3 == 2 ? skinHi : (i > 5 ? skinHi : skinLo));
+                tube(p, x, y0, z, Math.max(0.02, r0), e, x, y1, z, Math.max(0.02, r1), e, 12);
+            }
+            p.col(rotten ? 0x2A1E1A : red ? 0x5A0618 : 0xD85A8A);   // the cleft down one side
+            double cs = spin;
+            tube(p, x + Math.cos(cs) * 0.55, cy - 0.35, z + Math.sin(cs) * 0.55, 0.04, e, x + Math.cos(cs) * 0.5, cy + 0.4, z + Math.sin(cs) * 0.5, 0.04, e, 4);
             if (rotten) {
                 p.col(0x6D8A3A);   // mould
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < 6; i++) {
                     double az = hash(i * 3.7) * Math.PI * 2 + spin, el = hash(i * 6.1) * 1.4 - 0.7;
-                    sphere(p, x + Math.cos(az) * 0.58 * Math.cos(el), cy + Math.sin(el) * 0.55, z + Math.sin(az) * 0.58 * Math.cos(el), 0.14, e, 4, 6);
+                    sphere(p, x + Math.cos(az) * 0.6 * Math.cos(el), cy + Math.sin(el) * 0.55, z + Math.sin(az) * 0.6 * Math.cos(el), 0.13, e, 4, 6);
                 }
             }
             p.col(0x5A3A1E);
-            tube(p, x, cy + 0.45, z, 0.06, e, x + 0.08, cy + 0.9, z, 0.04, e, 5);
+            tube(p, x, cy + R * 0.7, z, 0.07, e, x + 0.12, cy + R + 0.5, z, 0.04, e, 5);
             p.col(rotten ? 0x7A7A32 : 0x3FAE3A);
-            leaf(p, x + 0.06, cy + 0.82, z, spin, 0.55, 0.45, e);
-            leaf(p, x + 0.06, cy + 0.82, z, spin + Math.PI, 0.4, 0.45, e);
+            leaf(p, x + 0.1, cy + R + 0.3, z, spin, 0.75, 0.5, e);
+            leaf(p, x + 0.1, cy + R + 0.3, z, spin + Math.PI, 0.6, 0.5, e);
             return;
         }
         // the glow, the shine and the beam
-        p.col(rotten ? 0x9A5AC8 : 0xFFD54A);
-        sphere(p, x, cy, z, 1.0, 0.16f * e, 6, 9);
-        if (!rotten) { p.col(0xFFF3C0); sphere(p, x - 0.2, cy + 0.25, z - 0.15, 0.12, 0.8f * e, 4, 6); }
+        p.col(rotten ? 0x9A5AC8 : tint);
+        sphere(p, x, cy, z, 1.3, 0.14f * e, 6, 9);
+        if (!rotten) { p.col(0xFFFFFF); sphere(p, x - 0.25, cy + 0.3, z - 0.2, 0.12, 0.8f * e, 4, 6); }
         double flick = 0.8 + 0.2 * Math.sin(t * 0.35);
-        p.col(red ? 0xFF2A2A : 0xFFD54A);
-        tube(p, x, y, z, 0.38, (float) (0.5 * flick) * e, x, y + 70, z, 0.2, 0f, 8);
-        p.col(red ? 0xFF9A8A : 0xFFF3C0);
-        tube(p, x, y, z, 0.12, (float) (0.8 * flick) * e, x, y + 70, z, 0.07, 0f, 5);
-        p.col(red ? 0xFF2A2A : 0xFFD54A);
-        flat(p, x, y + 0.12, z, 0, 0.9, 0.25f * e);   // a small pool of light where the beam stands
+        p.col(tint);
+        tube(p, x, y, z, 0.42, (float) (0.5 * flick) * e, x, y + 70, z, 0.22, 0f, 8);
+        p.col(red ? 0xFF9AA8 : 0xFFE6F2);
+        tube(p, x, y, z, 0.13, (float) (0.8 * flick) * e, x, y + 70, z, 0.07, 0f, 5);
+        p.col(tint);
+        flat(p, x, y + 0.12, z, 0, 1.0, 0.25f * e);   // a small pool of light where the beam stands
     }
 
     /** The Purge: the tree gathers a ball of light above itself (rays pour in), then it bursts across the whole arena. */
@@ -400,48 +412,41 @@ public final class AttackFx {
         tube(p, x, y, z, 14 * inv + 1, clamp01(0.7 * inv), x, y + 160, z, 4 * inv + 0.5, 0f, 12);
     }
 
-    /** The ground ring: burning roots surge up out of the earth along the ring as it rolls out, and keep burning behind it. */
+    /** The ground ring: a ridge of earth heaves up and rolls outward, bristling with thorns whose tips burn. Clean and low enough to see the jump. */
     private static void rootRing(Pen p, boolean add, double t, double x, double y, double z, double speed, double r0, double life, int col) {
         double r = r0 + speed * t, env = Math.min(1, Math.min(t / 4.0, (life - t) / 10.0));
         if (env <= 0 || r < 1) return;
         float e = clamp01(env);
-        int n = (int) Math.min(110, r * 1.1 + 16);
+        int n = (int) Math.min(120, r * 0.9 + 18);
         if (!add) {
+            p.col(0x2E1D10);
+            wall(p, x, y, z, r, 3.2, 0.9f * e, 0.2f * e);          // the ridge itself, dark soil
+            wall(p, x, y, z, r - 1.6, 1.8, 0.7f * e, 0.0f);
             p.col(0x1A0F08);
-            flat(p, x, y + 0.1, z, Math.max(0, r - 5), r + 2.5, 0.45f * e);
-        }
-        for (int k = 0; k < 3; k++) {            // the front and two trails left burning behind it
-            double rr = r - k * 4.5;
-            if (rr < 1) continue;
-            double hk = 1 - 0.28 * k;
-            for (int i = 0; i < n; i += (k == 0 ? 1 : 2)) {
-                double ang = Math.PI * 2 * i / n + hash(i * 1.7) * 0.05, ux = Math.cos(ang), uz = Math.sin(ang);
-                double surge = 0.55 + 0.45 * Math.sin(t * 0.45 + i * 0.9 + k), h = (4.5 + 5.5 * hash(i * 3.1 + k * 11)) * hk * surge;
-                double lean = 0.5 + 1.4 * hash(i * 5.3), side = (hash(i * 7.9) - 0.5) * 1.6;
-                double bx = x + ux * rr, bz = z + uz * rr;
-                double mx = bx + ux * lean, my = y + h * 0.55, mz = bz + uz * lean;
-                double tx = mx + ux * 1.6 - uz * side, ty = y + h, tz = mz + uz * 1.6 + ux * side;
-                if (!add) {
-                    p.col(i % 2 == 0 ? 0x4A2A14 : 0x2E1A0C);
-                    tube(p, bx, y, bz, 0.6, e, mx, my, mz, 0.4, e, 5);
-                    tube(p, mx, my, mz, 0.4, e, tx, ty, tz, 0.08, e, 5);
-                } else {
-                    float fl = (float) (0.7 + 0.3 * Math.sin(t * 0.9 + i));
-                    p.col(0xFF7A1A);
-                    tube(p, tx, ty, tz, 0.55, 0.85f * e * fl, tx - uz * 0.2, ty + 2.2 + hash(i * 2.3 + Math.floor(t * 0.5)) * 1.6, tz + ux * 0.2, 0.02, 0f, 4);
-                    p.col(0xFFD060);
-                    tube(p, tx, ty, tz, 0.28, 0.9f * e * fl, tx, ty + 1.5, tz, 0.02, 0f, 4);
-                    p.col(0xFF5A10);
-                    tube(p, mx, my, mz, 0.5, 0.5f * e * fl, mx, my + 1.3, mz, 0.05, 0f, 4);
-                }
+            flat(p, x, y + 0.08, z, Math.max(0, r - 6), r + 1.5, 0.5f * e);   // scorched earth just behind it
+            for (int i = 0; i < n; i++) {                           // thorns along the crest
+                double ang = Math.PI * 2 * i / n + hash(i * 1.9) * 0.04, ux = Math.cos(ang), uz = Math.sin(ang);
+                double h = 3.0 + 3.5 * hash(i * 3.1) + 0.6 * Math.sin(t * 0.5 + i), lean = 0.9 + 0.8 * hash(i * 5.3);
+                double bx = x + ux * r, bz = z + uz * r;
+                p.col(i % 3 == 0 ? 0x4A2C16 : 0x382010);
+                tube(p, bx, y + 1.2, bz, 0.65, e, bx + ux * lean, y + 1.2 + h, bz + uz * lean, 0.04, e, 5);
             }
+            return;
         }
-        if (add) {
-            p.col(0xFF5A10);
-            flat(p, x, y + 0.15, z, Math.max(0, r - 1.8), r + 1.8, 0.55f * e);
+        for (int i = 0; i < n; i++) {                               // fire licking from the thorn tips
+            double ang = Math.PI * 2 * i / n + hash(i * 1.9) * 0.04, ux = Math.cos(ang), uz = Math.sin(ang);
+            double h = 3.0 + 3.5 * hash(i * 3.1) + 0.6 * Math.sin(t * 0.5 + i), lean = 0.9 + 0.8 * hash(i * 5.3);
+            double tx = x + ux * (r + lean), tz = z + uz * (r + lean), ty = y + 1.2 + h;
+            float fl = (float) (0.7 + 0.3 * Math.sin(t * 0.9 + i * 1.7));
+            p.col(0xFF6A14);
+            tube(p, tx, ty - 0.6, tz, 0.5, 0.8f * e * fl, tx, ty + 2.4 + hash(i * 2.3 + Math.floor(t * 0.4)) * 1.4, tz, 0.02, 0f, 4);
             p.col(0xFFD060);
-            flat(p, x, y + 0.18, z, Math.max(0, r - 0.5), r + 0.5, 0.7f * e);
+            tube(p, tx, ty - 0.3, tz, 0.24, 0.9f * e * fl, tx, ty + 1.5, tz, 0.02, 0f, 4);
         }
+        p.col(0xFF5A10);
+        flat(p, x, y + 0.12, z, Math.max(0, r - 2.2), r + 2.2, 0.55f * e);
+        p.col(0xFFD060);
+        flat(p, x, y + 0.15, z, Math.max(0, r - 0.6), r + 0.6, 0.7f * e);
     }
 
     /** A ring in the air: a wave of lightning and swirling leaves, 14 blocks tall so it is plain how far you must move to be out of it. */
