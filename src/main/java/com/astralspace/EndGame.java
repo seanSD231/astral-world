@@ -744,8 +744,8 @@ public final class EndGame {
     private static final Map<UUID, Long> lastHit = new HashMap<>();
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
     // two followers each (index = attack): 0 meteors, 1 rings, 2 summon, 3 slam, 4 purge, 5 temptation, 6 (power, unused), 7 curse, 8 pollen, 9 mirror bloom, 10 fruit, 11 storm (lightning web)
-    private static final int[][] NEXT = {{3, 2}, {11, 4}, {3, 5}, {1, 7}, {5, 10}, {8, 1}, {0, 1}, {9, 0}, {4, 9}, {10, 2}, {8, 0}, {0, 3}};
-    private static final int[] DURATION = {140, 220, 110, 70, 190, 200, 90, 130, 200, 230, 210, 130};
+    private static final int[][] NEXT = {{3, 2}, {11, 4}, {3, 5}, {1, 7}, {7, 10}, {8, 1}, {0, 1}, {9, 0}, {4, 9}, {10, 2}, {8, 0}, {0, 3}};
+    private static final int[] DURATION = {140, 220, 110, 70, 190, 140, 90, 130, 200, 230, 210, 130};
     private static int lastPattern = 3;
 
     /** Chat held back while the opening camera scene plays. */
@@ -1566,6 +1566,7 @@ public final class EndGame {
     private static void temptation(ServerLevel lv, int ticks, Set<UUID> failed, int fill) {
         Map<UUID, Integer> meter = new HashMap<>();
         float[] pull = {0f, 0f};
+        final int warm = fill > 1 ? 60 : 30;   // the warning before the drag starts (the call keeps its longer one)
         double[] dir = {ThreadLocalRandom.current().nextDouble() * Math.PI * 2, 0.0};   // the drag's direction and how fast it is turning
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         for (ServerPlayer p : fighters(lv)) p.sendSystemMessage(Component.literal("Come to me, child... (turn away and CROUCH)").withStyle(ChatFormatting.LIGHT_PURPLE));
@@ -1580,8 +1581,8 @@ public final class EndGame {
                 pull[1] = (float) (Math.sin(dir[0]) * 0.7);
                 for (ServerPlayer p : fighters(l)) {
                     UUID id = p.getUUID();
-                    if (failed.contains(id)) continue;
-                    if (tt < 60) { if (tt % 10 == 0) p.displayClientMessage(Component.literal("Turn away and crouch!").withStyle(ChatFormatting.LIGHT_PURPLE), true); continue; }
+                    if (failed.contains(id) || god.contains(id)) continue;   // the Astral god (testing) is never dragged
+                    if (tt < warm) { if (tt % 10 == 0) p.displayClientMessage(Component.literal("Turn away and crouch!").withStyle(ChatFormatting.LIGHT_PURPLE), true); continue; }
                     double dx = p.getX() - boss.x, dz = p.getZ() - boss.z;
                     float away = (float) (net.minecraft.util.Mth.atan2(-dx, dz) * 57.29578);
                     double dev = Math.hypot(net.minecraft.util.Mth.wrapDegrees(p.getYRot() - away), p.getXRot());
@@ -1621,7 +1622,7 @@ public final class EndGame {
         final boolean big = cur.raid();
         if (big) sendAnim(lv, which, DURATION[which] + 40);
         final double reach = big ? ARENA_R : 42;
-        final double mr = big && rootStage >= 2 ? 11 : 3.5, sl = big ? 16 : 5.5;   // meteor and slam sizes: in the raid they match the tree
+        final double mr = big ? (rootStage >= 2 ? 16 : 8) : 3.5, sl = big ? 24 : 5.5;   // meteor and slam sizes: in the raid they match the tree
         switch (which) {
             case 6 -> power(lv);
             case 7 -> { // a curse on everyone: cannot be dodged, but it does not cost a life
@@ -1821,9 +1822,9 @@ public final class EndGame {
             }
             case 5 -> { // temptation: look away from the tree and crouch, or be corrupted
                 Set<UUID> failed = new HashSet<>();
-                temptUntil = gt + 165;
-                temptation(lv, 160, failed);
-                at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
+                temptUntil = gt + 115;
+                temptation(lv, 110, failed);
+                at(115, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
             }
             case 11 -> { // meteor storm: every meteor lands at once, then lightning branches wildly out of each impact along the red lines
                 final int fall = 40, flash = 46;
@@ -2280,9 +2281,10 @@ public final class EndGame {
         if (aggro && rt >= nextPattern && !cutscene && !(rootsActive && activeKind == 1) && !fighters(lv).isEmpty()) {
             int[] opts = NEXT[lastPattern];
             int which = opts[ThreadLocalRandom.current().nextInt(opts.length)];
+            if (which == 4 && gt < temptUntil + 40) which = 10;   // the purge is never used while the view is being dragged
             lastPattern = which;
             pattern(lv, which);
-            nextPattern = rt + DURATION[which] + 30 + ThreadLocalRandom.current().nextInt(40);
+            nextPattern = rt + DURATION[which] + 90 + ThreadLocalRandom.current().nextInt(60);   // longer gaps: the attacks are bigger now
         }
     }
 
