@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.46
+- **Hitbox:** now covers the whole tree, 300 wide (the full canopy) and 160 tall. To be fine-tuned.
+
 ## 0.2.45
 Fixes and tree-fight changes.
 - **Barrier:** if the only Seq 0 dies and another rises, the barrier starts at 50 HP again instead of 0.
