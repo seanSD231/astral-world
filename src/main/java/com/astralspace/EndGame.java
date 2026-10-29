@@ -249,9 +249,9 @@ public final class EndGame {
     private static boolean callStarted = false;
     private static int spoken = 0;
     private static final String[] PRAYER = {
-            "The Fool that doesn't belong to this era.",
-            "The mysterious ruler above the gray fog.",
-            "The King of Yellow and Black who wields good luck.",
+            "The Fool that does not belong to this era.",
+            "You are the mysterious ruler above the gray fog.",
+            "You are the King of Yellow and Black who wields good luck.",
             "I pray to you,",
             "Praying for the strength that stems from mystery,",
             "And praying for the bestowment that stems from good luck.",

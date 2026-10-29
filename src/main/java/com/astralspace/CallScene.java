@@ -21,9 +21,9 @@ import net.neoforged.neoforge.common.NeoForge;
  */
 public final class CallScene {
     private static final String[] LINES = {
-            "The Fool that doesn't belong to this era.",
-            "The mysterious ruler above the gray fog.",
-            "The King of Yellow and Black who wields good luck.",
+            "The Fool that does not belong to this era.",
+            "You are the mysterious ruler above the gray fog.",
+            "You are the King of Yellow and Black who wields good luck.",
             "I pray to you,",
             "Praying for the strength that stems from mystery,",
             "And praying for the bestowment that stems from good luck.",

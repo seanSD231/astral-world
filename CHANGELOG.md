@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.51
+- **Prayer:** the first three lines now read "The Fool that does not belong to this era.", "You are the mysterious ruler above the gray fog." and "You are the King of Yellow and Black who wields good luck."
+
 ## 0.2.50
 - **15% meteor:** the "take cover behind the tree" line is gone.
 
