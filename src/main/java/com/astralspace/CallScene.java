@@ -78,8 +78,8 @@ public final class CallScene {
         for (int i = 0; i < 7; i++) {
             if (VOICED[i] || s < AT[i] || s > AT[i] + 1.5 || VOICE_LINE[i] < 0) continue;
             VOICED[i] = true;
-            var ev = net.minecraft.sounds.SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "prayer.line_" + VOICE_LINE[i]));
-            mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(ev, 1f, 1.4f));
+            var voice = net.minecraft.sounds.SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "prayer.line_" + VOICE_LINE[i]));
+            mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(voice, 1f, 1.4f));
         }
         for (int i = 0; i < AT.length; i++) if (i < 7 && Math.abs(s - AT[i]) < 0.026) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.AMBIENT, 1.5f, 0.5f, false);
         if (s > GLITCH_FROM && s < FIGURES_AT + 3 && tick % 7 == 0 && Math.random() < 0.5) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.ENDERMAN_STARE, SoundSource.AMBIENT, 0.6f, 0.4f + (float) Math.random() * 0.4f, false);
