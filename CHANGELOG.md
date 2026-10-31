@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.52
+- **Phase 5 cutscene:** the prayer is now voiced. Lines 1 to 5 and 7 play as each line appears. Line 6 ("And praying for the bestowment that stems from good luck.") has no recording yet, so it is silent. The recordings were volume-matched.
+
 ## 0.2.51
 - **Prayer:** the first three lines now read "The Fool that does not belong to this era.", "You are the mysterious ruler above the gray fog." and "You are the King of Yellow and Black who wields good luck."
 

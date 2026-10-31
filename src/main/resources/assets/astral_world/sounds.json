@@ -1,0 +1,50 @@
+{
+ "prayer.line_1": {
+  "sounds": [
+   {
+    "name": "astral_world:prayer/line_1",
+    "stream": true
+   }
+  ]
+ },
+ "prayer.line_2": {
+  "sounds": [
+   {
+    "name": "astral_world:prayer/line_2",
+    "stream": true
+   }
+  ]
+ },
+ "prayer.line_3": {
+  "sounds": [
+   {
+    "name": "astral_world:prayer/line_3",
+    "stream": true
+   }
+  ]
+ },
+ "prayer.line_4": {
+  "sounds": [
+   {
+    "name": "astral_world:prayer/line_4",
+    "stream": true
+   }
+  ]
+ },
+ "prayer.line_5": {
+  "sounds": [
+   {
+    "name": "astral_world:prayer/line_5",
+    "stream": true
+   }
+  ]
+ },
+ "prayer.line_7": {
+  "sounds": [
+   {
+    "name": "astral_world:prayer/line_7",
+    "stream": true
+   }
+  ]
+ }
+}

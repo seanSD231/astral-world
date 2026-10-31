@@ -37,6 +37,8 @@ public final class CallScene {
     private static final int[] LIGHTS = {0xFFD870, 0xB48CFF, 0x7FE0D0, 0xFF9AB8, 0x8CB4FF, 0xFFB070};
     private static boolean wasActive = false;
     private static int tick = 0;
+    private static final boolean[] VOICED = new boolean[7];   // the spoken line has started (line 6 has no recording yet)
+    private static final int[] VOICE_LINE = {1, 2, 3, 4, 5, -1, 7};
 
     private CallScene() {}
 
@@ -65,7 +67,7 @@ public final class CallScene {
     private static void onTick(ClientTickEvent.Post ev) {
         Minecraft mc = Minecraft.getInstance();
         boolean act = active() && mc.player != null && mc.level != null;
-        if (act && !wasActive) tick = 0;
+        if (act && !wasActive) { tick = 0; java.util.Arrays.fill(VOICED, false); }
         wasActive = act;
         if (!act) return;
         tick++;
@@ -73,6 +75,12 @@ public final class CallScene {
         mc.player.xRotO = -90f;
         if (tick % 60 == 1) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.BEACON_AMBIENT, SoundSource.AMBIENT, 1.2f, 0.5f, false);
         double s = seconds();
+        for (int i = 0; i < 7; i++) {
+            if (VOICED[i] || s < AT[i] || s > AT[i] + 1.5 || VOICE_LINE[i] < 0) continue;
+            VOICED[i] = true;
+            var ev = net.minecraft.sounds.SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "prayer.line_" + VOICE_LINE[i]));
+            mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(ev, 1f, 1.4f));
+        }
         for (int i = 0; i < AT.length; i++) if (i < 7 && Math.abs(s - AT[i]) < 0.026) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.AMBIENT, 1.5f, 0.5f, false);
         if (s > GLITCH_FROM && s < FIGURES_AT + 3 && tick % 7 == 0 && Math.random() < 0.5) mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(), SoundEvents.ENDERMAN_STARE, SoundSource.AMBIENT, 0.6f, 0.4f + (float) Math.random() * 0.4f, false);
     }
