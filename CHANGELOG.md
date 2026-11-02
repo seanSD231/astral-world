@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.60
+- **Dodging:** a bit more warning on the normal meteors (1.9 s, was 1.5 s), the slam (2.5 s, was 2 s) and the Meteor Storm (1.7 s to the meteors and 1.9 s to the lightning, was 1.3 and 1.5 s).
+
 ## 0.2.59
 - **Tree Smiter (testing):** a creative-only item (Tools tab, or `/give @s astral_world:tree_smiter`). Hitting the Mother Tree or any of her hitboxes with it in creative takes 10% of her maximum health, whatever the damage caps say. The phase lines (75, 50, 25%) still hold, and it does nothing while she is shielded (roots, call, meteor, kingdom, sleeping).
 

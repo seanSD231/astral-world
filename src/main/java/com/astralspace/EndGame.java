@@ -1741,12 +1741,12 @@ public final class EndGame {
                 for (int k = 0; k < shots; k++) at(k * 20L, l -> {
                     for (ServerPlayer p : fighters(l)) {
                         double x = p.getX() + rnd.nextDouble(-3, 3), z = p.getZ() + rnd.nextDouble(-3, 3);
-                        for (int t = 0; t < 30; t += 5) at(t, ll -> circle(ll, x, z, mr, 1f, 0.1f, 0.1f));
+                        for (int t = 0; t < 38; t += 5) at(t, ll -> circle(ll, x, z, mr, 1f, 0.1f, 0.1f));
                         if (!crowd) {
-                            boolean lotm = lotmMeteor(l, x, z, mr, 30);
-                            fx(l, 0, x, cur.gy(), z, 30, mr, lotm ? 1 : 0, rgb(1f, 0.45f, 0.1f), 62);   // the impact is always drawn; the fall only when LOTM's meteor is not there
+                            boolean lotm = lotmMeteor(l, x, z, mr, 38);
+                            fx(l, 0, x, cur.gy(), z, 38, mr, lotm ? 1 : 0, rgb(1f, 0.45f, 0.1f), 70);   // the impact is always drawn; the fall only when LOTM's meteor is not there
                         }
-                        at(30, ll -> { boom(ll, x, z, mr); strike(ll, x, z, mr, 99); });
+                        at(38, ll -> { boom(ll, x, z, mr); strike(ll, x, z, mr, 99); });
                     }
                 });
             }
@@ -1912,9 +1912,9 @@ public final class EndGame {
             case 3 -> { // slam: a big red circle under every fighter, 2 s to leave it
                 for (ServerPlayer p : fighters(lv)) {
                     double x = p.getX(), z = p.getZ();
-                    for (int t = 0; t < 40; t += 4) at(t, l -> { if (treeFleshy) circle(l, x, z, sl, 0.8f, 0.05f, 0.25f); else circle(l, x, z, sl, 1f, 0.7f, 0.85f); });
-                    if (!crowd) fx(lv, 1, x, cur.gy(), z, 40, sl, treeFleshy ? 1 : 0, rgb(1f, 0.35f, 0.05f), 78);
-                    at(40, l -> { boom(l, x, z, sl); strike(l, x, z, sl, 99); });
+                    for (int t = 0; t < 50; t += 4) at(t, l -> { if (treeFleshy) circle(l, x, z, sl, 0.8f, 0.05f, 0.25f); else circle(l, x, z, sl, 1f, 0.7f, 0.85f); });
+                    if (!crowd) fx(lv, 1, x, cur.gy(), z, 50, sl, treeFleshy ? 1 : 0, rgb(1f, 0.35f, 0.05f), 88);
+                    at(50, l -> { boom(l, x, z, sl); strike(l, x, z, sl, 99); });
                 }
             }
             case 5 -> { // temptation: look away from the tree and crouch, or be corrupted
@@ -1924,7 +1924,7 @@ public final class EndGame {
                 at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
             }
             case 11 -> { // meteor storm: every meteor lands at once, then lightning branches wildly out of each impact along the red lines
-                final int fall = 26, flash = 30;
+                final int fall = 34, flash = 38;
                 final List<double[]> spots = new ArrayList<>();
                 for (ServerPlayer p : fighters(lv)) {
                     double x = p.getX() + rnd.nextDouble(-3, 3), z = p.getZ() + rnd.nextDouble(-3, 3);
