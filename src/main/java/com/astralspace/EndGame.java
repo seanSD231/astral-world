@@ -876,20 +876,6 @@ public final class EndGame {
             if (ruin.contains(lv.getBlockState(q.set(x, base, z)).getBlock())) { lv.setBlock(q, Blocks.GRASS_BLOCK.defaultBlockState(), 2); n++; }
             for (int y = base + 1; y <= base + 18; y++) if (ruin.contains(lv.getBlockState(q.set(x, y, z)).getBlock())) { lv.setBlock(q, Blocks.AIR.defaultBlockState(), 2); n++; }
         }
-        // the old ring of broken pillars at the edge of the field (new worlds no longer generate it)
-        double ringR = ARENA_R - 4;
-        for (int k = 0; k < 36; k++) {
-            double a = Math.PI * 2 * k / 36 + 0.13;
-            int cx = (int) Math.round(Math.cos(a) * ringR), cz = (int) Math.round(Math.sin(a) * ringR);
-            lv.getChunk(cx >> 4, cz >> 4);
-            for (int x = cx - 1; x <= cx + 1; x++) for (int z = cz - 1; z <= cz + 1; z++) {
-                int gy = lv.getHeight(Heightmap.Types.WORLD_SURFACE, x, z);
-                for (int y = gy; y > gy - 18; y--) {
-                    if (ruin.contains(lv.getBlockState(q.set(x, y, z)).getBlock())) { lv.setBlock(q, Blocks.AIR.defaultBlockState(), 2); n++; }
-                    else if (y < gy - 1 && !lv.getBlockState(q).isAir()) break;
-                }
-            }
-        }
         LOGGER.info("[astral] cleared {} ruin blocks under the tree", n);
     }
 
@@ -2044,11 +2030,11 @@ public final class EndGame {
                     sfx(l, SoundEvents.WARDEN_SONIC_CHARGE, 4f, 0.5f);
                     final List<List<Bolts.Seg>> webs = new ArrayList<>();
                     final List<double[]> src = new ArrayList<>();   // a grid over the whole arena, close enough that no patch is left bare
-                    for (double gx = -reach; gx <= reach; gx += 52) for (double gz = -reach; gz <= reach; gz += 52) if (Math.hypot(gx, gz) <= reach + 20) src.add(new double[]{cx + gx + rnd.nextDouble(-8, 8), cz + gz + rnd.nextDouble(-8, 8)});
+                    for (double gx = -reach; gx <= reach; gx += 62) for (double gz = -reach; gz <= reach; gz += 62) if (Math.hypot(gx, gz) <= reach + 20) src.add(new double[]{cx + gx + rnd.nextDouble(-8, 8), cz + gz + rnd.nextDouble(-8, 8)});
                     for (double[] o : src) {
                         long seed = rnd.nextInt(1_000_000);
-                        webs.add(Bolts.web(seed, o[0], o[1], 95, 7));
-                        fx(l, 13, o[0], cur.gy(), o[1], seed, 95, flash, 7, flash + 24);
+                        webs.add(Bolts.web(seed, o[0], o[1], 105, 6));
+                        fx(l, 13, o[0], cur.gy(), o[1], seed, 105, flash, 6, flash + 24);
                     }
                     at(flash, ll -> {
                         stormSounds(ll, webs);
@@ -2723,7 +2709,7 @@ public final class EndGame {
             "warriorLightConcealment", "warriorLightEvasion", "warriorLightEvasionDistance"}; // the last three: Warrior light form, which makes a boss unhittable
     private static final Map<UUID, Float> lastHp = new HashMap<>();
     private static final Map<UUID, Long> lastPlayerHit = new HashMap<>();   // when a player last hurt each boss
-    static final double ARENA_R = 260;        // the raid arena: fighters may roam this far from the tree (built for up to ~100 players)
+    static final double ARENA_R = 340;        // the raid arena: fighters may roam this far from the tree (built for up to ~100 players)
     private static final double SPAWN_R = 120;    // fighters arrive well outside the tree's trunk (the model's trunk is about 15 blocks wide at the foot)
     private static final float MAX_HIT = 0.10f;     // no single hit takes more than this share of a boss's health
     private static final float MAX_DROP = 0.12f;    // anything that takes more than this in one tick is not a hit but an execution

@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.56
+The temple arena. It only appears in a newly generated raid world: any chunks already generated keep their old flat grass.
+- **Raised stone temple:** the fight now happens on a huge stone platform (arena radius 340, was 260), standing 7 blocks above the grass field around it. A 2-block wall runs round the rim, with four gateways and steps down to the field.
+- **Grass patch:** the tree stands on a grass patch 185 blocks wide, wide enough that none of its roots touch the stone.
+- **Altar and floor:** a dark polished ring with a gold line, then stone bricks mixed from normal, mossy and cracked, two dark rings with glowing glyphs, eight pale chequered paths, and a deep-slate rim.
+- **Tempest:** the web grid spreads over the bigger arena.
+- The cleanup of the old pillar ring is removed, since it would have torn down the new rim.
+
 ## 0.2.55
 - **Tempest:** the final lightning web now grows from a grid of points about 50 blocks apart across the whole arena, so there are no bare patches (only gaps between the lines).
 - **Tempest safe circles:** each one is placed 4 to 11 blocks from a fighter, inside the arena, and the meteors' circle sits right on top of the lightning's circle so you can step from one to the other.

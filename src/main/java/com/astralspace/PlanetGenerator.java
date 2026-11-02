@@ -36,7 +36,11 @@ public final class PlanetGenerator extends ChunkGenerator {
 
     public static final int BASE = 64;
     /** The arena is a round grassy field of this radius; beyond it there is only sky. */
-    public static final double FIELD_R = EndGame.ARENA_R + 24;
+    public static final double FIELD_R = EndGame.ARENA_R + 40;
+    /** The temple: a raised stone platform this wide (the arena plus a rim), standing DROP blocks above the grass field around it. */
+    public static final double PLAT_R = EndGame.ARENA_R + 13;
+    public static final int DROP = 7;
+    private static final double GRASS_R = 185;   // the tree's grass patch: wide enough that none of its roots reach the stone
 
     private final String planet;
 
@@ -137,13 +141,52 @@ public final class PlanetGenerator extends ChunkGenerator {
                 double w = Math.abs(fbm(x, z, 70, 9, 4) - 0.5) * 2;             // ridged storm waves
                 h = BASE - 4 + (1 - w) * 22;
             }
-            case "raid" -> h = BASE;   // a perfectly level field: the fight is built on it
+            case "raid" -> {   // the platform is perfectly level (the fight is built on it); the field around it lies lower, with a stair down at each gateway
+                double rr = Math.hypot(x, z);
+                h = rr <= PLAT_R ? BASE : (gateway(x, z) ? BASE - Math.min(DROP, 1 + (int) ((rr - PLAT_R) / 2)) : BASE - DROP);
+            }
             default -> h = BASE + (fbm(x, z, 120, 10, 3) - 0.5) * 6;
         }
         double dist = Math.hypot(x, z);
         double f = 1 - smooth(26, 64, dist);                                   // flat disc around the arrival point
         if (!id.equals("raid")) h = h + (BASE - h) * f;
         return (int) Math.max(8, Math.min(230, Math.round(h)));
+    }
+
+    /** The four gateways of the temple: a strip about 18 wide along each axis. */
+    static boolean gateway(double x, double z) { return Math.abs(x) < 9 || Math.abs(z) < 9; }
+
+    /** Stone bricks, mossy and cracked, mixed. */
+    private static Block brickMix(int x, int z) {
+        double b = hash(x, z, 11);
+        return b < 0.36 ? Blocks.STONE_BRICKS : b < 0.68 ? Blocks.MOSSY_STONE_BRICKS : Blocks.CRACKED_STONE_BRICKS;
+    }
+
+    /** The top block of the temple floor at (x, z). */
+    private static Block raidTop(int x, int z) {
+        double R = Math.hypot(x, z), b = hash(x, z, 9);
+        if (R < 180) return hash(x / 2, z / 2, 0) < 0.12 ? Blocks.COARSE_DIRT : Blocks.GRASS_BLOCK;
+        if (R < GRASS_R) return b < 0.7 ? Blocks.COARSE_DIRT : Blocks.PODZOL;
+        if (R < 205) {   // the altar ring: dark polished stone with a gold line
+            if (Math.abs(R - 195) < 1.2) return Blocks.GOLD_BLOCK;
+            if (Math.abs(R - 190) < 0.6 || Math.abs(R - 200) < 0.6) return Blocks.POLISHED_BLACKSTONE_BRICKS;
+            return b < 0.55 ? Blocks.POLISHED_BLACKSTONE : b < 0.8 ? Blocks.BLACKSTONE : Blocks.POLISHED_BLACKSTONE_BRICKS;
+        }
+        for (int k = 0; k < 8; k++) {   // eight pale paths, chequered, from the altar ring to the rim
+            double ang = k * Math.PI / 4, ca = x * Math.cos(ang) + z * Math.sin(ang), sa = -x * Math.sin(ang) + z * Math.cos(ang);
+            if (Math.abs(sa) < 4.2 && ca > 205 && ca < PLAT_R + 0.5) {
+                if (Math.abs(sa) > 3.4) return Blocks.POLISHED_BLACKSTONE;
+                return (Math.floorMod((int) Math.floor(ca / 4) + (int) Math.floor(sa / 4), 2) == 0) ? Blocks.POLISHED_ANDESITE : Blocks.SMOOTH_STONE;
+            }
+        }
+        for (double rr : new double[]{245, 300}) {   // dark rings with glowing glyph dots
+            if (Math.abs(R - rr) < 2.6) {
+                if (Math.abs(R - rr) < 0.9 && Math.floorMod((int) Math.floor(Math.atan2(z, x) * R / 5), 2) == 0) return Blocks.SEA_LANTERN;
+                return b < 0.5 ? Blocks.DEEPSLATE_BRICKS : Blocks.POLISHED_DEEPSLATE;
+            }
+        }
+        if (R < 345) return brickMix(x, z);
+        return b < 0.6 ? Blocks.DEEPSLATE_TILES : Blocks.DEEPSLATE_BRICKS;   // the rim
     }
 
     // ------------------------------------------------------------------ materials
@@ -195,7 +238,12 @@ public final class PlanetGenerator extends ChunkGenerator {
             }
             case "raid": {
                 double r = Math.hypot(x, z);
-                if (depth == 0) return n < 0.12 ? Blocks.COARSE_DIRT : Blocks.GRASS_BLOCK;
+                if (r <= PLAT_R) {
+                    if (depth == 0) return raidTop(x, z);
+                    if (r > PLAT_R - 3 && y >= BASE - DROP) return brickMix(x, z);   // the cliff face under the rim
+                    return depth < 4 ? Blocks.DIRT : Blocks.STONE;
+                }
+                if (depth == 0) return gateway(x, z) ? (hash(x, z, 12) < 0.5 ? Blocks.POLISHED_ANDESITE : Blocks.STONE_BRICKS) : (n < 0.12 ? Blocks.COARSE_DIRT : Blocks.GRASS_BLOCK);   // the stairs down at the gateways
                 return depth < 4 ? Blocks.DIRT : Blocks.STONE;
             }
             default:
@@ -235,6 +283,12 @@ public final class PlanetGenerator extends ChunkGenerator {
 
     /** The field: grass and flowers (the old ring of broken pillars at the edge is gone). The middle is clear (the tree stands there). */
     private static void decorateRaid(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int z, int h) {
+        double rr = Math.hypot(x, z);
+        if (rr >= PLAT_R - 4.5 && rr <= PLAT_R - 0.5 && !gateway(x, z)) {   // a two block wall round the rim, open at the four gateways
+            chunk.setBlockState(pos.set(x, h + 1, z), brickMix(x + 3, z).defaultBlockState(), false);
+            chunk.setBlockState(pos.set(x, h + 2, z), brickMix(x, z + 3).defaultBlockState(), false);
+            return;
+        }
         // grass and flowers where the ground is grass
         if (hash(x, 3, z) < 0.35 && chunk.getBlockState(pos.set(x, h, z)).is(Blocks.GRASS_BLOCK)) {
             double q = hash(x, 4, z);
