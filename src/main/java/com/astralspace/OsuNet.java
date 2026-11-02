@@ -23,57 +23,57 @@ import java.util.UUID;
 public final class OsuNet {
     private OsuNet() {}
 
-    private static <T extends CustomPacketPayload> CustomPacketPayload.Type<T> type(String id) {
+    private static <T extends CustomPacketPayload> CustomPacketPayload.Type<T> mk(String id) {
         return new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, id));
     }
 
     public record OpenCabinet(BlockPos pos) implements CustomPacketPayload {
-        public static final Type<OpenCabinet> TYPE = type("osu_open");
+        public static final Type<OpenCabinet> TYPE = mk("osu_open");
         public static final StreamCodec<RegistryFriendlyByteBuf, OpenCabinet> CODEC = StreamCodec.composite(BlockPos.STREAM_CODEC, OpenCabinet::pos, OpenCabinet::new);
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     public record ListReq() implements CustomPacketPayload {
-        public static final Type<ListReq> TYPE = type("osu_list_req");
+        public static final Type<ListReq> TYPE = mk("osu_list_req");
         public static final StreamCodec<RegistryFriendlyByteBuf, ListReq> CODEC = StreamCodec.unit(new ListReq());
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     /** Rows of "id|name|author|circles|disc". */
     public record ListData(List<String> rows) implements CustomPacketPayload {
-        public static final Type<ListData> TYPE = type("osu_list");
+        public static final Type<ListData> TYPE = mk("osu_list");
         public static final StreamCodec<RegistryFriendlyByteBuf, ListData> CODEC = StreamCodec.composite(
                 ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list(OsuLibrary.MAX_LEVELS + 1)), ListData::rows, ListData::new);
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     public record Fetch(int id) implements CustomPacketPayload {
-        public static final Type<Fetch> TYPE = type("osu_fetch");
+        public static final Type<Fetch> TYPE = mk("osu_fetch");
         public static final StreamCodec<RegistryFriendlyByteBuf, Fetch> CODEC = StreamCodec.composite(ByteBufCodecs.VAR_INT, Fetch::id, Fetch::new);
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     public record LevelCode(String code) implements CustomPacketPayload {
-        public static final Type<LevelCode> TYPE = type("osu_code");
+        public static final Type<LevelCode> TYPE = mk("osu_code");
         public static final StreamCodec<RegistryFriendlyByteBuf, LevelCode> CODEC = StreamCodec.composite(ByteBufCodecs.STRING_UTF8, LevelCode::code, LevelCode::new);
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     public record Publish(String code) implements CustomPacketPayload {
-        public static final Type<Publish> TYPE = type("osu_publish");
+        public static final Type<Publish> TYPE = mk("osu_publish");
         public static final StreamCodec<RegistryFriendlyByteBuf, Publish> CODEC = StreamCodec.composite(ByteBufCodecs.STRING_UTF8, Publish::code, Publish::new);
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     public record Delete(int id) implements CustomPacketPayload {
-        public static final Type<Delete> TYPE = type("osu_delete");
+        public static final Type<Delete> TYPE = mk("osu_delete");
         public static final StreamCodec<RegistryFriendlyByteBuf, Delete> CODEC = StreamCodec.composite(ByteBufCodecs.VAR_INT, Delete::id, Delete::new);
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     /** Start (true) or stop (false) the music disc of a level on a jukebox next to the cabinet. */
     public record Music(BlockPos pos, String disc, boolean start) implements CustomPacketPayload {
-        public static final Type<Music> TYPE = type("osu_music");
+        public static final Type<Music> TYPE = mk("osu_music");
         public static final StreamCodec<RegistryFriendlyByteBuf, Music> CODEC = StreamCodec.composite(
                 BlockPos.STREAM_CODEC, Music::pos, ByteBufCodecs.STRING_UTF8, Music::disc, ByteBufCodecs.BOOL, Music::start, Music::new);
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
