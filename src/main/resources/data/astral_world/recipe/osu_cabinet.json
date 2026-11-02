@@ -1,0 +1,1 @@
+{"type": "minecraft:crafting_shaped", "category": "misc", "key": {"B": {"item": "minecraft:polished_blackstone"}, "N": {"item": "minecraft:note_block"}, "R": {"item": "minecraft:redstone"}}, "pattern": ["BBB", "BNB", "BRB"], "result": {"id": "astral_world:osu_cabinet"}}

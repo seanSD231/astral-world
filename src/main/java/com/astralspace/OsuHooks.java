@@ -1,6 +1,10 @@
 package com.astralspace;
 
-/** Client only, loaded only when called: opens a minigame (kept apart so a dedicated server never loads the screen classes). */
+import net.minecraft.core.BlockPos;
+
+import java.util.List;
+
+/** Client only, loaded only when called: opens screens (kept apart so a dedicated server never loads the screen classes). */
 final class OsuHooks {
     private OsuHooks() {}
 
@@ -11,4 +15,17 @@ final class OsuHooks {
             default -> new OsuScreen(seed, count, ticks);
         });
     }
+
+    static void openCabinet(BlockPos pos) {
+        OsuClient.cabinet = pos;
+        net.minecraft.client.Minecraft.getInstance().setScreen(new CabinetScreen());
+    }
+
+    static void showList(List<String> rows) {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        net.minecraft.client.gui.screens.Screen back = mc.screen instanceof LevelBrowser b ? b.back : mc.screen;
+        mc.setScreen(new LevelBrowser(true, rows, back));
+    }
+
+    static void gotCode(String code) { OsuClient.codeArrived(code); }
 }

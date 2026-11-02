@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.62
+- **Osu cabinet:** a new block (Functional Blocks tab; recipe: polished blackstone around a note block over redstone). Use it to play the click game for fun: quick play, your own levels, levels other players shared, or a pasted code.
+- **Level editor:** put circles on a timeline (click to add, right click to remove, wheel or arrows to move through time, space to preview), set the BPM, test it, and save it on your computer (`astral_osu` folder).
+- **Sharing:** copy a level as a code (`OSU1:...`) to paste to anyone, or publish it to every cabinet in the world, where anyone can play it, edit a copy or copy its code.
+- **Music discs:** hold a vanilla or Etched disc and press Link disc in the editor. When the level plays, the disc plays from a jukebox standing next to the cabinet (the cabinet puts a copy in an empty jukebox and takes it away again).
+
 ## 0.2.61
 - **Phase lines:** fixed her getting stuck just above a line (750,001 and the like). The cause was my anti-regeneration guard: when she regenerated faster than you hit her, it put her back to her health from before your hit. It now remembers the health she must have after each hit, so it can't undo one, and anything within 3 HP of a line counts as being on it, so the phase starts.
 

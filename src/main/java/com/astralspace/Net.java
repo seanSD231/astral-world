@@ -212,6 +212,7 @@ public final class Net {
 
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("1");
+        OsuNet.register(registrar);
         registrar.playToClient(HudPayload.TYPE, HudPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             ClientState.show = payload.show();
             ClientState.hp = payload.hp();

@@ -37,6 +37,11 @@ public final class AstralFloor {
     public static final DeferredItem<Item> FLOOR_ITEM = ITEMS.register("astral_floor",
             () -> new BlockItem(FLOOR.get(), new Item.Properties()));
 
+    /** The osu cabinet: use it to play the click game for fun, make levels, share them and link them to music discs. */
+    public static final DeferredBlock<Block> CABINET = BLOCKS.register("osu_cabinet", () -> new OsuCabinetBlock(
+            BlockBehaviour.Properties.of().strength(2.0F, 6.0F).requiresCorrectToolForDrops().lightLevel(s -> 7)));
+    public static final DeferredItem<Item> CABINET_ITEM = ITEMS.register("osu_cabinet", () -> new BlockItem(CABINET.get(), new Item.Properties()));
+
     /** Testing: a creative-only item. Every hit on the Mother Tree takes 10% of her maximum health (see EndGame.smite). */
     public static final DeferredItem<Item> SMITER = ITEMS.register("tree_smiter",
             () -> new Item(new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)) {
@@ -58,6 +63,7 @@ public final class AstralFloor {
         ITEMS.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) e.accept(SMITER.get());
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) e.accept(CABINET_ITEM.get());
         });
     }
 
