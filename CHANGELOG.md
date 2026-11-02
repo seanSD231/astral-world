@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.63
+- **Tempest:** the three strikes are now spaced out: the lightning, then the meteors land 0.5 s later, then the arena-wide web strikes 0.5 s after the meteors.
+
 ## 0.2.62
 - **Osu cabinet:** a new block (Functional Blocks tab; recipe: polished blackstone around a note block over redstone). Use it to play the click game for fun: quick play, your own levels, levels other players shared, or a pasted code.
 - **Level editor:** put circles on a timeline (click to add, right click to remove, wheel or arrows to move through time, space to preview), set the BPM, test it, and save it on your computer (`astral_osu` folder).

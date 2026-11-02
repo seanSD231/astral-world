@@ -1973,7 +1973,7 @@ public final class EndGame {
             }
             case 12 -> { // tempest (below 35%): lightning everywhere (find a safe circle), then meteors everywhere (different safe circles), then a web of lightning over the whole arena (find a gap)
                 final double sr = 7;
-                final int t1 = 50, m0 = t1 + 2, mf = 3, t2 = m0 + mf + 2;   // a wind-up showing every safe circle, then the three strikes follow one another almost instantly
+                final int t1 = 50, m0 = t1 + 7, mf = 3, t2 = t1 + 12;   // the lightning at t1, the meteors land 0.5 s later, the web strikes 0.5 s after that   // a wind-up showing every safe circle, then the three strikes follow one another almost instantly
                 final List<double[]> safeA = new ArrayList<>(), safeB = new ArrayList<>();
                 // every safe circle is somewhere a fighter can really reach: 4 to 11 blocks from them (a wind-up of 2.5 s), inside the arena
                 // and the second set sits right on top of the first, so you can step from the lightning's circle into the meteors' circle
