@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.57
+- **Door in the sky:** the sign for a Door (Apprentice) Seq 0 is now the LOTM mod's own door (its arched frame with blue glyphs, starry doorway and vortex), baked from the mod's model and texture.
+- **Door and the barrier:** a Door Seq 0 now counts as two Seq 0s for the barrier's maximum HP (+200), matching how it already counts for healing. Before, it added the same 100 as anyone else.
+
 ## 0.2.56
 The temple arena. It only appears in a newly generated raid world: any chunks already generated keep their old flat grass.
 - **Raised stone temple:** the fight now happens on a huge stone platform (arena radius 340, was 260), standing 7 blocks above the grass field around it. A 2-block wall runs round the rim, with four gateways and steps down to the field.

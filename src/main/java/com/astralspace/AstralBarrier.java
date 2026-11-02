@@ -20,7 +20,13 @@ public final class AstralBarrier {
 
     public static int get(MinecraftServer server) { return AstralData.get(server).hp; }
 
-    public static int getMax(MinecraftServer server) { return AstralData.get(server).seq0.size() * HP_PER_SEQ0; }
+    /** Every Seq 0 adds 100 to the barrier's maximum; a Door (Apprentice) Seq 0 counts as two, as it does for healing it. */
+    public static int getMax(MinecraftServer server) {
+        AstralData d = AstralData.get(server);
+        int n = 0;
+        for (java.util.UUID id : d.seq0.keySet()) n += "apprentice".equals(d.seq0Paths.get(id)) ? 2 : 1;
+        return n * HP_PER_SEQ0;
+    }
 
     public static boolean isBroken(MinecraftServer server) { return get(server) <= 0; }
 
