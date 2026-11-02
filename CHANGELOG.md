@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.61
+- **Phase lines:** fixed her getting stuck just above a line (750,001 and the like). The cause was my anti-regeneration guard: when she regenerated faster than you hit her, it put her back to her health from before your hit. It now remembers the health she must have after each hit, so it can't undo one, and anything within 3 HP of a line counts as being on it, so the phase starts.
+
 ## 0.2.60
 - **Dodging:** a bit more warning on the normal meteors (1.9 s, was 1.5 s), the slam (2.5 s, was 2 s) and the Meteor Storm (1.7 s to the meteors and 1.9 s to the lightning, was 1.3 and 1.5 s).
 

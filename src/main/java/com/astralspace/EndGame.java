@@ -2433,7 +2433,7 @@ public final class EndGame {
         else if (immuneBarShown) { immuneBarShown = false; if (!rootsActive) raidBar.setName(barName("", ChatFormatting.DARK_PURPLE)); }
         if (!rootsActive) {
             if (!kingdomDone && !cutscene && rootStage >= THRESHOLDS.length && rt >= ultFallUntil && frac < 0.10f) { startKingdom(lv, boss); return; }
-            if (rootStage < THRESHOLDS.length && boss.getHealth() / RAID_HP <= THRESHOLDS[rootStage]) {
+            if (rootStage < THRESHOLDS.length && boss.getHealth() <= THRESHOLDS[rootStage] * RAID_HP + 3f) {
                 if (rootStage == 0) startRoots(lv); else if (rootStage == 1) startTransformation(lv); else startSeeds(lv);
             } else if (rootStage >= THRESHOLDS.length && !cutscene && rt >= nextUltimate && boss.getHealth() / RAID_HP <= 0.15f) {
                 nextUltimate = rt + 2400 + ThreadLocalRandom.current().nextInt(1201);   // 120 to 180 seconds until it can fall again, drawn anew each time
@@ -2930,7 +2930,7 @@ public final class EndGame {
                 if (Math.abs(m.getX() - hx) > 0.01 || Math.abs(m.getY() - hy) > 0.01 || Math.abs(m.getZ() - hz) > 0.01) m.setPos(hx, hy, hz);
             }
             float max = m.getMaxHealth(), hp = m.getHealth();
-            if (m.getTags().contains(TAG_RAID) && rootStage < THRESHOLDS.length && hp < THRESHOLDS[rootStage] * RAID_HP) { // however it got hurt (an ability that sets health), it cannot pass the next phase
+            if (m.getTags().contains(TAG_RAID) && rootStage < THRESHOLDS.length && hp < THRESHOLDS[rootStage] * RAID_HP + 3f && !rootsActive) { // however it got hurt (an ability that sets health), it cannot pass the next phase; within 3 HP of the line counts as on it
                 hp = THRESHOLDS[rootStage] * RAID_HP;   // lands exactly on the line, which starts the phase
                 m.setHealth(hp);
             }
@@ -3111,7 +3111,12 @@ public final class EndGame {
             float comp = (float) (100.0 * Math.pow(raw, 0.45));   // weak hits now count (a 5 does 0.02%) while huge hits are squeezed (a 100,000 does 1.8%), and a bigger hit is always worth more
             float a = rateLimit(le, Math.min(comp * RAID_DAMAGE * res * (rt < dazedUntil ? 1.25f : 1f), le.getMaxHealth() * RAID_HIT * res), RAID_RATE);
             if (zap) a = rateLimit(le, new UUID(le.getUUID().getMostSignificantBits() ^ 0x5A5AL, le.getUUID().getLeastSignificantBits()), a, 0.0008f);   // Ocean of Lightning only drains her: 0.08% of her health a second at most   // dazed: 25% more, still under her caps
-            if (rootStage < THRESHOLDS.length) a = Math.min(a, Math.max(0f, le.getHealth() - THRESHOLDS[rootStage] * RAID_HP)); // the hit that crosses a phase line is cut down to land exactly on it (and starts the phase), never skipped
+            if (rootStage < THRESHOLDS.length) {
+                float line = THRESHOLDS[rootStage] * RAID_HP, room = Math.max(0f, le.getHealth() - line);
+                a = Math.min(a, room); // the hit that crosses a phase line is cut down to land exactly on it (and starts the phase), never skipped
+                if (a > 0f && room - a < 3f) a = room;   // never stop a hair above the line: a hit that would leave her within 3 HP of it takes her all the way to it
+            }
+            if (a > 0f) { lastHp.put(le.getUUID(), Math.max(0f, le.getHealth() - a)); }   // what her health must be after this hit: the regeneration guard compares against this, so it can never undo the hit
             if (a <= 0f) { logDrop(e, event, "capped to zero"); event.setCanceled(true); } else event.setAmount(a);
             return;
         }
