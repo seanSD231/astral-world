@@ -1926,7 +1926,7 @@ public final class EndGame {
                 at(165, l -> { for (ServerPlayer p : fighters(l)) if (!failed.contains(p.getUUID())) p.sendSystemMessage(Component.literal("You resisted.").withStyle(ChatFormatting.GREEN)); });
             }
             case 11 -> { // meteor storm: every meteor lands at once, then lightning branches wildly out of each impact along the red lines
-                final int fall = 26, flash = 30;
+                final int fall = 4, flash = 6;   // virtually no delay
                 final List<double[]> spots = new ArrayList<>();
                 for (ServerPlayer p : fighters(lv)) {
                     double x = p.getX() + rnd.nextDouble(-3, 3), z = p.getZ() + rnd.nextDouble(-3, 3);
@@ -1939,7 +1939,7 @@ public final class EndGame {
                     final double x = h[0], z = h[1];
                     final long seed = rnd.nextInt(1_000_000);
                     final int arms = 6 + rnd.nextInt(3);
-                    final double wr = big ? 130 : 30;
+                    final double wr = big ? 300 : 60;
                     webs.add(Bolts.web(seed, x, z, wr, arms));
                     for (int t = 0; t < fall; t += 5) at(t, ll -> circle(ll, x, z, mr, 1f, 0.1f, 0.1f));
                     boolean lotm = lotmMeteor(lv, x, z, mr, fall);
@@ -1948,12 +1948,12 @@ public final class EndGame {
                     at(fall, ll -> { boom(ll, x, z, mr); strike(ll, x, z, mr, 99); sfx(ll, SoundEvents.GENERIC_EXPLODE.value(), 3f, 0.7f + (float) rnd.nextDouble() * 0.5f); });
                 }
                 if (big) {   // lightning over the WHOLE arena: webs also grow from a grid of points across it, not only from where the players stand
-                    for (double gx = -ARENA_R + 60; gx <= ARENA_R - 60; gx += 110) for (double gz = -ARENA_R + 60; gz <= ARENA_R - 60; gz += 110) {
+                    for (double gx = -ARENA_R + 60; gx <= ARENA_R - 60; gx += 90) for (double gz = -ARENA_R + 60; gz <= ARENA_R - 60; gz += 90) {
                         if (Math.hypot(gx, gz) > ARENA_R - 20) continue;
                         final double x = cx + gx + rnd.nextDouble(-25, 25), z = cz + gz + rnd.nextDouble(-25, 25);
                         final long seed = rnd.nextInt(1_000_000);
-                        webs.add(Bolts.web(seed, x, z, 120, 5));
-                        fx(lv, 13, x, cur.gy(), z, seed, 120, flash, 5, flash + 24);
+                        webs.add(Bolts.web(seed, x, z, 260, 7));
+                        fx(lv, 13, x, cur.gy(), z, seed, 260, flash, 7, flash + 24);
                     }
                 }
                 at(0, l -> sfx(l, SoundEvents.WARDEN_SONIC_CHARGE, 4f, 0.8f));

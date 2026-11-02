@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.53
+- **Meteor Storm:** the meteors and the first lightning now land almost instantly (a fraction of a second after the circles show). The follow-up lightning branches over a far bigger area: each web reaches about 300 blocks, and the arena-wide grid is denser with longer, busier webs.
+
 ## 0.2.52
 - **Phase 5 cutscene:** the prayer is now voiced. Lines 1 to 5 and 7 play as each line appears. Line 6 ("And praying for the bestowment that stems from good luck.") has no recording yet, so it is silent. The recordings were volume-matched.
 

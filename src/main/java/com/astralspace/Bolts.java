@@ -20,7 +20,7 @@ public final class Bolts {
         double base = r.nextDouble() * Math.PI * 2;
         for (int i = 0; i < arms; i++) {
             double ang = base + Math.PI * 2 * i / arms + (r.nextDouble() - 0.5) * 0.35;
-            grow(r, out, cx, cz, ang, reach * (0.7 + r.nextDouble() * 0.3), 0, 120 + arms * 30);
+            grow(r, out, cx, cz, ang, reach * (0.7 + r.nextDouble() * 0.3), 0, 300 + arms * 60);
         }
         return out;
     }
