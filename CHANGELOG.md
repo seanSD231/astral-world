@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.54
+- **Tempest (the low-health attack):** now one short wind-up that shows every safe circle (blue for the lightning, green for the meteors), then the lightning, the meteors and the arena-wide web follow one another almost instantly.
+- **Meteor Storm:** put back to how it was before 0.2.53 (the 0.2.53 change was meant for Tempest).
+
 ## 0.2.53
 - **Meteor Storm:** the meteors and the first lightning now land almost instantly (a fraction of a second after the circles show). The follow-up lightning branches over a far bigger area: each web reaches about 300 blocks, and the arena-wide grid is denser with longer, busier webs.
 
