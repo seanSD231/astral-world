@@ -2539,7 +2539,7 @@ public final class EndGame {
         // everyone belongs in the arena; the battlefield grows with the crowd (about 100 blocks alone, the whole arena at 100 players)
         int crowdSize = 0;
         for (int v : d.raidLives.values()) if (v > 0) crowdSize++;
-        final double leash = Math.min(ARENA_R, 150 + 12 * Math.sqrt(Math.max(1, crowdSize)));
+        final double leash = ARENA_R - 4;   // the whole temple is the battlefield (it used to shrink with the crowd, which kept everyone off the stone)
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             boolean fresh = !d.raidLives.containsKey(p.getUUID());
             d.raidLives.putIfAbsent(p.getUUID(), LIVES);

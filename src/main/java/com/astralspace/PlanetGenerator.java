@@ -36,10 +36,10 @@ public final class PlanetGenerator extends ChunkGenerator {
 
     public static final int BASE = 64;
     /** The arena is a round grassy field of this radius; beyond it there is only sky. */
-    public static final double FIELD_R = EndGame.ARENA_R + 40;
+    public static final double FIELD_R = EndGame.ARENA_R + 70;
     /** The temple: a raised stone platform this wide (the arena plus a rim), standing DROP blocks above the grass field around it. */
     public static final double PLAT_R = EndGame.ARENA_R + 13;
-    public static final int DROP = 7;
+    public static final int DROP = 20;
     private static final double GRASS_R = 185;   // the tree's grass patch: wide enough that none of its roots reach the stone
 
     private final String planet;

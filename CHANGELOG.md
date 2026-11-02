@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.58
+- **Battlefield edge:** the invisible edge no longer pulls you back at about 160 blocks. It used to shrink with the number of players, which kept everyone off the stone; now the whole temple (340 blocks) is the battlefield.
+- **Raised temple:** the platform now stands 20 blocks above the field around it (was 7), with a tall brick cliff and longer steps at the four gateways. The field beyond is bigger so the steps fit.
+
 ## 0.2.57
 - **Door in the sky:** the sign for a Door (Apprentice) Seq 0 is now the LOTM mod's own door (its arched frame with blue glyphs, starry doorway and vortex), baked from the mod's model and texture.
 - **Door and the barrier:** a Door Seq 0 now counts as two Seq 0s for the barrier's maximum HP (+200), matching how it already counts for healing. Before, it added the same 100 as anyone else.
