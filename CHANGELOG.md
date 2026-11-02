@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.55
+- **Tempest:** the final lightning web now grows from a grid of points about 50 blocks apart across the whole arena, so there are no bare patches (only gaps between the lines).
+- **Tempest safe circles:** each one is placed 4 to 11 blocks from a fighter, inside the arena, and the meteors' circle sits right on top of the lightning's circle so you can step from one to the other.
+
 ## 0.2.54
 - **Tempest (the low-health attack):** now one short wind-up that shows every safe circle (blue for the lightning, green for the meteors), then the lightning, the meteors and the arena-wide web follow one another almost instantly.
 - **Meteor Storm:** put back to how it was before 0.2.53 (the 0.2.53 change was meant for Tempest).

@@ -1086,6 +1086,18 @@ public final class EndGame {
         try { return d.getClass().getMethod("getTargetEntity").invoke(d) != null; } catch (Throwable t) { return false; }
     }
 
+    /** A point between `lo` and `hi` blocks from (px, pz) that is inside the arena (within `limit` of the centre). */
+    private static double[] reachable(double cx, double cz, double px, double pz, double lo, double hi, double limit, ThreadLocalRandom rnd) {
+        double[] best = {px, pz};
+        for (int i = 0; i < 12; i++) {
+            double a = rnd.nextDouble() * Math.PI * 2, d = lo + rnd.nextDouble() * (hi - lo);
+            double x = px + Math.cos(a) * d, z = pz + Math.sin(a) * d;
+            if (Math.hypot(x - cx, z - cz) <= limit) return new double[]{x, z};
+        }
+        double dx = cx - px, dz = cz - pz, dd = Math.max(1, Math.hypot(dx, dz));   // at the edge: step inwards
+        return new double[]{px + dx / dd * Math.max(lo, 1), pz + dz / dd * Math.max(lo, 1)};
+    }
+
     /** The crack of a whole web of lightning going off: layered thunder, and real (harmless) bolts along the lines for the sound and the flash. */
     private static void stormSounds(ServerLevel l, List<List<Bolts.Seg>> webs) {
         sfx(l, SoundEvents.LIGHTNING_BOLT_THUNDER, 6f, 0.7f);
@@ -1977,15 +1989,19 @@ public final class EndGame {
                 final double sr = 7;
                 final int t1 = 50, m0 = t1 + 2, mf = 3, t2 = m0 + mf + 2;   // a wind-up showing every safe circle, then the three strikes follow one another almost instantly
                 final List<double[]> safeA = new ArrayList<>(), safeB = new ArrayList<>();
-                for (List<double[]> sf : List.of(safeA, safeB)) {
-                    for (ServerPlayer p : fighters(lv)) {
-                        boolean covered = false;
-                        for (double[] q : sf) if (Math.hypot(p.getX() - q[0], p.getZ() - q[1]) < 24) { covered = true; break; }
-                        if (covered || sf.size() >= 14) continue;
-                        double a = rnd.nextDouble() * Math.PI * 2, d = 8 + rnd.nextDouble() * 12;
-                        sf.add(new double[]{p.getX() + Math.cos(a) * d, p.getZ() + Math.sin(a) * d});
-                    }
-                    while (sf.size() < 4) { double a = rnd.nextDouble() * Math.PI * 2, d = 10 + rnd.nextDouble() * (reach * 0.6); sf.add(new double[]{cx + Math.cos(a) * d, cz + Math.sin(a) * d}); }
+                // every safe circle is somewhere a fighter can really reach: 4 to 11 blocks from them (a wind-up of 2.5 s), inside the arena
+                // and the second set sits right on top of the first, so you can step from the lightning's circle into the meteors' circle
+                for (ServerPlayer p : fighters(lv)) {
+                    boolean covered = false;
+                    for (double[] q : safeA) if (Math.hypot(p.getX() - q[0], p.getZ() - q[1]) < 5) { covered = true; break; }
+                    if (covered || safeA.size() >= 40) continue;
+                    double[] pt = reachable(cx, cz, p.getX(), p.getZ(), 4, 11, reach - 12, rnd);
+                    safeA.add(pt);
+                }
+                if (safeA.isEmpty()) safeA.add(new double[]{cx + 30, cz});
+                for (double[] q : safeA) {
+                    double[] pt = reachable(cx, cz, q[0], q[1], 0, 4, reach - 12, rnd);
+                    safeB.add(pt);
                 }
                 // 1: lightning everywhere
                 for (int t = 0; t < t1; t += 5) at(t, l -> { for (double[] q : safeA) circle(l, q[0], q[1], sr, 0.3f, 0.6f, 1f); for (double[] q : safeB) circle(l, q[0], q[1], sr, 0.3f, 1f, 0.4f); });
@@ -2027,12 +2043,12 @@ public final class EndGame {
                     final int flash = 3;
                     sfx(l, SoundEvents.WARDEN_SONIC_CHARGE, 4f, 0.5f);
                     final List<List<Bolts.Seg>> webs = new ArrayList<>();
-                    double[][] src = {{cx, cz}, {cx + reach * 0.5, cz}, {cx - reach * 0.5, cz}, {cx, cz + reach * 0.5}, {cx, cz - reach * 0.5}};
+                    final List<double[]> src = new ArrayList<>();   // a grid over the whole arena, close enough that no patch is left bare
+                    for (double gx = -reach; gx <= reach; gx += 52) for (double gz = -reach; gz <= reach; gz += 52) if (Math.hypot(gx, gz) <= reach + 20) src.add(new double[]{cx + gx + rnd.nextDouble(-8, 8), cz + gz + rnd.nextDouble(-8, 8)});
                     for (double[] o : src) {
                         long seed = rnd.nextInt(1_000_000);
-                        int arms = o == src[0] ? 18 : 10;
-                        webs.add(Bolts.web(seed, o[0], o[1], reach * (o == src[0] ? 1.0 : 0.8), arms));
-                        fx(l, 13, o[0], cur.gy(), o[1], seed, reach * (o == src[0] ? 1.0 : 0.8), flash, arms, flash + 24);
+                        webs.add(Bolts.web(seed, o[0], o[1], 95, 7));
+                        fx(l, 13, o[0], cur.gy(), o[1], seed, 95, flash, 7, flash + 24);
                     }
                     at(flash, ll -> {
                         stormSounds(ll, webs);
