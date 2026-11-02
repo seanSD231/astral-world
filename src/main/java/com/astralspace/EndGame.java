@@ -3043,6 +3043,28 @@ public final class EndGame {
                 event.getAmount(), event.getSource().getEntity(), event.getSource().getDirectEntity());
     }
 
+    /** Testing: the creative-only Tree Smiter. Hitting the tree (or one of her hitboxes) with it takes 10% of her maximum health, whatever the damage rules say; her phase lines still hold. */
+    @SubscribeEvent
+    public static void onSmite(net.neoforged.neoforge.event.entity.player.AttackEntityEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer p) || !p.isCreative() || p.getMainHandItem().getItem() != AstralFloor.SMITER.get()) return;
+        Entity t = event.getTarget();
+        Mob tree = null;
+        if (t.getTags().contains(TAG_RAID) && t instanceof Mob m) tree = m;
+        else if (t.getTags().contains(TAG_PART) && t.getPersistentData().hasUUID("partOf") && t.level() instanceof ServerLevel sl && sl.getEntity(t.getPersistentData().getUUID("partOf")) instanceof Mob m) tree = m;
+        if (tree == null) return;
+        event.setCanceled(true);
+        if (p.getCooldowns().isOnCooldown(AstralFloor.SMITER.get())) return;
+        p.getCooldowns().addCooldown(AstralFloor.SMITER.get(), 4);
+        if (rootsActive || rt < ultImmuneUntil || kingdomEnd != 0 || rt < graceUntil) {
+            p.displayClientMessage(Component.literal("She cannot be hurt right now.").withStyle(ChatFormatting.GRAY), true);
+            return;
+        }
+        float hp = tree.getHealth(), bound = rootStage < THRESHOLDS.length ? THRESHOLDS[rootStage] * RAID_HP : 0f;
+        float next = Math.max(bound, hp - RAID_HP * 0.10f);
+        tree.setHealth(next);
+        p.displayClientMessage(Component.literal("Smite: " + String.format("%.1f", next / RAID_HP * 100) + "% left").withStyle(ChatFormatting.GOLD), true);
+    }
+
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         Entity e = event.getEntity();

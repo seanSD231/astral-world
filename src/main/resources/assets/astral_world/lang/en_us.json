@@ -1,1 +1,4 @@
-{ "block.astral_world.astral_floor": "Astral Floor" }
+{
+  "block.astral_world.astral_floor": "Astral Floor",
+  "item.astral_world.tree_smiter": "Tree Smiter (testing)"
+}

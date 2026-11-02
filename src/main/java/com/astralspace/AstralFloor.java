@@ -37,6 +37,12 @@ public final class AstralFloor {
     public static final DeferredItem<Item> FLOOR_ITEM = ITEMS.register("astral_floor",
             () -> new BlockItem(FLOOR.get(), new Item.Properties()));
 
+    /** Testing: a creative-only item. Every hit on the Mother Tree takes 10% of her maximum health (see EndGame.smite). */
+    public static final DeferredItem<Item> SMITER = ITEMS.register("tree_smiter",
+            () -> new Item(new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)) {
+                @Override public boolean isFoil(net.minecraft.world.item.ItemStack stack) { return true; }
+            });
+
     /** Invisible, like the barrier block. */
     private static final class FloorBlock extends Block {
         FloorBlock(Properties p) { super(p); }
@@ -50,6 +56,9 @@ public final class AstralFloor {
     public static void register(IEventBus modBus) {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
+        modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) e.accept(SMITER.get());
+        });
     }
 
     private static boolean isAstral(net.minecraft.world.level.LevelAccessor level) {

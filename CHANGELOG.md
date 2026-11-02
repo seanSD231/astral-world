@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.59
+- **Tree Smiter (testing):** a creative-only item (Tools tab, or `/give @s astral_world:tree_smiter`). Hitting the Mother Tree or any of her hitboxes with it in creative takes 10% of her maximum health, whatever the damage caps say. The phase lines (75, 50, 25%) still hold, and it does nothing while she is shielded (roots, call, meteor, kingdom, sleeping).
+
 ## 0.2.58
 - **Battlefield edge:** the invisible edge no longer pulls you back at about 160 blocks. It used to shrink with the number of players, which kept everyone off the stone; now the whole temple (340 blocks) is the battlefield.
 - **Raised temple:** the platform now stands 20 blocks above the field around it (was 7), with a tall brick cliff and longer steps at the four gateways. The field beyond is bigger so the steps fit.
