@@ -813,8 +813,8 @@ public final class EndGame {
     private static final Map<UUID, Long> lastHit = new HashMap<>();
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
     // two followers each (index = attack): 0 meteors, 1 rings, 2 summon, 3 slam, 4 purge, 5 temptation, 6 (power, unused), 7 curse, 8 pollen, 9 mirror bloom, 10 fruit, 11 storm (lightning web)
-    private static final int[][] NEXT = {{3, 8}, {11, 4}, {3, 5}, {1, 7}, {5, 10}, {8, 1}, {0, 1}, {9, 0}, {4, 9}, {10, 0}, {8, 0}, {0, 3}, {3, 5}, {5, 9}, {3, 0}};
-    private static final int[] DURATION = {170, 330, 110, 90, 190, 200, 90, 130, 200, 570, 560, 130, 100, 190, 190};
+    private static final int[][] NEXT = {{3, 8, 16}, {11, 4, 16}, {3, 5, 15}, {1, 7, 15}, {5, 10, 15}, {8, 1, 15}, {0, 1}, {9, 0, 16}, {4, 9, 15}, {10, 0, 16}, {8, 0, 15}, {0, 3, 16}, {3, 5, 15}, {5, 9}, {3, 0}, {3, 5}, {0, 8}};   // 15 mind assault (osu), 16 parry
+    private static final int[] DURATION = {170, 330, 110, 90, 190, 200, 90, 130, 200, 570, 560, 130, 100, 190, 190, 260, 150};
     private static int lastPattern = 3;
     private static long nextTempest = 0;
 
@@ -1119,6 +1119,24 @@ public final class EndGame {
             return src.is(net.minecraft.tags.DamageTypeTags.IS_LIGHTNING) || id.contains("lightning") || id.contains("thunder") || id.contains("electric")
                 || dn.contains("lightning") || dn.contains("thunder") || bn.contains("lightning") || bn.contains("thunder");
         } catch (Throwable t) { return false; }
+    }
+
+    /** The player behind a hit: the attacker, or the owner of the bolt, projectile or summon that did it (by reflection, LOTM's entities all keep one somewhere). */
+    private static ServerPlayer ownerOf(net.minecraft.world.damagesource.DamageSource src) {
+        for (Entity en : new Entity[]{src.getEntity(), src.getDirectEntity()}) {
+            if (en == null) continue;
+            if (en instanceof ServerPlayer sp) return sp;
+            if (en instanceof net.minecraft.world.entity.projectile.Projectile pr && pr.getOwner() instanceof ServerPlayer sp) return sp;
+            if (en instanceof net.minecraft.world.entity.LightningBolt lb && lb.getCause() instanceof ServerPlayer sp) return sp;
+            if (en instanceof net.minecraft.world.entity.OwnableEntity oe && oe.getOwner() instanceof ServerPlayer sp) return sp;
+            for (String m : new String[]{"getOwner", "getCause", "getCaster", "getSummoner"}) {
+                try {
+                    var mm = en.getClass().getMethod(m);
+                    if (mm.getParameterCount() == 0 && mm.invoke(en) instanceof ServerPlayer sp) return sp;
+                } catch (Throwable ignored) { }
+            }
+        }
+        return null;
     }
 
     /** A LOTM lightning that was aimed at something (Star of Lightning homes onto a target); the Ocean's rain is not. */
@@ -1707,7 +1725,9 @@ public final class EndGame {
             "METEOR STORM: red circles mark where the meteors land, all at once. Red lines show where lightning will branch out of each impact straight after. Stay off both.",
             "TEMPEST: lightning strikes everywhere at once, so stand inside a blue circle. Then meteors fall everywhere, so stand inside a green circle. Then lightning webs the whole arena: find a gap between the red lines.",
             "MEMORY: a screen opens with four coloured pads. Remember the order they light up, then click them in the same order.",
-            "THREAD: a screen opens with a glowing thread. Trace along it with your mouse without leaving it."};
+            "THREAD: a screen opens with a glowing thread. Trace along it with your mouse without leaving it.",
+            "MIND ASSAULT: the tree claws at your mind. A screen opens: click the circles as their rings close and hold and follow the sliders. Fail it and your mind pays for it.",
+            "PARRY: the tree gathers its power into one blast. A bar opens with a sweeping marker: click when it is in the MIDDLE. Dead centre takes nothing, close takes less, a miss takes a life."};
 
     /** The first time a player meets an attack, they are told how to avoid it. */
     private static void notice(ServerLevel lv, int which) {
@@ -1789,10 +1809,12 @@ public final class EndGame {
         if (cur.raid()) for (ServerPlayer p : fighters(lv)) corrupt(p, 2);   // every attack corrupts everyone a little, hit or dodged
         crowd = false;   // no effects are skipped for big groups: lag is fixed elsewhere
         final boolean big = cur.raid();
-        if (big) sendAnim(lv, which, DURATION[which] + 40);
+        if (big) sendAnim(lv, which == 15 ? 5 : which == 16 ? 6 : which, DURATION[which] + 40);
         final double reach = big ? ARENA_R : 42;
         final double mr = (big ? (rootStage >= 2 ? 22 : 12) : 4.5) * (big ? treeScale : 1), sl = (big ? 24 : 5.5) * (big ? treeScale : 1);   // meteor and slam sizes: in the raid they match the tree
         switch (which) {
+            case 15 -> miniAttack(lv, 4);
+            case 16 -> parry(lv);
             case 6 -> power(lv);
             case 7 -> { // a curse on everyone: cannot be dodged, but it does not cost a life
                 if (!crowd) for (ServerPlayer p : fighters(lv)) fx(lv, 5, p.getX(), p.getY(), p.getZ(), 0, 0, 1.5, rgb(0.55f, 0.15f, 0.8f), 70);
@@ -2236,8 +2258,7 @@ public final class EndGame {
         osuHits.clear();
         temptation(lv, 100, callFailed, 3);   // the first five seconds: turn away and crouch
         at(100, l -> {   // then the cursor is free and the click game begins
-            int game = 0;   // Desire's call is always the click game; the others are their own attacks
-            miniOpen(l, game, callFailed, MINI_HINT[game]);
+            miniOpen(l, 4, callFailed, MINI_HINT[4], 16, 140, 11);   // Desire's call is the hard click game: curved sliders, quicker rings
         });
         at(255, l -> {
             for (ServerPlayer p : fighters(l)) {
@@ -2259,14 +2280,20 @@ public final class EndGame {
     private static final Map<UUID, int[]> osuHits = new HashMap<>();
     private static int miniCount = 10, miniNeed = 6, miniTicks = 100;
     private static long miniStart = -1000;
-    private static final String[] MINI_HINT = {"Now click the wishes before they close.", "Now remember the order, then click the pads the same way.", "Now follow the light along the thread."};
+    private static final String[] MINI_HINT = {"Now click the wishes before they close.", "Now remember the order, then click the pads the same way.", "Now follow the light along the thread.", "Click when the marker is in the middle of the bar.", "Resist it: click the circles as their rings close, and hold and follow the sliders."};
 
     /** Opens a minigame on every fighter's screen (except those skipped) and remembers what a pass needs: 60% of it. */
     private static void miniOpen(ServerLevel l, int game, Set<UUID> skip, String hint) {
+        if (game == 4) miniOpen(l, game, skip, hint, 22, 220, 15);
+        else if (game == 3) miniOpen(l, game, skip, hint, 100, 100, 0);
+        else miniOpen(l, game, skip, hint, game == 0 ? 14 : 16, game == 0 ? 144 : 100, game == 0 ? 10 : (int) Math.ceil(16 * 0.6));
+    }
+
+    private static void miniOpen(ServerLevel l, int game, Set<UUID> skip, String hint, int count, int ticks, int need) {
         int seed = ThreadLocalRandom.current().nextInt(1_000_000);
-        miniCount = game == 0 ? 14 : 16;
-        miniTicks = game == 0 ? 144 : 100;   // the click game: circles appear slowly
-        miniNeed = game == 0 ? 10 : (int) Math.ceil(miniCount * 0.6);
+        miniCount = count;
+        miniTicks = ticks;
+        miniNeed = need;
         miniStart = rt;
         osuHits.clear();
         for (ServerPlayer p : fighters(l)) {
@@ -2284,7 +2311,27 @@ public final class EndGame {
                 int[] r = osuHits.get(p.getUUID());
                 if (r != null && r[1] == miniCount && r[0] >= miniNeed) continue;
                 p.sendSystemMessage(Component.literal("You failed it.").withStyle(ChatFormatting.DARK_RED));
-                hit(l, p);
+                if (game == 4) { Lotm.loseSanityPercent(p, 12); if (!corrupt(p, 30)) hit(l, p); } else hit(l, p);
+            }
+            miniStart = -1000;
+        });
+    }
+
+    /** The tree gathers its power into one blast. Everyone parries on their own screen: the closer to the middle, the less it hurts. */
+    private static void parry(ServerLevel lv) {
+        miniOpen(lv, 3, new HashSet<>(), MINI_HINT[3]);
+        final int burst = miniTicks + 22;
+        sfx(lv, SoundEvents.WARDEN_SONIC_CHARGE, 4f, 0.5f);
+        fx(lv, 14, cur.cx(), cur.gy(), cur.cz(), burst, ARENA_R, 0, rgb(0.9f, 0.45f, 1f), burst + 60);   // the tree winds up and bursts
+        at(burst, l -> {
+            sfx(l, SoundEvents.GENERIC_EXPLODE.value(), 3f, 0.6f);
+            for (ServerPlayer p : fighters(l)) {
+                int[] r = osuHits.get(p.getUUID());
+                double acc = r != null && r[1] == 100 ? r[0] / 100.0 : 0;
+                if (acc > 0.88) p.sendSystemMessage(Component.literal("Perfect parry. The blast breaks on you.").withStyle(ChatFormatting.GREEN));
+                else if (acc > 0.65) { p.sendSystemMessage(Component.literal("A good parry. It still stings.").withStyle(ChatFormatting.YELLOW)); soften(l, p, 0.2f); }
+                else if (acc > 0.35) { p.sendSystemMessage(Component.literal("A weak parry. It tears into you.").withStyle(ChatFormatting.GOLD)); soften(l, p, 0.55f); }
+                else { p.sendSystemMessage(Component.literal("You missed the parry.").withStyle(ChatFormatting.DARK_RED)); hit(l, p); }
             }
             miniStart = -1000;
         });
@@ -2581,6 +2628,7 @@ public final class EndGame {
             Mob tb = findBoss(lv, TAG_RAID);
             boolean tempest = tb != null && tb.getHealth() < RAID_HP * 0.35f && rt >= nextTempest;
             if (tempest) { which = 12; nextTempest = rt + 1500; }
+            if (which == 15 && !treeFleshy) which = 5;   // the mind assault belongs to the fleshy form
             if (which == 4 && disharmony(lv)) which = 10;   // the purge is never used while anyone's legs disagree with them (the Cursing Aura)
             lastPattern = which;
             pattern(lv, which);
@@ -3200,12 +3248,21 @@ public final class EndGame {
         }
         if (e.getTags().contains(TAG_BOSS) && environmental(event.getSource())) { logDrop(e, event, "environmental"); event.setCanceled(true); return; } // the world cannot kill a sovereign
         if (e.getTags().contains(TAG_RAID)) {
+            ServerPlayer owner = ownerOf(event.getSource());
+            boolean sailor = false;
+            if (owner != null && e.getServer() != null) {
+                AstralData od = AstralData.get(e.getServer());
+                if (owner.isSpectator() || !owner.isAlive() || od.raidLives.getOrDefault(owner.getUUID(), 1) <= 0) {   // a fallen fighter's storms, bolts and summons no longer count
+                    logDrop(e, event, "the one who cast it has fallen"); event.setCanceled(true); return;
+                }
+                sailor = Lotm.pathwayId(owner).equals("sailor");
+            }
             if (e.level() instanceof ServerLevel wl) wake(wl, "it was struck");
             var le = (net.minecraft.world.entity.LivingEntity) e;
             if (kingdomEnd != 0) { logDrop(e, event, "the divine kingdom shields her"); event.setCanceled(true); return; }   // she cannot be hurt inside her divine kingdom
             boolean zap = lightningy(event.getSource());
             if (zap && starBolt(event.getSource().getDirectEntity())) { logDrop(e, event, "star of lightning: she shrugs it off"); event.setCanceled(true); return; }   // Star of Lightning cannot hurt her at all
-            float res = zap ? 0.4f : 1f;   // she resists lightning: 60% less
+            float res = (zap ? 0.4f : 1f) * (sailor ? 0.6f : 1f);   // she resists lightning: 60% less; a Tyrant's storms and calamities (and all else a Tyrant does) do 40% less on top
             float raw = Math.max(1f, event.getAmount());
             float comp = (float) (100.0 * Math.pow(raw, 0.45));   // weak hits now count (a 5 does 0.02%) while huge hits are squeezed (a 100,000 does 1.8%), and a bigger hit is always worth more
             float a = rateLimit(le, Math.min(comp * RAID_DAMAGE * res * (rt < dazedUntil ? 1.25f : 1f), le.getMaxHealth() * RAID_HIT * res), RAID_RATE);

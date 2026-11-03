@@ -8,6 +8,24 @@ import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.level.block.StandingSignBlock;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.item.DyeColor;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
@@ -45,6 +63,7 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
+import java.io.File;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -59,10 +78,10 @@ public final class HungerGames {
     private enum Phase { OFF, INVITE, COUNTDOWN, RUNNING, ENDING }
 
     private record Saved(ResourceKey<Level> dim, double x, double y, double z, float yaw, float pitch, GameType mode, ListTag inv,
-                         float hp, int food, float sat, int xpLevel, float xpProg, int xpTotal, int seq, ListTag curios) { }
+                         float hp, int food, float sat, int xpLevel, float xpProg, int xpTotal, int seq, ListTag curios, CompoundTag attach) { }
 
     private static final double ARENA_R = EndGame.ARENA_R, RING_R = 270;
-    private static final int INVITE_TICKS = 20 * 60, COUNTDOWN_TICKS = 20 * 10, OUTER_CHESTS = 170, CENTRE_CHESTS = 50, CHURCH_CHESTS = 60;
+    private static final int INVITE_TICKS = 20 * 60, COUNTDOWN_TICKS = 20 * 15, OUTER_CHESTS = 170, CENTRE_CHESTS = 50, CHURCH_CHESTS = 60;
 
     private static Phase phase = Phase.OFF;
     private static MinecraftServer server;
@@ -77,6 +96,21 @@ public final class HungerGames {
     private static final List<BlockPos> chests = new ArrayList<>();
     private static int outerLeft = 0, centreLeft = 0, churchLeft = 0;
     private static final Random rnd = new Random();
+    private static final String MOB_TAG = "astral_hg_mob";
+    // the shrinking zone: it starts at the edge of the stone, waits, then closes on the middle; outside it, the air burns
+    private static final int ZONE_WAIT = 20 * 90, ZONE_SHRINK = 20 * 60 * 11;
+    private static final double ZONE_END_R = 10;
+    private static final List<UUID> order = new ArrayList<>();
+    private static final Map<UUID, Integer> kills = new HashMap<>();
+    private static final Map<UUID, String> names = new HashMap<>();
+    private static final List<UUID> out = new ArrayList<>();   // eliminated, in order
+    private static long startTick = 0;
+
+    // the leaderboard: results of the last game, and the boards (rows of signs) that show them
+    private record Result(String name, int kills, int place) { }
+    private record BoardPos(String dim, long pos) { }
+    private static final List<Result> lastResults = new ArrayList<>();
+    private static final List<List<BoardPos>> boards = new ArrayList<>();
 
     /** True while this player is a living contestant in a running game (the arena's no-damage rule does not apply to them). */
     public static boolean fighting(ServerPlayer p) { return (phase == Phase.RUNNING || phase == Phase.ENDING) && alive.contains(p.getUUID()); }
@@ -98,6 +132,7 @@ public final class HungerGames {
                     finish(ctx.getSource().getServer(), "The hunger games were stopped.");
                     return 1;
                 }))
+                .then(Commands.literal("board").requires(s -> s.hasPermission(2)).executes(ctx -> placeBoard(ctx.getSource().getPlayerOrException())))
                 .then(Commands.literal("status").executes(ctx -> {
                     ctx.getSource().sendSuccess(() -> Component.literal(phase == Phase.OFF ? "No hunger games running." : "Hunger games: " + phase + ", " + alive.size() + " alive of " + players.size()), false);
                     return 1;
@@ -235,6 +270,11 @@ public final class HungerGames {
 
     private static Entry e(int w, Supplier<ItemStack> s) { return new Entry(w, s); }
     private static ItemStack st(net.minecraft.world.item.Item i, int n) { return new ItemStack(i, n); }
+    /** An item from the LOTM mod by id; empty (an empty slot) if it is not installed. */
+    private static ItemStack lotm(String id, int n) {
+        var it = BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));
+        return it == Items.AIR ? ItemStack.EMPTY : new ItemStack(it, n);
+    }
     private static ItemStack potion(net.minecraft.world.item.Item base, net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion> p) { return PotionContents.createItemStack(base, p); }
 
     private static final List<Entry> COMMON = List.of(
@@ -246,7 +286,8 @@ public final class HungerGames {
             e(12, () -> st(Items.BREAD, 3 + rnd.nextInt(4))), e(9, () -> st(Items.COOKED_BEEF, 2 + rnd.nextInt(4))), e(8, () -> st(Items.APPLE, 2 + rnd.nextInt(3))), e(5, () -> st(Items.GOLDEN_CARROT, 2)),
             e(3, () -> st(Items.GOLDEN_APPLE, 1)), e(3, () -> st(Items.ENDER_PEARL, 1)), e(5, () -> st(Items.COBBLESTONE, 16 + rnd.nextInt(24))), e(4, () -> st(Items.OAK_PLANKS, 16 + rnd.nextInt(16))),
             e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 2 + rnd.nextInt(3))), e(3, () -> st(Items.FISHING_ROD, 1)), e(3, () -> st(Items.SNOWBALL, 8)),
-            e(2, () -> st(Items.FLINT_AND_STEEL, 1)), e(4, () -> potion(Items.SPLASH_POTION, Potions.HEALING)), e(3, () -> potion(Items.SPLASH_POTION, Potions.HARMING)),
+            e(2, () -> st(Items.FLINT_AND_STEEL, 1)), e(6, () -> st(Items.TORCH, 6 + rnd.nextInt(11))), e(5, () -> st(Items.WIND_CHARGE, 3 + rnd.nextInt(5))),
+            e(4, () -> lotm("lotm:luckbottleitem", 1)), e(4, () -> potion(Items.SPLASH_POTION, Potions.HEALING)), e(3, () -> potion(Items.SPLASH_POTION, Potions.HARMING)),
             e(3, () -> potion(Items.POTION, Potions.SWIFTNESS)), e(2, () -> st(Items.TNT, 2)));
 
     private static final List<Entry> RICH = List.of(
@@ -257,7 +298,8 @@ public final class HungerGames {
             e(8, () -> st(Items.GOLDEN_APPLE, 1 + rnd.nextInt(3))), e(2, () -> st(Items.ENCHANTED_GOLDEN_APPLE, 1)), e(2, () -> st(Items.TOTEM_OF_UNDYING, 1)),
             e(7, () -> st(Items.COOKED_BEEF, 6)), e(5, () -> st(Items.ENDER_PEARL, 2 + rnd.nextInt(2))), e(5, () -> potion(Items.SPLASH_POTION, Potions.STRONG_HEALING)),
             e(4, () -> potion(Items.SPLASH_POTION, Potions.STRONG_HARMING)), e(3, () -> potion(Items.POTION, Potions.LONG_SWIFTNESS)), e(3, () -> potion(Items.POTION, Potions.STRONG_STRENGTH)),
-            e(3, () -> st(Items.TNT, 4)), e(2, () -> st(Items.FLINT_AND_STEEL, 1)), e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 4)));
+            e(3, () -> st(Items.TNT, 4)), e(2, () -> st(Items.FLINT_AND_STEEL, 1)), e(5, () -> st(Items.TORCH, 12)), e(6, () -> st(Items.WIND_CHARGE, 6 + rnd.nextInt(7))),
+            e(6, () -> lotm("lotm:luckbottleitem", 1 + rnd.nextInt(2))), e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 4)));
 
     private static ItemStack pick(List<Entry> table) {
         int total = 0;
@@ -288,8 +330,10 @@ public final class HungerGames {
             return;
         }
         int n = in.size();
+        order.clear(); kills.clear(); names.clear(); out.clear();
         for (int i = 0; i < n; i++) {
             ServerPlayer p = in.get(i);
+            order.add(p.getUUID()); names.put(p.getUUID(), p.getGameProfile().getName());
             saved.put(p.getUUID(), snapshot(p));
             players.add(p.getUUID());
             alive.add(p.getUUID());
@@ -304,15 +348,16 @@ public final class HungerGames {
             p.experienceProgress = 0f; p.totalExperience = 0;
             p.connection.send(new ClientboundSetExperiencePacket(0f, 0, 0));
             applySeq(p);
-            double[] spot = ringSpot(lv, i, n);
-            double dx = -spot[0], dz = -spot[2];
-            float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+            double ang = Math.PI * 2 * i / n, cr = Math.max(3.5, n * 0.9);   // everyone starts in a circle in the middle, facing the others
+            double cx = 0.5 + Math.cos(ang) * cr, cz = 0.5 + Math.sin(ang) * cr;
+            float yaw = (float) Math.toDegrees(Math.atan2(cx - 0.5, -(cz - 0.5)));
             p.setGameMode(GameType.SURVIVAL);
-            p.teleportTo(lv, spot[0], spot[1], spot[2], yaw, 0f);
+            lv.getChunk((int) cx >> 4, (int) cz >> 4);
+            p.teleportTo(lv, cx, groundY, cz, yaw, 0f);
             p.setInvulnerable(true);
             p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, COUNTDOWN_TICKS + 20, 7, false, false, false));
             p.addEffect(new MobEffectInstance(MobEffects.JUMP, COUNTDOWN_TICKS + 20, 128, false, false, false));
-            p.sendSystemMessage(Component.literal("You are in the arena. The games begin in 10 seconds. Chests are all over the arena; the middle has the most.").withStyle(ChatFormatting.GOLD));
+            p.sendSystemMessage(Component.literal("You are in the arena. Look at who you are up against: in 15 seconds everyone is sent to the edge of the arena and the games begin. Chests are all over, the middle has the most, and the arena will close in on the middle.").withStyle(ChatFormatting.GOLD));
         }
         phase = Phase.COUNTDOWN;
         phaseEnd = s.getTickCount() + COUNTDOWN_TICKS;
@@ -322,7 +367,7 @@ public final class HungerGames {
     private static Saved snapshot(ServerPlayer p) {
         return new Saved(p.level().dimension(), p.getX(), p.getY(), p.getZ(), p.getYRot(), p.getXRot(), p.gameMode.getGameModeForPlayer(),
                 p.getInventory().save(new ListTag()), p.getHealth(), p.getFoodData().getFoodLevel(), p.getFoodData().getSaturationLevel(),
-                p.experienceLevel, p.experienceProgress, p.totalExperience, Lotm.sequence(p), saveCurios(p));
+                p.experienceLevel, p.experienceProgress, p.totalExperience, Lotm.sequence(p), saveCurios(p), attachmentsOf(p));
     }
 
     /** Curios slots (rings, charms, etc.) by reflection, so Curios stays optional. Null when Curios is not installed. */
@@ -375,6 +420,28 @@ public final class HungerGames {
         }
     }
 
+    /** Everything a mod keeps on the player outside the inventory (LOTM's enslaved spirits, grazed souls, virtual personas ...): the attachments. Curios keeps its own. */
+    private static CompoundTag attachmentsOf(ServerPlayer p) {
+        CompoundTag all = p.saveWithoutId(new CompoundTag());
+        CompoundTag at = all.contains("neoforge:attachments", 10) ? all.getCompound("neoforge:attachments").copy() : new CompoundTag();
+        for (String k : new ArrayList<>(at.getAllKeys())) if (k.startsWith("curios:")) at.remove(k);
+        return at;
+    }
+
+    private static void restoreAttachments(ServerPlayer p, CompoundTag at) {
+        if (at == null || at.isEmpty()) return;
+        CompoundTag wrap = new CompoundTag();
+        wrap.put("neoforge:attachments", at.copy());
+        for (Class<?> c = p.getClass(); c != null; c = c.getSuperclass()) {
+            for (java.lang.reflect.Method m : c.getDeclaredMethods()) {
+                if (!m.getName().equals("deserializeAttachments") || m.getParameterCount() != 2) continue;
+                try { m.setAccessible(true); m.invoke(p, p.registryAccess(), wrap); return; }
+                catch (Throwable t) { LOGGER.warn("[hungergames] could not restore attachments: {}", t.toString()); return; }
+            }
+        }
+        LOGGER.warn("[hungergames] no way found to restore attachments");
+    }
+
     private static void applySeq(ServerPlayer p) {
         int cur = Lotm.sequence(p);
         if (cur < 0) return;   // not a Beyonder: nothing to change
@@ -399,6 +466,17 @@ public final class HungerGames {
 
     private static void go(MinecraftServer s) {
         phase = Phase.RUNNING;
+        startTick = s.getTickCount();
+        ServerLevel lv = s.getLevel(Cosmos.key("cosmos"));
+        int n = order.size();
+        for (int i = 0; i < n; i++) {   // the circle breaks: everyone to their place along the edge
+            ServerPlayer p = s.getPlayerList().getPlayer(order.get(i));
+            if (p == null || lv == null) continue;
+            double[] spot = ringSpot(lv, i, n);
+            float yaw = (float) Math.toDegrees(Math.atan2(spot[0], -spot[2]));
+            p.teleportTo(lv, spot[0], spot[1], spot[2], yaw, 0f);
+        }
+        if (lv != null) spawnMobs(lv);
         for (ServerPlayer p : onlinePlayers(s)) {
             p.setInvulnerable(false);
             p.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
@@ -408,9 +486,158 @@ public final class HungerGames {
         }
     }
 
+    // ------------------------------------------------------------------ wild things
+
+    private static void spawnMobs(ServerLevel lv) {
+        spawnSome(lv, EntityType.PIG, 12); spawnSome(lv, EntityType.COW, 10); spawnSome(lv, EntityType.CHICKEN, 12);
+        for (String id : new String[]{"lotm:fire_spirit", "lotm:frost_spirit", "lotm:earth_spirit"}) {
+            var t = BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.parse(id));
+            t.ifPresent(type -> spawnSome(lv, type, 5));
+        }
+        BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.parse("lotm:spirit_eater")).ifPresent(type -> spawnSome(lv, type, 3));
+    }
+
+    private static void spawnSome(ServerLevel lv, EntityType<?> type, int count) {
+        int done = 0;
+        for (int tries = 0; tries < count * 12 && done < count; tries++) {
+            double a = rnd.nextDouble() * Math.PI * 2, r = 30 + Math.sqrt(rnd.nextDouble()) * (PlanetGenerator.PLAT_R - 50);
+            BlockPos at = surface(lv, (int) Math.round(Math.cos(a) * r), (int) Math.round(Math.sin(a) * r));
+            if (at == null) continue;
+            try {
+                Entity en = type.spawn(lv, at, MobSpawnType.EVENT);
+                if (en == null) continue;
+                en.addTag(MOB_TAG);
+                if (en instanceof Mob m) m.setPersistenceRequired();
+                done++;
+            } catch (Throwable t) {
+                LOGGER.warn("[hungergames] could not spawn {}: {}", type, t.toString());
+                return;
+            }
+        }
+    }
+
+    private static void clearMobs(ServerLevel lv) {
+        for (Entity en : lv.getAllEntities()) if (en.getTags().contains(MOB_TAG)) en.discard();
+    }
+
+    /** The radius of the safe zone now. */
+    private static double zoneRadius(long now) {
+        long el = now - startTick;
+        double r0 = PlanetGenerator.PLAT_R - 10;
+        if (el <= ZONE_WAIT) return r0;
+        double t = Math.min(1.0, (double) (el - ZONE_WAIT) / ZONE_SHRINK);
+        return r0 + (ZONE_END_R - r0) * t;
+    }
+
+    // ------------------------------------------------------------------ the leaderboard
+
+    private static File boardFile(MinecraftServer s) { return s.getWorldPath(LevelResource.ROOT).resolve("astral_hungergames.dat").toFile(); }
+
+    private static void saveBoard(MinecraftServer s) {
+        try {
+            CompoundTag root = new CompoundTag();
+            net.minecraft.nbt.ListTag res = new net.minecraft.nbt.ListTag();
+            for (Result r : lastResults) { CompoundTag c = new CompoundTag(); c.putString("n", r.name()); c.putInt("k", r.kills()); c.putInt("p", r.place()); res.add(c); }
+            root.put("results", res);
+            net.minecraft.nbt.ListTag bs = new net.minecraft.nbt.ListTag();
+            for (List<BoardPos> b : boards) {
+                net.minecraft.nbt.ListTag one = new net.minecraft.nbt.ListTag();
+                for (BoardPos bp : b) { CompoundTag c = new CompoundTag(); c.putString("d", bp.dim()); c.putLong("p", bp.pos()); one.add(c); }
+                CompoundTag w = new CompoundTag(); w.put("signs", one); bs.add(w);
+            }
+            root.put("boards", bs);
+            NbtIo.writeCompressed(root, boardFile(s).toPath());
+        } catch (Throwable t) { LOGGER.warn("[hungergames] could not save the leaderboard: {}", t.toString()); }
+    }
+
+    @SubscribeEvent
+    public static void onServerStarted(ServerStartedEvent event) {
+        File f = boardFile(event.getServer());
+        if (!f.exists()) return;
+        try {
+            CompoundTag root = NbtIo.readCompressed(f.toPath(), net.minecraft.nbt.NbtAccounter.unlimitedHeap());
+            lastResults.clear(); boards.clear();
+            net.minecraft.nbt.ListTag res = root.getList("results", Tag.TAG_COMPOUND);
+            for (int i = 0; i < res.size(); i++) { CompoundTag c = res.getCompound(i); lastResults.add(new Result(c.getString("n"), c.getInt("k"), c.getInt("p"))); }
+            net.minecraft.nbt.ListTag bs = root.getList("boards", Tag.TAG_COMPOUND);
+            for (int i = 0; i < bs.size(); i++) {
+                net.minecraft.nbt.ListTag one = bs.getCompound(i).getList("signs", Tag.TAG_COMPOUND);
+                List<BoardPos> b = new ArrayList<>();
+                for (int j = 0; j < one.size(); j++) b.add(new BoardPos(one.getCompound(j).getString("d"), one.getCompound(j).getLong("p")));
+                boards.add(b);
+            }
+        } catch (Throwable t) { LOGGER.warn("[hungergames] could not read the leaderboard: {}", t.toString()); }
+    }
+
+    /** A row of signs in front of the player: a title and the first seven places of the last game. Kept up to date after every game. */
+    private static int placeBoard(ServerPlayer p) {
+        ServerLevel lv = p.serverLevel();
+        Direction facing = p.getDirection(), right = facing.getClockWise();
+        int rot = Mth.floor((p.getYRot() + 180f) * 16f / 360f + 0.5f) & 15;
+        BlockPos origin = p.blockPosition().relative(facing, 3);
+        int count = 8;
+        List<BoardPos> row = new ArrayList<>();
+        String dim = lv.dimension().location().toString();
+        for (int i = 0; i < count; i++) {
+            BlockPos pos = origin.relative(right, i - count / 2);
+            lv.setBlock(pos.below(), Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState(), 3);
+            lv.setBlock(pos, Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, rot), 3);
+            row.add(new BoardPos(dim, pos.asLong()));
+        }
+        boards.add(row);
+        saveBoard(p.server);
+        updateBoards(p.server);
+        p.sendSystemMessage(Component.literal("Leaderboard placed. It shows the last hunger games and updates after every game.").withStyle(ChatFormatting.GREEN));
+        return 1;
+    }
+
+    private static void updateBoards(MinecraftServer s) {
+        for (List<BoardPos> b : boards) {
+            for (int i = 0; i < b.size(); i++) {
+                BoardPos bp = b.get(i);
+                ServerLevel lv = s.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(bp.dim())));
+                if (lv == null) continue;
+                BlockPos pos = BlockPos.of(bp.pos());
+                if (!lv.isLoaded(pos) || !(lv.getBlockEntity(pos) instanceof SignBlockEntity sb)) continue;
+                SignText t = new SignText().setColor(DyeColor.BLACK);
+                if (i == 0) {
+                    t = t.setMessage(0, Component.literal("LAST GAME").withStyle(ChatFormatting.BOLD)).setMessage(1, Component.literal("Hunger Games")).setMessage(2, Component.literal(lastResults.isEmpty() ? "no games yet" : lastResults.size() + " players"));
+                } else if (i - 1 < lastResults.size()) {
+                    Result r = lastResults.get(i - 1);
+                    t = t.setMessage(0, Component.literal("#" + r.place()).withStyle(r.place() == 1 ? ChatFormatting.GOLD : ChatFormatting.DARK_GRAY, ChatFormatting.BOLD))
+                         .setMessage(1, Component.literal(r.name())).setMessage(2, Component.literal("Kills: " + r.kills()));
+                }
+                sb.setText(t, true);
+                sb.setWaxed(true);
+                sb.setChanged();
+                lv.sendBlockUpdated(pos, sb.getBlockState(), sb.getBlockState(), 3);
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ during the games
 
     private static void running(MinecraftServer s, ServerLevel lv) {
+        long now = s.getTickCount();
+        double zr = zoneRadius(now);
+        long el = now - startTick;
+        for (UUID u : new ArrayList<>(alive)) {
+            ServerPlayer zp = s.getPlayerList().getPlayer(u);
+            if (zp == null || zp.level() != lv) continue;
+            double zd = Math.hypot(zp.getX(), zp.getZ());
+            double ang = Math.atan2(zp.getZ(), zp.getX());
+            for (int k = -12; k <= 12; k++) {   // the wall of the zone, drawn near each player
+                double a = ang + k * (3.0 / Math.max(zr, 20));
+                for (int h = 0; h < 3; h++) lv.sendParticles(zp, ParticleTypes.SOUL_FIRE_FLAME, false, Math.cos(a) * zr, groundY + 0.5 + h * 1.5, Math.sin(a) * zr, 1, 0, 0.3, 0, 0);
+            }
+            if (zd > zr) {
+                float dmg = 1.5f + (float) Math.min(6.0, (zd - zr) / 40.0) + (float) Math.max(0, (el - ZONE_WAIT - ZONE_SHRINK) / 1200.0);   // worse the further out, and worse still once it has fully closed
+                zp.hurt(lv.damageSources().genericKill(), dmg);
+                zp.displayClientMessage(Component.literal("The arena is closing: get inside the circle! (" + (int) zr + " blocks)").withStyle(ChatFormatting.RED), true);
+            } else if (el > ZONE_WAIT - 20 * 20) {
+                zp.displayClientMessage(Component.literal(el < ZONE_WAIT ? "The arena starts closing in " + (ZONE_WAIT - el) / 20 + "s" : "Safe zone: " + (int) zr + " blocks").withStyle(ChatFormatting.GRAY), true);
+            }
+        }
         for (UUID u : new ArrayList<>(alive)) {
             ServerPlayer p = s.getPlayerList().getPlayer(u);
             if (p == null) { eliminate(s, u, null, "left the games"); continue; }
@@ -436,6 +663,17 @@ public final class HungerGames {
             if (w != null) title(w, ChatFormatting.GOLD, "VICTORY", "You are the last one standing");
         } else msg = "Nobody is left standing. No winner.";
         for (ServerPlayer p : s.getPlayerList().getPlayers()) p.sendSystemMessage(Component.literal(msg).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        lastResults.clear();
+        List<UUID> rank = new ArrayList<>(alive);
+        for (int i = out.size() - 1; i >= 0; i--) rank.add(out.get(i));
+        for (int i = 0; i < rank.size(); i++) lastResults.add(new Result(names.getOrDefault(rank.get(i), "?"), kills.getOrDefault(rank.get(i), 0), i + 1));
+        saveBoard(s);
+        updateBoards(s);
+        for (ServerPlayer p : s.getPlayerList().getPlayers()) {
+            if (!players.contains(p.getUUID())) continue;
+            p.sendSystemMessage(Component.literal("Results:").withStyle(ChatFormatting.GOLD));
+            for (Result r : lastResults) p.sendSystemMessage(Component.literal("  #" + r.place() + "  " + r.name() + "  -  " + r.kills() + " kill" + (r.kills() == 1 ? "" : "s")).withStyle(r.place() == 1 ? ChatFormatting.YELLOW : ChatFormatting.GRAY));
+        }
         phase = Phase.ENDING;
         phaseEnd = s.getTickCount() + 20 * 12;   // twelve seconds to celebrate, then everybody goes home
         for (ServerPlayer p : onlinePlayers(s)) p.sendSystemMessage(Component.literal("Everyone goes back in 12 seconds.").withStyle(ChatFormatting.GRAY));
@@ -443,6 +681,8 @@ public final class HungerGames {
 
     private static void eliminate(MinecraftServer s, UUID u, ServerPlayer killer, String how) {
         if (!alive.remove(u)) return;
+        out.add(u);
+        if (killer != null) kills.merge(killer.getUUID(), 1, Integer::sum);
         ServerPlayer p = s.getPlayerList().getPlayer(u);
         String name = p != null ? p.getGameProfile().getName() : u.toString().substring(0, 8);
         if (p != null) {
@@ -500,6 +740,7 @@ public final class HungerGames {
         p.experienceProgress = sv.xpProg(); p.totalExperience = sv.xpTotal();
         p.connection.send(new ClientboundSetExperiencePacket(sv.xpProg(), sv.xpTotal(), sv.xpLevel()));
         if (sv.seq() >= 0 && Lotm.sequence(p) != sv.seq()) Lotm.setSequence(p, sv.seq());
+        restoreAttachments(p, sv.attach());   // enslaved spirits, grazed souls, personas ... everything that was not in the inventory
         ServerLevel to = p.server.getLevel(sv.dim());
         if (to != null) p.teleportTo(to, sv.x(), sv.y(), sv.z(), sv.yaw(), sv.pitch());
         p.inventoryMenu.broadcastChanges();
@@ -512,6 +753,7 @@ public final class HungerGames {
         }
         chests.clear();
         for (Entity en : lv.getAllEntities()) if (en instanceof ItemEntity) en.discard();
+        clearMobs(lv);
     }
 
     private static void finish(MinecraftServer s, String why) {

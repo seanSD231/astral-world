@@ -12,6 +12,8 @@ final class OsuHooks {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         mc.setScreen(switch (game) {
             case 2 -> new ThreadScreen(seed, count, ticks);
+            case 3 -> new ParryScreen(seed, ticks);
+            case 4 -> new OsuScreen(seed, count, ticks, true);
             default -> new OsuScreen(seed, count, ticks);
         });
     }

@@ -12,45 +12,52 @@ import net.neoforged.neoforge.network.PacketDistributor;
  * The layout comes from the seed the server sent. When the time is up the result is sent back and the screen closes.
  */
 public final class OsuScreen extends Screen {
-    private static final int APPROACH = 24;      // ticks a ring takes to close
-    private static final int WINDOW = 8;         // ticks either side of the moment it closes in which a click counts
     private final int total, duration;
     private final double[] px, py;
     private final int[] at;
     private final boolean[] hit, done, slider, active;
     private final double[] qx, qy;
     private final float[] track;
-    private static final int SLIDE = 22;   // ticks a slider is followed
+    private final int approach, window, slide;   // ticks a ring takes to close, the click window either side, how long a slider is followed
+    private final boolean hard;                  // the mind assault: more shapes, curved sliders, faster rings
+    private final int origCount;                 // what the server asked for: results are reported against it
+    private final boolean[] curved;
+    private final double[] cxs, cys;
     private boolean mouseDown = false;
     private double lmx, lmy;
     private int tick = 0, hits = 0;
     private boolean sent = false;
 
-    public OsuScreen(int seed, int count, int ticks) {
-        super(Component.literal("Desire"));
-        this.total = fit(count, ticks);   // fewer shapes now that there are sliders, and room after each slider
+    public OsuScreen(int seed, int count, int ticks) { this(seed, count, ticks, false); }
+
+    public OsuScreen(int seed, int count, int ticks, boolean hard) {
+        super(Component.literal(hard ? "Cogitation" : "Desire"));
+        this.hard = hard; this.origCount = count;
+        this.approach = hard ? 18 : 24; this.window = hard ? 6 : 8; this.slide = hard ? 20 : 22;
+        this.total = hard ? count : fit(count, ticks, approach, window, slide);   // fewer shapes now that there are sliders, and room after each slider
         this.duration = ticks;
         java.util.Random r = new java.util.Random(seed);
         int count0 = count; count = total;
         px = new double[count]; py = new double[count]; at = new int[count]; hit = new boolean[count]; done = new boolean[count];
+        curved = new boolean[count]; cxs = new double[count]; cys = new double[count];
         slider = new boolean[count]; active = new boolean[count]; qx = new double[count]; qy = new double[count]; track = new float[count];
-        int span = ticks - APPROACH - WINDOW - 12 - SLIDE - 14;
-        int nSl = count / 4;
-        double base0 = Math.max(12, (span - nSl * (SLIDE + 14)) / (double) count), tt = APPROACH + 6;
+        int span = ticks - approach - window - 12 - slide - 14;
+        int every = hard ? 3 : 4, nSl = count / every;
+        double base0 = Math.max(hard ? 9 : 12, (span - nSl * (slide + (hard ? 8 : 14))) / (double) count), tt = approach + 6;
         java.util.List<double[]> occ = new java.util.ArrayList<>();   // {x, y, until tick}: shapes still on screen
         for (int i = 0; i < count; i++) {
             at[i] = (int) Math.round(tt);
-            tt += base0 + (i % 4 == 3 ? SLIDE + 14 : 0) + r.nextDouble() * 3;   // after a slider the next shape comes later: you cannot click while still following it
+            tt += base0 + (i % every == every - 1 ? slide + (hard ? 8 : 14) : 0) + r.nextDouble() * 3;   // after a slider the next shape comes later: you cannot click while still following it
             double bx = 0.5, by = 0.5;
             for (int tries = 0; tries < 60; tries++) {
                 bx = 0.12 + r.nextDouble() * 0.76; by = 0.15 + r.nextDouble() * 0.7;
                 boolean ok = true;
-                for (double[] o : occ) if (o[2] > at[i] - APPROACH - 6 && Math.hypot((bx - o[0]) * 1.8, by - o[1]) < 0.26) { ok = false; break; }
+                for (double[] o : occ) if (o[2] > at[i] - approach - 6 && Math.hypot((bx - o[0]) * 1.8, by - o[1]) < 0.26) { ok = false; break; }
                 if (ok) break;
             }
             px[i] = bx; py[i] = by;
             occ.add(new double[]{bx, by, at[i]});
-            if (i % 4 == 3) {   // every fourth is a slider: hold and follow the ball to the other end
+            if (i % every == every - 1) {   // every fourth (third when hard) is a slider: hold and follow the ball to the other end
                 slider[i] = true;
                 double ax = bx, ay = by;
                 for (int tries = 0; tries < 30; tries++) {
@@ -59,14 +66,15 @@ public final class OsuScreen extends Screen {
                     if (ax > 0.1 && ax < 0.9 && ay > 0.15 && ay < 0.85) break;
                 }
                 qx[i] = Math.max(0.1, Math.min(0.9, ax)); qy[i] = Math.max(0.15, Math.min(0.85, ay));
-                occ.add(new double[]{qx[i], qy[i], at[i] + SLIDE});
+                if (hard && r.nextInt(3) > 0) { curved[i] = true; cxs[i] = Math.max(0.05, Math.min(0.95, (bx + qx[i]) / 2 + (r.nextDouble() - 0.5) * 0.3)); cys[i] = Math.max(0.1, Math.min(0.9, (by + qy[i]) / 2 + (r.nextDouble() - 0.5) * 0.4)); }
+                occ.add(new double[]{qx[i], qy[i], at[i] + slide});
             }
         }
     }
 
-    private static int fit(int count, int ticks) {
-        int n = Math.max(3, count * 3 / 4), span = ticks - APPROACH - WINDOW - 12 - SLIDE - 14;
-        while (n > 3 && (span - (n / 4) * (SLIDE + 14)) / (double) n < 16) n--;
+    private static int fit(int count, int ticks, int approach, int window, int slide) {
+        int n = Math.max(3, count * 3 / 4), span = ticks - approach - window - 12 - slide - 14;
+        while (n > 3 && (span - (n / 4) * (slide + 14)) / (double) n < 16) n--;
         return n;
     }
 
@@ -76,16 +84,16 @@ public final class OsuScreen extends Screen {
     @Override
     public void tick() {
         tick++;
-        for (int i = 0; i < total; i++) if (!done[i] && tick > at[i] + WINDOW) done[i] = true;   // too late: a miss
+        for (int i = 0; i < total; i++) if (!done[i] && tick > at[i] + window) done[i] = true;   // too late: a miss
         for (int i = 0; i < total; i++) {
             if (!active[i]) continue;
             double[] b = ball(i, tick);
             if (mouseDown && Math.hypot(lmx - b[0], lmy - b[1]) <= 56) track[i]++;
-            if (tick >= at[i] + SLIDE) { active[i] = false; if (track[i] >= SLIDE * 0.5f) hits++; }
+            if (tick >= at[i] + slide) { active[i] = false; if (track[i] >= slide * 0.5f) hits++; }
         }
         if (tick >= duration && !sent) {
             sent = true;
-            PacketDistributor.sendToServer(new Net.OsuResult(hits, total));
+            PacketDistributor.sendToServer(new Net.OsuResult(total == 0 ? 0 : (int) Math.round(hits * (double) origCount / total), origCount));   // reported against the count the server asked for
             onClose();
         }
     }
@@ -95,10 +103,10 @@ public final class OsuScreen extends Screen {
         double rad = 30;
         if (button == 0) { mouseDown = true; lmx = mx; lmy = my; }
         for (int i = 0; i < total; i++) {
-            if (done[i] || tick < at[i] - APPROACH) continue;
+            if (done[i] || tick < at[i] - approach) continue;
             double cx = px[i] * width, cy = py[i] * height;
             if (Math.hypot(mx - cx, my - cy) > rad) continue;
-            if (Math.abs(tick - at[i]) <= WINDOW) {
+            if (Math.abs(tick - at[i]) <= window) {
                 hit[i] = true; done[i] = true;
                 if (slider[i]) active[i] = true; else hits++;
                 Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(SoundEvents.AMETHYST_BLOCK_CHIME, 1.2f + 0.02f * hits, 1f));
@@ -111,16 +119,21 @@ public final class OsuScreen extends Screen {
     @Override
     public boolean mouseReleased(double mx, double my, int button) { if (button == 0) mouseDown = false; return super.mouseReleased(mx, my, button); }
 
-    private double[] ball(int i, double t) {
-        double f = Math.max(0, Math.min(1, (t - at[i]) / SLIDE));
-        return new double[]{(px[i] + (qx[i] - px[i]) * f) * width, (py[i] + (qy[i] - py[i]) * f) * height};
+    /** Position of slider i at fraction f of its length, in pixels (a curve through its bend point when it has one). */
+    private double[] along(int i, double f) {
+        double u = 1 - f;
+        double x = curved[i] ? u * u * px[i] + 2 * u * f * cxs[i] + f * f * qx[i] : px[i] + (qx[i] - px[i]) * f;
+        double y = curved[i] ? u * u * py[i] + 2 * u * f * cys[i] + f * f * qy[i] : py[i] + (qy[i] - py[i]) * f;
+        return new double[]{x * width, y * height};
     }
 
+    private double[] ball(int i, double t) { return along(i, Math.max(0, Math.min(1, (t - at[i]) / slide))); }
+
     private void body(GuiGraphics g, int i, int alpha) {
-        double x0 = px[i] * width, y0 = py[i] * height, x1 = qx[i] * width, y1 = qy[i] * height;
-        int steps = Math.max(2, (int) (Math.hypot(x1 - x0, y1 - y0) / 6));
-        for (int k = 0; k <= steps; k++) { double f = k / (double) steps; disc(g, (int) (x0 + (x1 - x0) * f), (int) (y0 + (y1 - y0) * f), 22, (alpha / 2 << 24) | OsuClient.colours()[3]); }
-        ring(g, (int) x1, (int) y1, 22, (alpha << 24) | OsuClient.colours()[2]);
+        int steps = 36;
+        for (int k = 0; k <= steps; k++) { double[] q = along(i, k / (double) steps); disc(g, (int) q[0], (int) q[1], 22, (alpha / 2 << 24) | OsuClient.colours()[3]); }
+        double[] e = along(i, 1);
+        ring(g, (int) e[0], (int) e[1], 22, (alpha << 24) | OsuClient.colours()[2]);
     }
 
     private static void disc(GuiGraphics g, int cx, int cy, int r, int argb) {
@@ -153,7 +166,7 @@ public final class OsuScreen extends Screen {
                 disc(g, (int) b[0], (int) b[1], 18, 0xFFFFC040);
                 continue;
             }
-            double since = t - (at[i] - APPROACH);
+            double since = t - (at[i] - approach);
             if (since < 0) continue;
             int cx = (int) (px[i] * width), cy = (int) (py[i] * height);
             if (hit[i]) {
@@ -166,7 +179,7 @@ public final class OsuScreen extends Screen {
             int[] tc = OsuClient.colours();
             disc(g, cx, cy, 30, (alpha * 3 / 4 << 24) | tc[0]);
             disc(g, cx, cy, 24, (alpha * 3 / 4 << 24) | tc[1]);
-            double k = Math.max(0, 1 - since / APPROACH);
+            double k = Math.max(0, 1 - since / approach);
             ring(g, cx, cy, 30 + (int) (k * 70), (alpha << 24) | tc[2]);
             g.drawCenteredString(font, String.valueOf(i + 1), cx, cy - 4, 0xFFFFFF);
         }

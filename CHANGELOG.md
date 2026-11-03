@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.75
+- **Mind attack:** a new, harder osu attack (the tree tries to break your mind; curved sliders, tighter timing) that comes up far more often, and Desire's call now uses the hard version too. Fixed a bug where a shrunken boss game could never count as passed.
+- **Parry attack:** the tree gathers its power and explodes. A bar appears (Undertale style): hit the middle for no damage, near it for less, miss and it is devastating.
+- **Tyrant:** a Tyrant's storms and summons now do 40% less, and bolts, storms and summons from a fighter who is down or spectating no longer hurt the tree.
+- **Curse attack:** the animation now draws the branches in slowly, snaps out at the strike, then relaxes (it was a constant shudder).
+- **Hunger games:** wild pigs, cows, chickens, fire/frost/earth spirits and spirit eaters roam the arena; chests can hold torches, wind charges and bottles of luck; the arena closes in on the middle (damage outside the circle, fully closed after about 12 minutes); everyone starts in a circle in the middle for 15 seconds, then is sent to the edge; kills and placements are tracked and listed at the end; **`/hungergames board`** (ops) places a row of signs that always shows the last game's placements and kills; LOTM data outside the inventory (enslaved spirits, grazed souls, personas) is put back when you leave.
+
 ## 0.2.74
 - **`/astralend revive <player>`** (ops): puts a fallen or kicked fighter back into the raid with full lives, in survival, at the edge of the arena.
 

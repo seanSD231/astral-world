@@ -68,7 +68,8 @@ final class TreeAnim {
             case 5 -> v = 0.12 * Math.sin(s * 0.9 + k * 0.8) * env;
             case 6 -> v = s < 3.6 ? 0.3 * smooth(s / 3.4) + 0.06 * Math.sin(s * 24 + k) * smooth(s / 3.4)
                     : s < 3.9 ? lerp(0.3, -0.25, (s - 3.6) / 0.3) : -0.25 * (1 - smooth((s - 3.9) / 0.9));
-            case 7 -> v = 0.1 * env + 0.04 * Math.sin(s * 30 + k) * env;
+            case 7 -> v = s < 3.0 ? -0.22 * smooth(s / 2.9) + 0.012 * Math.sin(s * 9 + k) * smooth(s / 2.9)   // the branches slowly draw in and tighten...
+                    : s < 3.25 ? lerp(-0.22, 0.42, (s - 3.0) / 0.25) : 0.42 * (1 - smooth((s - 3.25) / 1.1));   // ...then snap out, and ease back
             case 8 -> v = 0.09 * Math.sin(s * 1.3 + k * 0.9) * env;
             case 9 -> v = picked(k) ? 0.25 * env + 0.04 * Math.sin(s * 10) * env : 0.03 * Math.sin(s * 2 + k) * env;
             case 10 -> v = 0.08 * Math.sin(s * 16 + k * 2.1) * Math.max(0, 1 - s / 3.6) * smooth(s / 0.3);
@@ -83,7 +84,7 @@ final class TreeAnim {
         return switch (a) {
             case 2 -> 0.06 * Math.sin(s * 3 + k) * env;
             case 5 -> 0.1 * Math.sin(s * 0.6 + k) * env;
-            case 7 -> 0.12 * Math.sin(s * 1.1 + k * 0.5) * env;
+            case 7 -> s < 3.0 ? 0.05 * Math.sin(s * 1.1 + k * 0.5) * smooth(s / 2.0) : 0.05 * Math.sin(s * 1.1 + k * 0.5) * (1 - smooth((s - 3.25) / 1.1));
             case 9 -> picked(k) ? 0.1 * Math.sin(s * 2) * env : 0;
             default -> 0;
         };
@@ -98,7 +99,7 @@ final class TreeAnim {
             case 4 -> sy = s < 6.8 ? 1 - 0.02 * smooth(s / 6.6) : 1 + 0.03 * Math.exp(-Math.pow((s - 6.95) / 0.3, 2));
             case 5 -> tiltZ += 0.025 * Math.sin(s * 0.8) * env;
             case 6, 20 -> { tiltX = 0.006 * Math.sin(s * 25) * env; tiltZ += 0.006 * Math.cos(s * 23) * env; }
-            case 7 -> { tiltX = 0.008 * Math.sin(s * 34) * env; }
+            case 7 -> { sy = s < 3.0 ? 1 - 0.03 * smooth(s / 2.9) : 1 + 0.035 * Math.exp(-Math.pow((s - 3.3) / 0.3, 2)) - 0.03 * (1 - smooth((s - 3.0) / 0.4)) * (s < 3.4 ? 1 : 0); }
             default -> { }
         }
         rot(m, o, 0, 0, 1, tiltZ);
@@ -114,7 +115,7 @@ final class TreeAnim {
             case 3 -> heave = -1.5 * Math.exp(-Math.pow((s - 2.1) / 0.2, 2));
             case 4 -> heave = s < 6.8 ? 0.4 * Math.sin(s * 9) * env : 1.8 * Math.exp(-Math.pow((s - 7.0) / 0.3, 2));
             case 6 -> heave = 0.35 * Math.sin(s * 28) * env;
-            case 7 -> heave = 0.25 * Math.sin(s * 31) * env;
+            case 7 -> heave = s < 3.0 ? -0.3 * smooth(s / 2.9) : 1.2 * Math.exp(-Math.pow((s - 3.2) / 0.35, 2));
             case 20 -> { sc = 1 - 0.03 * env; heave = 0.4 * Math.sin(s * 22) * env; }
             default -> { }
         }
