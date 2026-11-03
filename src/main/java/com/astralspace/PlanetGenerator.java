@@ -281,9 +281,94 @@ public final class PlanetGenerator extends ChunkGenerator {
         return CompletableFuture.completedFuture(chunk);
     }
 
+
+    // ------------------------------------------------------------------ the ruined church around the tree
+
+    static final int NAVE_X = 110, NAVE_Z0 = -60, NAVE_Z1 = 230, TR_X = 175, TR_Z0 = -30, TR_Z1 = 50, APSE_R = 110;
+
+    /** Inside the outline of the church (a nave with its door in the south, an apse in the north and a transept across), `k` blocks in from the outer wall. */
+    public static boolean churchInside(double x, double z, int k) {
+        if (Math.abs(x) <= NAVE_X - k && z >= NAVE_Z0 && z <= NAVE_Z1 - k) return true;
+        if (z < NAVE_Z0 && Math.hypot(x, z - NAVE_Z0) <= APSE_R - k) return true;
+        return Math.abs(x) <= TR_X - k && z >= TR_Z0 + k && z <= TR_Z1 - k;
+    }
+
+    private static Block ruinBlock(int x, int y, int z) {
+        double b = hash(x * 3 + y, z, 13);
+        return b < 0.40 ? Blocks.STONE_BRICKS : b < 0.68 ? Blocks.MOSSY_STONE_BRICKS : b < 0.88 ? Blocks.CRACKED_STONE_BRICKS : b < 0.95 ? Blocks.COBBLESTONE : Blocks.MOSSY_COBBLESTONE;
+    }
+
+    /** How tall the wall still stands here: stretches are whole, most is broken down to a few blocks. */
+    private static int wallHeight(int x, int z) {
+        double base = 24 + 8 * vn(x / 45.0, z / 45.0, 71);
+        double keep = vn(x / 30.0 + 3, z / 30.0 - 7, 72), bro = vn(x / 5.0, z / 5.0, 73);
+        boolean front = z > 205;
+        double h = keep > (front ? 0.30 : 0.52) ? base * (0.85 + 0.15 * bro) : 2 + (base - 2) * Math.pow(bro, 1.6) * 0.7;
+        return (int) Math.max(1, Math.round(h));
+    }
+
+    private static boolean windowCut(double u, int y, int h) {
+        if (h < 9) return false;
+        double m = ((u % 16) + 16) % 16;
+        double half = y < 17 ? 2.5 : 2.5 - (y - 17) * 0.6;   // a pointed top
+        return y >= 7 && y <= 21 && Math.abs(m - 8) < half;
+    }
+
+    /** One column of the church: walls with pointed windows and a broken top, buttresses, two towers at the door, a row of pillars each side of the nave, pews and rubble. */
+    private static void churchColumn(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int z, int h) {
+        if (x < -190 || x > 190 || z < -175 || z > 245) return;
+        int top = 0;
+        boolean wall = churchInside(x, z, 0) && !churchInside(x, z, 4);
+        double u = Math.abs(x) >= 100 && z > -30 ? z : (z < NAVE_Z0 ? Math.atan2(z - NAVE_Z0, x) * APSE_R : x);
+        boolean portal = z >= 224 && Math.abs(x) <= 8;
+        if (wall && !portal) top = Math.max(top, wallHeight(x, z));
+        // the two towers either side of the door
+        int ax = Math.abs(x);
+        boolean tbox = ax >= 84 && ax <= 118 && z >= 203 && z <= 237, tin = ax >= 88 && ax <= 114 && z >= 207 && z <= 233;
+        boolean tower = tbox && !tin;
+        int tH = 0;
+        if (tower) { double b = vn(x / 6.0, z / 6.0, 74); tH = b < 0.35 ? 28 + (int) (b * 60) : 62 + (int) (vn(x / 20.0, z / 20.0, 75) * 12); top = Math.max(top, tH); }
+        // buttresses against the long walls
+        if (ax > 110 && ax <= 118 && z >= -36 && z <= 230) {
+            int k = Math.floorMod(z + 36 + 2, 24);
+            if (k <= 4) { int zc = z - (k - 2); double r = hash(zc, ax > 0 ? 1 : 2, 76); top = Math.max(top, (int) ((26 - (ax - 110) * 3) * (0.35 + 0.65 * r))); }
+        }
+        // pillars along the nave
+        for (int side = -1; side <= 1; side += 2) {
+            int sx = side * 58;
+            if (Math.abs(x - sx) <= 2) for (int k = 0; k < 7; k++) {
+                int pz = 72 + 24 * k;
+                if (Math.abs(z - pz) <= 2) { double r = hash(pz, sx, 5); int ph = r < 0.22 ? 24 : r < 0.7 ? 6 + (int) (hash(pz, sx, 6) * 12) : 1 + (int) (hash(pz, sx, 7) * 3); top = Math.max(top, ph); }
+            }
+        }
+        for (int y = 1; y <= top; y++) {
+            boolean cut = false;
+            if (wall && !portal && y <= wallHeight(x, z) && windowCut(u, y, wallHeight(x, z))) cut = true;
+            if (tower && ((u(x, z) % 9 + 9) % 9 == 4) && ((y >= 14 && y <= 20) || (y >= 36 && y <= 42))) cut = true;   // arrow slits
+            if (cut) continue;
+            chunk.setBlockState(pos.set(x, h + y, z), ruinBlock(x, y, z).defaultBlockState(), false);
+        }
+        // inside: pews and rubble (never near the tree, whose roots would swallow them)
+        if (top == 0 && churchInside(x, z, 6) && Math.hypot(x, z) > 62) {
+            if (z >= 90 && z <= 205 && Math.floorMod(z - 92, 9) == 0 && ((Math.abs(x) >= 12 && Math.abs(x) <= 26) || (Math.abs(x) >= 34 && Math.abs(x) <= 48)) && hash(Math.floorMod(z - 92, 1000) / 9 + 100, (x < 0 ? -1 : 1) * (Math.abs(x) / 30), 8) > 0.35)
+                chunk.setBlockState(pos.set(x, h + 1, z), Blocks.SPRUCE_SLAB.defaultBlockState(), false);
+            else {
+                int cx = Math.floorDiv(x, 6), cz = Math.floorDiv(z, 6);
+                if (hash(cx, cz, 9) < 0.10) {
+                    double d = Math.hypot(x - (cx * 6 + 3), z - (cz * 6 + 3));
+                    int rh = (int) Math.round(3.2 * (1 - d / 3.2) * (0.6 + 0.8 * hash(cx, cz, 10)));
+                    for (int y = 1; y <= rh; y++) chunk.setBlockState(pos.set(x, h + y, z), ruinBlock(x, y, z).defaultBlockState(), false);
+                }
+            }
+        }
+    }
+
+    private static int u(int x, int z) { return Math.abs(x) >= 100 && Math.abs(x) <= 118 && z >= 203 && z <= 237 ? (Math.abs(z - 220) > Math.abs(Math.abs(x) - 101) ? Math.abs(x) : z) : x + z; }
+
     /** The field: grass and flowers (the old ring of broken pillars at the edge is gone). The middle is clear (the tree stands there). */
     private static void decorateRaid(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int z, int h) {
         double rr = Math.hypot(x, z);
+        if (rr < 260) churchColumn(chunk, pos, x, z, h);
         if (rr >= PLAT_R - 4.5 && rr <= PLAT_R - 0.5 && !gateway(x, z)) {   // a two block wall round the rim, open at the four gateways
             chunk.setBlockState(pos.set(x, h + 1, z), brickMix(x + 3, z).defaultBlockState(), false);
             chunk.setBlockState(pos.set(x, h + 2, z), brickMix(x, z + 3).defaultBlockState(), false);

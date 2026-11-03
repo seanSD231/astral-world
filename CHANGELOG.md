@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.66
+- **The ruined church:** a huge, abandoned, half-collapsed church now stands around the tree (new raid worlds only): a nave with a door in the south, an apse in the north and a transept across, walls of mixed mossy, cracked and plain stone with pointed windows and broken tops, buttresses, two towers either side of the door, rows of pillars, broken pews and rubble. The tree grows in the middle of it. Walls are solid cover now (for the 15% meteor).
+- **Starting the fight:** everyone arrives in front of the church and is told to go inside. After 60 seconds anyone still outside is carried in. The opening camera scene starts once everyone is inside.
+- **Her death:** when she falls, the flesh melts: she sags and spreads, darkens, drips, and is gone, leaving a spreading puddle of blood that dries away into ash and smoke (about 15 seconds). Then the victory comes.
+- The raid logs a warning if the world border is smaller than the arena.
+
 ## 0.2.65
 - **Hitting the tree:** the invisible hitbox entities (the floating boxes in your screenshot) are gone. They only worked with the Pehkui mod and were capped to small boxes without it. Now your swing is checked against the whole tree model: trunk, roots, every branch and the leaf clusters, with 1.5 blocks of extra reach around every part. Swinging at any of them (from outside) hurts her. The old boxes are removed from existing worlds.
 - **Meteors:** drawn bigger and falling from much higher, so the rock is visible all the way down.

@@ -416,6 +416,7 @@ public final class EndGame {
 
     /** Removes the bosses and the raid; people in the arena go home when `sendHome` is set. */
     private static void clearRaidState(MinecraftServer server, boolean sendHome) {
+        gathering = false; deathAnimStarted = false; raidOver = false;
         AstralData d = AstralData.get(server);
         clearRootBoxes(dim(server, "raid"));
         for (ServerPlayer bp : server.getPlayerList().getPlayers()) removeBlessing(bp);
@@ -853,15 +854,46 @@ public final class EndGame {
         for (ServerPlayer p : all) {
             d.raidLives.put(p.getUUID(), LIVES);
             setGameMode(p, GameType.SURVIVAL);
-            double a = Math.PI * 2 * i / Math.max(1, all.size());
-            double sr = SPAWN_R - 15 + (i++ % 4) * 10;   // four rings, so a crowd is not stacked on one line
-            p.teleportTo(lv, 0.5 + Math.cos(a) * sr, groundY, 0.5 + Math.sin(a) * sr, p.getYRot(), 0f);
-            removeBlessing(p);
-            blessPlayer(p);
+            double x = ((i % 9) - 4) * 7.0, z = 262 + (i / 9) * 7.0;   // in front of the church, facing it
+            i++;
+            p.teleportTo(lv, 0.5 + x, groundY, z, 180f, 0f);
+            PacketDistributor.sendToPlayer(p, new Net.TreeScalePayload(1f));
         }
-        for (ServerPlayer p : all) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(23, INTRO_TICKS));   // the camera circles the tree first
+        treeScale = 1f;
+        gathering = true;
+        gatherEnd = gt + 1200;
+        var wb = lv.getWorldBorder();
+        if (wb.getSize() < ARENA_R * 2 + 40) LOGGER.warn("[astral] the world border ({} blocks wide) is smaller than the arena ({}): players will be stopped by it", (int) wb.getSize(), (int) (ARENA_R * 2));
+        for (ServerPlayer p : all) PacketDistributor.sendToPlayer(p, new Net.StagePayload("Go inside the church", 0x10080A, 0xFFB070, "in 60 seconds the rest are carried in"));
+        tellLevel(lv, "A ruined church stands before you. Go inside, everyone. In 60 seconds anyone still outside is carried in.", ChatFormatting.GOLD);
         // nothing in chat until the camera scene is over: everything said now is queued and sent when the scene ends
         introChat.add(() -> tellLevel(lv, "The World Tree has come. You have " + LIVES + " lives. Do not be where it strikes.", ChatFormatting.DARK_PURPLE));
+    }
+
+    private static boolean gathering = false;
+    private static long gatherEnd = 0;
+
+    /** Until everyone is inside the church (or 60 seconds have passed and those outside are carried in), nothing else happens. Then the camera scene starts. */
+    private static void gatherTick(ServerLevel lv) {
+        if (gt % 20 != 0 && gatherEnd - gt > 0) return;
+        long left = Math.max(0, gatherEnd - gt) / 20;
+        List<ServerPlayer> ps = new ArrayList<>();
+        for (ServerPlayer p : lv.players()) if (!p.isSpectator() && p.isAlive()) ps.add(p);
+        List<ServerPlayer> outside = new ArrayList<>();
+        for (ServerPlayer p : ps) if (!PlanetGenerator.churchInside(p.getX(), p.getZ(), 2)) outside.add(p);
+        for (ServerPlayer p : outside) p.displayClientMessage(Component.literal("Go inside the church: " + left + " s").withStyle(ChatFormatting.GOLD), true);
+        if (!outside.isEmpty() && gatherEnd - gt > 0) return;
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        for (ServerPlayer p : outside) {   // carried in, just inside the door
+            p.teleportTo(lv, 0.5 + rnd.nextDouble(-35, 35), groundY, 175 + rnd.nextDouble(0, 35), 180f, 0f);
+            p.sendSystemMessage(Component.literal("You were carried inside.").withStyle(ChatFormatting.GRAY));
+        }
+        gathering = false;
+        for (ServerPlayer p : ps) {
+            removeBlessing(p);
+            blessPlayer(p);
+            PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(23, INTRO_TICKS));   // the camera circles the tree first
+        }
     }
 
     /** Older worlds still have the ruin that used to stand under the tree (dais, columns, wall, rubble): turn it back into grass. */
@@ -2501,6 +2533,8 @@ public final class EndGame {
     private static void raidTick(MinecraftServer server, AstralData d) {
         ServerLevel lv = dim(server, "raid");
         if (lv == null) return;
+        if (gathering) { gatherTick(lv); return; }
+        if (raidOver) return;   // the tree is dying: only the scheduled animation runs
         rt++;
         cur = new Arena(lv, 0.5, 0.5, groundY, true);
         if (introQueue && rt >= INTRO_TICKS + CHAT_AFTER_EXTRA) { introQueue = false; for (Runnable r : introChat) r.run(); introChat.clear(); }
@@ -2605,7 +2639,27 @@ public final class EndGame {
         }
     }
 
+    private static boolean deathAnimStarted = false;
+    static boolean raidOver = false;
+
+    /** Her death: the flesh melts into a puddle and the puddle dries into dust (about 15 seconds), then the victory closes the fight. */
     private static void raidWon(MinecraftServer server, AstralData d) {
+        ServerLevel rl = dim(server, "raid");
+        if (!deathAnimStarted && rl != null) {
+            deathAnimStarted = true;
+            raidOver = true;
+            timed.clear();
+            for (ServerPlayer p : rl.players()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(24, 300));
+            cur = new Arena(rl, 0.5, 0.5, groundY, true);
+            fx(rl, 20, 0.5, groundY, 0.5, 80 * treeScale, 0, 0, rgb(0.42f, 0.06f, 0.1f), 310);
+            sfx(rl, SoundEvents.WARDEN_DEATH, 5f, 0.5f);
+            for (int t = 0; t < 280; t += 14) at(t, l -> { sfx(l, SoundEvents.SLIME_BLOCK_BREAK, 4f, 0.4f); sfx(l, SoundEvents.HONEY_BLOCK_SLIDE, 3f, 0.5f); });
+            at(160, l -> sfx(l, SoundEvents.WITHER_BREAK_BLOCK, 3f, 0.5f));
+            at(300, l -> raidWon(server, d));   // the second time through it carries on
+            return;
+        }
+        deathAnimStarted = false;
+        raidOver = false;
         LOGGER.info("[astral] the raid boss fell: Earth returns, stage 0 for {} days", Settings.recoveryDays);
         int resume = d.resumeStage;
         for (ServerPlayer p : server.getPlayerList().getPlayers()) p.displayClientMessage(Component.literal("VICTORY").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), true);

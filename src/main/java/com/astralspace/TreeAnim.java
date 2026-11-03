@@ -3,6 +3,8 @@ package com.astralspace;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import org.joml.Matrix4f;
@@ -186,8 +188,27 @@ final class TreeAnim {
         };
     }
 
+    /** Her death: blood-red drops fall off the sagging flesh, then ash and smoke lift off the drying puddle. */
+    private static void meltDust(Minecraft mc) {
+        double ms = TreeRenderer.meltSeconds(), T = Net.ClientState.meltTicks / 20.0;
+        if (ms < 0 || ms > T || Double.isNaN(TreeRenderer.lastY)) return;
+        double bx = TreeRenderer.lastX, by = TreeRenderer.lastY, bz = TreeRenderer.lastZ, sc = Net.ClientState.treeScale;
+        double e = Math.min(1, ms / 9.0); e = e * e * (3 - 2 * e);
+        double rad = 80 * sc * e, top = Math.max(2, 150 * sc * (1 - 0.97 * Math.pow(Math.min(1, ms / 10.0), 0.85)));
+        if (ms < 10) for (int i = 0; i < 10; i++) {
+            double a = R.nextDouble() * Math.PI * 2, r = R.nextDouble() * (14 + 40 * Math.min(1, ms / 8.0)) * sc;
+            mc.level.addParticle(new DustParticleOptions(new Vector3f(0.5f, 0.05f, 0.09f), 3.0f + R.nextFloat() * 2), bx + Math.cos(a) * r, by + R.nextDouble() * top, bz + Math.sin(a) * r, 0, -0.4, 0);
+        }
+        if (ms > 6) for (int i = 0; i < 30; i++) {
+            double a = R.nextDouble() * Math.PI * 2, r = Math.sqrt(R.nextDouble()) * Math.max(8, rad);
+            mc.level.addParticle(R.nextInt(3) == 0 ? ParticleTypes.CAMPFIRE_COSY_SMOKE : R.nextBoolean() ? ParticleTypes.ASH : ParticleTypes.WHITE_ASH, bx + Math.cos(a) * r, by + 0.5, bz + Math.sin(a) * r, R.nextGaussian() * 0.03, 0.06 + R.nextDouble() * 0.08, R.nextGaussian() * 0.03);
+        }
+        if (mc.player != null && tick % 8 == 0) mc.level.playLocalSound(bx, by + 5, bz, SoundEvents.SLIME_BLOCK_STEP, SoundSource.HOSTILE, 6f, 0.5f, false);
+    }
+
     private static void onTick(ClientTickEvent.Post ev) {
         Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null && Net.ClientState.meltStart != 0) { tick++; meltDust(mc); }
         if (mc.level == null || mc.player == null || !on()) return;
         TreeModel meta = TreeRenderer.metaNow();
         if (meta == null || meta.limbTips.isEmpty()) return;

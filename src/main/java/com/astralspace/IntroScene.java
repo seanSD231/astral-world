@@ -28,7 +28,7 @@ public final class IntroScene {
     private static final java.util.Random R = new java.util.Random();
 
     /** Seconds, angle (deg), radius, camera height above the tree's base, look-at height. */
-    private static final double[][] KEYS = {{0.0, 205, 300, 30, 70}, {3.5, 245, 270, 45, 72}, {7.0, 300, 250, 70, 76}, {10.0, 335, 290, 55, 74}};   // far enough out to see the whole tree
+    private static final double[][] KEYS = {{0.0, 205, 300, 55, 70}, {3.5, 245, 270, 65, 72}, {7.0, 300, 250, 85, 76}, {10.0, 335, 290, 75, 74}};   // far enough out to see the whole tree
     private static final String[] LINES = {"The World Tree.", "She has heard your prayers.", "Do not wake her until you are ready."};
     private static final double[] LINE_AT = {0.8, 3.6, 6.6};
 

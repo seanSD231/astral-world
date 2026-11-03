@@ -195,6 +195,8 @@ public final class Net {
 
     public static final class ClientState {
         public static volatile float treeScale = 1f;
+        public static volatile long meltStart = 0L;
+        public static volatile int meltTicks = 300;
         public static final java.util.List<double[]> telegraphs = new java.util.ArrayList<>();
         public static final java.util.List<double[]> fx = new java.util.ArrayList<>();
         public static volatile boolean show;
@@ -243,7 +245,8 @@ public final class Net {
             ClientState.flashStart = System.currentTimeMillis();
         }));
         registrar.playToClient(CutscenePayload.TYPE, CutscenePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
-            if (payload.kind() == 9) { ClientState.treeGone = true; return; }
+            if (payload.kind() == 9) { ClientState.treeGone = true; ClientState.meltStart = 0; return; }
+            if (payload.kind() == 24) { ClientState.meltStart = System.currentTimeMillis(); ClientState.meltTicks = payload.ticks(); return; }
             ClientState.cutsceneKind = payload.kind();
             ClientState.cutsceneTicks = payload.ticks();
             ClientState.cutsceneStart = System.currentTimeMillis();

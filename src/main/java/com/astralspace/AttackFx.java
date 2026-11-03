@@ -412,6 +412,28 @@ public final class AttackFx {
         tube(p, x, y, z, 14 * inv + 1, clamp01(0.7 * inv), x, y + 160, z, 4 * inv + 0.5, 0f, 12);
     }
 
+    /** Her death puddle: it spreads out from the foot of the tree as the flesh melts, shines like wet blood, and at the end dries away. */
+    private static void puddle(Pen p, boolean add, double t, double x, double y, double z, double R, double life, int col) {
+        double grow = Math.min(1, t / 180.0); grow = grow * grow * (3 - 2 * grow);
+        double fade = 1 - Math.max(0, Math.min(1, (t - 230) / 70.0));
+        if (fade <= 0.01) return;
+        float a = (float) (0.9 * fade);
+        double rr = R * grow;
+        if (rr < 1) return;
+        if (!add) {
+            p.col(col);
+            flat(p, x, y + 0.15, z, 0, rr, a);
+            p.col(0x4A0810);
+            for (int i = 0; i < 6; i++) flat(p, x + Math.cos(i * 1.7 + t * 0.01) * rr * 0.35, y + 0.18, z + Math.sin(i * 2.3) * rr * 0.35, 0, rr * (0.3 + 0.1 * Math.sin(t * 0.05 + i)), a * 0.6f);
+            return;
+        }
+        p.col(0xA82030);
+        for (int i = 0; i < 5; i++) flat(p, x + Math.cos(i * 2.1 - t * 0.02) * rr * 0.5, y + 0.22, z + Math.sin(i * 1.3 + t * 0.015) * rr * 0.5, 0, rr * 0.14, a * 0.35f);   // the wet shine
+        p.col(0xFFD0C0);
+        double dry = Math.max(0, Math.min(1, (t - 190) / 90.0));   // it pales as it dries
+        flat(p, x, y + 0.25, z, 0, rr, (float) (0.25 * dry * fade));
+    }
+
     /** The ground ring: a ridge of earth heaves up and rolls outward, bristling with thorns whose tips burn. Clean and low enough to see the jump. */
     private static void rootRing(Pen p, boolean add, double t, double x, double y, double z, double speed, double r0, double life, int col) {
         double r = r0 + speed * t, env = Math.min(1, Math.min(t / 4.0, (life - t) / 10.0));
@@ -648,6 +670,7 @@ public final class AttackFx {
                 case 13 -> storm(pen, add, t, x, y, z, a, b, c, life, col);
                 case 14 -> purge(pen, add, t, x, y, z, a, b, life, col);
                 case 15 -> rootRing(pen, add, t, x, y, z, a, b, life, col);
+                case 20 -> puddle(pen, add, t, x, y, z, a, life, col);
                 case 16 -> skyWave(pen, add, t, x, y, z, a, b, life);
                 case 17 -> flower(pen, add, t, x, y, z, a > 0.5, life);
                 case 19 -> skyBolts(pen, add, t, x, y, z, a, b, c, life);

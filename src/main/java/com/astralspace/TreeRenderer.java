@@ -112,6 +112,11 @@ public final class TreeRenderer {
         return new double[]{mc.player.getX() + dx * lim / d, mc.player.getZ() + dz * lim / d};
     }
 
+    static double meltSeconds() {
+        long st = Net.ClientState.meltStart;
+        return st == 0 ? -1 : (System.currentTimeMillis() - st) / 1000.0;
+    }
+
     private static void onRender(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
         Minecraft mc = Minecraft.getInstance();
@@ -151,6 +156,16 @@ public final class TreeRenderer {
         ps.translate(bx - cam.x, by - cam.y, bz - cam.z);
         float[] tint = {1f, 1f, 1f};
         if (tree) { float sc = Net.ClientState.treeScale; ps.scale(sc, sc, sc); }
+        double ms = tree ? meltSeconds() : -1;
+        if (ms >= 0) {   // her death: the flesh sags and spreads, darkens, and is gone; a puddle and then dust are all that is left
+            double T = Net.ClientState.meltTicks / 20.0;
+            if (ms >= T - 1.5) { ps.popPose(); return; }
+            double e = Math.min(1, ms / 10.0); e = e * e * (3 - 2 * e);
+            float sy = (float) Math.max(0.03, 1 - 0.97 * Math.pow(e, 0.85)), sx = (float) (1 + 0.5 * Math.min(1, ms / 8.0));
+            ps.scale(sx, sy, sx);
+            float k = (float) Math.min(1, ms / 7.0);
+            tint = new float[]{1 - 0.55f * k, 1 - 0.9f * k, 1 - 0.9f * k};
+        }
         if (cut) {
             float[] st = TreeCutscene.treeState(cs);   // scale x, scale y, tint r, g, b, shake
             ps.scale(st[0], st[1], st[0]);
