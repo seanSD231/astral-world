@@ -12,15 +12,15 @@ import net.neoforged.neoforge.network.PacketDistributor;
  * The layout comes from the seed the server sent. When the time is up the result is sent back and the screen closes.
  */
 public final class OsuScreen extends Screen {
-    private static final int APPROACH = 16;      // ticks a ring takes to close
-    private static final int WINDOW = 6;         // ticks either side of the moment it closes in which a click counts
+    private static final int APPROACH = 24;      // ticks a ring takes to close
+    private static final int WINDOW = 8;         // ticks either side of the moment it closes in which a click counts
     private final int total, duration;
     private final double[] px, py;
     private final int[] at;
     private final boolean[] hit, done, slider, active;
     private final double[] qx, qy;
     private final float[] track;
-    private static final int SLIDE = 16;   // ticks a slider is followed
+    private static final int SLIDE = 22;   // ticks a slider is followed
     private boolean mouseDown = false;
     private double lmx, lmy;
     private int tick = 0, hits = 0;
@@ -28,21 +28,35 @@ public final class OsuScreen extends Screen {
 
     public OsuScreen(int seed, int count, int ticks) {
         super(Component.literal("Desire"));
-        this.total = count;
+        this.total = Math.max(3, count * 3 / 4);   // slower now that there are sliders
         this.duration = ticks;
         java.util.Random r = new java.util.Random(seed);
+        int count0 = count; count = total;
         px = new double[count]; py = new double[count]; at = new int[count]; hit = new boolean[count]; done = new boolean[count];
         slider = new boolean[count]; active = new boolean[count]; qx = new double[count]; qy = new double[count]; track = new float[count];
         int span = ticks - APPROACH - WINDOW - 4 - SLIDE;
+        java.util.List<double[]> occ = new java.util.ArrayList<>();   // {x, y, until tick}: shapes still on screen
         for (int i = 0; i < count; i++) {
-            at[i] = APPROACH + 2 + (int) Math.round(span * (i + r.nextDouble() * 0.6) / count);
-            px[i] = 0.12 + r.nextDouble() * 0.76;
-            py[i] = 0.15 + r.nextDouble() * 0.7;
+            at[i] = APPROACH + 2 + (int) Math.round(span * (i + r.nextDouble() * 0.5) / count);
+            double bx = 0.5, by = 0.5;
+            for (int tries = 0; tries < 60; tries++) {
+                bx = 0.12 + r.nextDouble() * 0.76; by = 0.15 + r.nextDouble() * 0.7;
+                boolean ok = true;
+                for (double[] o : occ) if (o[2] > at[i] - APPROACH - 6 && Math.hypot((bx - o[0]) * 1.8, by - o[1]) < 0.26) { ok = false; break; }
+                if (ok) break;
+            }
+            px[i] = bx; py[i] = by;
+            occ.add(new double[]{bx, by, at[i]});
             if (i % 4 == 3) {   // every fourth is a slider: hold and follow the ball to the other end
                 slider[i] = true;
-                double a = r.nextDouble() * Math.PI * 2;
-                qx[i] = Math.max(0.1, Math.min(0.9, px[i] + Math.cos(a) * 0.18));
-                qy[i] = Math.max(0.15, Math.min(0.85, py[i] + Math.sin(a) * 0.25));
+                double ax = bx, ay = by;
+                for (int tries = 0; tries < 30; tries++) {
+                    double a = r.nextDouble() * Math.PI * 2;
+                    ax = bx + Math.cos(a) * 0.15; ay = by + Math.sin(a) * 0.26;
+                    if (ax > 0.1 && ax < 0.9 && ay > 0.15 && ay < 0.85) break;
+                }
+                qx[i] = Math.max(0.1, Math.min(0.9, ax)); qy[i] = Math.max(0.15, Math.min(0.85, ay));
+                occ.add(new double[]{qx[i], qy[i], at[i] + SLIDE});
             }
         }
     }
@@ -96,8 +110,8 @@ public final class OsuScreen extends Screen {
     private void body(GuiGraphics g, int i, int alpha) {
         double x0 = px[i] * width, y0 = py[i] * height, x1 = qx[i] * width, y1 = qy[i] * height;
         int steps = Math.max(2, (int) (Math.hypot(x1 - x0, y1 - y0) / 6));
-        for (int k = 0; k <= steps; k++) { double f = k / (double) steps; disc(g, (int) (x0 + (x1 - x0) * f), (int) (y0 + (y1 - y0) * f), 22, (alpha / 2 << 24) | 0x501060); }
-        ring(g, (int) x1, (int) y1, 22, (alpha << 24) | 0xFFC0E0);
+        for (int k = 0; k <= steps; k++) { double f = k / (double) steps; disc(g, (int) (x0 + (x1 - x0) * f), (int) (y0 + (y1 - y0) * f), 22, (alpha / 2 << 24) | OsuClient.colours()[3]); }
+        ring(g, (int) x1, (int) y1, 22, (alpha << 24) | OsuClient.colours()[2]);
     }
 
     private static void disc(GuiGraphics g, int cx, int cy, int r, int argb) {
@@ -140,10 +154,11 @@ public final class OsuScreen extends Screen {
             }
             int alpha = (int) Math.min(255, since * 40);
             if (slider[i]) body(g, i, alpha);
-            disc(g, cx, cy, 30, (alpha * 3 / 4 << 24) | 0xA0103A);
-            disc(g, cx, cy, 24, (alpha * 3 / 4 << 24) | 0x601070);
+            int[] tc = OsuClient.colours();
+            disc(g, cx, cy, 30, (alpha * 3 / 4 << 24) | tc[0]);
+            disc(g, cx, cy, 24, (alpha * 3 / 4 << 24) | tc[1]);
             double k = Math.max(0, 1 - since / APPROACH);
-            ring(g, cx, cy, 30 + (int) (k * 70), (alpha << 24) | 0xFFC0E0);
+            ring(g, cx, cy, 30 + (int) (k * 70), (alpha << 24) | tc[2]);
             g.drawCenteredString(font, String.valueOf(i + 1), cx, cy - 4, 0xFFFFFF);
         }
         g.drawCenteredString(font, "Click the circles as the rings close. Hold and follow the sliders.", width / 2, 12, 0xFFD0F0);

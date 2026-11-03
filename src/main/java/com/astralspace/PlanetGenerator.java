@@ -40,7 +40,7 @@ public final class PlanetGenerator extends ChunkGenerator {
     /** The temple: a raised stone platform this wide (the arena plus a rim), standing DROP blocks above the grass field around it. */
     public static final double PLAT_R = EndGame.ARENA_R + 13;
     public static final int DROP = 20;
-    private static final double GRASS_R = 185;   // the tree's grass patch: wide enough that none of its roots reach the stone
+    public static final double GRASS_R = 185;   // the tree's grass patch: wide enough that none of its roots reach the stone
 
     private final String planet;
 
@@ -282,98 +282,110 @@ public final class PlanetGenerator extends ChunkGenerator {
     }
 
 
-    // ------------------------------------------------------------------ the ruined church around the tree
+    // ------------------------------------------------------------------ the ruined church: the whole raised platform is its floor
 
-    static final int NAVE_X = 110, NAVE_Z0 = -60, NAVE_Z1 = 230, TR_X = 175, TR_Z0 = -30, TR_Z1 = 50, APSE_R = 110;
+    /** Inside the walls of the church (the whole raised platform), `k` blocks in from the wall. */
+    public static boolean churchInside(double x, double z, int k) { return Math.hypot(x, z) < PLAT_R - 7 - k; }
 
-    /** Inside the outline of the church (a nave with its door in the south, an apse in the north and a transept across), `k` blocks in from the outer wall. */
-    public static boolean churchInside(double x, double z, int k) {
-        if (Math.abs(x) <= NAVE_X - k && z >= NAVE_Z0 && z <= NAVE_Z1 - k) return true;
-        if (z < NAVE_Z0 && Math.hypot(x, z - NAVE_Z0) <= APSE_R - k) return true;
-        return Math.abs(x) <= TR_X - k && z >= TR_Z0 + k && z <= TR_Z1 - k;
-    }
+    private static final double ROOF_IN = 215;   // the roof only covers the outer ring: the middle fell in long ago (and the tree needs the room)
+
+    /** Height of the roof's underside above the floor at radius r. */
+    private static int roofH(double r) { return (int) Math.round(80 + (PLAT_R - 3 - r) * 0.5); }
 
     private static Block ruinBlock(int x, int y, int z) {
         double b = hash(x * 3 + y, z, 13);
         return b < 0.40 ? Blocks.STONE_BRICKS : b < 0.68 ? Blocks.MOSSY_STONE_BRICKS : b < 0.88 ? Blocks.CRACKED_STONE_BRICKS : b < 0.95 ? Blocks.COBBLESTONE : Blocks.MOSSY_COBBLESTONE;
     }
 
-    /** How tall the wall still stands here: stretches are whole, most is broken down to a few blocks. */
-    private static int wallHeight(int x, int z) {
-        double base = 24 + 8 * vn(x / 45.0, z / 45.0, 71);
-        double keep = vn(x / 30.0 + 3, z / 30.0 - 7, 72), bro = vn(x / 5.0, z / 5.0, 73);
-        boolean front = z > 205;
-        double h = keep > (front ? 0.30 : 0.52) ? base * (0.85 + 0.15 * bro) : 2 + (base - 2) * Math.pow(bro, 1.6) * 0.7;
-        return (int) Math.max(1, Math.round(h));
+    /** True where the roof has fallen in: about 45%, more in the north. */
+    private static boolean roofHole(int x, int z) {
+        double n = vn(x / 55.0, z / 55.0, 91) * 0.88 + vn(x / 5.0, z / 5.0, 92) * 0.12 - 0.08 * z / 350.0;
+        return n > 0.52;
     }
 
-    private static boolean windowCut(double u, int y, int h) {
-        if (h < 9) return false;
-        double m = ((u % 16) + 16) % 16;
-        double half = y < 17 ? 2.5 : 2.5 - (y - 17) * 0.6;   // a pointed top
-        return y >= 7 && y <= 21 && Math.abs(m - 8) < half;
-    }
-
-    /** One column of the church: walls with pointed windows and a broken top, buttresses, two towers at the door, a row of pillars each side of the nave, pews and rubble. */
+    /** One column of the church: a round outer wall with pointed windows, four arched gates, buttresses, a ring of pillars, and a half-fallen roof with ribs over the outer ring. */
     private static void churchColumn(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int z, int h) {
-        if (x < -190 || x > 190 || z < -175 || z > 245) return;
+        double r = Math.hypot(x, z);
+        if (r < 190 || r > PLAT_R + 1) return;
+        double ang = Math.atan2(z, x);
         int top = 0;
-        boolean wall = churchInside(x, z, 0) && !churchInside(x, z, 4);
-        double u = Math.abs(x) >= 100 && z > -30 ? z : (z < NAVE_Z0 ? Math.atan2(z - NAVE_Z0, x) * APSE_R : x);
-        boolean portal = z >= 224 && Math.abs(x) <= 8;
-        if (wall && !portal) top = Math.max(top, wallHeight(x, z));
-        // the two towers either side of the door
-        int ax = Math.abs(x);
-        boolean tbox = ax >= 84 && ax <= 118 && z >= 203 && z <= 237, tin = ax >= 88 && ax <= 114 && z >= 207 && z <= 233;
-        boolean tower = tbox && !tin;
-        int tH = 0;
-        if (tower) { double b = vn(x / 6.0, z / 6.0, 74); tH = b < 0.35 ? 28 + (int) (b * 60) : 62 + (int) (vn(x / 20.0, z / 20.0, 75) * 12); top = Math.max(top, tH); }
-        // buttresses against the long walls
-        if (ax > 110 && ax <= 118 && z >= -36 && z <= 230) {
-            int k = Math.floorMod(z + 36 + 2, 24);
-            if (k <= 4) { int zc = z - (k - 2); double r = hash(zc, ax > 0 ? 1 : 2, 76); top = Math.max(top, (int) ((26 - (ax - 110) * 3) * (0.35 + 0.65 * r))); }
+        // ---- the outer wall, with the gates cut through it
+        boolean wall = r >= PLAT_R - 7 && r <= PLAT_R - 1.5;
+        int wh = 0;
+        if (wall) {
+            double keep = vn(x / 40.0 + 3, z / 40.0 - 7, 72), bro = vn(x / 5.0, z / 5.0, 73);
+            wh = keep > 0.38 ? 82 : 20 + (int) (60 * Math.pow(bro, 1.3));
+            top = Math.max(top, wh);
         }
-        // pillars along the nave
-        for (int side = -1; side <= 1; side += 2) {
-            int sx = side * 58;
-            if (Math.abs(x - sx) <= 2) for (int k = 0; k < 7; k++) {
-                int pz = 72 + 24 * k;
-                if (Math.abs(z - pz) <= 2) { double r = hash(pz, sx, 5); int ph = r < 0.22 ? 24 : r < 0.7 ? 6 + (int) (hash(pz, sx, 6) * 12) : 1 + (int) (hash(pz, sx, 7) * 3); top = Math.max(top, ph); }
-            }
+        double u = ang * (PLAT_R - 4);                              // distance along the wall
+        double gc = Math.min(Math.abs(x) < 9.5 ? Math.abs(x) : 99, Math.abs(z) < 9.5 ? Math.abs(z) : 99);   // how far from the middle of a gate (99 = not at a gate)
+        // ---- buttresses against the inside of the wall
+        if (r >= PLAT_R - 14 && r < PLAT_R - 7 && gc > 15) {
+            int k = Math.floorMod((int) Math.floor(u), 26);
+            if (k <= 4) { double cell = hash((int) Math.floor(u / 26), 1, 76); top = Math.max(top, (int) ((62 - (PLAT_R - 7 - r) * 7) * (0.35 + 0.65 * cell))); }
+        }
+        // ---- the ring of great pillars and the broken inner ring
+        top = Math.max(top, pillarTop(x, z, r, ang, 300, 48, 2.2, 1));
+        top = Math.max(top, pillarTop(x, z, r, ang, 224, 14, 2.8, 2));
+        // ---- the roof over the outer ring: a shell three blocks thick, ribs, holes
+        int roofLo = -1, roofHi = -1;
+        if (r >= ROOF_IN && r <= PLAT_R - 1.5) {
+            int rh = roofH(r);
+            boolean rib = Math.floorMod((int) Math.floor(ang * 180 / Math.PI * 4 + 0.5), 60) <= 1 || Math.abs(r - 282) < 1.6;   // radial ribs every 15 degrees and a hoop
+            boolean ribBreak = vn(x / 18.0, z / 18.0, 93) < 0.22;
+            boolean hole = roofHole(x, z);
+            if (rib && !ribBreak) { roofLo = rh - 3; roofHi = rh + 2; }
+            else if (!hole) { roofLo = rh; roofHi = rh + 2; }
+            // the roof is held by the wall: right at the wall it stays
+            if (r > PLAT_R - 9 && wh > 70) { roofLo = rh - 2; roofHi = rh + 2; }
         }
         for (int y = 1; y <= top; y++) {
-            boolean cut = false;
-            if (wall && !portal && y <= wallHeight(x, z) && windowCut(u, y, wallHeight(x, z))) cut = true;
-            if (tower && ((u(x, z) % 9 + 9) % 9 == 4) && ((y >= 14 && y <= 20) || (y >= 36 && y <= 42))) cut = true;   // arrow slits
-            if (cut) continue;
+            if (wall && y <= wh) {
+                if (gc < 9.5) {   // a pointed gate arch
+                    double half = 9 - Math.max(0, y - 28) * 0.42;
+                    if (gc < half) continue;
+                }
+                double m = ((u % 24) + 24) % 24;
+                double half = y < 44 ? 3.5 : 3.5 - (y - 44) * 0.22;   // a tall pointed window
+                if (gc > 15 && y >= 14 && y <= 62 && Math.abs(m - 12) < half) continue;
+            }
+            if (h + y > 250) break;
             chunk.setBlockState(pos.set(x, h + y, z), ruinBlock(x, y, z).defaultBlockState(), false);
         }
-        // inside: pews and rubble (never near the tree, whose roots would swallow them)
-        if (top == 0 && churchInside(x, z, 6) && Math.hypot(x, z) > 62) {
-            if (z >= 90 && z <= 205 && Math.floorMod(z - 92, 9) == 0 && ((Math.abs(x) >= 12 && Math.abs(x) <= 26) || (Math.abs(x) >= 34 && Math.abs(x) <= 48)) && hash(Math.floorMod(z - 92, 1000) / 9 + 100, (x < 0 ? -1 : 1) * (Math.abs(x) / 30), 8) > 0.35)
-                chunk.setBlockState(pos.set(x, h + 1, z), Blocks.SPRUCE_SLAB.defaultBlockState(), false);
-            else {
-                int cx = Math.floorDiv(x, 6), cz = Math.floorDiv(z, 6);
-                if (hash(cx, cz, 9) < 0.10) {
-                    double d = Math.hypot(x - (cx * 6 + 3), z - (cz * 6 + 3));
-                    int rh = (int) Math.round(3.2 * (1 - d / 3.2) * (0.6 + 0.8 * hash(cx, cz, 10)));
-                    for (int y = 1; y <= rh; y++) chunk.setBlockState(pos.set(x, h + y, z), ruinBlock(x, y, z).defaultBlockState(), false);
-                }
+        if (roofLo >= 0) for (int y = roofLo; y <= roofHi; y++) if (h + y <= 250) chunk.setBlockState(pos.set(x, h + y, z), ruinBlock(x + y, y, z).defaultBlockState(), false);
+        // ---- light: invisible lamps so the covered ring is not pitch dark
+        if (r < PLAT_R - 8 && Math.floorMod(x, 22) == 0 && Math.floorMod(z, 22) == 0) {
+            BlockState lamp = Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 13);
+            chunk.setBlockState(pos.set(x, h + 30, z), lamp, false);
+            chunk.setBlockState(pos.set(x, h + 70, z), lamp, false);
+        }
+        // ---- rubble on the floor, thicker where the roof is gone
+        if (top == 0 && r >= 207 && r < PLAT_R - 9) {
+            int cx = Math.floorDiv(x, 6), cz = Math.floorDiv(z, 6);
+            if (hash(cx, cz, 9) < 0.09) {
+                double d = Math.hypot(x - (cx * 6 + 3), z - (cz * 6 + 3));
+                int rh = (int) Math.round(3.2 * (1 - d / 3.2) * (0.6 + 0.8 * hash(cx, cz, 10)));
+                for (int y = 1; y <= rh; y++) chunk.setBlockState(pos.set(x, h + y, z), ruinBlock(x, y, z).defaultBlockState(), false);
             }
         }
     }
 
-    private static int u(int x, int z) { return Math.abs(x) >= 100 && Math.abs(x) <= 118 && z >= 203 && z <= 237 ? (Math.abs(z - 220) > Math.abs(Math.abs(x) - 101) ? Math.abs(x) : z) : x + z; }
+    /** Height of the pillar ring at radius `ring` (n pillars) at this column, 0 if none: a few still hold up the roof, most are broken. */
+    private static int pillarTop(int x, int z, double r, double ang, double ring, int n, double rad, int seed) {
+        if (Math.abs(r - ring) > rad + 2) return 0;
+        double step = Math.PI * 2 / n;
+        int k = (int) Math.round(ang / step);
+        double a = k * step, px = ring * Math.cos(a), pz = ring * Math.sin(a);
+        if (Math.max(Math.abs(x - px), Math.abs(z - pz)) > rad) return 0;
+        double q = hash(Math.floorMod(k, n), seed, 5);
+        int full = ring > 250 ? roofH(ring) : 150;
+        return q < 0.28 ? full : q < 0.7 ? (int) (full * (0.25 + 0.5 * hash(k, seed, 6))) : 3 + (int) (hash(k, seed, 7) * 9);
+    }
 
     /** The field: grass and flowers (the old ring of broken pillars at the edge is gone). The middle is clear (the tree stands there). */
     private static void decorateRaid(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int z, int h) {
         double rr = Math.hypot(x, z);
-        if (rr < 260) churchColumn(chunk, pos, x, z, h);
-        if (rr >= PLAT_R - 4.5 && rr <= PLAT_R - 0.5 && !gateway(x, z)) {   // a two block wall round the rim, open at the four gateways
-            chunk.setBlockState(pos.set(x, h + 1, z), brickMix(x + 3, z).defaultBlockState(), false);
-            chunk.setBlockState(pos.set(x, h + 2, z), brickMix(x, z + 3).defaultBlockState(), false);
-            return;
-        }
+        if (rr <= PLAT_R + 1) churchColumn(chunk, pos, x, z, h);
         // grass and flowers where the ground is grass
         if (hash(x, 3, z) < 0.35 && chunk.getBlockState(pos.set(x, h, z)).is(Blocks.GRASS_BLOCK)) {
             double q = hash(x, 4, z);

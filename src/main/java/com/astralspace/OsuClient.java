@@ -39,6 +39,30 @@ final class OsuClient {
         if (mc.player != null) mc.player.displayClientMessage(Component.literal(s), true);
     }
 
+    // ------------------------------------------------------------------ colour themes
+
+    static final String[] THEME_NAMES = {"Pink", "Blue", "Green", "Gold", "Red", "Violet", "Mono"};
+    /** {circle outer, circle inner, approach ring, slider body}, as 0xRRGGBB. */
+    static final int[][] THEMES = {
+            {0xA0103A, 0x601070, 0xFFC0E0, 0x501060}, {0x1050A0, 0x103070, 0xB0E0FF, 0x103060}, {0x108040, 0x105030, 0xB0FFC8, 0x104030},
+            {0xA07010, 0x705010, 0xFFE8A0, 0x604810}, {0xB01818, 0x701010, 0xFFB8B0, 0x601010}, {0x6020B0, 0x401070, 0xE0C0FF, 0x401070}, {0x707070, 0x404040, 0xF0F0F0, 0x484848}};
+    private static int theme = -1;
+
+    static int theme() {
+        if (theme < 0) {
+            theme = 0;
+            try { theme = Math.max(0, Math.min(THEMES.length - 1, Integer.parseInt(Files.readString(dir().resolve("theme.txt")).trim()))); } catch (Exception ignored) { }
+        }
+        return theme;
+    }
+
+    static int[] colours() { return THEMES[theme()]; }
+
+    static void nextTheme() {
+        theme = (theme() + 1) % THEMES.length;
+        try { Files.writeString(dir().resolve("theme.txt"), String.valueOf(theme)); } catch (IOException ignored) { }
+    }
+
     static void send(net.minecraft.network.protocol.common.custom.CustomPacketPayload p) { PacketDistributor.sendToServer(p); }
 
     // ------------------------------------------------------------------ local levels (config folder astral_osu)

@@ -34,7 +34,12 @@ public final class OsuCabinetBlock extends Block {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide && player instanceof ServerPlayer sp) PacketDistributor.sendToPlayer(sp, new OsuNet.OpenCabinet(pos));
+        if (!level.isClientSide && player instanceof ServerPlayer sp) {
+            boolean jukebox = false;
+            for (net.minecraft.core.Direction d : net.minecraft.core.Direction.values()) if (level.getBlockState(pos.relative(d)).is(net.minecraft.world.level.block.Blocks.JUKEBOX)) jukebox = true;
+            if (!jukebox) sp.sendSystemMessage(net.minecraft.network.chat.Component.literal("No jukebox is next to this cabinet: levels will play without music. Put a jukebox against it to hear a level's music disc.").withStyle(net.minecraft.ChatFormatting.YELLOW));
+            PacketDistributor.sendToPlayer(sp, new OsuNet.OpenCabinet(pos));
+        }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 }

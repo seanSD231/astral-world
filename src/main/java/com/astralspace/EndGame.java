@@ -854,13 +854,15 @@ public final class EndGame {
         for (ServerPlayer p : all) {
             d.raidLives.put(p.getUUID(), LIVES);
             setGameMode(p, GameType.SURVIVAL);
-            double x = ((i % 9) - 4) * 7.0, z = 262 + (i / 9) * 7.0;   // in front of the church, facing it
+            double x = ((i % 9) - 4) * 7.0, z = 380 + (i / 9) * 7.0;   // outside the church wall, on the field south of its gate, facing it
             i++;
-            p.teleportTo(lv, 0.5 + x, groundY, z, 180f, 0f);
+            lv.getChunk((int) Math.floor(x) >> 4, (int) Math.floor(z) >> 4);
+            p.teleportTo(lv, 0.5 + x, lv.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(x), (int) Math.floor(z)), z, 180f, 0f);
             PacketDistributor.sendToPlayer(p, new Net.TreeScalePayload(1f));
         }
         treeScale = 1f;
         gathering = true;
+        introAt = -1;
         gatherEnd = gt + 1200;
         var wb = lv.getWorldBorder();
         if (wb.getSize() < ARENA_R * 2 + 40) LOGGER.warn("[astral] the world border ({} blocks wide) is smaller than the arena ({}): players will be stopped by it", (int) wb.getSize(), (int) (ARENA_R * 2));
@@ -874,7 +876,21 @@ public final class EndGame {
     private static long gatherEnd = 0;
 
     /** Until everyone is inside the church (or 60 seconds have passed and those outside are carried in), nothing else happens. Then the camera scene starts. */
+    private static long introAt = -1;
+
     private static void gatherTick(ServerLevel lv) {
+        if (introAt >= 0) {   // everyone is in: a few seconds for the world to load around them, then the camera scene
+            if (gt < introAt) return;
+            introAt = -1;
+            gathering = false;
+            for (ServerPlayer p : lv.players()) {
+                if (p.isSpectator() || !p.isAlive()) continue;
+                removeBlessing(p);
+                blessPlayer(p);
+                PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(23, INTRO_TICKS));
+            }
+            return;
+        }
         if (gt % 20 != 0 && gatherEnd - gt > 0) return;
         long left = Math.max(0, gatherEnd - gt) / 20;
         List<ServerPlayer> ps = new ArrayList<>();
@@ -885,15 +901,11 @@ public final class EndGame {
         if (!outside.isEmpty() && gatherEnd - gt > 0) return;
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         for (ServerPlayer p : outside) {   // carried in, just inside the door
-            p.teleportTo(lv, 0.5 + rnd.nextDouble(-35, 35), groundY, 175 + rnd.nextDouble(0, 35), 180f, 0f);
+            p.teleportTo(lv, 0.5 + rnd.nextDouble(-35, 35), groundY, 295 + rnd.nextDouble(0, 30), 180f, 0f);   // just inside the south gate
             p.sendSystemMessage(Component.literal("You were carried inside.").withStyle(ChatFormatting.GRAY));
         }
-        gathering = false;
-        for (ServerPlayer p : ps) {
-            removeBlessing(p);
-            blessPlayer(p);
-            PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(23, INTRO_TICKS));   // the camera circles the tree first
-        }
+        introAt = gt + 120;   // six seconds, so chunks and the tree have loaded on every screen
+        for (ServerPlayer p : ps) p.displayClientMessage(Component.literal("Everyone is inside. Look to the tree...").withStyle(ChatFormatting.GOLD), true);
     }
 
     /** Older worlds still have the ruin that used to stand under the tree (dais, columns, wall, rubble): turn it back into grass. */
@@ -1210,6 +1222,9 @@ public final class EndGame {
         return TREE_MODELS[i];
     }
 
+    /** How far a swing reaches the tree: it is huge, so a fighter near any part of it can hit that part. */
+    static final double TREE_REACH = 34, TREE_MARGIN = 3.0;
+
     static void rootHit(ServerPlayer p) {
         if (!(p.level() instanceof ServerLevel lv) || !lv.dimension().equals(Cosmos.COSMOS) || p.isSpectator() || !p.isAlive()) return;
         AstralData d = AstralData.get(lv.getServer());
@@ -1218,7 +1233,7 @@ public final class EndGame {
         if (boss == null) return;
         Vec3 eye = p.getEyePosition(), look = p.getLookAngle();
         TreeModel m = treeModel(treeFleshy);
-        double t = m.rayHitAny(eye.x - boss.getX(), eye.y - boss.getY(), eye.z - boss.getZ(), look.x, look.y, look.z, p.entityInteractionRange() + 2.5, treeScale, 1.5);
+        double t = m.rayHitAny(eye.x - boss.getX(), eye.y - boss.getY(), eye.z - boss.getZ(), look.x, look.y, look.z, TREE_REACH, treeScale, TREE_MARGIN);
         if (t < 0) return;
         float str = p.getAttackStrengthScale(0.5f);
         double dmg = p.getAttributeValue(Attributes.ATTACK_DAMAGE) * (0.2 + 0.8 * str * str);
@@ -2274,18 +2289,19 @@ public final class EndGame {
     private static void startSeeds(ServerLevel lv) {
         rootsActive = true;
         activeKind = 2;
-        phaseEnd = rt + 800;
+        phaseEnd = rt + 1000;
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        int nSeeds = Math.min(24, Math.max(3, fighters(lv).size() / 6));
-        double smin = 185 * treeScale, smax = Math.max(smin + 30, Math.min(ARENA_R - 25, smin + 30 + nSeeds * 8.0));
-        for (int i = 0; i < nSeeds; i++) {
-            double a = Math.PI * 2 * i / nSeeds + rnd.nextDouble() * 0.5, r = smin + rnd.nextDouble() * Math.max(10, smax - smin);
+        int nSeeds = Math.min(24, Math.max(2, fighters(lv).size() / 6));
+        double smax = PlanetGenerator.GRASS_R - 8, smin = Math.min(smax - 25, 70);   // only on the grass
+        for (int i = 0, tries = 0; i < nSeeds && tries < nSeeds * 10; tries++) {
+            double a = Math.PI * 2 * i / nSeeds + rnd.nextDouble() * 0.9, r = smin + Math.sqrt(rnd.nextDouble()) * (smax - smin);
             BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
-            if (!lv.getBlockState(b).isAir()) continue;
+            if (!lv.getBlockState(b).canBeReplaced()) continue;
             lv.setBlock(b, Blocks.SHROOMLIGHT.defaultBlockState(), 3);
             seeds.add(b);
+            i++;
         }
-        tellLevel(lv, "Heart seeds have grown! The tree cannot be hurt. Break them all within 40 seconds, or each one feeds it 5% and the rest strike you all.", ChatFormatting.RED);
+        tellLevel(lv, "Heart seeds have grown! The tree cannot be hurt. Break them all within 50 seconds, or each one feeds it 5% and the rest strike you all.", ChatFormatting.RED);
     }
 
     private static void seedsSecond(ServerLevel lv, Mob boss) {
@@ -2423,17 +2439,18 @@ public final class EndGame {
         rootsActive = true;
         activeKind = 0;
         int players = fighters(lv).size();
-        int n = Math.min(70, 6 + 2 * rootStage + players);   // one fighter: about 7 roots; a crowd: up to 70
-        rootsEnd = rt + Math.min(2400, 900 + 30L * n);          // 45 seconds and a little more for every root
-        double rmin = 185 * treeScale, rmax = Math.max(rmin + 30, Math.min(ARENA_R - 25, rmin + 30 + n * 3.0));      // always out beyond the tree's own roots, so none is hidden inside it
+        int n = Math.min(60, 2 + rootStage + players);   // one fighter: 3 to 5 roots; a crowd: up to 60
+        rootsEnd = rt + Math.min(2400, 1200 + 40L * n);          // 60 seconds and a little more for every root
+        double rmax = PlanetGenerator.GRASS_R - 8, rmin = Math.min(rmax - 25, 70);      // only on the grass, outside the trunk itself
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        for (int i = 0; i < n; i++) {
-            double a = rnd.nextDouble() * Math.PI * 2, r = rmin + rnd.nextDouble() * Math.max(10, rmax - rmin);
+        for (int i = 0, tries = 0; i < n && tries < n * 8; tries++) {
+            double a = rnd.nextDouble() * Math.PI * 2, r = rmin + Math.sqrt(rnd.nextDouble()) * (rmax - rmin);
             BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
             if (!lv.getBlockState(b).canBeReplaced() || !lv.getBlockState(b.above()).canBeReplaced()) continue;   // grass and flowers do not stop a root
             lv.setBlock(b, Blocks.MANGROVE_WOOD.defaultBlockState(), 3);
             lv.setBlock(b.above(), Blocks.MANGROVE_WOOD.defaultBlockState(), 3);
             roots.add(b);
+            i++;
         }
         tellLevel(lv, "Roots surge over the battlefield! The tree cannot be hurt. BURN THE ROOTS (flint and steel, or any fire next to them) before time runs out, or it heals to full.", ChatFormatting.DARK_GREEN);
     }

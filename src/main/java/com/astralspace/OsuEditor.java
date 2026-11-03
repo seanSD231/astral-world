@@ -31,7 +31,9 @@ public final class OsuEditor extends Screen {
     private static final int FT = 64;   // top of the playfield
     private Button saveBtn;
     private String confirmFile = "";
-    private int[] dragNote;
+    private int[] dragNote, bending;
+    private boolean curveMode = false;
+    private double bendX, bendY;
     private double dragX, dragY, dragNowX, dragNowY;
 
     private boolean readFields() {
@@ -92,6 +94,12 @@ public final class OsuEditor extends Screen {
             linkDisc();
             b.setMessage(Component.literal(lvl.disc.isEmpty() ? "Link disc" : "Disc linked"));
         }).bounds(x + 224, y, 64, h).build());
+        addRenderableWidget(Button.builder(Component.literal(curveMode ? "Sliders: curved" : "Sliders: straight"), b -> {
+            curveMode = !curveMode;
+            bending = null;
+            b.setMessage(Component.literal(curveMode ? "Sliders: curved" : "Sliders: straight"));
+            status = curveMode ? "Curved: drag to make a slider, then click where it should bend." : "Straight sliders.";
+        }).bounds(x + 292, y, 92, h).build());
         addRenderableWidget(Button.builder(Component.literal("Back"), b -> { readFields(); minecraft.setScreen(back); }).bounds(width - 50, 6, 42, h).build());
     }
 
@@ -143,6 +151,20 @@ public final class OsuEditor extends Screen {
             return true;
         }
         if (!inField(mx, my)) return false;
+        if (bending != null) {   // the second click of a curved slider: where it bends
+            if (button == 0) {
+                int[] ps = pos(mx, my);
+                int idx = -1;
+                for (int i = 0; i < lvl.notes.size(); i++) if (lvl.notes.get(i) == bending) idx = i;
+                if (idx >= 0) {
+                    int[] b = bending;
+                    lvl.notes.set(idx, new int[]{b[0], b[1], b[2], b[3], b[4], b[5], ps[0], ps[1]});
+                    status = "Curved slider added.";
+                }
+            } else status = "Kept it straight.";
+            bending = null;
+            return true;
+        }
         if (button == 0) {
             if (lvl.notes.size() >= OsuLevel.MAX_NOTES) { status = "That is the most circles a level can have."; return true; }
             int[] ps = pos(mx, my);
@@ -184,7 +206,8 @@ public final class OsuEditor extends Screen {
                     int[] sl = new int[]{dragNote[0], dragNote[1], dragNote[2], ps[0], ps[1], dur};
                     lvl.notes.set(idx, sl);
                     cur = sl[0] + dur + step();
-                    status = "Slider added (drag further for a longer one).";
+                    if (curveMode) { bending = sl; status = "Now click where the slider should bend (right click keeps it straight)."; }
+                    else status = "Slider added (drag further for a longer one).";
                 }
             }
             dragNote = null;
@@ -226,9 +249,8 @@ public final class OsuEditor extends Screen {
             if (dt > 22 || cur > n[0] + (sl ? n[5] : 0) + 22) continue;
             if (dt < -22 && !(sl && cur <= n[0] + n[5])) continue;
             if (sl) {
-                double len = Math.hypot(ex(n) - px(n), ey(n) - py(n));
-                int steps = Math.max(2, (int) (len / 6));
-                for (int k = 0; k <= steps; k++) { double f = k / (double) steps; int bx = (int) (px(n) + (ex(n) - px(n)) * f), by = (int) (py(n) + (ey(n) - py(n)) * f);
+                int steps = 40;
+                for (int k = 0; k <= steps; k++) { double[] q = OsuLevel.at(n, k / (double) steps); int bx = (int) (width * 0.1 + q[0] / 1000.0 * width * 0.8), by = (int) (FT + 6 + q[1] / 1000.0 * (height - 40 - FT - 12));
                     for (int yy = -9; yy <= 9; yy++) { int w = (int) Math.sqrt(81.0 - yy * yy); g.fill(bx - w, by + yy, bx + w + 1, by + yy + 1, 0x60C060A0); } }
                 g.drawCenteredString(font, "o", (int) ex(n), (int) ey(n) - 4, 0xFFFFC0);
             }
@@ -245,6 +267,13 @@ public final class OsuEditor extends Screen {
             int x2 = OsuLevel.isSlider(n) ? 10 + (int) ((double) (n[0] + n[5]) / span() * (width - 20)) : x;
             g.fill(x, y0 + 2, x + 1, y0 + 10, 0xFFFF80C0);
             if (x2 > x) g.fill(x, y0 + 5, x2, y0 + 7, 0xFFC060A0);
+        }
+        if (bending != null) {
+            double[] cp = {width * 0.1 + 0, 0};
+            int xs = (int) px(bending), ys = (int) py(bending), xe = (int) ex(bending), ye = (int) ey(bending);
+            int[] fake = {bending[0], bending[1], bending[2], bending[3], bending[4], bending[5], pos(mx, my)[0], pos(mx, my)[1]};
+            for (int k = 0; k <= 30; k++) { double[] q = OsuLevel.at(fake, k / 30.0); int bx = (int) (width * 0.1 + q[0] / 1000.0 * width * 0.8), by = (int) (FT + 6 + q[1] / 1000.0 * (height - 40 - FT - 12)); g.fill(bx - 2, by - 2, bx + 2, by + 2, 0xFFFFE070); }
+            g.fill(mx - 3, my - 3, mx + 3, my + 3, 0xFFFF80C0);
         }
         if (dragNote != null) {
             double dd = Math.hypot(dragNowX - dragX, dragNowY - dragY);

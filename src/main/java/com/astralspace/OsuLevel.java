@@ -26,6 +26,18 @@ public final class OsuLevel {
     public void sort() { notes.sort((a, b) -> Integer.compare(a[0], b[0])); }
 
     public static boolean isSlider(int[] n) { return n.length >= 6; }
+    /** A curved slider has a bend point {.., cx, cy}: a quadratic curve from the head, bending toward it, to the end. */
+    public static boolean isCurved(int[] n) { return n.length >= 8; }
+
+    /** Position (0..1000 across and down) of a slider's ball at fraction f (0 head, 1 end). */
+    public static double[] at(int[] n, double f) {
+        f = Math.max(0, Math.min(1, f));
+        if (isCurved(n)) {
+            double u = 1 - f;
+            return new double[]{u * u * n[1] + 2 * u * f * n[6] + f * f * n[3], u * u * n[2] + 2 * u * f * n[7] + f * f * n[4]};
+        }
+        return new double[]{n[1] + (n[3] - n[1]) * f, n[2] + (n[4] - n[2]) * f};
+    }
 
     /** The tick at which the last note is over (a slider ends when its drag ends). */
     public int lengthTicks() {
@@ -46,6 +58,7 @@ public final class OsuLevel {
         for (int[] n : notes) {
             sb.append(n[0]).append(',').append(n[1]).append(',').append(n[2]);
             if (isSlider(n)) sb.append(',').append(n[3]).append(',').append(n[4]).append(',').append(n[5]);
+            if (isCurved(n)) sb.append(',').append(n[6]).append(',').append(n[7]);
             sb.append(';');
         }
         try {
@@ -79,7 +92,9 @@ public final class OsuLevel {
                 if (t < 0 || t > MAX_TICKS) continue;
                 if (p.length >= 6) {
                     int ex = Integer.parseInt(p[3].trim()), ey = Integer.parseInt(p[4].trim()), du = Integer.parseInt(p[5].trim());
-                    l.notes.add(new int[]{t, Math.max(0, Math.min(1000, x)), Math.max(0, Math.min(1000, y)), Math.max(0, Math.min(1000, ex)), Math.max(0, Math.min(1000, ey)), Math.max(MIN_SLIDE, Math.min(MAX_SLIDE, du))});
+                    int[] sl = new int[]{t, Math.max(0, Math.min(1000, x)), Math.max(0, Math.min(1000, y)), Math.max(0, Math.min(1000, ex)), Math.max(0, Math.min(1000, ey)), Math.max(MIN_SLIDE, Math.min(MAX_SLIDE, du))};
+                    if (p.length >= 8) sl = new int[]{sl[0], sl[1], sl[2], sl[3], sl[4], sl[5], Math.max(0, Math.min(1000, Integer.parseInt(p[6].trim()))), Math.max(0, Math.min(1000, Integer.parseInt(p[7].trim())))};
+                    l.notes.add(sl);
                 } else l.notes.add(new int[]{t, Math.max(0, Math.min(1000, x)), Math.max(0, Math.min(1000, y))});
                 if (l.notes.size() > MAX_NOTES) throw new IllegalArgumentException("too many circles");
             }
@@ -93,15 +108,39 @@ public final class OsuLevel {
         }
     }
 
-    /** A quick random level for the cabinet's "quick play". */
+    /** A quick random level for the cabinet's "quick play": slow, with every fifth shape a slider, and nothing close to another shape that is on screen at the same time. */
     public static OsuLevel random(long seed, int count) {
         java.util.Random r = new java.util.Random(seed);
         OsuLevel l = new OsuLevel();
         l.name = "Quick play";
-        int t = 40;
+        int t = 50;
+        List<double[]> occ = new ArrayList<>();   // {x, y, until tick}
         for (int i = 0; i < count; i++) {
-            t += 8 + r.nextInt(8);
-            l.notes.add(new int[]{t, 120 + r.nextInt(760), 150 + r.nextInt(700)});
+            boolean slide = i % 5 == 4;
+            t += 20 + r.nextInt(10) + (slide ? 10 : 0);
+            int x = 0, y = 0;
+            for (int tries = 0; tries < 60; tries++) {
+                x = 120 + r.nextInt(760); y = 150 + r.nextInt(700);
+                boolean ok = true;
+                for (double[] o : occ) if (o[2] > t - 40 && Math.hypot((x - o[0]) * 1.7, y - o[1]) < 260) { ok = false; break; }
+                if (ok) break;
+            }
+            if (slide) {
+                int dur = 26 + r.nextInt(14), ex = x, ey = y;
+                for (int tries = 0; tries < 30; tries++) {
+                    double a = r.nextDouble() * Math.PI * 2, d = 200 + r.nextDouble() * 150;
+                    ex = (int) (x + Math.cos(a) * d / 1.7); ey = (int) (y + Math.sin(a) * d);
+                    if (ex > 100 && ex < 900 && ey > 130 && ey < 870) break;
+                }
+                ex = Math.max(100, Math.min(900, ex)); ey = Math.max(130, Math.min(870, ey));
+                if (r.nextBoolean()) l.notes.add(new int[]{t, x, y, ex, ey, dur, (x + ex) / 2 + r.nextInt(240) - 120, (y + ey) / 2 + r.nextInt(240) - 120});   // curved
+                else l.notes.add(new int[]{t, x, y, ex, ey, dur});
+                occ.add(new double[]{x, y, t + dur}); occ.add(new double[]{ex, ey, t + dur});
+                t += dur;
+            } else {
+                l.notes.add(new int[]{t, x, y});
+                occ.add(new double[]{x, y, t});
+            }
         }
         return l;
     }

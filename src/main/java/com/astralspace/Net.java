@@ -224,7 +224,7 @@ public final class Net {
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("1");
         OsuNet.register(registrar);
-        registrar.playToClient(TreeScalePayload.TYPE, TreeScalePayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> ClientState.treeScale = p.scale()));
+        registrar.playToClient(TreeScalePayload.TYPE, TreeScalePayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { ClientState.treeScale = p.scale(); ClientState.treeGone = false; TreeRenderer.revive(); }));
         registrar.playToClient(HudPayload.TYPE, HudPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             ClientState.show = payload.show();
             ClientState.hp = payload.hp();

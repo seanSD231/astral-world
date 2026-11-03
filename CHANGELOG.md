@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.71
+- **The church is now the whole raised arena:** a huge round cathedral covers the entire stone platform. Tall outer wall with pointed windows and four arched gates, buttresses, a ring of great pillars and a broken inner ring, and a roof over the outer ring that is about half fallen in (the middle is open for the tree, with fallen-roof ribs left standing). Invisible lamps keep the covered part from being pitch black. New raid worlds only.
+- **Starting the fight:** everyone now arrives outside the south gate and is carried just inside it. The opening camera scene waits six seconds after everyone is inside, and the tree is drawn again at the start of every raid (it could stay hidden after an earlier one).
+- **Roots and heart crystals** now only grow on the grass patch (they were being placed out on the stone, where they cannot grow at all, which is why they were impossible). Fewer of them, more time: 3 to 5 roots for one player, 2 heart crystals.
+- **Hitting the tree:** a swing now reaches 34 blocks (plus 3 around every part), so you can hit the part of the tree you are looking at from where you stand.
+- **Osu:** slower (rings take longer to close, wider timing), and shapes no longer stack on top of each other (Desire's game and quick play keep new shapes away from ones still on screen). Quick play has sliders. Curved sliders: in the editor press "Sliders: straight" to switch to curved, drag to make the slider, then click where it should bend. Seven colour themes (button on the cabinet menu). Opening a cabinet with no jukebox next to it tells you there will be no music.
+- Hunger games work under the new roof.
+
 ## 0.2.70
 - **Hunger games use the whole stone platform:** players now start evenly spaced on a wide ring (about 270 blocks out, outside the church), chests are spread over the entire platform (170 anywhere, 60 inside the church, 50 with better loot in the middle), and the edge of the arena is the edge of the stone.
 

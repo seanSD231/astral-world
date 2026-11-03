@@ -9,8 +9,8 @@ import net.minecraft.sounds.SoundEvents;
 
 /** Client only: plays an osu cabinet level. Rings close onto circles; click each as its ring closes. Standalone: nothing is sent to the boss fight. */
 public final class OsuPlay extends Screen {
-    private static final int APPROACH = 22, LEAD = 40;
-    private static final double R300 = 2.5, R100 = 5, R50 = 8;   // timing windows in ticks either side
+    private static final int APPROACH = 30, LEAD = 50;
+    private static final double R300 = 3.5, R100 = 7, R50 = 10;   // timing windows in ticks either side
     private final OsuLevel level;
     private final Screen back;
     private final int n;
@@ -89,22 +89,27 @@ public final class OsuPlay extends Screen {
     private double px(int i) { return width * 0.1 + level.notes.get(i)[1] / 1000.0 * width * 0.8; }
     private double py(int i) { return height * 0.14 + level.notes.get(i)[2] / 1000.0 * height * 0.74; }
     private boolean slider(int i) { return OsuLevel.isSlider(level.notes.get(i)); }
-    private double ex(int i) { return width * 0.1 + level.notes.get(i)[3] / 1000.0 * width * 0.8; }
-    private double ey(int i) { return height * 0.14 + level.notes.get(i)[4] / 1000.0 * height * 0.74; }
-    /** Where the ball of slider i is at time t, in screen pixels. */
+    private double sx(double u) { return width * 0.1 + u / 1000.0 * width * 0.8; }
+    private double sy(double v) { return height * 0.14 + v / 1000.0 * height * 0.74; }
+    /** Where the ball of slider i is at time t, in screen pixels (along its curve if it has one). */
     private double[] ball(int i, double t) {
         int[] nt = level.notes.get(i);
-        double f = Math.max(0, Math.min(1, (t - nt[0]) / nt[5]));
-        return new double[]{px(i) + (ex(i) - px(i)) * f, py(i) + (ey(i) - py(i)) * f};
+        double[] q = OsuLevel.at(nt, (t - nt[0]) / nt[5]);
+        return new double[]{sx(q[0]), sy(q[1])};
     }
     private void body(GuiGraphics g, int i, int alpha) {
-        double len = Math.hypot(ex(i) - px(i), ey(i) - py(i));
-        int steps = Math.max(2, (int) (len / 6));
-        for (int k = 0; k <= steps; k++) {
-            double f = k / (double) steps;
-            disc(g, (int) (px(i) + (ex(i) - px(i)) * f), (int) (py(i) + (ey(i) - py(i)) * f), 22, (alpha / 2 << 24) | 0x501060);
+        int[] nt = level.notes.get(i);
+        int steps = 28;
+        double prevX = px(i), prevY = py(i), len = 0;
+        for (int k = 1; k <= steps; k++) { double[] q = OsuLevel.at(nt, k / (double) steps); len += Math.hypot(sx(q[0]) - prevX, sy(q[1]) - prevY); prevX = sx(q[0]); prevY = sy(q[1]); }
+        int n2 = Math.max(6, (int) (len / 5));
+        int[] c = OsuClient.colours();
+        for (int k = 0; k <= n2; k++) {
+            double[] q = OsuLevel.at(nt, k / (double) n2);
+            disc(g, (int) sx(q[0]), (int) sy(q[1]), 22, (alpha / 2 << 24) | c[3]);
         }
-        ring(g, (int) ex(i), (int) ey(i), 22, (alpha << 24) | 0xFFC0E0);
+        double[] e = OsuLevel.at(nt, 1);
+        ring(g, (int) sx(e[0]), (int) sy(e[1]), 22, (alpha << 24) | c[2]);
     }
 
     @Override
@@ -191,10 +196,11 @@ public final class OsuPlay extends Screen {
                 if (state[i] == 4 || since < 0) continue;
                 int alpha = (int) Math.min(255, since * 40);
                 if (slider(i)) body(g, i, alpha);
-                disc(g, cx, cy, 30, (alpha * 3 / 4 << 24) | 0xA0103A);
-                disc(g, cx, cy, 24, (alpha * 3 / 4 << 24) | 0x601070);
+                int[] tc = OsuClient.colours();
+                disc(g, cx, cy, 30, (alpha * 3 / 4 << 24) | tc[0]);
+                disc(g, cx, cy, 24, (alpha * 3 / 4 << 24) | tc[1]);
                 double k = Math.max(0, 1 - since / APPROACH);
-                ring(g, cx, cy, 30 + (int) (k * 70), (alpha << 24) | 0xFFC0E0);
+                ring(g, cx, cy, 30 + (int) (k * 70), (alpha << 24) | tc[2]);
                 g.drawCenteredString(font, String.valueOf(i + 1), cx, cy - 4, 0xFFFFFF);
             }
             g.drawString(font, level.name + (level.author.isEmpty() ? "" : "  by " + level.author), 8, 6, 0xFFD0F0, true);

@@ -32,8 +32,8 @@ final class RootClick {
         TreeModel m = TreeRenderer.metaNow();
         if (m == null) return;
         Vec3 eye = mc.player.getEyePosition(), look = mc.player.getLookAngle();
-        double reach = mc.player.entityInteractionRange() + 2.5;
-        double t = m.rayHitAny(eye.x - TreeRenderer.lastX, eye.y - TreeRenderer.lastY, eye.z - TreeRenderer.lastZ, look.x, look.y, look.z, reach, Net.ClientState.treeScale, 1.5);
+        double reach = EndGame.TREE_REACH;
+        double t = m.rayHitAny(eye.x - TreeRenderer.lastX, eye.y - TreeRenderer.lastY, eye.z - TreeRenderer.lastZ, look.x, look.y, look.z, reach, Net.ClientState.treeScale, EndGame.TREE_MARGIN);
         if (t < 0) return;
         if (hr != null && hr.getType() == HitResult.Type.BLOCK && eye.distanceTo(hr.getLocation()) < t - 0.3) return;   // a block is in front of the root
         ev.setCanceled(true);

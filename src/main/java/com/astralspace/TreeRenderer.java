@@ -112,6 +112,9 @@ public final class TreeRenderer {
         return new double[]{mc.player.getX() + dx * lim / d, mc.player.getZ() + dz * lim / d};
     }
 
+    /** A new raid: the tree is drawn again even if it was never tracked yet. */
+    static void revive() { gone = false; }
+
     static double meltSeconds() {
         long st = Net.ClientState.meltStart;
         return st == 0 ? -1 : (System.currentTimeMillis() - st) / 1000.0;

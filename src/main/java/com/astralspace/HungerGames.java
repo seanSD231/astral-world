@@ -121,7 +121,7 @@ public final class HungerGames {
         seqEvent = seqEv; seqKeep = keep; seqSet = setTo;
         answers.clear(); alive.clear(); players.clear(); chests.clear();
         lv.getChunk(0, 0);
-        groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
+        groundY = PlanetGenerator.BASE + 1;   // the floor of the church (a roof covers the heightmap)
         outerLeft = OUTER_CHESTS; centreLeft = CENTRE_CHESTS; churchLeft = CHURCH_CHESTS;
         phase = Phase.INVITE;
         phaseEnd = s.getTickCount() + INVITE_TICKS;
@@ -197,7 +197,7 @@ public final class HungerGames {
                 double a = rnd.nextDouble() * Math.PI * 2, r = 5 + rnd.nextDouble() * 38;
                 x = (int) Math.round(Math.cos(a) * r); z = (int) Math.round(Math.sin(a) * r);
             } else if (kind == 1) {
-                x = rnd.nextInt(221) - 110; z = rnd.nextInt(291) - 60;
+                x = rnd.nextInt(681) - 340; z = rnd.nextInt(681) - 340;
                 if (!PlanetGenerator.churchInside(x, z, 3)) continue;
             } else {
                 double a = rnd.nextDouble() * Math.PI * 2, r = Math.max(45, Math.sqrt(rnd.nextDouble()) * maxR);
@@ -218,9 +218,7 @@ public final class HungerGames {
     /** A free floor spot at (x, z): about the height of the arena floor, solid and dry underneath. Null inside walls, on top of them or in water. */
     private static BlockPos surface(ServerLevel lv, int x, int z) {
         lv.getChunk(x >> 4, z >> 4);
-        int y = lv.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-        if (Math.abs(y - groundY) > 2) return null;
-        BlockPos p = new BlockPos(x, y, z);
+        BlockPos p = new BlockPos(x, (int) groundY, z);
         BlockState below = lv.getBlockState(p.below());
         if (!below.isSolid() || !below.getFluidState().isEmpty()) return null;
         if (!lv.getBlockState(p).isAir() || !lv.getBlockState(p.above()).isAir()) return null;
@@ -419,7 +417,7 @@ public final class HungerGames {
                 double k = (PlanetGenerator.PLAT_R - 8) / d;
                 int x = (int) (p.getX() * k), z = (int) (p.getZ() * k);
                 lv.getChunk(x >> 4, z >> 4);
-                p.teleportTo(lv, x + 0.5, lv.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z), z + 0.5, p.getYRot(), p.getXRot());
+                p.teleportTo(lv, x + 0.5, groundY, z + 0.5, p.getYRot(), p.getXRot());
                 p.displayClientMessage(Component.literal("That is the edge of the arena."), true);
             }
         }
