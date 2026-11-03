@@ -1,1 +1,1 @@
-{"variants": {"": {"model": "astral_world:block/osu_cabinet"}}}
+{"variants": {"facing=north": {"model": "astral_world:block/osu_cabinet", "y": 0}, "facing=east": {"model": "astral_world:block/osu_cabinet", "y": 90}, "facing=south": {"model": "astral_world:block/osu_cabinet", "y": 180}, "facing=west": {"model": "astral_world:block/osu_cabinet", "y": 270}}}

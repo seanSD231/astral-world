@@ -1,1 +1,1 @@
-{"parent": "minecraft:block/cube_bottom_top", "textures": {"top": "minecraft:block/gilded_blackstone", "bottom": "minecraft:block/polished_blackstone", "side": "minecraft:block/crying_obsidian"}}
+{"parent": "minecraft:block/orientable", "textures": {"top": "astral_world:block/osu_cabinet_top", "front": "astral_world:block/osu_cabinet_front", "side": "astral_world:block/osu_cabinet_side"}}

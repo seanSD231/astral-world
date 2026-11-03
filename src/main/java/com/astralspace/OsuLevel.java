@@ -14,17 +14,25 @@ import java.util.zip.GZIPOutputStream;
  * Levels travel as share codes: "OSU1:" and a gzip-compressed, base64 text, which can be pasted into chat, a book or a file.
  */
 public final class OsuLevel {
+    public static final int MIN_SLIDE = 6, MAX_SLIDE = 160;
     public static final int MAX_NOTES = 400, MAX_TICKS = 20 * 600, MAX_NAME = 32, MAX_DISC = 6000;
     public static final String PREFIX = "OSU1:";
 
     public String name = "Untitled", author = "", disc = "";
     public int bpm = 120;
-    /** {tick, x, y}, kept in time order. */
+    /** {tick, x, y} for a circle, or {tick, x, y, endX, endY, durationTicks} for a slider; kept in time order. */
     public final List<int[]> notes = new ArrayList<>();
 
     public void sort() { notes.sort((a, b) -> Integer.compare(a[0], b[0])); }
 
-    public int lengthTicks() { return notes.isEmpty() ? 0 : notes.get(notes.size() - 1)[0]; }
+    public static boolean isSlider(int[] n) { return n.length >= 6; }
+
+    /** The tick at which the last note is over (a slider ends when its drag ends). */
+    public int lengthTicks() {
+        int m = 0;
+        for (int[] n : notes) m = Math.max(m, isSlider(n) ? n[0] + n[5] : n[0]);
+        return m;
+    }
 
     private static String clean(String s, int max) {
         s = s == null ? "" : s.replace('\n', ' ').replace('\r', ' ').trim();
@@ -35,7 +43,11 @@ public final class OsuLevel {
         sort();
         StringBuilder sb = new StringBuilder();
         sb.append(clean(name, MAX_NAME)).append('\n').append(clean(author, 16)).append('\n').append(bpm).append('\n').append(clean(disc, MAX_DISC)).append('\n');
-        for (int[] n : notes) sb.append(n[0]).append(',').append(n[1]).append(',').append(n[2]).append(';');
+        for (int[] n : notes) {
+            sb.append(n[0]).append(',').append(n[1]).append(',').append(n[2]);
+            if (isSlider(n)) sb.append(',').append(n[3]).append(',').append(n[4]).append(',').append(n[5]);
+            sb.append(';');
+        }
         try {
             ByteArrayOutputStream bo = new ByteArrayOutputStream();
             try (GZIPOutputStream gz = new GZIPOutputStream(bo)) { gz.write(sb.toString().getBytes(StandardCharsets.UTF_8)); }
@@ -65,7 +77,10 @@ public final class OsuLevel {
                 String[] p = s.split(",");
                 int t = Integer.parseInt(p[0].trim()), x = Integer.parseInt(p[1].trim()), y = Integer.parseInt(p[2].trim());
                 if (t < 0 || t > MAX_TICKS) continue;
-                l.notes.add(new int[]{t, Math.max(0, Math.min(1000, x)), Math.max(0, Math.min(1000, y))});
+                if (p.length >= 6) {
+                    int ex = Integer.parseInt(p[3].trim()), ey = Integer.parseInt(p[4].trim()), du = Integer.parseInt(p[5].trim());
+                    l.notes.add(new int[]{t, Math.max(0, Math.min(1000, x)), Math.max(0, Math.min(1000, y)), Math.max(0, Math.min(1000, ex)), Math.max(0, Math.min(1000, ey)), Math.max(MIN_SLIDE, Math.min(MAX_SLIDE, du))});
+                } else l.notes.add(new int[]{t, Math.max(0, Math.min(1000, x)), Math.max(0, Math.min(1000, y))});
                 if (l.notes.size() > MAX_NOTES) throw new IllegalArgumentException("too many circles");
             }
             if (l.notes.isEmpty()) throw new IllegalArgumentException("no circles");

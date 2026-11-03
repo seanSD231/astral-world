@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.67
+- **Osu sliders:** levels can now have sliders. In the editor, click and drag to make one (the drag length sets how long it is). In play, click the head on time, then hold the mouse and follow the ball to the other end. Following it at least half the time keeps your combo; following it nearly all the time keeps the full grade. Desire's click game has sliders too (every fourth shape). Old levels and share codes still work.
+- **Editor layout:** the name box now has a "Level name:" label and a hint, and saving, testing, copying or publishing without a name tells you to name it. Buttons are on their own row so Back and Link disc no longer cover each other. Saving over a level with the same name asks first ("Replace?").
+- **Cabinet:** new look: dark wood with iron bands, a screen showing a circle and its ring, and two buttons. It faces you when you place it.
+- **Etched discs:** if Etched's own hook doesn't start the disc in the jukebox next to the cabinet, the mod now sends Etched's play packet itself (it writes a line in the log either way).
+
 ## 0.2.66
 - **The ruined church:** a huge, abandoned, half-collapsed church now stands around the tree (new raid worlds only): a nave with a door in the south, an apse in the north and a transept across, walls of mixed mossy, cracked and plain stone with pointed windows and broken tops, buttresses, two towers either side of the door, rows of pillars, broken pews and rubble. The tree grows in the middle of it. Walls are solid cover now (for the 15% meteor).
 - **Starting the fight:** everyone arrives in front of the church and is told to go inside. After 60 seconds anyone still outside is carried in. The opening camera scene starts once everyone is inside.

@@ -17,7 +17,12 @@ public final class OsuScreen extends Screen {
     private final int total, duration;
     private final double[] px, py;
     private final int[] at;
-    private final boolean[] hit, done;
+    private final boolean[] hit, done, slider, active;
+    private final double[] qx, qy;
+    private final float[] track;
+    private static final int SLIDE = 16;   // ticks a slider is followed
+    private boolean mouseDown = false;
+    private double lmx, lmy;
     private int tick = 0, hits = 0;
     private boolean sent = false;
 
@@ -27,11 +32,18 @@ public final class OsuScreen extends Screen {
         this.duration = ticks;
         java.util.Random r = new java.util.Random(seed);
         px = new double[count]; py = new double[count]; at = new int[count]; hit = new boolean[count]; done = new boolean[count];
-        int span = ticks - APPROACH - WINDOW - 4;
+        slider = new boolean[count]; active = new boolean[count]; qx = new double[count]; qy = new double[count]; track = new float[count];
+        int span = ticks - APPROACH - WINDOW - 4 - SLIDE;
         for (int i = 0; i < count; i++) {
             at[i] = APPROACH + 2 + (int) Math.round(span * (i + r.nextDouble() * 0.6) / count);
             px[i] = 0.12 + r.nextDouble() * 0.76;
             py[i] = 0.15 + r.nextDouble() * 0.7;
+            if (i % 4 == 3) {   // every fourth is a slider: hold and follow the ball to the other end
+                slider[i] = true;
+                double a = r.nextDouble() * Math.PI * 2;
+                qx[i] = Math.max(0.1, Math.min(0.9, px[i] + Math.cos(a) * 0.18));
+                qy[i] = Math.max(0.15, Math.min(0.85, py[i] + Math.sin(a) * 0.25));
+            }
         }
     }
 
@@ -42,6 +54,12 @@ public final class OsuScreen extends Screen {
     public void tick() {
         tick++;
         for (int i = 0; i < total; i++) if (!done[i] && tick > at[i] + WINDOW) done[i] = true;   // too late: a miss
+        for (int i = 0; i < total; i++) {
+            if (!active[i]) continue;
+            double[] b = ball(i, tick);
+            if (mouseDown && Math.hypot(lmx - b[0], lmy - b[1]) <= 56) track[i]++;
+            if (tick >= at[i] + SLIDE) { active[i] = false; if (track[i] >= SLIDE * 0.5f) hits++; }
+        }
         if (tick >= duration && !sent) {
             sent = true;
             PacketDistributor.sendToServer(new Net.OsuResult(hits, total));
@@ -52,17 +70,34 @@ public final class OsuScreen extends Screen {
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
         double rad = 30;
+        if (button == 0) { mouseDown = true; lmx = mx; lmy = my; }
         for (int i = 0; i < total; i++) {
             if (done[i] || tick < at[i] - APPROACH) continue;
             double cx = px[i] * width, cy = py[i] * height;
             if (Math.hypot(mx - cx, my - cy) > rad) continue;
             if (Math.abs(tick - at[i]) <= WINDOW) {
-                hit[i] = true; done[i] = true; hits++;
+                hit[i] = true; done[i] = true;
+                if (slider[i]) active[i] = true; else hits++;
                 Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(SoundEvents.AMETHYST_BLOCK_CHIME, 1.2f + 0.02f * hits, 1f));
             } else done[i] = true;   // far too early: spent
             return true;
         }
         return true;
+    }
+
+    @Override
+    public boolean mouseReleased(double mx, double my, int button) { if (button == 0) mouseDown = false; return super.mouseReleased(mx, my, button); }
+
+    private double[] ball(int i, double t) {
+        double f = Math.max(0, Math.min(1, (t - at[i]) / SLIDE));
+        return new double[]{(px[i] + (qx[i] - px[i]) * f) * width, (py[i] + (qy[i] - py[i]) * f) * height};
+    }
+
+    private void body(GuiGraphics g, int i, int alpha) {
+        double x0 = px[i] * width, y0 = py[i] * height, x1 = qx[i] * width, y1 = qy[i] * height;
+        int steps = Math.max(2, (int) (Math.hypot(x1 - x0, y1 - y0) / 6));
+        for (int k = 0; k <= steps; k++) { double f = k / (double) steps; disc(g, (int) (x0 + (x1 - x0) * f), (int) (y0 + (y1 - y0) * f), 22, (alpha / 2 << 24) | 0x501060); }
+        ring(g, (int) x1, (int) y1, 22, (alpha << 24) | 0xFFC0E0);
     }
 
     private static void disc(GuiGraphics g, int cx, int cy, int r, int argb) {
@@ -85,8 +120,16 @@ public final class OsuScreen extends Screen {
     public void render(GuiGraphics g, int mx, int my, float pt) {
         g.fill(0, 0, width, height, 0xB0200010);
         float t = tick + pt;
+        lmx = mx; lmy = my;
         for (int i = total - 1; i >= 0; i--) {
             if (done[i] && !hit[i]) continue;
+            if (active[i]) {
+                body(g, i, 255);
+                double[] b = ball(i, t);
+                ring(g, (int) b[0], (int) b[1], 44, mouseDown && Math.hypot(mx - b[0], my - b[1]) <= 56 ? 0xFFFFE070 : 0x80FFFFFF);
+                disc(g, (int) b[0], (int) b[1], 18, 0xFFFFC040);
+                continue;
+            }
             double since = t - (at[i] - APPROACH);
             if (since < 0) continue;
             int cx = (int) (px[i] * width), cy = (int) (py[i] * height);
@@ -96,13 +139,14 @@ public final class OsuScreen extends Screen {
                 continue;
             }
             int alpha = (int) Math.min(255, since * 40);
+            if (slider[i]) body(g, i, alpha);
             disc(g, cx, cy, 30, (alpha * 3 / 4 << 24) | 0xA0103A);
             disc(g, cx, cy, 24, (alpha * 3 / 4 << 24) | 0x601070);
             double k = Math.max(0, 1 - since / APPROACH);
             ring(g, cx, cy, 30 + (int) (k * 70), (alpha << 24) | 0xFFC0E0);
             g.drawCenteredString(font, String.valueOf(i + 1), cx, cy - 4, 0xFFFFFF);
         }
-        g.drawCenteredString(font, "Click the circles as the rings close.", width / 2, 12, 0xFFD0F0);
+        g.drawCenteredString(font, "Click the circles as the rings close. Hold and follow the sliders.", width / 2, 12, 0xFFD0F0);
         g.drawCenteredString(font, hits + " / " + total, width / 2, 26, 0xFFFFFF);
         int barW = width / 3;
         g.fill(width / 2 - barW / 2, height - 20, width / 2 - barW / 2 + (int) (barW * Math.min(1f, t / duration)), height - 16, 0xFFE070A0);

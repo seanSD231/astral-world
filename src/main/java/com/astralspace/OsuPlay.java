@@ -16,6 +16,10 @@ public final class OsuPlay extends Screen {
     private final int n;
     private final int[] state;   // 0 waiting, 1 hit300, 2 hit100, 3 hit50, 4 missed
     private final float[] hitAt;
+    private final boolean[] active;   // a slider whose head was hit and that is still running
+    private final float[] track;      // ticks the ball was followed
+    private boolean mouseDown = false;
+    private double lmx, lmy;
     private int tick = -LEAD, combo = 0, best = 0;
     private double score = 0;
     private boolean musicOn = false, ended = false;
@@ -29,6 +33,8 @@ public final class OsuPlay extends Screen {
         this.n = level.notes.size();
         this.state = new int[n];
         this.hitAt = new float[n];
+        this.active = new boolean[n];
+        this.track = new float[n];
     }
 
     @Override public boolean isPauseScreen() { return false; }
@@ -54,6 +60,19 @@ public final class OsuPlay extends Screen {
             musicOn = true;
         }
         for (int i = 0; i < n; i++) if (state[i] == 0 && tick > level.notes.get(i)[0] + R50) { state[i] = 4; combo = 0; flash("Miss"); }
+        for (int i = 0; i < n; i++) {
+            if (!active[i]) continue;
+            int[] nt = level.notes.get(i);
+            double[] b = ball(i, tick);
+            if (mouseDown && Math.hypot(lmx - b[0], lmy - b[1]) <= 58) { track[i]++; score += 2; }
+            if (tick >= nt[0] + nt[5]) {
+                active[i] = false;
+                double frac = track[i] / (double) nt[5];
+                if (frac < 0.5) { state[i] = 3; combo = 0; flash("Slider broke"); }
+                else { if (frac < 0.9 && state[i] == 1) state[i] = 2; score += 100 * frac * (1 + combo * 0.02); combo++; best = Math.max(best, combo); flash(frac >= 0.9 ? "Slider!" : "Slider ok"); }
+                hitAt[i] = tick;
+            }
+        }
         if (!ended && tick > lastTick()) { ended = true; stopMusic(); rebuild(); }
     }
 
@@ -69,10 +88,32 @@ public final class OsuPlay extends Screen {
 
     private double px(int i) { return width * 0.1 + level.notes.get(i)[1] / 1000.0 * width * 0.8; }
     private double py(int i) { return height * 0.14 + level.notes.get(i)[2] / 1000.0 * height * 0.74; }
+    private boolean slider(int i) { return OsuLevel.isSlider(level.notes.get(i)); }
+    private double ex(int i) { return width * 0.1 + level.notes.get(i)[3] / 1000.0 * width * 0.8; }
+    private double ey(int i) { return height * 0.14 + level.notes.get(i)[4] / 1000.0 * height * 0.74; }
+    /** Where the ball of slider i is at time t, in screen pixels. */
+    private double[] ball(int i, double t) {
+        int[] nt = level.notes.get(i);
+        double f = Math.max(0, Math.min(1, (t - nt[0]) / nt[5]));
+        return new double[]{px(i) + (ex(i) - px(i)) * f, py(i) + (ey(i) - py(i)) * f};
+    }
+    private void body(GuiGraphics g, int i, int alpha) {
+        double len = Math.hypot(ex(i) - px(i), ey(i) - py(i));
+        int steps = Math.max(2, (int) (len / 6));
+        for (int k = 0; k <= steps; k++) {
+            double f = k / (double) steps;
+            disc(g, (int) (px(i) + (ex(i) - px(i)) * f), (int) (py(i) + (ey(i) - py(i)) * f), 22, (alpha / 2 << 24) | 0x501060);
+        }
+        ring(g, (int) ex(i), (int) ey(i), 22, (alpha << 24) | 0xFFC0E0);
+    }
+
+    @Override
+    public boolean mouseReleased(double mx, double my, int button) { if (button == 0) mouseDown = false; return super.mouseReleased(mx, my, button); }
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
         if (ended) return super.mouseClicked(mx, my, button);
+        if (button == 0) { mouseDown = true; lmx = mx; lmy = my; }
         float t = tick;
         int pick = -1;
         double bestD = 1e9;
@@ -88,6 +129,7 @@ public final class OsuPlay extends Screen {
         int base = d <= R300 ? 300 : d <= R100 ? 100 : 50;
         state[pick] = base == 300 ? 1 : base == 100 ? 2 : 3;
         hitAt[pick] = tick;
+        if (slider(pick)) active[pick] = true;
         combo++;
         best = Math.max(best, combo);
         score += base * (1 + combo * 0.02);
@@ -124,6 +166,7 @@ public final class OsuPlay extends Screen {
     @Override
     public void render(GuiGraphics g, int mx, int my, float pt) {
         super.render(g, mx, my, pt);
+        lmx = mx; lmy = my;
         float t = tick + pt;
         int count300 = 0, count100 = 0, count50 = 0, miss = 0;
         for (int i = 0; i < n; i++) { switch (state[i]) { case 1 -> count300++; case 2 -> count100++; case 3 -> count50++; case 4 -> miss++; default -> { } } }
@@ -132,6 +175,14 @@ public final class OsuPlay extends Screen {
                 int at = level.notes.get(i)[0];
                 double since = t - (at - APPROACH);
                 int cx = (int) px(i), cy = (int) py(i);
+                if (active[i]) {
+                    body(g, i, 255);
+                    double[] b = ball(i, t);
+                    boolean on = mouseDown && Math.hypot(mx - b[0], my - b[1]) <= 58;
+                    ring(g, (int) b[0], (int) b[1], 46, on ? 0xFFFFE070 : 0x80FFFFFF);
+                    disc(g, (int) b[0], (int) b[1], 18, 0xFFFFC040);
+                    continue;
+                }
                 if (state[i] >= 1 && state[i] <= 3) {
                     double f = Math.min(1.0, (t - hitAt[i]) / 8.0);
                     if (f < 1) ring(g, cx, cy, 30 + (int) (f * 22), ((int) ((1 - f) * 255) << 24) | (state[i] == 1 ? 0xFFE070 : state[i] == 2 ? 0x70E0FF : 0xB0B0B0));
@@ -139,6 +190,7 @@ public final class OsuPlay extends Screen {
                 }
                 if (state[i] == 4 || since < 0) continue;
                 int alpha = (int) Math.min(255, since * 40);
+                if (slider(i)) body(g, i, alpha);
                 disc(g, cx, cy, 30, (alpha * 3 / 4 << 24) | 0xA0103A);
                 disc(g, cx, cy, 24, (alpha * 3 / 4 << 24) | 0x601070);
                 double k = Math.max(0, 1 - since / APPROACH);

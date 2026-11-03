@@ -168,8 +168,33 @@ public final class OsuNet {
             if (disc.isEmpty()) return;
             disc.set(net.minecraft.core.component.DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.EMPTY.update(t -> t.putBoolean("astral_osu", true)));   // marks it as the cabinet's copy, which it takes away again
             jb.setTheItem(disc);
+            etchedNudge(level, jb, jpos, disc);
         } catch (Exception ex) {
             p.displayClientMessage(Component.literal("The disc of this level could not be played."), true);
+        }
+    }
+
+    /**
+     * Etched plays its discs by hooking JukeboxBlockEntity.setTheItem and sending its own "play block music" packet. If that hook did not fire
+     * (it marks the jukebox with an etched$playing flag), send the same packet here. Everything is by reflection, so the mod is optional.
+     */
+    private static void etchedNudge(net.minecraft.server.level.ServerLevel level, JukeboxBlockEntity jb, BlockPos pos, ItemStack disc) {
+        try {
+            Class<?> pr = Class.forName("gg.moonflower.etched.api.record.PlayableRecord");
+            if (!(Boolean) pr.getMethod("isPlayableRecord", ItemStack.class).invoke(null, disc)) return;
+            java.lang.reflect.Field f = null;
+            for (Class<?> c = jb.getClass(); c != null && f == null; c = c.getSuperclass()) {
+                try { f = c.getDeclaredField("etched$playing"); } catch (NoSuchFieldException ignored) { }
+            }
+            if (f != null) { f.setAccessible(true); if (f.getBoolean(jb)) return; }   // Etched already started it
+            Class<?> pk = Class.forName("gg.moonflower.etched.common.network.play.ClientboundPlayBlockMusicPacket");
+            Object packet = pk.getConstructor(ItemStack.class, BlockPos.class, java.util.UUID.class).newInstance(disc.copy(), pos, null);
+            PacketDistributor.sendToPlayersNear(level, null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 64.0, (net.minecraft.network.protocol.common.custom.CustomPacketPayload) packet);
+            if (f != null) f.setBoolean(jb, true);
+            com.mojang.logging.LogUtils.getLogger().info("[osu] sent the Etched disc to players by hand (Etched's own hook had not started it)");
+        } catch (ClassNotFoundException ignored) {
+        } catch (Throwable t) {
+            com.mojang.logging.LogUtils.getLogger().warn("[osu] Etched disc playback failed: {}", t.toString());
         }
     }
 }
