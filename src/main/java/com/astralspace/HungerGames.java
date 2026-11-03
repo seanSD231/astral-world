@@ -59,7 +59,7 @@ public final class HungerGames {
     private enum Phase { OFF, INVITE, COUNTDOWN, RUNNING, ENDING }
 
     private record Saved(ResourceKey<Level> dim, double x, double y, double z, float yaw, float pitch, GameType mode, ListTag inv,
-                         float hp, int food, float sat, int xpLevel, float xpProg, int xpTotal, int seq) { }
+                         float hp, int food, float sat, int xpLevel, float xpProg, int xpTotal, int seq, ListTag curios) { }
 
     private static final double ARENA_R = EndGame.ARENA_R, RING_R = 172;
     private static final int INVITE_TICKS = 20 * 60, COUNTDOWN_TICKS = 20 * 10, OUTER_CHESTS = 100, CENTRE_CHESTS = 50;
@@ -285,6 +285,7 @@ public final class HungerGames {
             alive.add(p.getUUID());
             // wipe: nothing carried in, nothing left over
             p.getInventory().clearContent();
+            clearCurios(p);
             p.removeAllEffects();
             p.setHealth(p.getMaxHealth());
             p.getFoodData().setFoodLevel(20);
@@ -311,7 +312,57 @@ public final class HungerGames {
     private static Saved snapshot(ServerPlayer p) {
         return new Saved(p.level().dimension(), p.getX(), p.getY(), p.getZ(), p.getYRot(), p.getXRot(), p.gameMode.getGameModeForPlayer(),
                 p.getInventory().save(new ListTag()), p.getHealth(), p.getFoodData().getFoodLevel(), p.getFoodData().getSaturationLevel(),
-                p.experienceLevel, p.experienceProgress, p.totalExperience, Lotm.sequence(p));
+                p.experienceLevel, p.experienceProgress, p.totalExperience, Lotm.sequence(p), saveCurios(p));
+    }
+
+    /** Curios slots (rings, charms, etc.) by reflection, so Curios stays optional. Null when Curios is not installed. */
+    private static net.neoforged.neoforge.items.IItemHandlerModifiable curiosOf(ServerPlayer p) {
+        try {
+            Class<?> api = Class.forName("top.theillusivec4.curios.api.CuriosApi");
+            Object opt = api.getMethod("getCuriosInventory", net.minecraft.world.entity.LivingEntity.class).invoke(null, p);
+            if (!(opt instanceof Optional<?> o) || o.isEmpty()) return null;
+            Object h = o.get();
+            Object eq = h.getClass().getMethod("getEquippedCurios").invoke(h);
+            return eq instanceof net.neoforged.neoforge.items.IItemHandlerModifiable m ? m : null;
+        } catch (ClassNotFoundException e) {
+            return null;
+        } catch (Throwable t) {
+            LOGGER.warn("[hungergames] could not reach Curios: {}", t.toString());
+            return null;
+        }
+    }
+
+    private static ListTag saveCurios(ServerPlayer p) {
+        ListTag out = new ListTag();
+        var h = curiosOf(p);
+        if (h == null) return out;
+        for (int i = 0; i < h.getSlots(); i++) {
+            ItemStack st = h.getStackInSlot(i);
+            if (st.isEmpty()) continue;
+            net.minecraft.nbt.CompoundTag c = new net.minecraft.nbt.CompoundTag();
+            c.putInt("Slot", i);
+            c.put("Item", st.save(p.registryAccess()));
+            out.add(c);
+        }
+        return out;
+    }
+
+    private static void clearCurios(ServerPlayer p) {
+        var h = curiosOf(p);
+        if (h == null) return;
+        for (int i = 0; i < h.getSlots(); i++) h.setStackInSlot(i, ItemStack.EMPTY);
+    }
+
+    private static void loadCurios(ServerPlayer p, ListTag list) {
+        var h = curiosOf(p);
+        if (h == null) return;
+        clearCurios(p);
+        for (int i = 0; i < list.size(); i++) {
+            net.minecraft.nbt.CompoundTag c = list.getCompound(i);
+            int slot = c.getInt("Slot");
+            if (slot < 0 || slot >= h.getSlots()) continue;
+            ItemStack.parse(p.registryAccess(), c.get("Item")).ifPresent(st -> h.setStackInSlot(slot, st));
+        }
     }
 
     private static void applySeq(ServerPlayer p) {
@@ -355,8 +406,8 @@ public final class HungerGames {
             if (p == null) { eliminate(s, u, null, "left the games"); continue; }
             if (p.level() != lv) { p.teleportTo(lv, 0.5, groundY, 0.5, 0f, 0f); continue; }
             double d = Math.hypot(p.getX(), p.getZ());
-            if (d > ARENA_R) {   // the edge of the arena
-                double k = (ARENA_R - 4) / d;
+            if (d > PlanetGenerator.PLAT_R - 3) {   // the edge of the stone
+                double k = (PlanetGenerator.PLAT_R - 8) / d;
                 int x = (int) (p.getX() * k), z = (int) (p.getZ() * k);
                 lv.getChunk(x >> 4, z >> 4);
                 p.teleportTo(lv, x + 0.5, lv.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z), z + 0.5, p.getYRot(), p.getXRot());
@@ -386,6 +437,7 @@ public final class HungerGames {
         String name = p != null ? p.getGameProfile().getName() : u.toString().substring(0, 8);
         if (p != null) {
             p.getInventory().dropAll();   // what they gathered stays on the field for the others
+            clearCurios(p);
             p.setHealth(p.getMaxHealth());
             p.removeAllEffects();
             p.setGameMode(GameType.SPECTATOR);
@@ -429,6 +481,7 @@ public final class HungerGames {
         p.removeAllEffects();
         p.getInventory().clearContent();
         p.getInventory().load(sv.inv());
+        loadCurios(p, sv.curios());
         p.setGameMode(sv.mode());
         p.setHealth(Math.max(1f, Math.min(sv.hp(), p.getMaxHealth())));
         p.getFoodData().setFoodLevel(sv.food());

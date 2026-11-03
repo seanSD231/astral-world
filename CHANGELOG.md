@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.69
+- **The arena edge:** during the Mother Tree fight you can now walk to the very edge of the stone platform. Only beyond the stone are you pulled back. Hunger games use the same edge.
+- **Hunger games and curios:** if the Curios mod is installed, curio slots are now wiped when the games start (and for eliminated players) and given back afterwards, like the rest of the inventory.
+
 ## 0.2.68
 - **Hunger games:** `/hungergames start` (ops) asks every player yes or no with clickable buttons (60 seconds, or sooner when everyone has answered). The yeses are carried to the raid arena (no tree), spaced evenly around the edge of the grass and held still for a 10 second countdown. About 150 chests are spread over the arena, 50 of them in the middle with better loot. Last one standing wins; the dead become spectators and drop what they gathered.
   - `/hungergames start noseq`: not a sequence event. Beyonders drop to sequence 9 for the games and get their sequence back afterwards.
