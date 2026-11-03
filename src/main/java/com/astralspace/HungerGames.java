@@ -78,6 +78,9 @@ public final class HungerGames {
     private static int outerLeft = 0, centreLeft = 0, churchLeft = 0;
     private static final Random rnd = new Random();
 
+    /** True while this player is a living contestant in a running game (the arena's no-damage rule does not apply to them). */
+    public static boolean fighting(ServerPlayer p) { return (phase == Phase.RUNNING || phase == Phase.ENDING) && alive.contains(p.getUUID()); }
+
     // ------------------------------------------------------------------ commands
 
     @SubscribeEvent

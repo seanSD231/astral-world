@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.73
+- **Hunger games:** players can hurt each other now. The arena's "no damage between players" rule (made for the tree fight) was also applying to the games.
+
 ## 0.2.72
 - **Spawn:** the raid's edge pull-back was dragging players from outside the church wall back inside within a second. It is off while everyone gathers, so you really start outside the south gate.
 - **Opening cutscene:** it never played again after it had been skipped once (the skip stayed on for the whole session). Every new cutscene now clears an old skip. Tree cutscene too.

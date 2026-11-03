@@ -3175,6 +3175,7 @@ public final class EndGame {
             }
             return;
         }
+        if (e instanceof ServerPlayer hgp && HungerGames.fighting(hgp)) return;   // the hunger games use the same dimension: players hurt each other normally there
         if (e instanceof ServerPlayer && god.contains(e.getUUID())) { event.setCanceled(true); return; }   // /astralgod
         if (e instanceof ServerPlayer && !aggro && rt < INTRO_TICKS && raidPhase(e)) { event.setCanceled(true); return; }   // nobody is hurt while the camera shows the tree
         if (e.getTags().contains(TAG_RAID) && rt < graceUntil && raidPhase(e)) {   // the tree sleeps: nothing can hurt it
