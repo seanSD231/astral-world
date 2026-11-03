@@ -207,7 +207,18 @@ public final class EndGame {
         for (int x = -r; x <= r; x++) for (int z = -r; z <= r; z++) lv.setChunkForced(x, z, on);
     }
 
-    private static void setGameMode(ServerPlayer p, GameType t) { if (p.gameMode.getGameModeForPlayer() != t) p.setGameMode(t); }
+    private static final Map<UUID, GameType> priorMode = new HashMap<>();
+
+    /** Survival is only forced on spectators (the fallen): creative players stay creative. A spectator goes back to the mode they had before. */
+    private static void setGameMode(ServerPlayer p, GameType t) {
+        GameType cur = p.gameMode.getGameModeForPlayer();
+        if (t == GameType.SPECTATOR) {
+            if (cur != GameType.SPECTATOR) { priorMode.put(p.getUUID(), cur); p.setGameMode(t); }
+        } else if (cur == GameType.SPECTATOR) {
+            GameType back = priorMode.remove(p.getUUID());
+            p.setGameMode(back == null || back == GameType.SPECTATOR ? t : back);
+        }   // anything else (creative, adventure, survival) is left as it is
+    }
 
     // ------------------------------------------------------------------ beginning (called by Stage.set)
 
@@ -2083,7 +2094,7 @@ public final class EndGame {
                     }
                 });
                 // 3: the whole arena webbed in lightning: find a gap
-                at(t1 + 20 - 3, l -> {   // the web strikes half a second after the rest... (0.5 s later than before)
+                at(t1 + 20 + 5 - 3, l -> {   // the web strikes about 0.7 s after the rest (0.25 s later than before)
                     final int flash = 3;
                     sfx(l, SoundEvents.WARDEN_SONIC_CHARGE, 4f, 0.5f);
                     final List<List<Bolts.Seg>> webs = new ArrayList<>();
@@ -2618,7 +2629,7 @@ public final class EndGame {
             d.raidLives.putIfAbsent(p.getUUID(), LIVES);
             if (p.level() != lv) p.teleportTo(lv, 0.5 + SPAWN_R, groundY, 0.5, p.getYRot(), 0f);
             if (fresh) blessPlayer(p);
-            else if (!p.isSpectator() && p.isAlive()) {
+            else if (!gathering && !p.isSpectator() && p.isAlive()) {
                 double px = p.getX() - 0.5, pz = p.getZ() - 0.5, dist = Math.hypot(px, pz);
                 if (dist > leash) { // the battlefield has an edge: nobody outruns the tree
                     double k = (leash - 12) / dist;

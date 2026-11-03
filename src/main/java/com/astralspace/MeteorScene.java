@@ -49,7 +49,7 @@ public final class MeteorScene {
         double gy = Double.isNaN(TreeRenderer.lastY) ? mc.player.getY() : TreeRenderer.lastY;
         double y = gy + TOP - TOP * (0.6 * f + 0.4 * f * f);
         double dx = TreeRenderer.lastX - mc.player.getX(), dz = TreeRenderer.lastZ - mc.player.getZ(), dy = y - mc.player.getEyeY();
-        float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+        float yaw = Math.hypot(dx, dz) < 6 ? startYaw : (float) Math.toDegrees(Math.atan2(-dx, dz));   // standing in the tree: keep facing the way you were instead of spinning round its middle
         float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.max(1.0, Math.hypot(dx, dz))));
         return new double[]{yaw, Mth.clamp(pitch, -85f, 85f)};
     }

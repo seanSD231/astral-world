@@ -20,7 +20,7 @@ final class RootClick {
     private static void onAttack(InputEvent.InteractionKeyMappingTriggered ev) {
         if (!ev.isAttack()) return;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null || mc.screen != null || Double.isNaN(TreeRenderer.lastY)) return;
+        if (mc.level == null || mc.player == null || mc.screen != null) return;
         if (!mc.level.dimension().location().getPath().equals("cosmos")) return;
         if (CallScene.active() || TreeCutscene.active() || IntroScene.active()) return;
         HitResult hr = mc.hitResult;
@@ -33,7 +33,7 @@ final class RootClick {
         if (m == null) return;
         Vec3 eye = mc.player.getEyePosition(), look = mc.player.getLookAngle();
         double reach = EndGame.TREE_REACH;
-        double t = m.rayHitAny(eye.x - TreeRenderer.lastX, eye.y - TreeRenderer.lastY, eye.z - TreeRenderer.lastZ, look.x, look.y, look.z, reach, Net.ClientState.treeScale, EndGame.TREE_MARGIN);
+        double t = m.rayHitAny(eye.x - TreeRenderer.lastX, eye.y - (Double.isNaN(TreeRenderer.lastY) ? PlanetGenerator.BASE + 3.0 : TreeRenderer.lastY), eye.z - TreeRenderer.lastZ, look.x, look.y, look.z, reach, Net.ClientState.treeScale, EndGame.TREE_MARGIN);
         if (t < 0) return;
         if (hr != null && hr.getType() == HitResult.Type.BLOCK && eye.distanceTo(hr.getLocation()) < t - 0.3) return;   // a block is in front of the root
         ev.setCanceled(true);

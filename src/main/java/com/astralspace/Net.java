@@ -247,6 +247,7 @@ public final class Net {
         registrar.playToClient(CutscenePayload.TYPE, CutscenePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             if (payload.kind() == 9) { ClientState.treeGone = true; ClientState.meltStart = 0; return; }
             if (payload.kind() == 24) { ClientState.meltStart = System.currentTimeMillis(); ClientState.meltTicks = payload.ticks(); return; }
+            IntroScene.resetSkip(); TreeCutscene.resetSkip();
             ClientState.cutsceneKind = payload.kind();
             ClientState.cutsceneTicks = payload.ticks();
             ClientState.cutsceneStart = System.currentTimeMillis();

@@ -168,25 +168,25 @@ public final class PlanetGenerator extends ChunkGenerator {
         if (R < 180) return hash(x / 2, z / 2, 0) < 0.12 ? Blocks.COARSE_DIRT : Blocks.GRASS_BLOCK;
         if (R < GRASS_R) return b < 0.7 ? Blocks.COARSE_DIRT : Blocks.PODZOL;
         if (R < 205) {   // the altar ring: dark polished stone with a gold line
-            if (Math.abs(R - 195) < 1.2) return Blocks.GOLD_BLOCK;
-            if (Math.abs(R - 190) < 0.6 || Math.abs(R - 200) < 0.6) return Blocks.POLISHED_BLACKSTONE_BRICKS;
-            return b < 0.55 ? Blocks.POLISHED_BLACKSTONE : b < 0.8 ? Blocks.BLACKSTONE : Blocks.POLISHED_BLACKSTONE_BRICKS;
+            if (Math.abs(R - 195) < 1.2) return Blocks.CHISELED_STONE_BRICKS;
+            if (Math.abs(R - 190) < 0.6 || Math.abs(R - 200) < 0.6) return Blocks.POLISHED_ANDESITE;
+            return brickMix(x, z);
         }
         for (int k = 0; k < 8; k++) {   // eight pale paths, chequered, from the altar ring to the rim
             double ang = k * Math.PI / 4, ca = x * Math.cos(ang) + z * Math.sin(ang), sa = -x * Math.sin(ang) + z * Math.cos(ang);
             if (Math.abs(sa) < 4.2 && ca > 205 && ca < PLAT_R + 0.5) {
-                if (Math.abs(sa) > 3.4) return Blocks.POLISHED_BLACKSTONE;
+                if (Math.abs(sa) > 3.4) return Blocks.STONE_BRICKS;
                 return (Math.floorMod((int) Math.floor(ca / 4) + (int) Math.floor(sa / 4), 2) == 0) ? Blocks.POLISHED_ANDESITE : Blocks.SMOOTH_STONE;
             }
         }
         for (double rr : new double[]{245, 300}) {   // dark rings with glowing glyph dots
             if (Math.abs(R - rr) < 2.6) {
-                if (Math.abs(R - rr) < 0.9 && Math.floorMod((int) Math.floor(Math.atan2(z, x) * R / 5), 2) == 0) return Blocks.SEA_LANTERN;
-                return b < 0.5 ? Blocks.DEEPSLATE_BRICKS : Blocks.POLISHED_DEEPSLATE;
+                if (Math.abs(R - rr) < 0.9 && Math.floorMod((int) Math.floor(Math.atan2(z, x) * R / 5), 2) == 0) return Blocks.CHISELED_STONE_BRICKS;
+                return b < 0.5 ? Blocks.STONE_BRICKS : Blocks.POLISHED_ANDESITE;
             }
         }
         if (R < 345) return brickMix(x, z);
-        return b < 0.6 ? Blocks.DEEPSLATE_TILES : Blocks.DEEPSLATE_BRICKS;   // the rim
+        return brickMix(x, z);   // the rim
     }
 
     // ------------------------------------------------------------------ materials

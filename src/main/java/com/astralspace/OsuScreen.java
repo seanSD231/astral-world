@@ -28,16 +28,19 @@ public final class OsuScreen extends Screen {
 
     public OsuScreen(int seed, int count, int ticks) {
         super(Component.literal("Desire"));
-        this.total = Math.max(3, count * 3 / 4);   // slower now that there are sliders
+        this.total = fit(count, ticks);   // fewer shapes now that there are sliders, and room after each slider
         this.duration = ticks;
         java.util.Random r = new java.util.Random(seed);
         int count0 = count; count = total;
         px = new double[count]; py = new double[count]; at = new int[count]; hit = new boolean[count]; done = new boolean[count];
         slider = new boolean[count]; active = new boolean[count]; qx = new double[count]; qy = new double[count]; track = new float[count];
-        int span = ticks - APPROACH - WINDOW - 4 - SLIDE;
+        int span = ticks - APPROACH - WINDOW - 12 - SLIDE - 14;
+        int nSl = count / 4;
+        double base0 = Math.max(12, (span - nSl * (SLIDE + 14)) / (double) count), tt = APPROACH + 6;
         java.util.List<double[]> occ = new java.util.ArrayList<>();   // {x, y, until tick}: shapes still on screen
         for (int i = 0; i < count; i++) {
-            at[i] = APPROACH + 2 + (int) Math.round(span * (i + r.nextDouble() * 0.5) / count);
+            at[i] = (int) Math.round(tt);
+            tt += base0 + (i % 4 == 3 ? SLIDE + 14 : 0) + r.nextDouble() * 3;   // after a slider the next shape comes later: you cannot click while still following it
             double bx = 0.5, by = 0.5;
             for (int tries = 0; tries < 60; tries++) {
                 bx = 0.12 + r.nextDouble() * 0.76; by = 0.15 + r.nextDouble() * 0.7;
@@ -59,6 +62,12 @@ public final class OsuScreen extends Screen {
                 occ.add(new double[]{qx[i], qy[i], at[i] + SLIDE});
             }
         }
+    }
+
+    private static int fit(int count, int ticks) {
+        int n = Math.max(3, count * 3 / 4), span = ticks - APPROACH - WINDOW - 12 - SLIDE - 14;
+        while (n > 3 && (span - (n / 4) * (SLIDE + 14)) / (double) n < 16) n--;
+        return n;
     }
 
     @Override public boolean isPauseScreen() { return false; }

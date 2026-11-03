@@ -136,7 +136,7 @@ public final class OsuLevel {
                 if (r.nextBoolean()) l.notes.add(new int[]{t, x, y, ex, ey, dur, (x + ex) / 2 + r.nextInt(240) - 120, (y + ey) / 2 + r.nextInt(240) - 120});   // curved
                 else l.notes.add(new int[]{t, x, y, ex, ey, dur});
                 occ.add(new double[]{x, y, t + dur}); occ.add(new double[]{ex, ey, t + dur});
-                t += dur;
+                t += dur + 14;   // the next shape comes later: you cannot click while still following a slider
             } else {
                 l.notes.add(new int[]{t, x, y});
                 occ.add(new double[]{x, y, t});

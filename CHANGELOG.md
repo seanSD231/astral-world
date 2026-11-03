@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.72
+- **Spawn:** the raid's edge pull-back was dragging players from outside the church wall back inside within a second. It is off while everyone gathers, so you really start outside the south gate.
+- **Opening cutscene:** it never played again after it had been skipped once (the skip stayed on for the whole session). Every new cutscene now clears an old skip. Tree cutscene too.
+- **Hitting the tree:** swings were ignored entirely until the game had once tracked the tree (it only does within about 80 blocks), so from the gate you could not hit it at all. They now work from anywhere. The reach is 34 blocks.
+- **Creative stays creative:** the raid no longer forces survival on you. Fallen players go to spectator and come back to the mode they had.
+- **Tempest:** the final web strike comes another 0.25 seconds later.
+- **Meteor scene:** standing inside the tree no longer spins your view round its middle.
+- **Osu:** circles after a slider come later, with room to let go (Desire's game has fewer shapes to fit; quick play leaves a longer gap). Editing a level and saving over the same level no longer asks to replace it (that was why a newly linked disc looked not saved: it was waiting for a second Save click).
+- **Arena materials:** no more blackstone, gold or deepslate. The altar ring, paths, rings and rim are mixed stone, mossy and cracked bricks, polished andesite and chiseled bricks (new worlds only).
+
 ## 0.2.71
 - **The church is now the whole raised arena:** a huge round cathedral covers the entire stone platform. Tall outer wall with pointed windows and four arched gates, buttresses, a ring of great pillars and a broken inner ring, and a roof over the outer ring that is about half fallen in (the middle is open for the tree, with fallen-roof ribs left standing). Invisible lamps keep the covered part from being pitch black. New raid worlds only.
 - **Starting the fight:** everyone now arrives outside the south gate and is carried just inside it. The opening camera scene waits six seconds after everyone is inside, and the tree is drawn again at the start of every raid (it could stay hidden after an earlier one).

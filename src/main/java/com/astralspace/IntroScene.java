@@ -42,6 +42,9 @@ public final class IntroScene {
         NeoForge.EVENT_BUS.addListener(IntroScene::onInteract);
     }
 
+    /** A new cutscene was ordered: a skip from an earlier one no longer counts. */
+    public static void resetSkip() { skipped = false; }
+
     public static boolean active() {
         if (Net.ClientState.cutsceneKind != 23 || skipped) return false;
         long el = System.currentTimeMillis() - Net.ClientState.cutsceneStart;

@@ -48,6 +48,8 @@ public final class TreeCutscene {
     // ------------------------------------------------------------------ state
 
     /** True while a scene is playing for this player. */
+    public static void resetSkip() { skipped = false; }
+
     public static boolean active() {
         if (Net.ClientState.cutsceneKind != 1 || skipped) return false;
         long el = System.currentTimeMillis() - Net.ClientState.cutsceneStart;

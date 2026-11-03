@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
  */
 public final class OsuEditor extends Screen {
     private final Screen back;
+    private String origFile = "";   // the file this level was opened from: saving over it needs no question
     private final OsuLevel lvl = new OsuLevel();
     private EditBox nameBox, bpmBox;
     private int cur = 40;
@@ -23,6 +24,7 @@ public final class OsuEditor extends Screen {
         this.back = back;
         if (from != null) {
             lvl.name = from.name; lvl.author = from.author; lvl.bpm = from.bpm; lvl.disc = from.disc;
+            origFile = OsuClient.fileName(from.name);
             for (int[] n : from.notes) lvl.notes.add(n.clone());
         }
     }
@@ -67,7 +69,7 @@ public final class OsuEditor extends Screen {
             if (!readFields()) return;
             if (lvl.notes.isEmpty()) { status = "Add some circles first."; return; }
             String f = OsuClient.fileName(lvl.name);
-            if (OsuClient.localNames().contains(f) && !f.equals(confirmFile)) {
+            if (OsuClient.localNames().contains(f) && !f.equals(confirmFile) && !f.equals(origFile)) {
                 confirmFile = f;
                 saveBtn.setMessage(Component.literal("Replace?"));
                 status = "A level called \"" + f + "\" is already saved. Click Replace? to overwrite it, or change the name.";
