@@ -61,8 +61,8 @@ public final class HungerGames {
     private record Saved(ResourceKey<Level> dim, double x, double y, double z, float yaw, float pitch, GameType mode, ListTag inv,
                          float hp, int food, float sat, int xpLevel, float xpProg, int xpTotal, int seq, ListTag curios) { }
 
-    private static final double ARENA_R = EndGame.ARENA_R, RING_R = 172;
-    private static final int INVITE_TICKS = 20 * 60, COUNTDOWN_TICKS = 20 * 10, OUTER_CHESTS = 100, CENTRE_CHESTS = 50;
+    private static final double ARENA_R = EndGame.ARENA_R, RING_R = 270;
+    private static final int INVITE_TICKS = 20 * 60, COUNTDOWN_TICKS = 20 * 10, OUTER_CHESTS = 170, CENTRE_CHESTS = 50, CHURCH_CHESTS = 60;
 
     private static Phase phase = Phase.OFF;
     private static MinecraftServer server;
@@ -75,7 +75,7 @@ public final class HungerGames {
     /** Everyone taken into the games and not yet put back (also players who left in the middle: they are restored when they return). */
     private static final Map<UUID, Saved> saved = new HashMap<>();
     private static final List<BlockPos> chests = new ArrayList<>();
-    private static int outerLeft = 0, centreLeft = 0;
+    private static int outerLeft = 0, centreLeft = 0, churchLeft = 0;
     private static final Random rnd = new Random();
 
     // ------------------------------------------------------------------ commands
@@ -122,7 +122,7 @@ public final class HungerGames {
         answers.clear(); alive.clear(); players.clear(); chests.clear();
         lv.getChunk(0, 0);
         groundY = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 0);
-        outerLeft = OUTER_CHESTS; centreLeft = CENTRE_CHESTS;
+        outerLeft = OUTER_CHESTS; centreLeft = CENTRE_CHESTS; churchLeft = CHURCH_CHESTS;
         phase = Phase.INVITE;
         phaseEnd = s.getTickCount() + INVITE_TICKS;
         String rule = !seqEv ? "Not a sequence event: you lose your sequence for the games and get it back afterwards."
@@ -153,9 +153,9 @@ public final class HungerGames {
         long now = s.getTickCount();
         switch (phase) {
             case INVITE -> {
-                for (int i = 0; i < 6 && (outerLeft > 0 || centreLeft > 0); i++) placeChest(lv);   // chests are put out while people answer
+                for (int i = 0; i < 6 && (outerLeft > 0 || centreLeft > 0 || churchLeft > 0); i++) placeChest(lv);   // chests are put out while people answer
                 boolean allAnswered = s.getPlayerList().getPlayers().stream().allMatch(p -> answers.containsKey(p.getUUID()));
-                if ((allAnswered || now >= phaseEnd) && outerLeft == 0 && centreLeft == 0) begin(s, lv);
+                if ((allAnswered || now >= phaseEnd) && outerLeft == 0 && centreLeft == 0 && churchLeft == 0) begin(s, lv);
                 else if (now >= phaseEnd + 20 * 30) begin(s, lv);   // never wait forever for the chests
             }
             case COUNTDOWN -> {
@@ -189,21 +189,30 @@ public final class HungerGames {
     // ------------------------------------------------------------------ chests and loot
 
     private static void placeChest(ServerLevel lv) {
-        boolean centre = centreLeft > 0;
-        for (int tries = 0; tries < 40; tries++) {
-            double a = rnd.nextDouble() * Math.PI * 2;
-            double r = centre ? 5 + rnd.nextDouble() * 38 : Math.max(45, Math.min(ARENA_R - 12, Math.sqrt(rnd.nextDouble()) * (ARENA_R - 12)));
-            int x = (int) Math.round(Math.cos(a) * r), z = (int) Math.round(Math.sin(a) * r);
+        int kind = centreLeft > 0 ? 0 : churchLeft > 0 ? 1 : 2;   // 0 middle, 1 inside the church, 2 anywhere on the stone
+        double maxR = PlanetGenerator.PLAT_R - 10;
+        for (int tries = 0; tries < 60; tries++) {
+            int x, z;
+            if (kind == 0) {
+                double a = rnd.nextDouble() * Math.PI * 2, r = 5 + rnd.nextDouble() * 38;
+                x = (int) Math.round(Math.cos(a) * r); z = (int) Math.round(Math.sin(a) * r);
+            } else if (kind == 1) {
+                x = rnd.nextInt(221) - 110; z = rnd.nextInt(291) - 60;
+                if (!PlanetGenerator.churchInside(x, z, 3)) continue;
+            } else {
+                double a = rnd.nextDouble() * Math.PI * 2, r = Math.max(45, Math.sqrt(rnd.nextDouble()) * maxR);
+                x = (int) Math.round(Math.cos(a) * r); z = (int) Math.round(Math.sin(a) * r);
+            }
             BlockPos p = surface(lv, x, z);
             if (p == null || chests.contains(p)) continue;
             Direction face = Direction.Plane.HORIZONTAL.getRandomDirection(RandomSource.create(rnd.nextLong()));
             lv.setBlock(p, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, face), 3);
-            if (lv.getBlockEntity(p) instanceof ChestBlockEntity c) fill(c, centre);
+            if (lv.getBlockEntity(p) instanceof ChestBlockEntity c) fill(c, kind == 0);
             chests.add(p);
-            if (centre) centreLeft--; else outerLeft--;
+            if (kind == 0) centreLeft--; else if (kind == 1) churchLeft--; else outerLeft--;
             return;
         }
-        if (centre) centreLeft--; else outerLeft--;   // no room found: skip this one
+        if (kind == 0) centreLeft--; else if (kind == 1) churchLeft--; else outerLeft--;   // no room found: skip this one
     }
 
     /** A free floor spot at (x, z): about the height of the arena floor, solid and dry underneath. Null inside walls, on top of them or in water. */
@@ -519,6 +528,6 @@ public final class HungerGames {
     private static void reset() {
         phase = Phase.OFF;
         answers.clear(); alive.clear(); players.clear(); chests.clear();
-        outerLeft = 0; centreLeft = 0;
+        outerLeft = 0; centreLeft = 0; churchLeft = 0;
     }
 }

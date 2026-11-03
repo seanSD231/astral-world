@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.70
+- **Hunger games use the whole stone platform:** players now start evenly spaced on a wide ring (about 270 blocks out, outside the church), chests are spread over the entire platform (170 anywhere, 60 inside the church, 50 with better loot in the middle), and the edge of the arena is the edge of the stone.
+
 ## 0.2.69
 - **The arena edge:** during the Mother Tree fight you can now walk to the very edge of the stone platform. Only beyond the stone are you pulled back. Hunger games use the same edge.
 - **Hunger games and curios:** if the Curios mod is installed, curio slots are now wiped when the games start (and for eliminated players) and given back afterwards, like the rest of the inventory.
