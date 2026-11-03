@@ -3356,6 +3356,25 @@ public final class EndGame {
                     startRaid(s, AstralData.get(s));
                     return 1;
                 }))
+                .then(Commands.literal("revive").then(Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.players()).executes(ctx -> {   // lets a fallen or kicked fighter back into the raid
+                    MinecraftServer s = ctx.getSource().getServer();
+                    AstralData d = AstralData.get(s);
+                    ServerLevel lv = dim(s, "raid");
+                    if (!d.endPhase.equals("raid") || lv == null) { ctx.getSource().sendFailure(Component.literal("The raid is not running.")); return 0; }
+                    int n = 0;
+                    for (ServerPlayer p : net.minecraft.commands.arguments.EntityArgument.getPlayers(ctx, "player")) {
+                        d.raidLives.put(p.getUUID(), LIVES);
+                        setGameMode(p, GameType.SURVIVAL);
+                        double a = ThreadLocalRandom.current().nextDouble() * Math.PI * 2;
+                        p.teleportTo(lv, 0.5 + Math.cos(a) * SPAWN_R, groundY, 0.5 + Math.sin(a) * SPAWN_R, p.getYRot(), 0f);
+                        p.sendSystemMessage(Component.literal("You are back in the fight, with " + LIVES + " lives.").withStyle(ChatFormatting.GOLD));
+                        n++;
+                    }
+                    d.setDirty();
+                    final int count = n;
+                    ctx.getSource().sendSuccess(() -> Component.literal("Revived " + count + " player(s)."), true);
+                    return n;
+                })))
                 .then(Commands.literal("reset").executes(ctx -> {
                     MinecraftServer s = ctx.getSource().getServer();
                     resetAll(s);

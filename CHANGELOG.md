@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.74
+- **`/astralend revive <player>`** (ops): puts a fallen or kicked fighter back into the raid with full lives, in survival, at the edge of the arena.
+
 ## 0.2.73
 - **Hunger games:** players can hurt each other now. The arena's "no damage between players" rule (made for the tree fight) was also applying to the games.
 
