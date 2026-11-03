@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.68
+- **Hunger games:** `/hungergames start` (ops) asks every player yes or no with clickable buttons (60 seconds, or sooner when everyone has answered). The yeses are carried to the raid arena (no tree), spaced evenly around the edge of the grass and held still for a 10 second countdown. About 150 chests are spread over the arena, 50 of them in the middle with better loot. Last one standing wins; the dead become spectators and drop what they gathered.
+  - `/hungergames start noseq`: not a sequence event. Beyonders drop to sequence 9 for the games and get their sequence back afterwards.
+  - `/hungergames start seq keep`: everyone keeps their sequence. `/hungergames start seq set <0-9>`: everyone plays at that sequence and is put back afterwards.
+  - Afterwards everyone gets their place, inventory, health, food, experience and sequence back. Players who log out mid-game are restored when they log in. `/hungergames stop` ends it early, `/hungergames status` shows it.
+
 ## 0.2.67
 - **Osu sliders:** levels can now have sliders. In the editor, click and drag to make one (the drag length sets how long it is). In play, click the head on time, then hold the mouse and follow the ball to the other end. Following it at least half the time keeps your combo; following it nearly all the time keeps the full grade. Desire's click game has sliders too (every fourth shape). Old levels and share codes still work.
 - **Editor layout:** the name box now has a "Level name:" label and a hint, and saving, testing, copying or publishing without a name tells you to name it. Buttons are on their own row so Back and Link disc no longer cover each other. Saving over a level with the same name asks first ("Replace?").
