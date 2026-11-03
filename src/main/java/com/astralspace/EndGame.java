@@ -1170,6 +1170,14 @@ public final class EndGame {
      * A player swung at a root where there is no entity to hit: the client checked its own aim against the roots and told us.
      * We check it again against the same root model, then the swing hurts the tree like a normal hit.
      */
+    private static final TreeModel[] TREE_MODELS = new TreeModel[2];
+
+    private static synchronized TreeModel treeModel(boolean rot) {
+        int i = rot ? 1 : 0;
+        if (TREE_MODELS[i] == null) TREE_MODELS[i] = TreeModel.build(rot);
+        return TREE_MODELS[i];
+    }
+
     static void rootHit(ServerPlayer p) {
         if (!(p.level() instanceof ServerLevel lv) || !lv.dimension().equals(Cosmos.COSMOS) || p.isSpectator() || !p.isAlive()) return;
         AstralData d = AstralData.get(lv.getServer());
@@ -1177,8 +1185,8 @@ public final class EndGame {
         Mob boss = findBoss(lv, TAG_RAID);
         if (boss == null) return;
         Vec3 eye = p.getEyePosition(), look = p.getLookAngle();
-        TreeModel m = TreeModel.build(treeFleshy);
-        double t = m.rayHitRoots(eye.x - boss.getX(), eye.y - boss.getY(), eye.z - boss.getZ(), look.x, look.y, look.z, p.entityInteractionRange() + 2.5);
+        TreeModel m = treeModel(treeFleshy);
+        double t = m.rayHitAny(eye.x - boss.getX(), eye.y - boss.getY(), eye.z - boss.getZ(), look.x, look.y, look.z, p.entityInteractionRange() + 2.5, treeScale, 1.5);
         if (t < 0) return;
         float str = p.getAttackStrengthScale(0.5f);
         double dmg = p.getAttributeValue(Attributes.ATTACK_DAMAGE) * (0.2 + 0.8 * str * str);
@@ -2891,13 +2899,8 @@ public final class EndGame {
     }
 
     /** Parts whose tree is gone are removed. */
-    private static void sweepParts(ServerLevel lv) {
-        for (Entity e : lv.getAllEntities()) {
-            if (!e.getTags().contains(TAG_PART)) continue;
-            if (!e.getPersistentData().hasUUID("partOf")) { e.discard(); continue; }
-            Entity b = lv.getEntity(e.getPersistentData().getUUID("partOf"));
-            if (b == null || !b.isAlive() || !partIds.containsValue(e.getUUID())) e.discard();
-        }
+    private static void sweepParts(ServerLevel lv) {   // the invisible hitbox entities of older versions: the tree is hit by its model now
+        for (Entity e : lv.getAllEntities()) if (e.getTags().contains(TAG_PART)) e.discard();
     }
 
     private static final Set<UUID> silentHandled = new HashSet<>();
@@ -2935,7 +2938,6 @@ public final class EndGame {
             stripDeath(m);
             freeFromOwner(m);
             sizeHitbox(m);
-            if (m.getTags().contains(TAG_RAID)) treeParts(lv, m);
             if (m.getTags().contains(TAG_RAID)) {   // the tree never moves: hits and the hitbox changing size must not push it up or down
                 var pd = m.getPersistentData();
                 if (!pd.contains("astralHomeY")) { pd.putDouble("astralHomeY", m.getY()); pd.putDouble("astralHomeX", m.getX()); pd.putDouble("astralHomeZ", m.getZ()); }

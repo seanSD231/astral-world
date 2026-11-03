@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.65
+- **Hitting the tree:** the invisible hitbox entities (the floating boxes in your screenshot) are gone. They only worked with the Pehkui mod and were capped to small boxes without it. Now your swing is checked against the whole tree model: trunk, roots, every branch and the leaf clusters, with 1.5 blocks of extra reach around every part. Swinging at any of them (from outside) hurts her. The old boxes are removed from existing worlds.
+- **Meteors:** drawn bigger and falling from much higher, so the rock is visible all the way down.
+
 ## 0.2.64
 Tree fight changes.
 - **Roots and heart seeds:** they now spawn out beyond the tree's own roots, so none is hidden inside it.

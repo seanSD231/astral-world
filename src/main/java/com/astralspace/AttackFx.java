@@ -118,10 +118,10 @@ public final class AttackFx {
     private static final double DX = 0.32, DZ = 0.18;   // a meteor comes in slightly sideways
 
     private static void meteor(Pen p, boolean add, double t, double x, double y, double z, double fall, double rad, double life, int col, boolean lotmFall) {
-        double r = Math.max(1.0, rad * 0.3);
+        double r = Math.max(1.0, rad * 0.42);
         if (t < fall) {
             if (lotmFall) return;   // with LOTM's own meteor the fall belongs to it; this class only adds the impact
-            double pr = t / fall, e = pr * pr, H = 85 * (1 - e);
+            double pr = t / fall, e = Math.pow(pr, 1.35), H = 190 * (1 - e);   // it comes down from high up, slowly enough to be seen from the first moment
             double hx = x + DX * H, hy = y + H + 0.5, hz = z + DZ * H;
             float in = clamp01(t / 3.0);
             double nl = Math.sqrt(DX * DX + 1 + DZ * DZ), tx = DX / nl, ty = 1 / nl, tz = DZ / nl, L = 18 + 40 * pr;

@@ -54,6 +54,27 @@ final class TreeModel {
         return best;
     }
 
+    /**
+     * Does a ray (origin and direction relative to the tree's foot, in the tree's own size) pass through any solid part of the tree, trunk, roots, branches or leaves?
+     * `scale` is how much the tree is drawn larger than the model, `margin` is extra reach round every part in blocks. Returns the distance in blocks, or -1.
+     */
+    double rayHitAny(double ox, double oy, double oz, double dx, double dy, double dz, double max, double scale, double margin) {
+        double best = -1;
+        ox /= scale; oy /= scale; oz /= scale;
+        double mx = max / scale, mg = margin / scale;
+        for (float[] b : hitBalls) {
+            double cx = b[0], cy = b[1], cz = b[2], r = b[3] + mg;
+            double qx = ox - cx, qy = oy - cy, qz = oz - cz;
+            double bb = qx * dx + qy * dy + qz * dz, c = qx * qx + qy * qy + qz * qz - r * r;
+            if (c > 0 && bb > 0) continue;
+            double disc = bb * bb - c;
+            if (disc < 0) continue;
+            double t = Math.max(0, -bb - Math.sqrt(disc));
+            if (t <= mx && (best < 0 || t < best)) best = t;
+        }
+        return best < 0 ? -1 : best * scale;
+    }
+
     private void part(String name, double[] pivot) { parts.add(new Object[]{name, floats, pivot}); }
 
     private final Random rnd;
@@ -113,8 +134,15 @@ final class TreeModel {
         return out;
     }
 
+    /** Balls over everything solid (trunk strands, roots, branches, twigs, leaf clusters): {x, y, z, radius}. A swing that crosses one has hit the tree. */
+    final java.util.List<float[]> hitBalls = new java.util.ArrayList<>();
+
     private void tube(double[][] spine, double[] radii, int sides, int[] base, boolean emissive, boolean lumpy) {
         int n = spine.length;
+        if (!emissive) for (int i = 0; i < n; i++) {
+            hitBalls.add(new float[]{(float) spine[i][0], (float) spine[i][1], (float) spine[i][2], (float) Math.max(radii[i], 0.6)});
+            if (i + 1 < n) hitBalls.add(new float[]{(float) ((spine[i][0] + spine[i + 1][0]) / 2), (float) ((spine[i][1] + spine[i + 1][1]) / 2), (float) ((spine[i][2] + spine[i + 1][2]) / 2), (float) Math.max((radii[i] + radii[i + 1]) / 2, 0.6)});
+        }
         double[][][] ring = new double[n][sides][];
         double[][][] nrm = new double[n][sides][];
         double phase = rnd.nextDouble() * 6;
@@ -193,7 +221,7 @@ final class TreeModel {
         double[] rad = new double[seg + 1];
         for (int i = 0; i <= seg; i++) rad[i] = r0 * Math.pow(1 - i / (double) seg, 0.85) + 0.18;
         tube(pts, rad, sides, bark(), false, rot);
-        if (level >= 1) for (int i = 2; i <= seg; i += 2) leafPts.add(new double[]{pts[i][0], pts[i][1], pts[i][2], dd[0], dd[1], dd[2]});
+        if (level >= 1) for (int i = 2; i <= seg; i += 2) { leafPts.add(new double[]{pts[i][0], pts[i][1], pts[i][2], dd[0], dd[1], dd[2]}); hitBalls.add(new float[]{(float) pts[i][0], (float) (pts[i][1] - 1), (float) pts[i][2], 3.5f}); }   // a leaf cluster
         if (level < maxLevel) {
             int nsub = level == 0 ? 4 : 3;
             for (int m = 0; m < nsub; m++) {
