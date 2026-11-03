@@ -427,6 +427,7 @@ public final class EndGame {
 
     /** Removes the bosses and the raid; people in the arena go home when `sendHome` is set. */
     private static void clearRaidState(MinecraftServer server, boolean sendHome) {
+        ArenaReset.start(server);   // broken and placed blocks, roots, chests ...: back to how the world generated it
         gathering = false; deathAnimStarted = false; raidOver = false;
         AstralData d = AstralData.get(server);
         clearRootBoxes(dim(server, "raid"));

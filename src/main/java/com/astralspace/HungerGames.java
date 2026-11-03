@@ -112,6 +112,15 @@ public final class HungerGames {
     private static final List<Result> lastResults = new ArrayList<>();
     private static final List<List<BoardPos>> boards = new ArrayList<>();
 
+    /** Contestants may break and place blocks: if anything cancelled it earlier in the chain (a claims or protection mod), this undoes that for them. */
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
+    public static void onBreak(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent event) {
+        if (event.getPlayer() instanceof ServerPlayer p && fighting(p) && event.isCanceled()) {
+            LOGGER.info("[hungergames] a block break by {} had been cancelled elsewhere; allowing it", p.getGameProfile().getName());
+            event.setCanceled(false);
+        }
+    }
+
     /** True while this player is a living contestant in a running game (the arena's no-damage rule does not apply to them). */
     public static boolean fighting(ServerPlayer p) { return (phase == Phase.RUNNING || phase == Phase.ENDING) && alive.contains(p.getUUID()); }
 
@@ -155,6 +164,7 @@ public final class HungerGames {
         if (!ph.isEmpty() && !ph.equals("classic")) { src.sendFailure(Component.literal("The end event is running; the arena is in use.")); return 0; }
         ServerLevel lv = s.getLevel(Cosmos.key("cosmos"));
         if (lv == null) { src.sendFailure(Component.literal("The arena dimension is missing.")); return 0; }
+        if (ArenaReset.busy()) { src.sendFailure(Component.literal("The arena is still being reset from the last game; try again in a moment.")); return 0; }
         server = s;
         seqEvent = seqEv; seqKeep = keep; seqSet = setTo;
         answers.clear(); alive.clear(); players.clear(); chests.clear();
@@ -278,7 +288,7 @@ public final class HungerGames {
     private static ItemStack potion(net.minecraft.world.item.Item base, net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion> p) { return PotionContents.createItemStack(base, p); }
 
     private static final List<Entry> COMMON = List.of(
-            e(10, () -> st(Items.STONE_SWORD, 1)), e(5, () -> st(Items.IRON_SWORD, 1)), e(4, () -> st(Items.STONE_AXE, 1)), e(3, () -> st(Items.IRON_AXE, 1)),
+            e(10, () -> st(Items.STONE_SWORD, 1)), e(6, () -> st(Items.STONE_PICKAXE, 1)), e(2, () -> st(Items.IRON_PICKAXE, 1)), e(5, () -> st(Items.IRON_SWORD, 1)), e(4, () -> st(Items.STONE_AXE, 1)), e(3, () -> st(Items.IRON_AXE, 1)),
             e(6, () -> st(Items.BOW, 1)), e(9, () -> st(Items.ARROW, 6 + rnd.nextInt(10))), e(3, () -> st(Items.CROSSBOW, 1)),
             e(5, () -> st(Items.LEATHER_HELMET, 1)), e(5, () -> st(Items.LEATHER_CHESTPLATE, 1)), e(5, () -> st(Items.LEATHER_LEGGINGS, 1)), e(5, () -> st(Items.LEATHER_BOOTS, 1)),
             e(4, () -> st(Items.CHAINMAIL_CHESTPLATE, 1)), e(4, () -> st(Items.CHAINMAIL_LEGGINGS, 1)), e(3, () -> st(Items.IRON_HELMET, 1)), e(3, () -> st(Items.IRON_BOOTS, 1)),
@@ -291,7 +301,7 @@ public final class HungerGames {
             e(3, () -> potion(Items.POTION, Potions.SWIFTNESS)), e(2, () -> st(Items.TNT, 2)));
 
     private static final List<Entry> RICH = List.of(
-            e(7, () -> st(Items.DIAMOND_SWORD, 1)), e(4, () -> st(Items.DIAMOND_AXE, 1)), e(1, () -> st(Items.NETHERITE_SWORD, 1)), e(2, () -> st(Items.TRIDENT, 1)),
+            e(7, () -> st(Items.DIAMOND_SWORD, 1)), e(4, () -> st(Items.IRON_PICKAXE, 1)), e(3, () -> st(Items.DIAMOND_PICKAXE, 1)), e(4, () -> st(Items.DIAMOND_AXE, 1)), e(1, () -> st(Items.NETHERITE_SWORD, 1)), e(2, () -> st(Items.TRIDENT, 1)),
             e(5, () -> st(Items.DIAMOND_HELMET, 1)), e(5, () -> st(Items.DIAMOND_CHESTPLATE, 1)), e(5, () -> st(Items.DIAMOND_LEGGINGS, 1)), e(5, () -> st(Items.DIAMOND_BOOTS, 1)),
             e(3, () -> st(Items.NETHERITE_CHESTPLATE, 1)), e(3, () -> st(Items.IRON_CHESTPLATE, 1)), e(3, () -> st(Items.IRON_LEGGINGS, 1)),
             e(6, () -> st(Items.BOW, 1)), e(8, () -> st(Items.ARROW, 16 + rnd.nextInt(16))), e(4, () -> st(Items.CROSSBOW, 1)), e(4, () -> st(Items.SHIELD, 1)),
@@ -764,6 +774,7 @@ public final class HungerGames {
             if (p != null) restore(p);   // players who are offline are restored when they log in
         }
         if (lv != null) clearArena(lv);
+        ArenaReset.start(s);
         reset();
         LOGGER.info("[hungergames] over; {} players still to be restored on login", saved.size());
     }

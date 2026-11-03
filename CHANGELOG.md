@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.76
+- **Arena reset:** after every Mother Tree raid and every hunger games the whole arena is regenerated block by block against how the world made it (broken blocks, placed blocks, chests, leftovers), a few chunks a tick, about half a minute. Also at the start of a raid. `/arenareset` (ops) does it by hand, which also fixes damage left over from earlier games. A new hunger games waits until the reset has finished.
+- **Hunger games:** pickaxes now turn up in chests (bare hands on stone bricks is very slow), and a block break by a contestant that some other mod had cancelled is allowed again. I found nothing in this mod that stops breaking, so if it still fails the server log will say "had been cancelled elsewhere" and it is another mod or claim.
+
 ## 0.2.75
 - **Mind attack:** a new, harder osu attack (the tree tries to break your mind; curved sliders, tighter timing) that comes up far more often, and Desire's call now uses the hard version too. Fixed a bug where a shrunken boss game could never count as passed.
 - **Parry attack:** the tree gathers its power and explodes. A bar appears (Undertale style): hit the middle for no damage, near it for less, miss and it is devastating.
