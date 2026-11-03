@@ -802,7 +802,7 @@ public final class EndGame {
     /** After each attack only some others may follow (meteors only after a slam or rings), and which one is chosen is random. 0 meteors, 1 rings, 2 beam, 3 slam, 4 safe circles, 5 temptation. */
     // two followers each (index = attack): 0 meteors, 1 rings, 2 summon, 3 slam, 4 purge, 5 temptation, 6 (power, unused), 7 curse, 8 pollen, 9 mirror bloom, 10 fruit, 11 storm (lightning web)
     private static final int[][] NEXT = {{3, 8}, {11, 4}, {3, 5}, {1, 7}, {5, 10}, {8, 1}, {0, 1}, {9, 0}, {4, 9}, {10, 0}, {8, 0}, {0, 3}, {3, 5}, {5, 9}, {3, 0}};
-    private static final int[] DURATION = {140, 220, 110, 70, 190, 200, 90, 130, 200, 230, 210, 130, 330, 190, 190};
+    private static final int[] DURATION = {170, 330, 110, 90, 190, 200, 90, 130, 200, 570, 560, 130, 100, 190, 190};
     private static int lastPattern = 3;
     private static long nextTempest = 0;
 
@@ -1097,6 +1097,13 @@ public final class EndGame {
                 if (lb != null) { lb.moveTo(sg.x1(), cur.gy(), sg.z1()); lb.setVisualOnly(true); l.addFreshEntity(lb); shown++; }
             }
         }
+    }
+
+    /** True when solid blocks stand between the blast and the player (the church walls make cover). */
+    private static boolean blastShielded(ServerLevel l, net.minecraft.world.phys.Vec3 from, ServerPlayer p) {
+        net.minecraft.world.phys.Vec3 to = p.getEyePosition();
+        var hit = l.clip(new net.minecraft.world.level.ClipContext(from, to, net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, p));
+        return hit.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK && hit.getLocation().distanceTo(to) > 1.0;
     }
 
     private static boolean lotmMeteorFailed = false;
@@ -1399,9 +1406,10 @@ public final class EndGame {
         if (!(event.getEntity() instanceof ServerPlayer p) || !p.level().dimension().equals(Cosmos.COSMOS) || p.isSpectator()) return;
         var item = event.getItemStack().getItem();
         ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
-        if (!key.getNamespace().equals("lotm") || !COUNTER_ITEMS.contains(key.getPath()) || p.getCooldowns().isOnCooldown(item)) return;   // on cooldown: nothing is cast
+        String norm = key.getPath().replace("_", "");
+        if (!key.getNamespace().equals("lotm") || !COUNTER_ITEMS.contains(norm) || p.getCooldowns().isOnCooldown(item)) return;   // on cooldown: nothing is cast
         for (Object[] o : pendingUse) if (o[0].equals(p.getUUID()) && o[1].equals(key.getPath())) return;
-        pendingUse.add(new Object[]{p.getUUID(), key.getPath(), gt + 2});
+        pendingUse.add(new Object[]{p.getUUID(), norm, gt + 2});
     }
 
     /** Every tick: abilities that really went off (they are now on cooldown) are looked at, and raised globes are drawn. */
@@ -1413,8 +1421,8 @@ public final class EndGame {
             for (Object[] o : due) {
                 ServerPlayer p = lv.getServer().getPlayerList().getPlayer((UUID) o[0]);
                 if (p == null || !p.isAlive() || p.isSpectator() || p.level() != lv) continue;
-                var item = BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("lotm", (String) o[1]));
-                if (item != net.minecraft.world.item.Items.AIR && p.getCooldowns().isOnCooldown(item)) counter(lv, p, (String) o[1]);
+                LOGGER.info("[astral] counter attempt: {} used {}", p.getGameProfile().getName(), o[1]);
+                counter(lv, p, (String) o[1]);   // no longer needs the vanilla cooldown to show (LOTM does not always use it)
             }
         }
         if (!globes.isEmpty()) {
@@ -1428,7 +1436,7 @@ public final class EndGame {
         int sq = Lotm.sequence(p);
         switch (id) {
             case "purification", "areapurification" -> {
-                if (sq >= 0 && sq <= 1) for (Cloud c : clouds) if (c.mode == 0 && Math.hypot(c.nowX() - p.getX(), c.nowZ() - p.getZ()) <= 12 * m) c.mode = 1;
+                if (sq >= 0 && sq <= 4) for (Cloud c : clouds) if (c.mode == 0 && Math.hypot(c.nowX() - p.getX(), c.nowZ() - p.getZ()) <= c.r + 12 * m) { c.mode = 1; fx(lv, 12, c.nowX(), cur.gy(), c.nowZ(), c.r, 0, 0, rgb(1f, 0.85f, 0.4f), 1); }
                 for (Fruits fs : fruits) for (int i = 0; i < fs.pos.length; i++)
                     if (!fs.taken[i] && !fs.sweet[i] && Math.hypot(fs.pos[i][0] - p.getX(), fs.pos[i][1] - p.getZ()) <= 25 * m) {
                         fs.sweet[i] = true;
@@ -1436,9 +1444,9 @@ public final class EndGame {
                         fx(lv, 10, fs.pos[i][0], cur.gy(), fs.pos[i][1], 0, treeFleshy ? 1 : 0, 0, 0, 120);
                     }
             }
-            case "manipulateemotion" -> { for (Cloud c : clouds) if (c.mode == 0 && Math.hypot(c.nowX() - p.getX(), c.nowZ() - p.getZ()) <= 12 * m) c.mode = 2; }
+            case "manipulateemotion" -> { for (Cloud c : clouds) if (c.mode == 0 && Math.hypot(c.nowX() - p.getX(), c.nowZ() - p.getZ()) <= c.r + 12 * m) { c.mode = 2; fx(lv, 12, c.nowX(), cur.gy(), c.nowZ(), c.r, 0, 0, rgb(0.4f, 0.65f, 1f), 1); } }
             case "windmanipulation", "hurricane", "tornado", "trickwind" -> {
-                for (Cloud c : clouds) if (c.mode != 3 && Math.hypot(c.nowX() - p.getX(), c.nowZ() - p.getZ()) <= 30 * m) {
+                for (Cloud c : clouds) if (c.mode != 3 && Math.hypot(c.nowX() - p.getX(), c.nowZ() - p.getZ()) <= c.r + 30 * m) {
                     c.mode = 3;
                     fx(lv, 9, c.nowX(), cur.gy(), c.nowZ(), c.r, 0, 0, 0, 5);
                     lv.sendParticles(ParticleTypes.CLOUD, c.nowX(), cur.gy() + 1, c.nowZ(), 40, c.r / 2, 1, c.r / 2, 0.1);
@@ -1717,7 +1725,7 @@ public final class EndGame {
         final boolean big = cur.raid();
         if (big) sendAnim(lv, which, DURATION[which] + 40);
         final double reach = big ? ARENA_R : 42;
-        final double mr = big ? (rootStage >= 2 ? 16 : 8) : 3.5, sl = big ? 24 : 5.5;   // meteor and slam sizes: in the raid they match the tree
+        final double mr = (big ? (rootStage >= 2 ? 22 : 12) : 4.5) * (big ? treeScale : 1), sl = (big ? 24 : 5.5) * (big ? treeScale : 1);   // meteor and slam sizes: in the raid they match the tree
         switch (which) {
             case 6 -> power(lv);
             case 7 -> { // a curse on everyone: cannot be dodged, but it does not cost a life
@@ -1738,25 +1746,26 @@ public final class EndGame {
             }
             case 0 -> { // meteors: red marks under every fighter, they land 1.5 s later
                 int shots = 4 + rnd.nextInt(3);
-                for (int k = 0; k < shots; k++) at(k * 20L, l -> {
+                for (int k = 0; k < shots; k++) at(k * 30L, l -> {
                     for (ServerPlayer p : fighters(l)) {
                         double x = p.getX() + rnd.nextDouble(-3, 3), z = p.getZ() + rnd.nextDouble(-3, 3);
-                        for (int t = 0; t < 38; t += 5) at(t, ll -> circle(ll, x, z, mr, 1f, 0.1f, 0.1f));
+                        for (int t = 0; t < 64; t += 5) at(t, ll -> circle(ll, x, z, mr, 1f, 0.1f, 0.1f));
                         if (!crowd) {
-                            boolean lotm = lotmMeteor(l, x, z, mr, 38);
-                            fx(l, 0, x, cur.gy(), z, 38, mr, lotm ? 1 : 0, rgb(1f, 0.45f, 0.1f), 70);   // the impact is always drawn; the fall only when LOTM's meteor is not there
+                            boolean lotm = lotmMeteor(l, x, z, mr, 64);
+                            fx(l, 0, x, cur.gy(), z, 64, mr, lotm ? 1 : 0, rgb(1f, 0.45f, 0.1f), 96);   // the impact is always drawn; the fall only when LOTM's meteor is not there
                         }
-                        at(38, ll -> { boom(ll, x, z, mr); strike(ll, x, z, mr, 99); });
+                        at(64, ll -> { boom(ll, x, z, mr); strike(ll, x, z, mr, 99); });
                     }
                 });
             }
             case 1 -> { // two rings rolling out from the Outer God: jump them. Fighters up in the air get a sky ring at their own height instead
                 int rings = 2 + rnd.nextInt(2);
+                final double spd = big ? ARENA_R / 150.0 : 0.6;   // the rings roll all the way to the edge of the arena
                 for (int ring = 0; ring < rings; ring++) {
                     long start = 25 + ring * 30L;
                     final List<Double> sky = new ArrayList<>();   // the heights of the sky rings, worked out when the ring is sent
                     at(start, l -> {
-                        fx(l, 2, cur.cx(), cur.gy(), cur.cz(), 2, big ? 1.3 : 0.6, 0, rgb(0.7f, 0.25f, 1f), big ? 152 : 52);
+                        fx(l, 2, cur.cx(), cur.gy(), cur.cz(), 2, spd, 0, rgb(0.7f, 0.25f, 1f), big ? 152 : 52);
                         List<Double> ys = new ArrayList<>();
                         for (ServerPlayer p : fighters(l)) if (p.getY() > cur.gy() + FLY_H) ys.add(p.getY());
                         java.util.Collections.sort(ys);
@@ -1770,9 +1779,9 @@ public final class EndGame {
                     for (int t = 0; t < (big ? 150 : 50); t++) {
                         final int tt = t;
                         at(start + t, l -> {
-                            double r = 2 + tt * (big ? 1.3 : 0.6);
+                            double r = 2 + tt * (spd);
                             ringOnly(l, cur.cx(), cur.cz(), r, 0.7f, 0.2f, 1f);
-                            if (tt == 0) for (double y : sky) fx(l, 16, cur.cx(), y, cur.cz(), big ? 1.3 : 0.6, 2, 0, 0, big ? 152 : 52);
+                            if (tt == 0) for (double y : sky) fx(l, 16, cur.cx(), y, cur.cz(), spd, 2, 0, 0, big ? 152 : 52);
                             for (ServerPlayer p : fighters(l)) { // only the ring itself, and only fighters standing on the ground
                                 double dist = Math.hypot(p.getX() - cur.cx(), p.getZ() - cur.cz());
                                 if (Math.abs(dist - r) >= (big ? 3.0 : 1.0)) continue;
@@ -1837,10 +1846,10 @@ public final class EndGame {
                 boolean[] done = {false};
                 bloomTrue = f[real];
                 bloomRevealUntil = 0;
-                at(205, l -> bloomTrue = null);
-                at(0, l -> { for (double[] k : f) fx(l, 17, k[0], cur.gy(), k[1], treeFleshy ? 1 : 0, 0, 0, 0, 215); });
-                at(204, l -> { for (double[] k : f) fx(l, 11, k[0], cur.gy(), k[1], 0, 0, 0, 0, 1); });
-                for (int t = 0; t <= 200; t += 2) {
+                at(565, l -> bloomTrue = null);
+                at(0, l -> { for (double[] k : f) fx(l, 17, k[0], cur.gy(), k[1], treeFleshy ? 1 : 0, 0, 0, 0, 575); });
+                at(564, l -> { for (double[] k : f) fx(l, 11, k[0], cur.gy(), k[1], 0, 0, 0, 0, 1); });
+                for (int t = 0; t <= 560; t += 2) {
                     final int tt = t;
                     at(t, l -> {
                         if (done[0]) { bloomTrue = null; return; }
@@ -1869,7 +1878,7 @@ public final class EndGame {
                                 break;
                             }
                         }
-                        if (tt == 200 && !done[0]) { // nobody found the true bloom: they all wither at once
+                        if (tt == 560 && !done[0]) { // nobody found the true bloom: they all wither at once
                             sfx(l, SoundEvents.WITHER_AMBIENT, 2f, 0.7f);
                             for (ServerPlayer q : fighters(l)) soften(l, q, 0.25f);
                         }
@@ -1885,10 +1894,10 @@ public final class EndGame {
                 boolean[] sweet = new boolean[n];
                 for (int i = 0; i < n; i++) sweet[i] = !sour;
                 Fruits fs = new Fruits(f, taken, sweet);
-                for (int i = 0; i < n; i++) fx(lv, 10, f[i][0], cur.gy(), f[i][1], sweet[i] ? 0 : 1, sour ? 1 : 0, 0, 0, 175);   // the model and its beam
+                for (int i = 0; i < n; i++) fx(lv, 10, f[i][0], cur.gy(), f[i][1], sweet[i] ? 0 : 1, sour ? 1 : 0, 0, 0, 545);   // the model and its beam
                 fruits.add(fs);
-                at(175, l -> fruits.remove(fs));
-                for (int t = 0; t <= 170; t += 2) {
+                at(545, l -> fruits.remove(fs));
+                for (int t = 0; t <= 540; t += 2) {
                     final int tt = t;
                     at(t, l -> {
                         for (int i = 0; i < n; i++) {
@@ -1896,7 +1905,7 @@ public final class EndGame {
                             double x = f[i][0], z = f[i][1];
                             final boolean rotten = !sweet[i];
                             if (tt % 6 == 0) l.sendParticles(rotten ? ParticleTypes.SOUL_FIRE_FLAME : ParticleTypes.END_ROD, x, cur.gy() + 1.2, z, 3, 0.2, 0.5, 0.2, 0.01);
-                            if (tt == 170) { taken[i] = true; fx(l, 11, x, cur.gy(), z, 0, 0, 0, 0, 1); spawnThrall(l, x, z, "werewolf"); continue; }
+                            if (tt == 540) { taken[i] = true; fx(l, 11, x, cur.gy(), z, 0, 0, 0, 0, 1); spawnThrall(l, x, z, "werewolf"); continue; }
                             for (ServerPlayer p : fighters(l)) {
                                 if (Math.hypot(p.getX() - x, p.getZ() - z) > 1.8 || Math.abs(p.getY() - cur.gy()) > 4) continue;
                                 taken[i] = true;
@@ -1973,7 +1982,7 @@ public final class EndGame {
             }
             case 12 -> { // tempest (below 35%): lightning everywhere (find a safe circle), then meteors everywhere (different safe circles), then a web of lightning over the whole arena (find a gap)
                 final double sr = 7;
-                final int t1 = 50, m0 = t1 + 7, mf = 3, t2 = t1 + 12;   // the lightning at t1, the meteors land 0.5 s later, the web strikes 0.5 s after that   // a wind-up showing every safe circle, then the three strikes follow one another almost instantly
+                final int t1 = 60;   // the lightning at t1, the meteors land 0.5 s later, the web strikes 0.5 s after that   // a wind-up showing every safe circle, then the three strikes follow one another almost instantly
                 final List<double[]> safeA = new ArrayList<>(), safeB = new ArrayList<>();
                 // every safe circle is somewhere a fighter can really reach: 4 to 11 blocks from them (a wind-up of 2.5 s), inside the arena
                 // and the second set sits right on top of the first, so you can step from the lightning's circle into the meteors' circle
@@ -1985,17 +1994,32 @@ public final class EndGame {
                     safeA.add(pt);
                 }
                 if (safeA.isEmpty()) safeA.add(new double[]{cx + 30, cz});
-                for (double[] q : safeA) {
-                    double[] pt = reachable(cx, cz, q[0], q[1], 0, 4, reach - 12, rnd);
-                    safeB.add(pt);
-                }
-                // 1: lightning everywhere
-                for (int t = 0; t < t1; t += 5) at(t, l -> { for (double[] q : safeA) circle(l, q[0], q[1], sr, 0.3f, 0.6f, 1f); for (double[] q : safeB) circle(l, q[0], q[1], sr, 0.3f, 1f, 0.4f); });
+                // the lightning and the meteors hit at the same moment and are escaped the same way: stand inside a circle
+                final int mf = 16;
+                for (int t = 0; t < t1; t += 5) at(t, l -> { for (double[] q : safeA) circle(l, q[0], q[1], sr, 0.3f, 1f, 0.5f); });
+                at(0, l -> sfx(l, SoundEvents.WARDEN_SONIC_CHARGE, 4f, 0.7f));
+                at(t1 - mf, l -> {
+                    sfx(l, SoundEvents.ENDER_DRAGON_GROWL, 3f, 0.6f);
+                    List<double[]> mets = new ArrayList<>();
+                    for (int tries = 0; tries < 2500 && mets.size() < 150; tries++) {
+                        double a = rnd.nextDouble() * Math.PI * 2, d = Math.sqrt(rnd.nextDouble()) * reach;
+                        double x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+                        boolean okp = true;
+                        for (double[] q : safeA) if (Math.hypot(x - q[0], z - q[1]) < sr + 6) { okp = false; break; }
+                        for (double[] q : mets) if (Math.hypot(x - q[0], z - q[1]) < 10) { okp = false; break; }
+                        if (okp) mets.add(new double[]{x, z});
+                    }
+                    for (double[] h : mets) {
+                        final double x = h[0], z = h[1];
+                        fx(l, 0, x, cur.gy(), z, mf, 8, 0, rgb(1f, 0.45f, 0.1f), mf + 22);
+                        at(mf, ll -> { boom(ll, x, z, 8); strike(ll, x, z, 8, 99); });
+                    }
+                    at(mf, ll -> sfx(ll, SoundEvents.GENERIC_EXPLODE.value(), 6f, 0.7f));
+                });
                 at(t1, l -> {
                     sfx(l, SoundEvents.LIGHTNING_BOLT_THUNDER, 6f, 0.7f);
                     sfx(l, SoundEvents.LIGHTNING_BOLT_IMPACT, 6f, 0.9f);
-                    sfx(l, SoundEvents.GENERIC_EXPLODE.value(), 3f, 0.5f);
-                    fx(l, 19, cx, cur.gy(), cz, rnd.nextInt(100000), reach, 70, 0, 20);
+                    fx(l, 19, cx, cur.gy(), cz, rnd.nextInt(100000), reach, 300, 0, 20);
                     for (ServerPlayer p : fighters(l)) {
                         boolean ok = false;
                         for (double[] q : safeA) if (Math.hypot(p.getX() - q[0], p.getZ() - q[1]) <= sr) ok = true;
@@ -2003,29 +2027,8 @@ public final class EndGame {
                         if (!ok) hit(l, p);
                     }
                 });
-                // 2: meteors everywhere, different circles are safe
-                
-                at(0, l -> sfx(l, SoundEvents.WARDEN_SONIC_CHARGE, 4f, 0.7f));
-                at(m0, l -> {
-                    sfx(l, SoundEvents.ENDER_DRAGON_GROWL, 3f, 0.6f);
-                    List<double[]> mets = new ArrayList<>();
-                    for (int tries = 0; tries < 400 && mets.size() < 24; tries++) {
-                        double a = rnd.nextDouble() * Math.PI * 2, d = Math.sqrt(rnd.nextDouble()) * reach;
-                        double x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
-                        boolean okp = true;
-                        for (double[] q : safeB) if (Math.hypot(x - q[0], z - q[1]) < sr + 6) { okp = false; break; }
-                        for (double[] q : mets) if (Math.hypot(x - q[0], z - q[1]) < 12) { okp = false; break; }
-                        if (okp) mets.add(new double[]{x, z});
-                    }
-                    for (double[] h : mets) {
-                        final double x = h[0], z = h[1];
-                        for (int t = 0; t < mf; t += 4) at(t, ll -> circle(ll, x, z, 8, 1f, 0.1f, 0.1f));
-                        fx(l, 0, x, cur.gy(), z, mf, 8, 0, rgb(1f, 0.45f, 0.1f), mf + 22);
-                        at(mf, ll -> { boom(ll, x, z, 8); strike(ll, x, z, 8, 99); sfx(ll, SoundEvents.GENERIC_EXPLODE.value(), 2f, 0.8f + (float) rnd.nextDouble() * 0.4f); });
-                    }
-                });
                 // 3: the whole arena webbed in lightning: find a gap
-                at(t2 + 5, l -> {
+                at(t1 + 20 - 3, l -> {   // the web strikes half a second after the rest... (0.5 s later than before)
                     final int flash = 3;
                     sfx(l, SoundEvents.WARDEN_SONIC_CHARGE, 4f, 0.5f);
                     final List<List<Bolts.Seg>> webs = new ArrayList<>();
@@ -2084,6 +2087,7 @@ public final class EndGame {
     private static int rootStage = 0;
     private static boolean ultimateDone = false;   // (no longer used: the meteor can be reused, see nextUltimate)
     private static long nextUltimate = 0;          // the 15% meteor is off cooldown from this raid tick on
+    static float treeScale = 1f;   // the tree grows with the number of fighters
     private static final double ULT_SAFE_R = 26;     // under the tree: the trunk is 15 wide and the crown shades the ground around it
     private static final List<BlockPos> roots = new ArrayList<>();
     private static int activeKind = 0;       // 0 roots, 1 desire's call, 2 heart seeds
@@ -2233,9 +2237,9 @@ public final class EndGame {
         phaseEnd = rt + 800;
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         int nSeeds = Math.min(24, Math.max(3, fighters(lv).size() / 6));
-        double smax = Math.min(ARENA_R - 55, 40 + nSeeds * 8.0);
+        double smin = 185 * treeScale, smax = Math.max(smin + 30, Math.min(ARENA_R - 25, smin + 30 + nSeeds * 8.0));
         for (int i = 0; i < nSeeds; i++) {
-            double a = Math.PI * 2 * i / nSeeds + rnd.nextDouble() * 0.5, r = 25 + rnd.nextDouble() * Math.max(10, smax - 25);
+            double a = Math.PI * 2 * i / nSeeds + rnd.nextDouble() * 0.5, r = smin + rnd.nextDouble() * Math.max(10, smax - smin);
             BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
             if (!lv.getBlockState(b).isAir()) continue;
             lv.setBlock(b, Blocks.SHROOMLIGHT.defaultBlockState(), 3);
@@ -2360,6 +2364,7 @@ public final class EndGame {
             for (ServerPlayer p : fighters(l)) {
                 if (Math.hypot(p.getX() - cx, p.getZ() - cz) <= ULT_SAFE_R) continue;
                 if (god.contains(p.getUUID())) continue;
+                if (blastShielded(l, new net.minecraft.world.phys.Vec3(cx, cur.gy() + 4, cz), p)) { p.displayClientMessage(Component.literal("The blocks took the blast.").withStyle(ChatFormatting.GOLD), true); continue; }   // behind blocks: the meteor cannot reach you
                 int before = ud.raidLives.getOrDefault(p.getUUID(), 0);
                 p.setHealth(Math.min(p.getHealth(), 1f));
                 killLife(l, p);
@@ -2380,10 +2385,10 @@ public final class EndGame {
         int players = fighters(lv).size();
         int n = Math.min(70, 6 + 2 * rootStage + players);   // one fighter: about 7 roots; a crowd: up to 70
         rootsEnd = rt + Math.min(2400, 900 + 30L * n);          // 45 seconds and a little more for every root
-        double rmax = Math.min(ARENA_R - 45, 45 + n * 3.0);      // few roots stay near the middle, many reach the edge
+        double rmin = 185 * treeScale, rmax = Math.max(rmin + 30, Math.min(ARENA_R - 25, rmin + 30 + n * 3.0));      // always out beyond the tree's own roots, so none is hidden inside it
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         for (int i = 0; i < n; i++) {
-            double a = rnd.nextDouble() * Math.PI * 2, r = 30 + rnd.nextDouble() * Math.max(10, rmax - 30);
+            double a = rnd.nextDouble() * Math.PI * 2, r = rmin + rnd.nextDouble() * Math.max(10, rmax - rmin);
             BlockPos b = BlockPos.containing(0.5 + Math.cos(a) * r, groundY, 0.5 + Math.sin(a) * r);
             if (!lv.getBlockState(b).canBeReplaced() || !lv.getBlockState(b.above()).canBeReplaced()) continue;   // grass and flowers do not stop a root
             lv.setBlock(b, Blocks.MANGROVE_WOOD.defaultBlockState(), 3);
@@ -2413,9 +2418,18 @@ public final class EndGame {
     }
 
     /** Once a second during the raid. */
+    /** The tree grows with the number of fighters: 1.0 for one, up to 1.5 for thirteen or more. */
+    private static void updateTreeScale(ServerLevel lv) {
+        float want = (float) Math.max(1.0, Math.min(1.5, 1 + 0.04 * (fighters(lv).size() - 1)));
+        if (Math.abs(want - treeScale) < 0.01f) return;
+        treeScale = want;
+        for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, new Net.TreeScalePayload(treeScale));
+    }
+
     private static void rootsSecond(ServerLevel lv) {
         Mob boss = findBoss(lv, TAG_RAID);
         if (boss == null) return;
+        updateTreeScale(lv);
         float frac = boss.getHealth() / RAID_HP;
         int bucket = (int) Math.floor(frac * 20);
         offerSecond(lv, frac);

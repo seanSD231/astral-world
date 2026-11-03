@@ -150,6 +150,7 @@ public final class TreeRenderer {
         ps.pushPose();
         ps.translate(bx - cam.x, by - cam.y, bz - cam.z);
         float[] tint = {1f, 1f, 1f};
+        if (tree) { float sc = Net.ClientState.treeScale; ps.scale(sc, sc, sc); }
         if (cut) {
             float[] st = TreeCutscene.treeState(cs);   // scale x, scale y, tint r, g, b, shake
             ps.scale(st[0], st[1], st[0]);

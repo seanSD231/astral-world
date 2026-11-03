@@ -185,7 +185,16 @@ public final class Net {
     }
 
     /** What the client currently knows. Plain fields, safe to load on a server. */
+    /** Server -> client: how big the tree is drawn (it grows with the number of fighters). */
+    public record TreeScalePayload(float scale) implements CustomPacketPayload {
+        public static final Type<TreeScalePayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "tree_scale"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, TreeScalePayload> CODEC = StreamCodec.composite(ByteBufCodecs.FLOAT, TreeScalePayload::scale, TreeScalePayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static final class ClientState {
+        public static volatile float treeScale = 1f;
         public static final java.util.List<double[]> telegraphs = new java.util.ArrayList<>();
         public static final java.util.List<double[]> fx = new java.util.ArrayList<>();
         public static volatile boolean show;
@@ -213,6 +222,7 @@ public final class Net {
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("1");
         OsuNet.register(registrar);
+        registrar.playToClient(TreeScalePayload.TYPE, TreeScalePayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> ClientState.treeScale = p.scale()));
         registrar.playToClient(HudPayload.TYPE, HudPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             ClientState.show = payload.show();
             ClientState.hp = payload.hp();
@@ -269,6 +279,15 @@ public final class Net {
                         double t = (nowMs - f[8]) / 50.0;
                         return Math.hypot(f[1] + f[4] * t - payload.x(), f[3] + f[5] * t - payload.z()) < payload.a() + 8;
                     });
+                    return;
+                }
+                if (payload.kind() == 12) {   // a counter touched a pollen cloud: it takes on the colour of the counter, so everyone can see it was done
+                    long nowMs = System.currentTimeMillis();
+                    for (double[] f : ClientState.fx) {
+                        if ((int) f[0] != 3) continue;
+                        double t = (nowMs - f[8]) / 50.0;
+                        if (Math.hypot(f[1] + f[4] * t - payload.x(), f[3] + f[5] * t - payload.z()) < 6) f[7] = payload.color();
+                    }
                     return;
                 }
                 if (payload.kind() == 11) {   // a fruit was taken (or rotted into a werewolf): its model and beam go

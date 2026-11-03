@@ -2,6 +2,18 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.64
+Tree fight changes.
+- **Roots and heart seeds:** they now spawn out beyond the tree's own roots, so none is hidden inside it.
+- **Tree size:** the tree grows with the number of fighters (1x for one, up to 1.5x for thirteen or more). Meteors and slams grow with it too.
+- **Ring attacks:** the rings roll all the way to the edge of the arena.
+- **Meteors:** they fall slower (about 3 seconds), from higher up, and are bigger, so you can see them coming.
+- **15% meteor:** it can't hurt you if solid blocks stand between you and the blast.
+- **Tempest:** the lightning and the meteors now hit at the same moment and share the same safe circles; there are far more of both (up to 150 meteors and 300 bolts); the final web comes half a second later than before.
+- **Fruit and flowers:** the fruit, and the three flowers of Mirror Bloom, stay on the field much longer (about 27 seconds), and those attacks leave more time before the next one.
+- **Counters:** they no longer need the vanilla cooldown to show, work from further away on the big pollen clouds (anywhere inside the cloud), and work up to Sequence 4 for cleansing. A cloud that was cleansed (or calmed) changes colour so everyone can see it was done. Each use is logged as `counter attempt` in the server log.
+- **Fog at the tree's base:** the pollen clouds are what sat on the tree; they now spawn far from it.
+
 ## 0.2.63
 - **Tempest:** the three strikes are now spaced out: the lightning, then the meteors land 0.5 s later, then the arena-wide web strikes 0.5 s after the meteors.
 
