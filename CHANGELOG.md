@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.78
+- **New Lord of the Mysteries version:** everything that talks to LOTM now works with the newer build (the "acting factions" one) and still works with the older one. Pathway and sequence lookups, corruption (adding, doubling, clearing), misfortune, sanity, the combat check, resizing summoned entities, and the stun / bleeding / frenzy / awe / paralysis / no-regeneration effects used by the god curses all use LOTM's new code. Mental plague now needs a cast record in the new LOTM, so where the mod has none it uses frenzy instead. LOTM has no lava damage type any more, so lava damage from the Ravings is plain vanilla lava damage.
+- **Mother Tree:** Cursing Aura and Thorn Paradise are found at their new place in LOTM, and Thorn Paradise is cast the way the new LOTM casts toggled abilities. The crimson moon check in the sky and god scenes uses its new location.
+- If something in LOTM changes again, only the affected feature switches off and the log says which one.
+
 ## 0.2.77
 - **Astral Barrier:** the sky barrier was sent to every player; now only Sequence 0s can see it. Everyone else has it switched off (it is re-checked every second, so a new Seq 0 sees it within a moment).
 

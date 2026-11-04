@@ -39,9 +39,14 @@ public final class AstralSky extends DimensionSpecialEffects {
         } catch (Throwable t) { return false; }
     }
 
+    private static Class<?> crimsonMoonClass() throws ClassNotFoundException {
+        try { return Class.forName("net.swimmingtuna.lotm.client.data.ClientCrimsonMoonData"); }
+        catch (ClassNotFoundException e) { return Class.forName("net.swimmingtuna.lotm.util.ClientData.ClientCrimsonMoonData"); }   // older LOTM
+    }
+
     private static boolean crimsonMoon() {
         try {
-            return (Boolean) Class.forName("net.swimmingtuna.lotm.util.ClientData.ClientCrimsonMoonData").getMethod("isCrimsonMoon").invoke(null);
+            return (Boolean) crimsonMoonClass().getMethod("isCrimsonMoon").invoke(null);
         } catch (Throwable t) { return false; }
     }
 

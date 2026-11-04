@@ -20,23 +20,55 @@ public final class Lotm {
 
     private Lotm() {}
 
+    private static Method corrMax, corrAdd, corrGet, corrSet, corrClear;
+    private static Method pwSetSequence, pwGetSequence, fateMisfortune, fateSetMisfortune, combatIn;
+
+    private static Class<?> cls(String n) {
+        try { return Class.forName(n); } catch (Throwable t) { return null; }
+    }
+
+    private static Method find(Class<?> c, String name, int params) {
+        if (c == null) return null;
+        for (Method m : c.getMethods()) if (m.getName().equals(name) && m.getParameterCount() == params) return m;
+        return null;
+    }
+
+    /** Finds LOTM's methods. Newer LOTM (the acting line) has Pathways/Corruption/Fate/Combat; older LOTM had BeyonderUtil. */
     private static synchronized void init() {
         if (loaded) return;
         loaded = true;
         try {
-            Class<?> util = Class.forName("net.swimmingtuna.lotm.util.BeyonderUtil");
-            for (Method m : util.getMethods()) {
-                switch (m.getName()) {
-                    case "getPathway" -> { if (m.getParameterCount() == 1) getPathway = m; }
-                    case "addCorruption" -> { if (m.getParameterCount() == 3) addCorruption = m; }
-                    case "getMaxCorruption" -> { if (m.getParameterCount() == 1) getMaxCorruption = m; }
-                    case "getRandomWorkingPathway" -> { if (m.getParameterCount() == 0) getRandomWorkingPathway = m; }
-                    case "chooseRandomPathway" -> { if (m.getParameterCount() == 0 && getRandomWorkingPathway == null) getRandomWorkingPathway = m; }   // the newer LOTM's name for it
-                    default -> { }
-                }
+            Class<?> pathways = cls("net.swimmingtuna.lotm.beyonder.Pathways");
+            Class<?> corruption = cls("net.swimmingtuna.lotm.beyonder.Corruption");
+            Class<?> fate = cls("net.swimmingtuna.lotm.beyonder.Fate");
+            Class<?> combat = cls("net.swimmingtuna.lotm.entity.Combat");
+            Class<?> old = cls("net.swimmingtuna.lotm.util.BeyonderUtil");
+            Class<?> classInit = cls("net.swimmingtuna.lotm.init.BeyonderClassInit");
+
+            getPathway = find(pathways, "getPathway", 1);
+            pwSetSequence = find(pathways, "setSequence", 2);
+            pwGetSequence = find(pathways, "getSequence", 1);
+            corrMax = find(corruption, "max", 1);
+            corrAdd = find(corruption, "add", 3);
+            corrGet = find(corruption, "get", 2);
+            corrSet = find(corruption, "set", 3);
+            corrClear = find(corruption, "clear", 1);
+            fateMisfortune = find(fate, "misfortune", 1);
+            fateSetMisfortune = find(fate, "setMisfortune", 2);
+            combatIn = find(combat, "inCombat", 1);
+            getRandomWorkingPathway = find(classInit, "getRandomWorkingPathway", 0);
+            if (getRandomWorkingPathway == null) getRandomWorkingPathway = find(pathways, "chooseRandomPathway", 0);
+
+            // the older LOTM, for whatever is still missing
+            if (old != null) {
+                if (getPathway == null) getPathway = find(old, "getPathway", 1);
+                if (addCorruption == null) addCorruption = find(old, "addCorruption", 3);
+                if (getMaxCorruption == null) getMaxCorruption = find(old, "getMaxCorruption", 1);
+                if (getRandomWorkingPathway == null) getRandomWorkingPathway = find(old, "getRandomWorkingPathway", 0);
             }
-            LOGGER.info("[astral] LOTM found. getPathway={} addCorruption={} getMaxCorruption={} randomPathway={}",
-                    getPathway != null, addCorruption != null, getMaxCorruption != null, getRandomWorkingPathway != null);
+            LOGGER.info("[astral] LOTM found. getPathway={} corruption(add/max/get/set/clear)={}/{}/{}/{}/{} misfortune={} combat={} sequenceSetter={} randomPathway={}",
+                    getPathway != null, corrAdd != null, corrMax != null, corrGet != null, corrSet != null, corrClear != null,
+                    fateSetMisfortune != null, combatIn != null, pwSetSequence != null, getRandomWorkingPathway != null);
         } catch (Throwable t) {
             LOGGER.warn("[astral] LOTM not found or not readable, LOTM features are off: {}", t.toString());
         }
@@ -113,14 +145,16 @@ public final class Lotm {
     public static boolean addCorruptionPercent(ServerPlayer player, Object pathway, double percent) {
         init();
         if (pathway == null) pathway = pathway(player);   // no random pathway to be had: the player's own takes it
-        if (addCorruption == null || getMaxCorruption == null || pathway == null) return false;
+        Method add = corrAdd != null ? corrAdd : addCorruption;
+        Method max = corrMax != null ? corrMax : getMaxCorruption;
+        if (add == null || max == null || pathway == null) return false;
         try {
-            int max = (Integer) getMaxCorruption.invoke(null, player);
-            int amount = (int) Math.max(1, Math.round(max * percent / 100.0));
-            addCorruption.invoke(null, player, pathway, amount);
+            int mx = (Integer) max.invoke(null, player);
+            int amount = (int) Math.max(1, Math.round(mx * percent / 100.0));
+            add.invoke(null, player, pathway, amount);
             return true;
         } catch (Throwable t) {
-            LOGGER.warn("[astral] could not add corruption: {}", t.toString());
+            LOGGER.warn("[astral] could not add corruption: {}", String.valueOf(t.getCause() != null ? t.getCause() : t));
             return false;
         }
     }
@@ -130,14 +164,18 @@ public final class Lotm {
      * Returns false if LOTM could not be called.
      */
     public static boolean doubleCorruption(ServerPlayer player) {
+        init();
         try {
-            Class<?> init = Class.forName("net.swimmingtuna.lotm.init.BeyonderClassInit");
-            Class<?> util = Class.forName("net.swimmingtuna.lotm.util.BeyonderUtil");
+            Class<?> ci = Class.forName("net.swimmingtuna.lotm.init.BeyonderClassInit");
             Class<?> bc = Class.forName("net.swimmingtuna.lotm.beyonder.api.BeyonderClass");
-            Method all = init.getMethod("getAllPathways");
-            Method get = util.getMethod("getCorruption", net.minecraft.world.entity.Entity.class, bc);
-            Method set = util.getMethod("setCorruption", net.minecraft.world.entity.Entity.class, bc, int.class);
-            Method max = util.getMethod("getMaxCorruption", net.minecraft.world.entity.Entity.class);
+            Method all = ci.getMethod("getAllPathways");
+            Method get = corrGet, set = corrSet, max = corrMax;
+            if (get == null || set == null || max == null) {   // the older LOTM kept these in BeyonderUtil
+                Class<?> u = Class.forName("net.swimmingtuna.lotm.util.BeyonderUtil");
+                get = u.getMethod("getCorruption", net.minecraft.world.entity.Entity.class, bc);
+                set = u.getMethod("setCorruption", net.minecraft.world.entity.Entity.class, bc, int.class);
+                max = u.getMethod("getMaxCorruption", net.minecraft.world.entity.Entity.class);
+            }
             int cap = (Integer) max.invoke(null, player);
             boolean any = false;
             for (Object pw : (java.util.List<?>) all.invoke(null)) {
@@ -157,6 +195,11 @@ public final class Lotm {
 
     /** Clears all corruption on every pathway. */
     public static void clearCorruption(ServerPlayer player) {
+        init();
+        if (corrClear != null) {
+            try { corrClear.invoke(null, player); return; }
+            catch (Throwable t) { LOGGER.warn("[astral] could not clear corruption: {}", String.valueOf(t.getCause() != null ? t.getCause() : t)); }
+        }
         util("clearCorruption", player);
     }
 
@@ -193,9 +236,14 @@ public final class Lotm {
 
     /** Puts a player's sequence back (LOTM's own loss-of-control and sanity collapse regress it). Returns false if LOTM could not be called. */
     public static boolean setSequence(ServerPlayer player, int seq) {
+        init();
+        if (pwSetSequence != null) {   // newer LOTM: Pathways.setSequence(entity, seq)
+            try { pwSetSequence.invoke(null, player, seq); return true; }
+            catch (Throwable t) { LOGGER.warn("[astral] could not set the sequence: {}", String.valueOf(t.getCause() != null ? t.getCause() : t)); return false; }
+        }
         if (holderFailed) return false;
         try {
-            if (holderOf == null) {
+            if (holderOf == null) {   // older LOTM
                 Class<?> att = Class.forName("net.swimmingtuna.lotm.caps.BeyonderHolderAttacher");
                 Class<?> hold = Class.forName("net.swimmingtuna.lotm.caps.BeyonderHolder");
                 holderOf = att.getMethod("getHolderUnwrap", net.minecraft.world.entity.player.Player.class);
@@ -245,40 +293,53 @@ public final class Lotm {
 
     /** Adds LOTM "misfortune" to a player (the same stat Misfortune Bestowal raises; Bestowal itself adds 200). */
     public static boolean addMisfortune(ServerPlayer player, double amount) {
+        init();
         try {
-            Class<?> h = Class.forName("net.swimmingtuna.lotm.util.CorruptionAndLuckHandler");
+            if (fateMisfortune != null && fateSetMisfortune != null) {   // newer LOTM: beyonder.Fate
+                double cur = ((Number) fateMisfortune.invoke(null, player)).doubleValue();
+                fateSetMisfortune.invoke(null, player, cur + amount);
+                return true;
+            }
+            Class<?> h = Class.forName("net.swimmingtuna.lotm.util.CorruptionAndLuckHandler");   // older LOTM
             net.minecraft.nbt.CompoundTag tag = player.getPersistentData();
             double cur = (Double) h.getMethod("getMisfortune", CompoundTag.class).invoke(null, tag);
             h.getMethod("setMisfortune", net.minecraft.world.entity.LivingEntity.class, CompoundTag.class, double.class)
                     .invoke(null, player, tag, cur + amount);
             return true;
         } catch (Throwable t) {
-            LOGGER.warn("[astral] could not add misfortune: {}", t.toString());
+            LOGGER.warn("[astral] could not add misfortune: {}", String.valueOf(t.getCause() != null ? t.getCause() : t));
             return false;
         }
     }
 
     /** True while LOTM's combat timer is running for this player (the same check LOTM uses). */
     public static boolean inCombat(ServerPlayer player) {
+        init();
         try {
+            if (combatIn != null) return (Boolean) combatIn.invoke(null, player);
             Class<?> util = Class.forName("net.swimmingtuna.lotm.util.BeyonderUtil");
             return (Boolean) util.getMethod("inCombat", net.minecraft.world.entity.LivingEntity.class).invoke(null, player);
         } catch (Throwable t) {
-            return player.getPersistentData().getInt("LOTMinCombat") > 0; // what LOTM stores it in
+            return player.getPersistentData().getInt("LOTMinCombat") > 0; // what the older LOTM stored it in
         }
     }
 
     // ------------------------------------------------------------------ LOTM abilities (all by reflection, all optional)
 
-    private static Class<?> util;
-    private static boolean utilFailed;
+    private static Class<?>[] utilClasses;
 
-    private static Class<?> beyonderUtil() {
-        if (util == null && !utilFailed) {
-            try { util = Class.forName("net.swimmingtuna.lotm.util.BeyonderUtil"); }
-            catch (Throwable t) { utilFailed = true; }
+    /** The classes LOTM keeps its helpers in (the newer split first, the older BeyonderUtil last). */
+    private static Class<?>[] utilClasses() {
+        if (utilClasses == null) {
+            java.util.List<Class<?>> l = new java.util.ArrayList<>();
+            for (String n : new String[]{"ability.trait.Afflictions", "entity.Scale", "entity.Combat", "beyonder.Corruption", "beyonder.Fate",
+                    "beyonder.Pathways", "capabilities.sanity_data.SanityUtil", "util.BeyonderUtil"}) {
+                Class<?> c = cls("net.swimmingtuna.lotm." + n);
+                if (c != null) l.add(c);
+            }
+            utilClasses = l.toArray(new Class<?>[0]);
         }
-        return util;
+        return utilClasses;
     }
 
     private static boolean accepts(Class<?> param, Object arg) {
@@ -289,27 +350,52 @@ public final class Lotm {
                 || (param == long.class && arg instanceof Long);
     }
 
-    /** Calls a static LOTM BeyonderUtil method by name (e.g. "applyStun", victim, 20). Returns its result, or null when missing/failed. */
+    /** Calls a static LOTM helper by name (e.g. "applyStun", victim, 20). Returns its result, or null when missing/failed. */
     public static Object util(String name, Object... args) {
-        Class<?> c = beyonderUtil();
-        if (c == null) return null;
-        try {
-            for (Method m : c.getMethods()) {
-                if (!m.getName().equals(name) || m.getParameterCount() != args.length) continue;
-                Class<?>[] types = m.getParameterTypes();
-                boolean ok = true;
-                for (int i = 0; i < types.length; i++) if (!accepts(types[i], args[i])) { ok = false; break; }
-                if (ok) return m.invoke(null, args);
+        if (name.equals("applyMentalPlague") && args.length == 2) {   // the newer LOTM wants a cast snapshot too; we have none
+            Object r = utilExact(name, args[0], args[1], null);
+            if (r != null || plagueWorked) return r;
+            return utilExact("applyFrenzy", args[0], args[1]);
+        }
+        return utilExact(name, args);
+    }
+
+    private static boolean plagueWorked;
+
+    private static Object utilExact(String name, Object... args) {
+        for (Class<?> c : utilClasses()) {
+            try {
+                for (Method m : c.getMethods()) {
+                    if (!m.getName().equals(name) || m.getParameterCount() != args.length || !java.lang.reflect.Modifier.isStatic(m.getModifiers())) continue;
+                    Class<?>[] types = m.getParameterTypes();
+                    boolean ok = true;
+                    for (int i = 0; i < types.length; i++) if (!accepts(types[i], args[i])) { ok = false; break; }
+                    if (!ok) continue;
+                    Object r = m.invoke(null, args);
+                    if (name.equals("applyMentalPlague")) plagueWorked = true;
+                    return r;
+                }
+            } catch (Throwable t) {
+                LOGGER.warn("[astral] LOTM ability {} failed: {}", name, String.valueOf(t.getCause() != null ? t.getCause() : t));
+                return null;
             }
-        } catch (Throwable t) {
-            LOGGER.warn("[astral] LOTM ability {} failed: {}", name, String.valueOf(t.getCause() != null ? t.getCause() : t));
         }
         return null;
     }
 
     /** LOTM's own damage source of a kind ("magic", "explosion", "lava", "holyFire", "lightning", "crush", "fall", "freeze", "generic"), or null. */
     public static net.minecraft.world.damagesource.DamageSource source(String kind, ServerPlayer victim) {
-        Object o = util(kind + "Source", null, victim);
+        Object o = utilExact(kind + "Source", null, victim);   // the older LOTM: BeyonderUtil.<kind>Source(null, victim)
+        if (o == null) {
+            try {   // the newer LOTM keeps a few in ability.damage.Sources (magic, generic ...)
+                Class<?> c = Class.forName("net.swimmingtuna.lotm.ability.damage.Sources");
+                for (Method m : c.getMethods())
+                    if (m.getName().equals(kind + "Source") && m.getParameterCount() == 2 && java.lang.reflect.Modifier.isStatic(m.getModifiers())) {
+                        o = m.invoke(null, null, victim);
+                        break;
+                    }
+            } catch (Throwable ignored) { }
+        }
         return o instanceof net.minecraft.world.damagesource.DamageSource d ? d : null;
     }
 
@@ -369,7 +455,7 @@ public final class Lotm {
                 for (Method m : e.getClass().getMethods())
                     if (m.getName().equals("setOwner") && m.getParameterCount() == 1) { m.invoke(e, owner); break; }
             }
-            util("setScale", e, scale);
+            util("setScale", e, scale);   // Scale.setScale in the newer LOTM, BeyonderUtil.setScale in the older
             if (motion != null) e.setDeltaMovement(motion);
             for (Method m : e.getClass().getMethods()) {
                 if (m.getName().equals("setMaxLife") && m.getParameterCount() == 1) m.invoke(e, life);

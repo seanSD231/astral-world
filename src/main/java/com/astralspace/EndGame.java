@@ -670,13 +670,19 @@ public final class EndGame {
 
     // ---- the Cursing Aura (a Prisoner ability the tree can cast): "your legs stop agreeing with you"
 
-    private static final String CURSING_AURA = "net.swimmingtuna.lotm.item.BeyonderAbilities.Prisoner.CursingAura";
+    private static final String CURSING_AURA = "net.swimmingtuna.lotm.pathway.prisoner.abilities.CursingAura";
+    private static Class<?> cursingAura() throws ClassNotFoundException {
+        Class<?> c = lotmClass(CURSING_AURA, CURSING_AURA_OLD);
+        if (c == null) throw new ClassNotFoundException(CURSING_AURA);
+        return c;
+    }
+    private static final String CURSING_AURA_OLD = "net.swimmingtuna.lotm.item.BeyonderAbilities.Prisoner.CursingAura";
     private static final String[] DISHARMONY = {"disharmony", "disharmonyUntil", "disharmonyReverseMode", "disharmonyReverseTicks"};
     private static final long AURA_TICKS = 300;   // the aura is switched off 15 seconds after it starts
     private static long auraSince = -1;
 
     private static boolean auraActive(Mob boss) {
-        try { return (Boolean) Class.forName(CURSING_AURA).getMethod("isActive", net.minecraft.world.entity.LivingEntity.class).invoke(null, boss); }
+        try { return (Boolean) cursingAura().getMethod("isActive", net.minecraft.world.entity.LivingEntity.class).invoke(null, boss); }
         catch (Throwable t) { return false; }
     }
 
@@ -701,7 +707,7 @@ public final class EndGame {
         if (auraSince < 0) { auraSince = rt; return; }
         if (rt - auraSince < AURA_TICKS) return;
         auraSince = -1;
-        try { Class.forName(CURSING_AURA).getMethod("deactivate", net.minecraft.world.entity.LivingEntity.class).invoke(null, boss); }
+        try { cursingAura().getMethod("deactivate", net.minecraft.world.entity.LivingEntity.class).invoke(null, boss); }
         catch (Throwable t) { LOGGER.warn("[astral] could not switch the Cursing Aura off: {}", String.valueOf(t)); }
         for (ServerPlayer p : lv.players()) cleanse(p);   // everybody's legs agree with them again
     }
@@ -2402,9 +2408,34 @@ public final class EndGame {
     private static int kingdomLivesLeft = 0;   // lives that may still be lost before it ends: 80% of the fighters when it was raised
     private static final int KINGDOM_TICKS = 400;
 
+    private static final String[] KINGDOM_CLASSES = {"net.swimmingtuna.lotm.pathway.prisoner.abilities.DivineKingdomThornParadise",
+            "net.swimmingtuna.lotm.item.BeyonderAbilities.Prisoner.DivineKingdomThornParadise"};   // the second is where older LOTM kept it
+
+    private static Class<?> lotmClass(String... names) {
+        for (String n : names) { try { return Class.forName(n); } catch (Throwable ignored) { } }
+        return null;
+    }
+
     private static Object kingdomCall(Mob boss, String method) {
         try {
-            Class<?> c = Class.forName("net.swimmingtuna.lotm.item.BeyonderAbilities.Prisoner.DivineKingdomThornParadise");
+            Class<?> c = lotmClass(KINGDOM_CLASSES);
+            if (c == null) throw new ClassNotFoundException("DivineKingdomThornParadise");
+            if (method.equals("activate")) {
+                try { return c.getMethod("activate", net.minecraft.world.entity.LivingEntity.class).invoke(null, boss); }   // older LOTM
+                catch (NoSuchMethodException e) {
+                    // newer LOTM: it is a toggle ability, cast the same way a mob casts any ability
+                    Object ability = c.getMethod("ability").invoke(null);
+                    Class<?> caster = Class.forName("net.swimmingtuna.lotm.ability.AbilityCaster");
+                    Class<?> src = Class.forName("net.swimmingtuna.lotm.ability.AbilityCaster$CastSource");
+                    Object mob = null;
+                    for (Object k : src.getEnumConstants()) if (k.toString().equals("MOB")) mob = k;
+                    for (java.lang.reflect.Method m : caster.getMethods()) {
+                        if (!m.getName().equals("cast") || m.getParameterCount() != 6) continue;
+                        return m.invoke(null, boss, ability, mob, net.minecraft.world.InteractionHand.MAIN_HAND, null, null);
+                    }
+                    throw new NoSuchMethodException("AbilityCaster.cast");
+                }
+            }
             return c.getMethod(method, net.minecraft.world.entity.LivingEntity.class).invoke(null, boss);
         } catch (Throwable t) {
             LOGGER.warn("[astral] Thorn Paradise {} failed: {}", method, String.valueOf(t.getCause() != null ? t.getCause() : t));
