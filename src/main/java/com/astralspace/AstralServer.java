@@ -290,9 +290,11 @@ public final class AstralServer {
             }
         }
 
-        // the sky barrier everyone can see (its cracks = missing HP)
-        Net.BarrierPayload barrier = new Net.BarrierPayload(d.stage >= 1 && max > 0, d.hp, max, Settings.barrierY, Settings.barrierYOverworld, godsList(d));
-        for (ServerPlayer p : players) PacketDistributor.sendToPlayer(p, barrier);
+        // the sky barrier (its cracks = missing HP): only Sequence 0s can see it; everyone else gets it switched off
+        boolean live = d.stage >= 1 && max > 0;
+        Net.BarrierPayload barrier = new Net.BarrierPayload(live, d.hp, max, Settings.barrierY, Settings.barrierYOverworld, godsList(d));
+        Net.BarrierPayload hidden = new Net.BarrierPayload(false, d.hp, max, Settings.barrierY, Settings.barrierYOverworld, "");
+        for (ServerPlayer p : players) PacketDistributor.sendToPlayer(p, Lotm.sequence(p) == 0 ? barrier : hidden);
     }
 
     @SubscribeEvent
