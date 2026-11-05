@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.82
+- **Coin swap can't lose coins any more:** LOTM coins stack to 9999 but Numismatics coins only to 64, so a big purse could overflow the inventory. Now only as many coins are swapped as there is room for; the rest stay LOTM coins, untouched, and are swapped the next time you use a shop or the bank. Nothing is dropped.
+
 ## 0.2.81
 - **Numismatics reads in LOTM values:** the mod now re-values the Numismatics coins to match LOTM: spur (Bronze) 1, bevel (Silver) 10, sprocket (Gold) 100, so shop prices, the bank and tooltips read in LOTM coins. The three higher coins (cog, crown, sun) are still in the game but never handed out. The coin swap is now one-to-one by tier. Needs the mod on the server and on every client, and bank balances are unchanged. Old coins already in chests change worth (a bevel was 8, is now 10). If the re-valuing fails the log says so and the exact-by-value swap stays in use.
 

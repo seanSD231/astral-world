@@ -193,10 +193,78 @@ public final class CoinBridge {
         return false;
     }
 
-    /** LOTM coins -> Numismatics coins (same value). */
+    /**
+     * LOTM coins -> Numismatics coins. LOTM coins stack to 9999 but Numismatics coins only to 64, so a big purse would not fit.
+     * Only as many coins are swapped as the inventory has room for; the rest stay LOTM coins and nothing is dropped or lost.
+     * (Use the shop or bank again to bring in more.)
+     */
     private static void toNumismatics(ServerPlayer p) {
         if (!hasCoins(p, lotm)) return;
-        give(p, swapItems, swapValues, take(p, lotm, LOTM_VALUE));
+        boolean tierMode = swapItems.length == 3 && swapValues[0] == 100 && swapValues[1] == 10 && swapValues[2] == 1;
+        if (!tierMode) {   // the values could not be changed: swap by value, but only when everything fits
+            long total = 0;
+            for (int i = 0; i < 36; i++) { ItemStack s = p.getInventory().getItem(i); int k = indexOf(lotm, s.getItem()); if (k >= 0 && s.getComponentsPatch().isEmpty()) total += (long) LOTM_VALUE[k] * s.getCount(); }
+            long stacks = 0; long rest = total;
+            for (int k = 0; k < swapItems.length; k++) { long n = rest / swapValues[k]; rest -= n * swapValues[k]; stacks += (n + 63) / 64; }
+            if (stacks > emptySlots(p) + countLotmSlots(p)) return;
+            give(p, swapItems, swapValues, take(p, lotm, LOTM_VALUE));
+            return;
+        }
+        // lotm[0] gold, lotm[1] silver, lotm[2] bronze  ->  swapItems[0] sprocket, [1] bevel, [2] spur, one to one
+        for (int t = 0; t < 3; t++) {
+            Item from = lotm[t], to = swapItems[t];
+            int slots = 0; long have = 0;
+            Inventory inv = p.getInventory();
+            for (int i = 0; i < 36; i++) {
+                ItemStack s = inv.getItem(i);
+                if (!s.isEmpty() && s.getItem() == from && s.getComponentsPatch().isEmpty()) { slots++; have += s.getCount(); }
+            }
+            if (have == 0) continue;
+            int budget = emptySlots(p) + slots;
+            int maxTo = new ItemStack(to).getMaxStackSize(), maxFrom = new ItemStack(from).getMaxStackSize();
+            long move = 0;
+            for (int k = budget; k >= 1; k--) {   // k slots of Numismatics coins, the rest of the LOTM coins left over
+                long n = Math.min(have, (long) maxTo * k);
+                long r = have - n;
+                if (k + (r + maxFrom - 1) / maxFrom <= budget) { move = n; break; }
+            }
+            if (move <= 0) continue;
+            for (int i = 0; i < 36; i++) {
+                ItemStack s = inv.getItem(i);
+                if (!s.isEmpty() && s.getItem() == from && s.getComponentsPatch().isEmpty()) inv.setItem(i, ItemStack.EMPTY);
+            }
+            long left = move;
+            while (left > 0) {
+                int c = (int) Math.min(maxTo, left);
+                left -= c;
+                ItemStack st = new ItemStack(to, c);
+                inv.add(st);
+                if (!st.isEmpty()) p.drop(st, false);
+            }
+            long rem = have - move;
+            while (rem > 0) {
+                int c = (int) Math.min(maxFrom, rem);
+                rem -= c;
+                ItemStack st = new ItemStack(from, c);
+                inv.add(st);
+                if (!st.isEmpty()) p.drop(st, false);
+            }
+        }
+    }
+
+    private static int emptySlots(ServerPlayer p) {
+        int n = 0;
+        for (int i = 0; i < 36; i++) if (p.getInventory().getItem(i).isEmpty()) n++;
+        return n;
+    }
+
+    private static int countLotmSlots(ServerPlayer p) {
+        int n = 0;
+        for (int i = 0; i < 36; i++) {
+            ItemStack s = p.getInventory().getItem(i);
+            if (!s.isEmpty() && indexOf(lotm, s.getItem()) >= 0 && s.getComponentsPatch().isEmpty()) n++;
+        }
+        return n;
     }
 
     /** Numismatics coins -> LOTM coins (same value). */
