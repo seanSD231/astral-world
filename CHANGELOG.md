@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.79
+- **LOTM coins work in Create: Numismatics.** Use any shop, vendor, depositor, bank terminal, bank card or the portable terminal and your LOTM coins (gold 100, silver 10, bronze 1) are swapped for Numismatics coins of exactly the same value (1 bronze = 1 spur); a couple of seconds after you stop, every Numismatics coin you carry turns back into LOTM coins. You only ever hold LOTM coins and nothing is lost or created. Only plain coins are swapped. If neither mod is there the feature stays off.
+- **The bank:** the bank terminal and blaze banker can't be broken or blown up, and the banking guide can't be used to make a banker, except by an op in creative mode. (To also stop them being crafted, install the "no bank crafting" datapack.)
+
 ## 0.2.78
 - **New Lord of the Mysteries version:** everything that talks to LOTM now works with the newer build (the "acting factions" one) and still works with the older one. Pathway and sequence lookups, corruption (adding, doubling, clearing), misfortune, sanity, the combat check, resizing summoned entities, and the stun / bleeding / frenzy / awe / paralysis / no-regeneration effects used by the god curses all use LOTM's new code. Mental plague now needs a cast record in the new LOTM, so where the mod has none it uses frenzy instead. LOTM has no lava damage type any more, so lava damage from the Ravings is plain vanilla lava damage.
 - **Mother Tree:** Cursing Aura and Thorn Paradise are found at their new place in LOTM, and Thorn Paradise is cast the way the new LOTM casts toggled abilities. The crimson moon check in the sky and god scenes uses its new location.
