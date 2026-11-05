@@ -47,7 +47,11 @@ public final class CoinBridge {
     private static final int[] LOTM_VALUE = {100, 10, 1};
     private static final String[] NUM_IDS = {"numismatics:sun", "numismatics:crown", "numismatics:cog",
             "numismatics:sprocket", "numismatics:bevel", "numismatics:spur"};
-    private static final int[] NUM_VALUE = {4096, 512, 64, 16, 8, 1};
+    private static final String[] NUM_ENUM = {"SUN", "CROWN", "COG", "SPROCKET", "BEVEL", "SPUR"};
+    /** What Numismatics' coins are worth in LOTM terms: spur = bronze, bevel = silver, sprocket = gold, then the unused three above. */
+    private static final int[] WANT_VALUE = {100000, 10000, 1000, 100, 10, 1};
+    private static final String COIN_CLASS = "dev.ithundxr.createnumismatics.content.backend.Coin";
+    private static int[] NUM_VALUE = {4096, 512, 64, 16, 8, 1};
 
     /** Blocks nobody (but a creative op) can break. Remove an entry here to let players break that block again. */
     private static final String[] PROTECTED_BLOCKS = {"numismatics:bank_terminal", "numismatics:blaze_banker"};
@@ -60,15 +64,76 @@ public final class CoinBridge {
     private static boolean checked, available;
     private static final Map<UUID, Long> touched = new HashMap<>();
 
+    private static java.lang.reflect.Field valueField() throws ReflectiveOperationException {
+        java.lang.reflect.Field f = Class.forName(COIN_CLASS).getField("value");
+        f.setAccessible(true);
+        return f;
+    }
+
+    /**
+     * Numismatics keeps each coin's worth in a field (spur 1, bevel 8, sprocket 16 ...). LOTM's coins are worth 1, 10 and 100, so the
+     * Numismatics coins are re-valued to match: spur 1, bevel 10, sprocket 100 (and cog 1000, crown 10000, sun 100000, which stay unused).
+     * Run on both the client and the server so shops and the bank read in LOTM values. Bank balances are stored in spurs and are not affected.
+     */
+    public static void patchValues() {
+        try {
+            Class<?> coin = Class.forName(COIN_CLASS);
+            java.lang.reflect.Field f = valueField();
+            for (int i = 0; i < NUM_ENUM.length; i++) {
+                @SuppressWarnings({"unchecked", "rawtypes"})
+                Object c = Enum.valueOf((Class) coin, NUM_ENUM[i]);
+                f.setInt(c, WANT_VALUE[i]);
+            }
+            LOGGER.info("[astral] Numismatics coins re-valued to 1 / 10 / 100 (spur / bevel / sprocket)");
+        } catch (ClassNotFoundException e) {
+            // Numismatics is not installed
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not re-value the Numismatics coins, shops keep their own values (the coin swap still keeps totals exact): {}", t.toString());
+        }
+    }
+
+    /** The coin values Numismatics really has right now (they may or may not have been changed). */
+    private static int[] actualValues() {
+        try {
+            Class<?> coin = Class.forName(COIN_CLASS);
+            java.lang.reflect.Field f = valueField();
+            int[] out = new int[NUM_ENUM.length];
+            for (int i = 0; i < out.length; i++) {
+                @SuppressWarnings({"unchecked", "rawtypes"})
+                Object c = Enum.valueOf((Class) coin, NUM_ENUM[i]);
+                out[i] = f.getInt(c);
+            }
+            return out;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     private static boolean ready() {
         if (checked) return available;
         checked = true;
         lotm = lookup(LOTM_IDS);
         num = lookup(NUM_IDS);
         available = lotm != null && num != null;
-        LOGGER.info("[astral] coin bridge {}", available ? "on (LOTM coins <-> Numismatics coins)" : "off, LOTM or Numismatics coins were not found");
+        if (available) {
+            int[] v = actualValues();
+            if (v != null) NUM_VALUE = v;
+            // Re-valued: the three lowest coins are exactly bronze, silver and gold, so only those are ever handed out.
+            if (NUM_VALUE[3] == 100 && NUM_VALUE[4] == 10 && NUM_VALUE[5] == 1) {
+                swapItems = new Item[]{num[3], num[4], num[5]};
+                swapValues = new int[]{100, 10, 1};
+            } else {
+                swapItems = num;
+                swapValues = NUM_VALUE;
+            }
+        }
+        LOGGER.info("[astral] coin bridge {} (Numismatics values {})", available ? "on, LOTM coins <-> Numismatics coins" : "off, LOTM or Numismatics coins were not found",
+                java.util.Arrays.toString(NUM_VALUE));
         return available;
     }
+
+    private static Item[] swapItems;
+    private static int[] swapValues;
 
     private static Item[] lookup(String[] ids) {
         Item[] out = new Item[ids.length];
@@ -131,7 +196,7 @@ public final class CoinBridge {
     /** LOTM coins -> Numismatics coins (same value). */
     private static void toNumismatics(ServerPlayer p) {
         if (!hasCoins(p, lotm)) return;
-        give(p, num, NUM_VALUE, take(p, lotm, LOTM_VALUE));
+        give(p, swapItems, swapValues, take(p, lotm, LOTM_VALUE));
     }
 
     /** Numismatics coins -> LOTM coins (same value). */

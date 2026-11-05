@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.81
+- **Numismatics reads in LOTM values:** the mod now re-values the Numismatics coins to match LOTM: spur (Bronze) 1, bevel (Silver) 10, sprocket (Gold) 100, so shop prices, the bank and tooltips read in LOTM coins. The three higher coins (cog, crown, sun) are still in the game but never handed out. The coin swap is now one-to-one by tier. Needs the mod on the server and on every client, and bank balances are unchanged. Old coins already in chests change worth (a bevel was 8, is now 10). If the re-valuing fails the log says so and the exact-by-value swap stays in use.
+
 ## 0.2.80
 - **Keep on death:** any item carrying the tag `astral_keep` (the Supporter+ credit card and VIP portable bank terminal, made with the give commands) is no longer dropped when its owner dies and comes back with them when they respawn.
 
