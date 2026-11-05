@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.80
+- **Keep on death:** any item carrying the tag `astral_keep` (the Supporter+ credit card and VIP portable bank terminal, made with the give commands) is no longer dropped when its owner dies and comes back with them when they respawn.
+
 ## 0.2.79
 - **LOTM coins work in Create: Numismatics.** Use any shop, vendor, depositor, bank terminal, bank card or the portable terminal and your LOTM coins (gold 100, silver 10, bronze 1) are swapped for Numismatics coins of exactly the same value (1 bronze = 1 spur); a couple of seconds after you stop, every Numismatics coin you carry turns back into LOTM coins. You only ever hold LOTM coins and nothing is lost or created. Only plain coins are swapped. If neither mod is there the feature stays off.
 - **The bank:** the bank terminal and blaze banker can't be broken or blown up, and the banking guide can't be used to make a banker, except by an op in creative mode. (To also stop them being crafted, install the "no bank crafting" datapack.)

@@ -10,6 +10,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.component.CustomData;
+import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
@@ -17,7 +22,9 @@ import net.neoforged.neoforge.event.level.ExplosionEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -213,5 +220,38 @@ public final class CoinBridge {
     public static void onExplosion(ExplosionEvent.Detonate event) {
         var level = event.getLevel();
         event.getAffectedBlocks().removeIf(pos -> isProtected(level.getBlockState(pos).getBlock()));
+    }
+
+    // ------------------------------------------------------------------ items that stay with their owner
+
+    /** An item whose custom data holds astral_keep:1b (the Supporter+ credit card, the VIP portable terminal) is not dropped on death. */
+    private static boolean keeps(ItemStack s) {
+        CustomData d = s.get(DataComponents.CUSTOM_DATA);
+        return d != null && d.contains("astral_keep");
+    }
+
+    private static final Map<UUID, List<ItemStack>> kept = new HashMap<>();
+
+    @SubscribeEvent
+    public static void onDeathDrops(LivingDropsEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer p)) return;
+        var it = event.getDrops().iterator();
+        while (it.hasNext()) {
+            ItemEntity e = it.next();
+            if (keeps(e.getItem())) {
+                kept.computeIfAbsent(p.getUUID(), k -> new ArrayList<>()).add(e.getItem().copy());
+                it.remove();
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onRespawnClone(PlayerEvent.Clone event) {
+        if (!event.isWasDeath() || !(event.getEntity() instanceof ServerPlayer p)) return;
+        List<ItemStack> list = kept.remove(p.getUUID());
+        if (list == null) return;
+        for (ItemStack s : list) {
+            if (!p.getInventory().add(s)) p.drop(s, false);
+        }
     }
 }
