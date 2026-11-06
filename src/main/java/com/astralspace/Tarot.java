@@ -1,0 +1,125 @@
+package com.astralspace;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.level.Level;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+/**
+ * Tarot cards and the 22 pathway packs (/give only for now).
+ * One card item, `astral_world:tarot_card`, carries its pathway and sequence in custom_data: {pathway:"seer",seq:9}. With no data it is the temp test card.
+ * A pack gives 3 cards. Every card has a weight: sequence rarity x 5 when it is from the pack's own pathway, so the pack's own cards come up 5x as often as any other single card.
+ */
+public final class Tarot {
+    private Tarot() {}
+
+    public static final String[] PATHWAYS = {"apothecary","apprentice","arbiter","assassin","bard","corpse_collector","criminal","hunter","lawyer","marauder","monster","mystery_pryer","planter","prisoner","reader","sailor","savant","secrets_supplicant","seer","sleepless","spectator","warrior"};
+    /** Weight of each sequence, index = sequence 0..9. Seq 9 is the most common, Seq 0 the rarest. */
+    private static final double[] SEQ_WEIGHT = {0.5, 1.2, 2.5, 4.5, 8, 13, 22, 36, 60, 100};
+    private static final String[] RARITY = {"Mythic", "Legendary", "Epic", "Epic", "Rare", "Rare", "Uncommon", "Uncommon", "Common", "Common"};
+    private static final ChatFormatting[] RARITY_COLOR = {ChatFormatting.LIGHT_PURPLE, ChatFormatting.GOLD, ChatFormatting.DARK_PURPLE, ChatFormatting.DARK_PURPLE, ChatFormatting.AQUA, ChatFormatting.AQUA, ChatFormatting.GREEN, ChatFormatting.GREEN, ChatFormatting.GRAY, ChatFormatting.GRAY};
+    private static final int PACK_CARDS = 3;
+    private static final double OWN_BONUS = 5.0;
+
+    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(AstralMod.MOD_ID);
+    public static final DeferredItem<Item> CARD = ITEMS.register("tarot_card", () -> new CardItem(new Item.Properties()));
+    static {
+        for (String id : PATHWAYS) ITEMS.register(id + "_pack", () -> new PackItem(new Item.Properties().stacksTo(16), id));
+    }
+
+    public static void register(IEventBus modBus) { ITEMS.register(modBus); }
+
+    static String pretty(String id) {
+        StringBuilder b = new StringBuilder();
+        for (String w : id.split("_")) b.append(b.length() > 0 ? " " : "").append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
+        return b.toString();
+    }
+
+    public static ItemStack makeCard(String pathway, int seq) {
+        ItemStack s = new ItemStack(CARD.get());
+        CustomData.update(DataComponents.CUSTOM_DATA, s, t -> { t.putString("pathway", pathway); t.putInt("seq", seq); });
+        return s;
+    }
+
+    /** One weighted draw from all 220 cards. */
+    static ItemStack draw(String own, Random r) {
+        double total = 0;
+        List<double[]> w = new ArrayList<>();
+        for (int p = 0; p < PATHWAYS.length; p++) for (int s = 0; s <= 9; s++) {
+            double x = SEQ_WEIGHT[s] * (PATHWAYS[p].equals(own) ? OWN_BONUS : 1.0);
+            w.add(new double[]{p, s, x}); total += x;
+        }
+        double pick = r.nextDouble() * total;
+        for (double[] e : w) { pick -= e[2]; if (pick <= 0) return makeCard(PATHWAYS[(int) e[0]], (int) e[1]); }
+        return makeCard(own, 9);
+    }
+
+    static final class CardItem extends Item {
+        CardItem(Properties p) { super(p); }
+
+        private static CompoundTag tag(ItemStack s) { return s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag(); }
+
+        @Override
+        public Component getName(ItemStack stack) {
+            CompoundTag t = tag(stack);
+            if (!t.contains("pathway")) return Component.literal("Tarot Card (temp)").withStyle(ChatFormatting.LIGHT_PURPLE);
+            int seq = Math.max(0, Math.min(9, t.getInt("seq")));
+            return Component.literal(pretty(t.getString("pathway")) + " - Seq " + seq).withStyle(RARITY_COLOR[seq]);
+        }
+
+        @Override
+        public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> lines, net.minecraft.world.item.TooltipFlag flag) {
+            CompoundTag t = tag(stack);
+            if (!t.contains("pathway")) { lines.add(Component.literal("A placeholder card for testing.").withStyle(ChatFormatting.GRAY)); return; }
+            int seq = Math.max(0, Math.min(9, t.getInt("seq")));
+            lines.add(Component.literal(RARITY[seq]).withStyle(RARITY_COLOR[seq]));
+        }
+    }
+
+    static final class PackItem extends Item {
+        private final String pathway;
+        PackItem(Properties p, String pathway) { super(p); this.pathway = pathway; }
+
+        @Override
+        public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> lines, net.minecraft.world.item.TooltipFlag flag) {
+            lines.add(Component.literal(PACK_CARDS + " cards. " + pretty(pathway) + " cards come up 5x as often.").withStyle(ChatFormatting.GRAY));
+        }
+
+        @Override
+        public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+            ItemStack pack = player.getItemInHand(hand);
+            if (level.isClientSide || !(player instanceof ServerPlayer sp)) return InteractionResultHolder.success(pack);
+            Random r = new Random();
+            StringBuilder got = new StringBuilder();
+            int best = 9;
+            for (int i = 0; i < PACK_CARDS; i++) {
+                ItemStack c = draw(pathway, r);
+                int seq = c.get(DataComponents.CUSTOM_DATA).copyTag().getInt("seq"); best = Math.min(best, seq);
+                got.append(i > 0 ? ", " : "").append(pretty(c.get(DataComponents.CUSTOM_DATA).copyTag().getString("pathway"))).append(" Seq ").append(seq);
+                if (!sp.getInventory().add(c)) sp.drop(c, false);
+            }
+            if (!sp.getAbilities().instabuild) pack.shrink(1);
+            level.playSound(null, sp.getX(), sp.getY(), sp.getZ(), SoundEvents.FIREWORK_ROCKET_TWINKLE, SoundSource.PLAYERS, 0.9f, 1.2f);
+            level.playSound(null, sp.getX(), sp.getY(), sp.getZ(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1.0f, 1.0f);
+            sp.sendSystemMessage(Component.literal("Pack opened: " + got).withStyle(RARITY_COLOR[best]));
+            return InteractionResultHolder.success(pack);
+        }
+    }
+}

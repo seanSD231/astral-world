@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.87
+- Tarot packs, `/give` only: 22 pathway packs (`astral_world:seer_pack` etc.) that open on right-click for 3 cards. A card from the pack's own pathway is 5x as likely as any single other card, and lower sequences are rarer (Seq 9 most common, Seq 0 rarest). The cards are one item, `astral_world:tarot_card`, with a temporary sprite; `/give @s astral_world:tarot_card` gives the plain test card, and `/give @s astral_world:tarot_card[custom_data={pathway:"seer",seq:0}]` gives a specific one.
+
 ## 0.2.86
 - New cosmetic items, `/give` only: `astral_world:confetti_popper` (right-click pops it with a sound and sprays coloured confetti in a cone, short cooldown, never used up) and `astral_world:bubble_wand` (hold right-click to blow a stream of bubbles that drift forward and up, no damage).
 
