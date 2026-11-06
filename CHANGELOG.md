@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.94
+- Tarot cards now have a model like the packs instead of the plain swatch: each card that has designed art (Seq 9 to 3 of every pathway, and Sailor 2 and 1) is a flat card in the inventory, the hand and on the ground, showing its own art. Sailor 2 and 1 show a still of the animation there. Cards of Seq 2 to 0 (other than Sailor 2 and 1) still show the old swatch.
+
 ## 0.2.93
 - Designed tarot card art for Seq 9 to 3 of all 22 pathways (154 cards): a starfield with orbit rings, in the pathway's own colour, with that pathway's own icons. What a card shows depends on its sequence: Seq 9-8 a plain dark sky and a thin frame; Seq 7-6 a silver frame, an arch window, an icon ring and a small moon; Seq 5-4 a gold frame with scrolls, feather wings, a sunburst on the number, an icon band, coloured gas clouds and a ringed planet; Seq 3 larger wings, a gold halo ring, a black hole and a bright star on top of that.
 - Sailor Seq 2 (Calamity) and Seq 1 (Thunder God) are animated cards (rain, lightning, a slow shine; Calamity's funnel and a wave over the whole card).

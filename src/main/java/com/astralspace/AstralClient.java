@@ -68,9 +68,12 @@ public final class AstralClient {
         TelegraphRenderer.init();
         AttackFx.init();
         AstralSymbols.init();
-        modBus.addListener((net.neoforged.fml.event.lifecycle.FMLClientSetupEvent e) -> e.enqueueWork(() ->
+        modBus.addListener((net.neoforged.fml.event.lifecycle.FMLClientSetupEvent e) -> e.enqueueWork(() -> {
             net.minecraft.client.renderer.item.ItemProperties.register(Tarot.CARD.get(), net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "rarity"),
-                (stack, level, entity, seed) -> Tarot.rarityOf(stack))));
+                (stack, level, entity, seed) -> Tarot.rarityOf(stack));
+            net.minecraft.client.renderer.item.ItemProperties.register(Tarot.CARD.get(), net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "card"),
+                (stack, level, entity, seed) -> Tarot.cardIndex(stack));
+        }));
         modBus.addListener(PartyParticles::register);
         modBus.addListener(AstralClient::registerLayers);
         modBus.addListener(AstralClient::registerSky);

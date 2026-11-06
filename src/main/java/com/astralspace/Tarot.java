@@ -59,6 +59,16 @@ public final class Tarot {
         return t.contains("pathway") || t.contains("seq") ? rarityIndex(t.getInt("seq")) : 0;
     }
 
+    /** Which designed icon a card has: 0 for none (the plain rarity swatch), else pathway*10+seq+1. Has to match the overrides in tarot_card.json. */
+    public static int cardIndex(ItemStack s) {
+        CompoundTag t = s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        if (!t.contains("pathway")) return 0;
+        String p = t.getString("pathway"); int q = t.getInt("seq");
+        if (!(q >= 3 && q <= 9 || (p.equals("sailor") && (q == 1 || q == 2)))) return 0;
+        for (int i = 0; i < PATHWAYS.length; i++) if (PATHWAYS[i].equals(p)) return i * 10 + q + 1;
+        return 0;
+    }
+
     static String pretty(String id) {
         StringBuilder b = new StringBuilder();
         for (String w : id.split("_")) b.append(b.length() > 0 ? " " : "").append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
