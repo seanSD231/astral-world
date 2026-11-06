@@ -105,6 +105,16 @@ public final class Tarot {
 
         @Override public boolean isFoil(ItemStack stack) { return tag(stack).getBoolean("shiny") || super.isFoil(stack); }
 
+        /** Right click: look at the card (its art, and the shiny sparkles if it is shiny). */
+        @Override
+        public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+            ItemStack st = player.getItemInHand(hand);
+            CompoundTag t = tag(st);
+            if (!level.isClientSide && player instanceof ServerPlayer sp && t.contains("pathway"))
+                net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new Net.PackPayload("view", t.getString("pathway") + ":" + t.getInt("seq") + ":" + (t.getBoolean("shiny") ? 1 : 0)));
+            return InteractionResultHolder.success(st);
+        }
+
         @Override
         public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> lines, net.minecraft.world.item.TooltipFlag flag) {
             CompoundTag t = tag(stack);

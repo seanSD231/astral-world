@@ -40,6 +40,10 @@ public final class PackScreen extends Screen {
             String[] x = parts[i].split(":");
             path[i] = x[0]; seq[i] = Integer.parseInt(x[1]); shiny[i] = x.length > 2 && x[2].equals("1"); flipAt[i] = -1;
         }
+        if (pack.equals("view")) {   // looking at a card (right click): no pack, already face up
+            tornAt = System.currentTimeMillis() - 10_000;
+            for (int i = 0; i < flipAt.length; i++) flipAt[i] = tornAt;
+        }
     }
 
     public static void open(String pack, String cards) { Minecraft.getInstance().setScreen(new PackScreen(pack, cards)); }
@@ -123,7 +127,22 @@ public final class PackScreen extends Screen {
         g.blit(tex("shiny_foil"), x, y, w, h, (f / 40) * 240f, (f % 40) * 360f, 240, 360, 480, 360 * 40);
     }
 
+    /** Designed card art exists for Seq 9 to 3 of every pathway, and as an animation (100 frames, 10 per second, 5 columns of 20) for Sailor Seq 2 and 1. */
+    private boolean drawArt(GuiGraphics g, int i, int x, int y, int w, int h) {
+        if (seq[i] >= 3) {
+            g.blit(tex("card_" + path[i] + "_" + seq[i]), x, y, w, h, 0, 0, 240, 360, 240, 360);
+            return true;
+        }
+        if (path[i].equals("sailor") && (seq[i] == 2 || seq[i] == 1)) {
+            int f = (int) ((System.currentTimeMillis() / 100) % 100);
+            g.blit(tex("card_sailor_" + seq[i] + "_anim"), x, y, w, h, (f / 20) * 240f, (f % 20) * 360f, 240, 360, 1200, 7200);
+            return true;
+        }
+        return false;
+    }
+
     private void drawFront(GuiGraphics g, int i, int x, int y, int w, int h) {
+        if (drawArt(g, i, x, y, w, h)) return;
         int rar = rarity(seq[i]);
         g.blit(tex("front_" + RARITY[rar]), x, y, w, h, 0, 0, 240, 360, 240, 360);
         g.pose().pushPose();

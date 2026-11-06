@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.93
+- Designed tarot card art for Seq 9 to 3 of all 22 pathways (154 cards): a starfield with orbit rings, in the pathway's own colour, with that pathway's own icons. What a card shows depends on its sequence: Seq 9-8 a plain dark sky and a thin frame; Seq 7-6 a silver frame, an arch window, an icon ring and a small moon; Seq 5-4 a gold frame with scrolls, feather wings, a sunburst on the number, an icon band, coloured gas clouds and a ringed planet; Seq 3 larger wings, a gold halo ring, a black hole and a bright star on top of that.
+- Sailor Seq 2 (Calamity) and Seq 1 (Thunder God) are animated cards (rain, lightning, a slow shine; Calamity's funnel and a wave over the whole card).
+- The new art is shown when a pack is opened. Right click a card to look at it (shiny sparkles included). Cards of Seq 2 to 0 (apart from Sailor 2 and 1) still use the old temporary front; the inventory icon is still the plain rarity swatch.
+
 ## 0.2.92
 - Fix: the game no longer crashes when the hunger games end. Clearing the arena removed items while looping over the world's entity list, which blew up; it now loops over a copy (same fix in the end-event cleanup).
 - The Mother Tree of Desire model no longer shows up in the hunger games arena: players are told there is no tree when they are carried in.
