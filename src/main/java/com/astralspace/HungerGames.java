@@ -364,6 +364,7 @@ public final class HungerGames {
             p.setGameMode(GameType.SURVIVAL);
             lv.getChunk((int) cx >> 4, (int) cz >> 4);
             p.teleportTo(lv, cx, groundY, cz, yaw, 0f);
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(9, 0));   // there is no tree in the games: the client must not draw its stand-in
             p.setInvulnerable(true);
             p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, COUNTDOWN_TICKS + 20, 7, false, false, false));
             p.addEffect(new MobEffectInstance(MobEffects.JUMP, COUNTDOWN_TICKS + 20, 128, false, false, false));
@@ -527,7 +528,7 @@ public final class HungerGames {
     }
 
     private static void clearMobs(ServerLevel lv) {
-        for (Entity en : lv.getAllEntities()) if (en.getTags().contains(MOB_TAG)) en.discard();
+        for (Entity en : com.google.common.collect.Lists.newArrayList(lv.getAllEntities())) if (en.getTags().contains(MOB_TAG)) en.discard();
     }
 
     /** The radius of the safe zone now. */
@@ -762,7 +763,7 @@ public final class HungerGames {
             if (lv.getBlockState(p).is(Blocks.CHEST)) { lv.removeBlockEntity(p); lv.setBlock(p, Blocks.AIR.defaultBlockState(), 2); }
         }
         chests.clear();
-        for (Entity en : lv.getAllEntities()) if (en instanceof ItemEntity) en.discard();
+        for (Entity en : com.google.common.collect.Lists.newArrayList(lv.getAllEntities())) if (en instanceof ItemEntity) en.discard();
         clearMobs(lv);
     }
 

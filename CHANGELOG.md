@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.92
+- Fix: the game no longer crashes when the hunger games end. Clearing the arena removed items while looping over the world's entity list, which blew up; it now loops over a copy (same fix in the end-event cleanup).
+- The Mother Tree of Desire model no longer shows up in the hunger games arena: players are told there is no tree when they are carried in.
+- Duels now happen in a duel arena instead of wherever the challenge was made: a round platform far from the rest of the world, with invisible walls and a lid and no digging or building. Both duelists are carried there and carried back to exactly where they were (also if they logged out or the server restarted in the middle). A duel that ends in a death lets the winner stay 20 seconds to pick up the drops; the others go back after 3 seconds. Because nobody else can be near the platform, other players' World of Pallor can no longer touch duelists.
+- Bosses' immunity to the World of Pallor now also sets LOTM's in-memory protective mark (the old flag did nothing on the acting line of LOTM).
+
 ## 0.2.91
 - The confetti popper and bubble wand now use their own particles instead of vanilla ones: confetti is a flat paper piece in a random colour that tumbles and flutters down, and bubbles are soap bubbles (with a faint rainbow rim) that wobble, drift up and pop.
 

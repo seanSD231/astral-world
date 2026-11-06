@@ -468,4 +468,21 @@ public final class Lotm {
             return null;
         }
     }
+
+    private static Object protectMark; private static Method protectSet; private static boolean protectTried;
+
+    /** LOTM's 'inside a protective structure' mark (the World of Pallor and other area effects skip anything that has it). The acting line keeps it in memory and
+     *  it runs out, so it has to be renewed; the old NBT flag does nothing there. Quietly does nothing if LOTM has no such mark. */
+    public static void markProtected(net.minecraft.world.entity.Entity e, int ticks) {
+        if (!protectTried) {
+            protectTried = true;
+            try {
+                Class<?> c = Class.forName("net.swimmingtuna.lotm.util.TimedMarks");
+                protectMark = c.getField("IN_PROTECTIVE_STRUCTURE").get(null);
+                protectSet = c.getMethod("set", net.minecraft.world.entity.Entity.class, int.class);
+            } catch (Throwable t) { protectMark = null; }
+        }
+        if (protectMark == null || protectSet == null) return;
+        try { protectSet.invoke(protectMark, e, ticks); } catch (Throwable ignored) { }
+    }
 }

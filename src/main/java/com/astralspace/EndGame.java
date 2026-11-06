@@ -440,7 +440,7 @@ public final class EndGame {
         for (BossDef b : BOSSES) {
             ServerLevel lv = dim(server, b.planet());
             if (lv == null) continue;
-            for (Entity e : lv.getAllEntities()) if ((e.getTags().contains(TAG_BOSS) || e.getTags().contains(TAG_MINION))) e.discard();
+            for (Entity e : com.google.common.collect.Lists.newArrayList(lv.getAllEntities())) if ((e.getTags().contains(TAG_BOSS) || e.getTags().contains(TAG_MINION))) e.discard();
             force(lv, 1, false);
         }
         ServerLevel raid = dim(server, "raid");
@@ -448,7 +448,7 @@ public final class EndGame {
             removeRoots(raid);
             removeSeeds(raid);
             rootsActive = false;
-            for (Entity e : raid.getAllEntities()) if (e.getTags().contains(TAG_RAID) || e.getTags().contains(TAG_MINION)) e.discard();
+            for (Entity e : com.google.common.collect.Lists.newArrayList(raid.getAllEntities())) if (e.getTags().contains(TAG_RAID) || e.getTags().contains(TAG_MINION)) e.discard();
             for (ServerPlayer p : server.getPlayerList().getPlayers()) PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(9, 0));   // clients forget where the tree stood
             if (sendHome) {
                 ServerLevel ow = server.overworld();
@@ -1243,7 +1243,7 @@ public final class EndGame {
 
     /** Removes any leftover invisible hit-box entities from the earlier versions. */
     private static void clearRootBoxes(ServerLevel lv) {
-        if (lv != null) for (Entity e : lv.getAllEntities()) if (e.getTags().contains(TAG_ROOTBOX)) e.discard();
+        if (lv != null) for (Entity e : com.google.common.collect.Lists.newArrayList(lv.getAllEntities())) if (e.getTags().contains(TAG_ROOTBOX)) e.discard();
     }
 
     /**
@@ -2948,6 +2948,7 @@ public final class EndGame {
             String lk = k.toLowerCase(java.util.Locale.ROOT);
             if (lk.startsWith("profanedepravity") || lk.startsWith("profanedegenerate") || lk.contains("corruption") || lk.contains("curse") || lk.startsWith("strawdoll")) tag.remove(k);   // woven curses, curse dolls and cursed items too
         }
+        Lotm.markProtected(m, 40);   // the acting line of LOTM keeps this mark in memory and it runs out: renewed with every call
         tag.putLong("insideProtectiveStructure", Long.MAX_VALUE);   // LOTM's own flag for 'protected from the World of Pallor': it shrinks, drains and strips abilities from anything else
         for (var inst : new ArrayList<>(m.getActiveEffects()))   // every harmful effect (curses, decay, venom, fragility and the rest of the Prisoner's weave) is wiped from a boss
             if (inst.getEffect().value().getCategory() == net.minecraft.world.effect.MobEffectCategory.HARMFUL) m.removeEffect(inst.getEffect());
@@ -3062,7 +3063,7 @@ public final class EndGame {
 
     /** Parts whose tree is gone are removed. */
     private static void sweepParts(ServerLevel lv) {   // the invisible hitbox entities of older versions: the tree is hit by its model now
-        for (Entity e : lv.getAllEntities()) if (e.getTags().contains(TAG_PART)) e.discard();
+        for (Entity e : com.google.common.collect.Lists.newArrayList(lv.getAllEntities())) if (e.getTags().contains(TAG_PART)) e.discard();
     }
 
     private static final Set<UUID> silentHandled = new HashSet<>();
