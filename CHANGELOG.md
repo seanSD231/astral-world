@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.84
+- New `/duel <player> <safe|normal>` for everyone, then `/duel accept`, `/duel decline`, `/duel forfeit`. During a duel only your opponent can hurt or affect you, and you can only hurt or affect them. Safe: a killing blow just ends the duel, nothing is lost and no sequence regresses. Normal: the loser really dies, with the usual item loss and regression.
+
 ## 0.2.83
 - New ops commands `/enchanting` and `/anvil` open those screens anywhere. The enchanting screen always offers levels 10, 20 and 30.
 
