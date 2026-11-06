@@ -130,7 +130,7 @@ public final class PackScreen extends Screen {
     /** Designed card art exists for Seq 9 to 3 of every pathway, and as an animation (100 frames, 10 per second, 5 columns of 20) for Sailor Seq 2 and 1. */
     private boolean drawArt(GuiGraphics g, int i, int x, int y, int w, int h) {
         if (seq[i] >= 3) {
-            g.blit(tex("card_" + path[i] + "_" + seq[i]), x, y, w, h, 0, 0, 240, 360, 240, 360);
+            g.blit(tex("card_" + path[i] + "_" + seq[i] + (shiny[i] ? "_shiny" : "")), x, y, w, h, 0, 0, 240, 360, 240, 360);
             return true;
         }
         if (path[i].equals("sailor") && (seq[i] == 2 || seq[i] == 1)) {

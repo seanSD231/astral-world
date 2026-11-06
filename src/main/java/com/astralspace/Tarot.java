@@ -65,7 +65,7 @@ public final class Tarot {
         if (!t.contains("pathway")) return 0;
         String p = t.getString("pathway"); int q = t.getInt("seq");
         if (!(q >= 3 && q <= 9 || (p.equals("sailor") && (q == 1 || q == 2)))) return 0;
-        for (int i = 0; i < PATHWAYS.length; i++) if (PATHWAYS[i].equals(p)) return i * 10 + q + 1;
+        for (int i = 0; i < PATHWAYS.length; i++) if (PATHWAYS[i].equals(p)) return (t.getBoolean("shiny") && q >= 3 ? 1000 : 0) + i * 10 + q + 1;   // shiny cards (Seq 9 to 3) have their own black and gold art
         return 0;
     }
 
