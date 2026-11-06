@@ -46,7 +46,11 @@ public final class Tarot {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(AstralMod.MOD_ID);
     public static final DeferredItem<Item> CARD = ITEMS.register("tarot_card", () -> new CardItem(new Item.Properties()));
     static {
-        for (String id : PATHWAYS) ITEMS.register(id + "_pack", () -> new PackItem(new Item.Properties().stacksTo(16), id));
+        for (String id : PATHWAYS) {
+            ITEMS.register(id + "_pack", () -> new PackItem(new Item.Properties().stacksTo(16), id, 0));
+            ITEMS.register(id + "_rainbow_pack", () -> new PackItem(new Item.Properties().stacksTo(16), id, 1));
+            ITEMS.register(id + "_shiny_pack", () -> new PackItem(new Item.Properties().stacksTo(16), id, 2));
+        }
     }
 
     public static void register(IEventBus modBus) { ITEMS.register(modBus); }
@@ -88,16 +92,19 @@ public final class Tarot {
      * One card: the rarity is rolled first, then a sequence of that rarity (evenly), then a pathway (the pack's own pathway counts 5x
      * as much as any single other pathway), then the shiny roll for that rarity.
      */
-    static ItemStack draw(String own, Random r) {
-        double pick = r.nextDouble() * 100, acc = 0;
+    static ItemStack draw(String own, Random r, int mode) {
+        // rainbow packs (mode 1) only roll Epic and above (Seq 3, 2, 1, 0); shiny packs (mode 2) roll normally but every card is shiny
+        int first = mode == 1 ? 3 : 0;
+        double sum = 0; for (int i = first; i < RARITY_CHANCE.length; i++) sum += RARITY_CHANCE[i];
+        double pick = r.nextDouble() * sum, acc = 0;
         int rar = RARITY_CHANCE.length - 1;
-        for (int i = 0; i < RARITY_CHANCE.length; i++) { acc += RARITY_CHANCE[i]; if (pick < acc) { rar = i; break; } }
+        for (int i = first; i < RARITY_CHANCE.length; i++) { acc += RARITY_CHANCE[i]; if (pick < acc) { rar = i; break; } }
         int[] seqs = RARITY_SEQS[rar];
         int seq = seqs[r.nextInt(seqs.length)];
         double total = PATHWAYS.length - 1 + OWN_BONUS, pp = r.nextDouble() * total;
         String path = own;
         for (String id : PATHWAYS) { pp -= id.equals(own) ? OWN_BONUS : 1.0; if (pp < 0) { path = id; break; } }
-        return makeCard(path, seq, r.nextDouble() * 100 < SHINY_CHANCE[rar]);
+        return makeCard(path, seq, mode == 2 || r.nextDouble() * 100 < SHINY_CHANCE[rar]);
     }
 
     static final class CardItem extends Item {
@@ -137,11 +144,13 @@ public final class Tarot {
 
     static final class PackItem extends Item {
         private final String pathway;
-        PackItem(Properties p, String pathway) { super(p); this.pathway = pathway; }
+        private final int mode;   // 0 normal, 1 rainbow (every card Seq 3 or higher), 2 shiny (every card shiny)
+        PackItem(Properties p, String pathway, int mode) { super(p); this.pathway = pathway; this.mode = mode; }
 
         @Override
         public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> lines, net.minecraft.world.item.TooltipFlag flag) {
-            lines.add(Component.literal(PACK_CARDS + " cards. " + pretty(pathway) + " cards come up 5x as often. Any card can be shiny.").withStyle(ChatFormatting.GRAY));
+            lines.add(Component.literal(PACK_CARDS + " cards. " + pretty(pathway) + " cards come up 5x as often. "
+                + (mode == 1 ? "Every card is Seq 3 or higher. Any card can be shiny." : mode == 2 ? "Every card is shiny." : "Any card can be shiny.")).withStyle(ChatFormatting.GRAY));
         }
 
         @Override
@@ -151,13 +160,13 @@ public final class Tarot {
             Random r = new Random();
             StringBuilder got = new StringBuilder();
             for (int i = 0; i < PACK_CARDS; i++) {
-                ItemStack c = draw(pathway, r);
+                ItemStack c = draw(pathway, r, mode);
                 var tg = c.get(DataComponents.CUSTOM_DATA).copyTag();
                 got.append(i > 0 ? "," : "").append(tg.getString("pathway")).append(':').append(tg.getInt("seq")).append(':').append(tg.getBoolean("shiny") ? 1 : 0);
                 if (!sp.getInventory().add(c)) sp.drop(c, false);
             }
             if (!sp.getAbilities().instabuild) pack.shrink(1);
-            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new Net.PackPayload(pathway, got.toString()));
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new Net.PackPayload(pathway + (mode == 1 ? "_rainbow" : mode == 2 ? "_shiny" : ""), got.toString()));
             return InteractionResultHolder.success(pack);
         }
     }

@@ -4,6 +4,7 @@ Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; ever
 
 ## 0.2.95
 - Shiny cards of Seq 9 to 3 (every pathway) have their own art: black with gold for the frame, ornaments, icons, text and the pathway emblem, with the same tiers (moon, planet, black hole and galaxy). The shiny sparkles still play over them, in the pack opening, the card viewer and (as the model) in the inventory. Shiny cards of Seq 2 to 0 still use the normal art with sparkles.
+- New packs for every pathway: a Rainbow Tarot Pack (all 3 cards are Seq 3, 2, 1 or 0) and a Shiny Tarot Pack (all 3 cards are shiny). Both come in all 22 pathways with their own art, and cards of the pack's own pathway come up 5x as often, like the normal packs.
 
 ## 0.2.94
 - Tarot cards now have a model like the packs instead of the plain swatch: each card that has designed art (Seq 9 to 3 of every pathway, and Sailor 2 and 1) is a flat card in the inventory, the hand and on the ground, showing its own art. Sailor 2 and 1 show a still of the animation there. Cards of Seq 2 to 0 (other than Sailor 2 and 1) still show the old swatch.
