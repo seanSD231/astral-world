@@ -1,1 +1,38 @@
-{"parent": "minecraft:item/generated", "textures": {"layer0": "astral_world:item/tarot_card"}}
+{
+ "parent": "minecraft:item/generated",
+ "textures": {
+  "layer0": "astral_world:item/tarot_card_common"
+ },
+ "overrides": [
+  {
+   "predicate": {
+    "astral_world:rarity": 1
+   },
+   "model": "astral_world:item/tarot_card_uncommon"
+  },
+  {
+   "predicate": {
+    "astral_world:rarity": 2
+   },
+   "model": "astral_world:item/tarot_card_rare"
+  },
+  {
+   "predicate": {
+    "astral_world:rarity": 3
+   },
+   "model": "astral_world:item/tarot_card_epic"
+  },
+  {
+   "predicate": {
+    "astral_world:rarity": 4
+   },
+   "model": "astral_world:item/tarot_card_legendary"
+  },
+  {
+   "predicate": {
+    "astral_world:rarity": 5
+   },
+   "model": "astral_world:item/tarot_card_mythic"
+  }
+ ]
+}

@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.88
+- Tarot pack opening. Right-click a pack: it fills the screen, hold left click and drag across the top to tear it open, three face-down cards rise out and you click each to flip it. The cards are already in your inventory when the screen opens (closing it early loses nothing), and the pack is used up on the right-click.
+- Card backs: black with gold lines and the pathway symbol. The shine depends on rarity: Common and Uncommon none, Rare a faint gold shine, Epic a gold shine, Legendary a rainbow shine, Mythic a rainbow shine that slowly travels across the card.
+- Rarity by sequence: Seq 9-8 Common, 7-6 Uncommon, 5-4 Rare, 3-2 Epic, 1 Legendary, 0 Mythic. The card item has a temporary sprite per rarity. To get one: `/give @s astral_world:tarot_card[custom_data={pathway:"seer",seq:9}]` (use seq 9, 7, 5, 3, 1, 0 for each rarity).
+- The card faces are temporary: a frame in the rarity's colour with the pathway symbol, name and sequence.
+
 ## 0.2.87
 - Tarot packs, `/give` only: 22 pathway packs (`astral_world:seer_pack` etc.) that open on right-click for 3 cards. A card from the pack's own pathway is 5x as likely as any single other card, and lower sequences are rarer (Seq 9 most common, Seq 0 rarest). The cards are one item, `astral_world:tarot_card`, with a temporary sprite; `/give @s astral_world:tarot_card` gives the plain test card, and `/give @s astral_world:tarot_card[custom_data={pathway:"seer",seq:0}]` gives a specific one.
 

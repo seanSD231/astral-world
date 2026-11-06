@@ -67,6 +67,19 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -> client: a tarot pack was opened. `pack` is its pathway, `cards` is "pathway:seq,pathway:seq,..." (the cards are already in the inventory). */
+    public record PackPayload(String pack, String cards) implements CustomPacketPayload {
+        public static final Type<PackPayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "pack"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, PackPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.STRING_UTF8, PackPayload::pack,
+                ByteBufCodecs.STRING_UTF8, PackPayload::cards,
+                PackPayload::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** Server -> client: the tree begins this attack animation (the server's pattern number, or 20 for the ultimate). */
     public record TreeAnimPayload(int attack, int ticks, int seed) implements CustomPacketPayload {
         public static final Type<TreeAnimPayload> TYPE =
@@ -252,6 +265,7 @@ public final class Net {
             ClientState.cutsceneTicks = payload.ticks();
             ClientState.cutsceneStart = System.currentTimeMillis();
         }));
+        registrar.playToClient(PackPayload.TYPE, PackPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> PackScreen.open(payload.pack(), payload.cards())));
         registrar.playToClient(TreeAnimPayload.TYPE, TreeAnimPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             ClientState.animAttack = payload.attack();
             ClientState.animTicks = payload.ticks();

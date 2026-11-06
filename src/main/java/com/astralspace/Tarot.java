@@ -46,6 +46,14 @@ public final class Tarot {
 
     public static void register(IEventBus modBus) { ITEMS.register(modBus); }
 
+    /** 0 common (Seq 9-8), 1 uncommon (7-6), 2 rare (5-4), 3 epic (3-2), 4 legendary (1), 5 mythic (0). */
+    public static int rarityIndex(int seq) { return seq >= 8 ? 0 : seq >= 6 ? 1 : seq >= 4 ? 2 : seq >= 2 ? 3 : seq == 1 ? 4 : 5; }
+
+    public static int rarityOf(ItemStack s) {
+        CompoundTag t = s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        return t.contains("pathway") || t.contains("seq") ? rarityIndex(t.getInt("seq")) : 0;
+    }
+
     static String pretty(String id) {
         StringBuilder b = new StringBuilder();
         for (String w : id.split("_")) b.append(b.length() > 0 ? " " : "").append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
@@ -108,17 +116,14 @@ public final class Tarot {
             if (level.isClientSide || !(player instanceof ServerPlayer sp)) return InteractionResultHolder.success(pack);
             Random r = new Random();
             StringBuilder got = new StringBuilder();
-            int best = 9;
             for (int i = 0; i < PACK_CARDS; i++) {
                 ItemStack c = draw(pathway, r);
-                int seq = c.get(DataComponents.CUSTOM_DATA).copyTag().getInt("seq"); best = Math.min(best, seq);
-                got.append(i > 0 ? ", " : "").append(pretty(c.get(DataComponents.CUSTOM_DATA).copyTag().getString("pathway"))).append(" Seq ").append(seq);
+                var tg = c.get(DataComponents.CUSTOM_DATA).copyTag();
+                got.append(i > 0 ? "," : "").append(tg.getString("pathway")).append(':').append(tg.getInt("seq"));
                 if (!sp.getInventory().add(c)) sp.drop(c, false);
             }
             if (!sp.getAbilities().instabuild) pack.shrink(1);
-            level.playSound(null, sp.getX(), sp.getY(), sp.getZ(), SoundEvents.FIREWORK_ROCKET_TWINKLE, SoundSource.PLAYERS, 0.9f, 1.2f);
-            level.playSound(null, sp.getX(), sp.getY(), sp.getZ(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1.0f, 1.0f);
-            sp.sendSystemMessage(Component.literal("Pack opened: " + got).withStyle(RARITY_COLOR[best]));
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new Net.PackPayload(pathway, got.toString()));
             return InteractionResultHolder.success(pack);
         }
     }
