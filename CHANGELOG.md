@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.83
+- New ops commands `/enchanting` and `/anvil` open those screens anywhere. The enchanting screen always offers levels 10, 20 and 30.
+
 ## 0.2.82
 - **Coin swap can't lose coins any more:** LOTM coins stack to 9999 but Numismatics coins only to 64, so a big purse could overflow the inventory. Now only as many coins are swapped as there is room for; the rest stay LOTM coins, untouched, and are swapped the next time you use a shop or the bank. Nothing is dropped.
 
