@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.86
+- New cosmetic items, `/give` only: `astral_world:confetti_popper` (right-click pops it with a sound and sprays coloured confetti in a cone, short cooldown, never used up) and `astral_world:bubble_wand` (hold right-click to blow a stream of bubbles that drift forward and up, no damage).
+
 ## 0.2.85
 - New `/duel <player> <safe|normal>` for everyone, then `/duel accept`, `/duel decline`, `/duel forfeit`. During a duel only your opponent can hurt or affect you, and you can only hurt or affect them. Safe: a killing blow just ends the duel, nothing is lost and no sequence regresses. Normal: the loser really dies, with the usual item loss and regression.
 

@@ -1,5 +1,7 @@
 {
   "block.astral_world.astral_floor": "Astral Floor",
   "item.astral_world.tree_smiter": "Tree Smiter (testing)",
-  "block.astral_world.osu_cabinet": "Osu Cabinet"
+  "block.astral_world.osu_cabinet": "Osu Cabinet",
+  "item.astral_world.confetti_popper": "Confetti Popper",
+  "item.astral_world.bubble_wand": "Bubble Wand"
 }

@@ -28,6 +28,7 @@ public class AstralMod {
         modBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent e) -> e.enqueueWork(CoinBridge::patchValues));
         AstralFloor.register(modBus);
         Cosmos.register(modBus);
+        PartyItems.register(modBus);
         AstralBarrier.onBreak(Stage::onBarrierBroken);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             AstralClient.init(modBus);
