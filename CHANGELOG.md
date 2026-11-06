@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.96
+- Sailor Seq 0 (Tyrant) is now an animated card: a storm sky with rain and a crown of spikes around the emblem. Its inventory icon shows a still of it.
+- Sailor Seq 2, 1 and 0 now have animated black and gold shiny versions (the same animations recoloured, with a gold emblem). They show in pack openings and the card viewer, and as a still in the inventory, with the sparkles on top.
+- Fixed the inventory models of cards: the model list was in an order that could make every card of a pathway show its Seq 3 art. It is sorted now.
+
 ## 0.2.95
 - Shiny cards of Seq 9 to 3 (every pathway) have their own art: black with gold for the frame, ornaments, icons, text and the pathway emblem, with the same tiers (moon, planet, black hole and galaxy). The shiny sparkles still play over them, in the pack opening, the card viewer and (as the model) in the inventory. Shiny cards of Seq 2 to 0 still use the normal art with sparkles.
 - New packs for every pathway: a Rainbow Tarot Pack (all 3 cards are Seq 3, 2, 1 or 0) and a Shiny Tarot Pack (all 3 cards are shiny). Both come in all 22 pathways with their own art, and cards of the pack's own pathway come up 5x as often, like the normal packs.
