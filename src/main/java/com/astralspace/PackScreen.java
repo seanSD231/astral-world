@@ -117,10 +117,10 @@ public final class PackScreen extends Screen {
         }
     }
 
-    /** The shiny foil and sparkles, an animated overlay that goes over any rarity. */
+    /** Twinkling sparkles over a shiny card, on top of its rarity shine: 80 frames in two columns, 75 ms each (a 6 second loop). */
     private void drawFoil(GuiGraphics g, int x, int y, int w, int h) {
-        int frame = (int) ((System.currentTimeMillis() / 100) % 40);
-        g.blit(tex("shiny_foil"), x, y, w, h, 0, frame * 360f, 240, 360, 240, 360 * 40);
+        int f = (int) ((System.currentTimeMillis() / 75) % 80);
+        g.blit(tex("shiny_foil"), x, y, w, h, (f / 40) * 240f, (f % 40) * 360f, 240, 360, 480, 360 * 40);
     }
 
     private void drawFront(GuiGraphics g, int i, int x, int y, int w, int h) {

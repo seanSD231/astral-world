@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.90
+- Pack odds. Each card rolls its rarity first: Common 50%, Uncommon 25%, Rare 20%, Epic 3%, Legendary 1.5%, Mythic 0.5%. Then the sequence within that rarity (even split), then the pathway (the pack's own pathway counts 5x any single other one), then the shiny roll for that rarity: Common 5%, Uncommon 10%, Rare 10%, Epic 15%, Legendary 20%, Mythic 40%.
+- Shiny cards now get only twinkling sparkles on top of their normal rarity shine (Mythic keeps its moving rainbow). This replaces the whole-card foil from 0.2.89, which was not what was wanted.
+
 ## 0.2.89
 - Shiny cards: a card with `shiny:1b` in its custom data gets an animated foil over the whole card, back and front: a faint prismatic tint that drifts across, a bright sweep once every 4 seconds, and twinkling sparkles. It sits on top of the rarity shine, so every rarity (Mythic's rainbow included) can be shiny. The item also glints in the inventory and is named "Shiny ...". Nothing rolls shiny from packs yet; test with `/give @s astral_world:tarot_card[custom_data={pathway:"seer",seq:9,shiny:1b}]`.
 

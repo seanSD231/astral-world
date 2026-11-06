@@ -25,14 +25,19 @@ import java.util.Random;
 /**
  * Tarot cards and the 22 pathway packs (/give only for now).
  * One card item, `astral_world:tarot_card`, carries its pathway and sequence in custom_data: {pathway:"seer",seq:9}. With no data it is the temp test card.
- * A pack gives 3 cards. Every card has a weight: sequence rarity x 5 when it is from the pack's own pathway, so the pack's own cards come up 5x as often as any other single card.
+ * A pack gives 3 cards: rarity is rolled first (50/25/20/3/1.5/0.5 %), then the pathway (the pack's own counts 5x), then the shiny roll (5/10/10/15/20/40 % by rarity).
  */
 public final class Tarot {
     private Tarot() {}
 
     public static final String[] PATHWAYS = {"apothecary","apprentice","arbiter","assassin","bard","corpse_collector","criminal","hunter","lawyer","marauder","monster","mystery_pryer","planter","prisoner","reader","sailor","savant","secrets_supplicant","seer","sleepless","spectator","warrior"};
     /** Weight of each sequence, index = sequence 0..9. Seq 9 is the most common, Seq 0 the rarest. */
-    private static final double[] SEQ_WEIGHT = {0.5, 1.2, 2.5, 4.5, 8, 13, 22, 36, 60, 100};
+    /** Chance of each rarity per card (common, uncommon, rare, epic, legendary, mythic), percent. */
+    private static final double[] RARITY_CHANCE = {50, 25, 20, 3, 1.5, 0.5};
+    /** Chance that a card of that rarity is shiny, rolled after its rarity, percent. */
+    private static final double[] SHINY_CHANCE = {5, 10, 10, 15, 20, 40};
+    /** The sequences each rarity covers. */
+    private static final int[][] RARITY_SEQS = {{9, 8}, {7, 6}, {5, 4}, {3, 2}, {1}, {0}};
     private static final String[] RARITY = {"Mythic", "Legendary", "Epic", "Epic", "Rare", "Rare", "Uncommon", "Uncommon", "Common", "Common"};
     private static final ChatFormatting[] RARITY_COLOR = {ChatFormatting.LIGHT_PURPLE, ChatFormatting.GOLD, ChatFormatting.DARK_PURPLE, ChatFormatting.DARK_PURPLE, ChatFormatting.AQUA, ChatFormatting.AQUA, ChatFormatting.GREEN, ChatFormatting.GREEN, ChatFormatting.GRAY, ChatFormatting.GRAY};
     private static final int PACK_CARDS = 3;
@@ -69,17 +74,20 @@ public final class Tarot {
         return s;
     }
 
-    /** One weighted draw from all 220 cards. */
+    /**
+     * One card: the rarity is rolled first, then a sequence of that rarity (evenly), then a pathway (the pack's own pathway counts 5x
+     * as much as any single other pathway), then the shiny roll for that rarity.
+     */
     static ItemStack draw(String own, Random r) {
-        double total = 0;
-        List<double[]> w = new ArrayList<>();
-        for (int p = 0; p < PATHWAYS.length; p++) for (int s = 0; s <= 9; s++) {
-            double x = SEQ_WEIGHT[s] * (PATHWAYS[p].equals(own) ? OWN_BONUS : 1.0);
-            w.add(new double[]{p, s, x}); total += x;
-        }
-        double pick = r.nextDouble() * total;
-        for (double[] e : w) { pick -= e[2]; if (pick <= 0) return makeCard(PATHWAYS[(int) e[0]], (int) e[1]); }
-        return makeCard(own, 9);
+        double pick = r.nextDouble() * 100, acc = 0;
+        int rar = RARITY_CHANCE.length - 1;
+        for (int i = 0; i < RARITY_CHANCE.length; i++) { acc += RARITY_CHANCE[i]; if (pick < acc) { rar = i; break; } }
+        int[] seqs = RARITY_SEQS[rar];
+        int seq = seqs[r.nextInt(seqs.length)];
+        double total = PATHWAYS.length - 1 + OWN_BONUS, pp = r.nextDouble() * total;
+        String path = own;
+        for (String id : PATHWAYS) { pp -= id.equals(own) ? OWN_BONUS : 1.0; if (pp < 0) { path = id; break; } }
+        return makeCard(path, seq, r.nextDouble() * 100 < SHINY_CHANCE[rar]);
     }
 
     static final class CardItem extends Item {
@@ -113,7 +121,7 @@ public final class Tarot {
 
         @Override
         public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> lines, net.minecraft.world.item.TooltipFlag flag) {
-            lines.add(Component.literal(PACK_CARDS + " cards. " + pretty(pathway) + " cards come up 5x as often.").withStyle(ChatFormatting.GRAY));
+            lines.add(Component.literal(PACK_CARDS + " cards. " + pretty(pathway) + " cards come up 5x as often. Any card can be shiny.").withStyle(ChatFormatting.GRAY));
         }
 
         @Override
