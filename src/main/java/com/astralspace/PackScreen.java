@@ -23,6 +23,7 @@ public final class PackScreen extends Screen {
     private final String pack;
     private final String[] path;
     private final int[] seq;
+    private final boolean[] shiny;
     private final long[] flipAt;
     private final long born = System.currentTimeMillis();
     private double tear = 0;          // 0..1 across the top
@@ -34,10 +35,10 @@ public final class PackScreen extends Screen {
         super(Component.literal("Tarot Pack"));
         this.pack = pack;
         String[] parts = cards.split(",");
-        path = new String[parts.length]; seq = new int[parts.length]; flipAt = new long[parts.length];
+        path = new String[parts.length]; seq = new int[parts.length]; shiny = new boolean[parts.length]; flipAt = new long[parts.length];
         for (int i = 0; i < parts.length; i++) {
             String[] x = parts[i].split(":");
-            path[i] = x[0]; seq[i] = Integer.parseInt(x[1]); flipAt[i] = -1;
+            path[i] = x[0]; seq[i] = Integer.parseInt(x[1]); shiny[i] = x.length > 2 && x[2].equals("1"); flipAt[i] = -1;
         }
     }
 
@@ -116,6 +117,12 @@ public final class PackScreen extends Screen {
         }
     }
 
+    /** The shiny foil and sparkles, an animated overlay that goes over any rarity. */
+    private void drawFoil(GuiGraphics g, int x, int y, int w, int h) {
+        int frame = (int) ((System.currentTimeMillis() / 100) % 40);
+        g.blit(tex("shiny_foil"), x, y, w, h, 0, frame * 360f, 240, 360, 240, 360 * 40);
+    }
+
     private void drawFront(GuiGraphics g, int i, int x, int y, int w, int h) {
         int rar = rarity(seq[i]);
         g.blit(tex("front_" + RARITY[rar]), x, y, w, h, 0, 0, 240, 360, 240, 360);
@@ -164,7 +171,11 @@ public final class PackScreen extends Screen {
                 if (fp < 0.5f) {
                     g.blit(tex("back_" + path[i]), r[0], r[1], r[2], r[3], 0, 0, 240, 360, 240, 360);
                     drawShine(g, rar, r[0], r[1], r[2], r[3]);
-                } else drawFront(g, i, r[0], r[1], r[2], r[3]);
+                    if (shiny[i]) drawFoil(g, r[0], r[1], r[2], r[3]);
+                } else {
+                    drawFront(g, i, r[0], r[1], r[2], r[3]);
+                    if (shiny[i]) drawFoil(g, r[0], r[1], r[2], r[3]);
+                }
                 g.pose().popPose();
                 g.setColor(1, 1, 1, 1);
             }

@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.89
+- Shiny cards: a card with `shiny:1b` in its custom data gets an animated foil over the whole card, back and front: a faint prismatic tint that drifts across, a bright sweep once every 4 seconds, and twinkling sparkles. It sits on top of the rarity shine, so every rarity (Mythic's rainbow included) can be shiny. The item also glints in the inventory and is named "Shiny ...". Nothing rolls shiny from packs yet; test with `/give @s astral_world:tarot_card[custom_data={pathway:"seer",seq:9,shiny:1b}]`.
+
 ## 0.2.88
 - Tarot pack opening. Right-click a pack: it fills the screen, hold left click and drag across the top to tear it open, three face-down cards rise out and you click each to flip it. The cards are already in your inventory when the screen opens (closing it early loses nothing), and the pack is used up on the right-click.
 - Card backs: black with gold lines and the pathway symbol. The shine depends on rarity: Common and Uncommon none, Rare a faint gold shine, Epic a gold shine, Legendary a rainbow shine, Mythic a rainbow shine that slowly travels across the card.

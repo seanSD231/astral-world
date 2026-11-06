@@ -60,9 +60,12 @@ public final class Tarot {
         return b.toString();
     }
 
-    public static ItemStack makeCard(String pathway, int seq) {
+    public static ItemStack makeCard(String pathway, int seq) { return makeCard(pathway, seq, false); }
+
+    /** A shiny card carries shiny:1b in its custom data. */
+    public static ItemStack makeCard(String pathway, int seq, boolean shiny) {
         ItemStack s = new ItemStack(CARD.get());
-        CustomData.update(DataComponents.CUSTOM_DATA, s, t -> { t.putString("pathway", pathway); t.putInt("seq", seq); });
+        CustomData.update(DataComponents.CUSTOM_DATA, s, t -> { t.putString("pathway", pathway); t.putInt("seq", seq); if (shiny) t.putBoolean("shiny", true); });
         return s;
     }
 
@@ -89,8 +92,10 @@ public final class Tarot {
             CompoundTag t = tag(stack);
             if (!t.contains("pathway")) return Component.literal("Tarot Card (temp)").withStyle(ChatFormatting.LIGHT_PURPLE);
             int seq = Math.max(0, Math.min(9, t.getInt("seq")));
-            return Component.literal(pretty(t.getString("pathway")) + " - Seq " + seq).withStyle(RARITY_COLOR[seq]);
+            return Component.literal((t.getBoolean("shiny") ? "Shiny " : "") + pretty(t.getString("pathway")) + " - Seq " + seq).withStyle(RARITY_COLOR[seq]);
         }
+
+        @Override public boolean isFoil(ItemStack stack) { return tag(stack).getBoolean("shiny") || super.isFoil(stack); }
 
         @Override
         public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> lines, net.minecraft.world.item.TooltipFlag flag) {
@@ -98,6 +103,7 @@ public final class Tarot {
             if (!t.contains("pathway")) { lines.add(Component.literal("A placeholder card for testing.").withStyle(ChatFormatting.GRAY)); return; }
             int seq = Math.max(0, Math.min(9, t.getInt("seq")));
             lines.add(Component.literal(RARITY[seq]).withStyle(RARITY_COLOR[seq]));
+            if (t.getBoolean("shiny")) lines.add(Component.literal("Shiny").withStyle(ChatFormatting.YELLOW));
         }
     }
 
@@ -119,7 +125,7 @@ public final class Tarot {
             for (int i = 0; i < PACK_CARDS; i++) {
                 ItemStack c = draw(pathway, r);
                 var tg = c.get(DataComponents.CUSTOM_DATA).copyTag();
-                got.append(i > 0 ? "," : "").append(tg.getString("pathway")).append(':').append(tg.getInt("seq"));
+                got.append(i > 0 ? "," : "").append(tg.getString("pathway")).append(':').append(tg.getInt("seq")).append(':').append(tg.getBoolean("shiny") ? 1 : 0);
                 if (!sp.getInventory().add(c)) sp.drop(c, false);
             }
             if (!sp.getAbilities().instabuild) pack.shrink(1);
