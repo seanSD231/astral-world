@@ -1,6 +1,5 @@
 package com.astralspace;
 
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -17,7 +16,10 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
-import org.joml.Vector3f;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.core.particles.ParticleType;
+import java.util.function.Supplier;
 
 /** Cosmetic party items, /give only: the confetti popper and the bubble wand. Neither does any damage. */
 public final class PartyItems {
@@ -27,9 +29,11 @@ public final class PartyItems {
     public static final DeferredItem<Item> POPPER = ITEMS.register("confetti_popper", () -> new Popper(new Item.Properties().stacksTo(1)));
     public static final DeferredItem<Item> WAND = ITEMS.register("bubble_wand", () -> new Wand(new Item.Properties().stacksTo(1)));
 
-    public static void register(IEventBus modBus) { ITEMS.register(modBus); }
+    public static final DeferredRegister<ParticleType<?>> PARTICLES = DeferredRegister.create(Registries.PARTICLE_TYPE, AstralMod.MOD_ID);
+    public static final Supplier<SimpleParticleType> CONFETTI = PARTICLES.register("confetti", () -> new SimpleParticleType(false));
+    public static final Supplier<SimpleParticleType> BUBBLE = PARTICLES.register("bubble", () -> new SimpleParticleType(false));
 
-    private static final float[][] CONFETTI = {{1f, .31f, .43f}, {1f, .82f, .3f}, {.3f, .75f, 1f}, {.5f, .9f, .45f}, {1f, .5f, .86f}, {1f, 1f, 1f}};
+    public static void register(IEventBus modBus) { ITEMS.register(modBus); PARTICLES.register(modBus); }
 
     /** A random direction inside a cone around `look`, `spread` being the sideways share. */
     private static Vec3 inCone(Vec3 look, double spread, java.util.Random r) {
@@ -50,10 +54,9 @@ public final class PartyItems {
                 java.util.Random r = new java.util.Random();
                 level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.FIREWORK_ROCKET_BLAST, SoundSource.PLAYERS, 1.0f, 1.3f);
                 level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.FIREWORK_ROCKET_TWINKLE, SoundSource.PLAYERS, 0.8f, 1.0f);
-                for (int i = 0; i < 60; i++) {
-                    float[] c = CONFETTI[r.nextInt(CONFETTI.length)];
+                for (int i = 0; i < 70; i++) {
                     Vec3 d = inCone(look, .45, r);
-                    lv.sendParticles(new DustParticleOptions(new Vector3f(c[0], c[1], c[2]), 1.1f), from.x, from.y, from.z, 0, d.x, d.y, d.z, .35 + r.nextDouble() * .5);
+                    lv.sendParticles(CONFETTI.get(), from.x, from.y, from.z, 0, d.x, d.y, d.z, .35 + r.nextDouble() * .55);
                 }
                 lv.sendParticles(ParticleTypes.FIREWORK, from.x, from.y, from.z, 12, .1, .1, .1, .12);
             }
@@ -84,11 +87,10 @@ public final class PartyItems {
             java.util.Random r = new java.util.Random();
             for (int i = 0; i < 2; i++) {
                 Vec3 d = inCone(look, .18, r).add(0, .08, 0);
-                lv.sendParticles(new DustParticleOptions(new Vector3f(.75f, .93f, 1f), 1.6f + r.nextFloat()), from.x, from.y, from.z, 0, d.x, d.y, d.z, .12 + r.nextDouble() * .1);
+                lv.sendParticles(BUBBLE.get(), from.x, from.y, from.z, 0, d.x, d.y, d.z, .14 + r.nextDouble() * .12);
             }
             if (t % 6 == 0) {
                 Vec3 at = from.add(look.scale(1.5 + r.nextDouble() * 2.5)).add((r.nextDouble() - .5) * .6, .3 + r.nextDouble() * .5, (r.nextDouble() - .5) * .6);
-                lv.sendParticles(ParticleTypes.BUBBLE_POP, at.x, at.y, at.z, 1, 0, 0, 0, 0);
                 level.playSound(null, at.x, at.y, at.z, SoundEvents.BUBBLE_COLUMN_BUBBLE_POP, SoundSource.PLAYERS, .5f, .9f + r.nextFloat() * .4f);
             }
         }
