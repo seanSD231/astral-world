@@ -173,12 +173,15 @@ public final class Duel {
         }
     }
 
-    /** Nobody outside a duel can put an effect on a duelist, and a duelist's effects only reach their opponent. */
+    /** Nobody outside a duel can put an effect on a duelist, and a duelist's effects only reach their opponent. The effect is taken straight back off (the old one restored). */
     @SubscribeEvent
-    public static void onEffect(MobEffectEvent.Applicable event) {
+    public static void onEffect(MobEffectEvent.Added event) {
         if (matches.isEmpty() || !(event.getEntity() instanceof Player victim)) return;
         Player by = playerBehind(event.getEffectSource());
-        if (by != null && by != victim && !allowed(by, victim)) event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+        if (by == null || by == victim || allowed(by, victim)) return;
+        var old = event.getOldEffectInstance();
+        victim.removeEffect(event.getEffectInstance().getEffect());
+        if (old != null) victim.addEffect(new net.minecraft.world.effect.MobEffectInstance(old));
     }
 
     @SubscribeEvent
