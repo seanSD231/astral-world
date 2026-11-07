@@ -810,6 +810,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 181
+   },
+   "model": "astral_world:item/card_seer_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 182
+   },
+   "model": "astral_world:item/card_seer_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 183
+   },
+   "model": "astral_world:item/card_seer_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 184
    },
    "model": "astral_world:item/card_seer_3"
@@ -2505,6 +2523,24 @@
     "astral_world:card": 1180
    },
    "model": "astral_world:item/card_secrets_supplicant_9_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1181
+   },
+   "model": "astral_world:item/card_seer_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1182
+   },
+   "model": "astral_world:item/card_seer_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1183
+   },
+   "model": "astral_world:item/card_seer_2_shiny"
   },
   {
    "predicate": {

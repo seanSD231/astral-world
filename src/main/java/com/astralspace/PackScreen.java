@@ -133,9 +133,9 @@ public final class PackScreen extends Screen {
             g.blit(tex("card_" + path[i] + "_" + seq[i] + (shiny[i] ? "_shiny" : "")), x, y, w, h, 0, 0, 240, 360, 240, 360);
             return true;
         }
-        if (path[i].equals("sailor") && seq[i] <= 2) {
+        if (Tarot.hasAnim(path[i], seq[i])) {
             int f = (int) ((System.currentTimeMillis() / 100) % 100);
-            g.blit(tex("card_sailor_" + seq[i] + "_anim" + (shiny[i] ? "_shiny" : "")), x, y, w, h, (f / 20) * 240f, (f % 20) * 360f, 240, 360, 1200, 7200);
+            g.blit(tex("card_" + path[i] + "_" + seq[i] + "_anim" + (shiny[i] ? "_shiny" : "")), x, y, w, h, (f / 20) * 240f, (f % 20) * 360f, 240, 360, 1200, 7200);
             return true;
         }
         return false;

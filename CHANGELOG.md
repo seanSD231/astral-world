@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.97
+- Seer Seq 2, 1 and 0 are now animated cards (and animated black and gold shiny versions), each with its own scene. Seq 2 Miracle Invoker: a violet night sky where constellations draw themselves between the stars, with meteors, and a finale where they all blaze gold. Seq 1 Attendant of Mysteries: a dark fog vortex behind two turning rune rings, with eyes opening and closing around the emblem. Seq 0 Fool: grey fog with six small coloured lights drifting in it and twelve tarot cards orbiting the emblem. Their inventory icons show a still of the animation.
+
 ## 0.2.96
 - Sailor Seq 0 (Tyrant) is now an animated card: a storm sky with rain and a crown of spikes around the emblem. Its inventory icon shows a still of it.
 - Sailor Seq 2, 1 and 0 now have animated black and gold shiny versions (the same animations recoloured, with a gold emblem). They show in pack openings and the card viewer, and as a still in the inventory, with the sparkles on top.
