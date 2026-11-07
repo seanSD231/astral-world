@@ -36,6 +36,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1
+   },
+   "model": "astral_world:item/card_apothecary_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 2
+   },
+   "model": "astral_world:item/card_apothecary_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 3
+   },
+   "model": "astral_world:item/card_apothecary_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 4
    },
    "model": "astral_world:item/card_apothecary_3"
@@ -75,6 +93,24 @@
     "astral_world:card": 10
    },
    "model": "astral_world:item/card_apothecary_9"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 11
+   },
+   "model": "astral_world:item/card_apprentice_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 12
+   },
+   "model": "astral_world:item/card_apprentice_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 13
+   },
+   "model": "astral_world:item/card_apprentice_2"
   },
   {
    "predicate": {
@@ -120,6 +156,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 21
+   },
+   "model": "astral_world:item/card_arbiter_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 22
+   },
+   "model": "astral_world:item/card_arbiter_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 23
+   },
+   "model": "astral_world:item/card_arbiter_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 24
    },
    "model": "astral_world:item/card_arbiter_3"
@@ -159,6 +213,24 @@
     "astral_world:card": 30
    },
    "model": "astral_world:item/card_arbiter_9"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 31
+   },
+   "model": "astral_world:item/card_assassin_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 32
+   },
+   "model": "astral_world:item/card_assassin_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 33
+   },
+   "model": "astral_world:item/card_assassin_2"
   },
   {
    "predicate": {
@@ -204,6 +276,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 41
+   },
+   "model": "astral_world:item/card_bard_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 42
+   },
+   "model": "astral_world:item/card_bard_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 43
+   },
+   "model": "astral_world:item/card_bard_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 44
    },
    "model": "astral_world:item/card_bard_3"
@@ -243,6 +333,24 @@
     "astral_world:card": 50
    },
    "model": "astral_world:item/card_bard_9"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 51
+   },
+   "model": "astral_world:item/card_corpse_collector_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 52
+   },
+   "model": "astral_world:item/card_corpse_collector_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 53
+   },
+   "model": "astral_world:item/card_corpse_collector_2"
   },
   {
    "predicate": {
@@ -288,6 +396,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 61
+   },
+   "model": "astral_world:item/card_criminal_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 62
+   },
+   "model": "astral_world:item/card_criminal_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 63
+   },
+   "model": "astral_world:item/card_criminal_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 64
    },
    "model": "astral_world:item/card_criminal_3"
@@ -327,6 +453,24 @@
     "astral_world:card": 70
    },
    "model": "astral_world:item/card_criminal_9"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 71
+   },
+   "model": "astral_world:item/card_hunter_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 72
+   },
+   "model": "astral_world:item/card_hunter_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 73
+   },
+   "model": "astral_world:item/card_hunter_2"
   },
   {
    "predicate": {
@@ -372,6 +516,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 81
+   },
+   "model": "astral_world:item/card_lawyer_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 82
+   },
+   "model": "astral_world:item/card_lawyer_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 83
+   },
+   "model": "astral_world:item/card_lawyer_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 84
    },
    "model": "astral_world:item/card_lawyer_3"
@@ -411,6 +573,24 @@
     "astral_world:card": 90
    },
    "model": "astral_world:item/card_lawyer_9"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 91
+   },
+   "model": "astral_world:item/card_marauder_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 92
+   },
+   "model": "astral_world:item/card_marauder_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 93
+   },
+   "model": "astral_world:item/card_marauder_2"
   },
   {
    "predicate": {
@@ -456,6 +636,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 101
+   },
+   "model": "astral_world:item/card_monster_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 102
+   },
+   "model": "astral_world:item/card_monster_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 103
+   },
+   "model": "astral_world:item/card_monster_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 104
    },
    "model": "astral_world:item/card_monster_3"
@@ -495,6 +693,24 @@
     "astral_world:card": 110
    },
    "model": "astral_world:item/card_monster_9"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 111
+   },
+   "model": "astral_world:item/card_mystery_pryer_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 112
+   },
+   "model": "astral_world:item/card_mystery_pryer_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 113
+   },
+   "model": "astral_world:item/card_mystery_pryer_2"
   },
   {
    "predicate": {
@@ -540,6 +756,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 121
+   },
+   "model": "astral_world:item/card_planter_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 122
+   },
+   "model": "astral_world:item/card_planter_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 123
+   },
+   "model": "astral_world:item/card_planter_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 124
    },
    "model": "astral_world:item/card_planter_3"
@@ -582,6 +816,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 131
+   },
+   "model": "astral_world:item/card_prisoner_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 132
+   },
+   "model": "astral_world:item/card_prisoner_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 133
+   },
+   "model": "astral_world:item/card_prisoner_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 134
    },
    "model": "astral_world:item/card_prisoner_3"
@@ -621,6 +873,24 @@
     "astral_world:card": 140
    },
    "model": "astral_world:item/card_prisoner_9"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 141
+   },
+   "model": "astral_world:item/card_reader_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 142
+   },
+   "model": "astral_world:item/card_reader_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 143
+   },
+   "model": "astral_world:item/card_reader_2"
   },
   {
    "predicate": {
@@ -726,6 +996,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 161
+   },
+   "model": "astral_world:item/card_savant_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 162
+   },
+   "model": "astral_world:item/card_savant_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 163
+   },
+   "model": "astral_world:item/card_savant_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 164
    },
    "model": "astral_world:item/card_savant_3"
@@ -765,6 +1053,24 @@
     "astral_world:card": 170
    },
    "model": "astral_world:item/card_savant_9"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 171
+   },
+   "model": "astral_world:item/card_secrets_supplicant_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 172
+   },
+   "model": "astral_world:item/card_secrets_supplicant_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 173
+   },
+   "model": "astral_world:item/card_secrets_supplicant_2"
   },
   {
    "predicate": {
@@ -870,6 +1176,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 191
+   },
+   "model": "astral_world:item/card_sleepless_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 192
+   },
+   "model": "astral_world:item/card_sleepless_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 193
+   },
+   "model": "astral_world:item/card_sleepless_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 194
    },
    "model": "astral_world:item/card_sleepless_3"
@@ -909,6 +1233,24 @@
     "astral_world:card": 200
    },
    "model": "astral_world:item/card_sleepless_9"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 201
+   },
+   "model": "astral_world:item/card_spectator_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 202
+   },
+   "model": "astral_world:item/card_spectator_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 203
+   },
+   "model": "astral_world:item/card_spectator_2"
   },
   {
    "predicate": {
@@ -954,6 +1296,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 211
+   },
+   "model": "astral_world:item/card_warrior_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 212
+   },
+   "model": "astral_world:item/card_warrior_1"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 213
+   },
+   "model": "astral_world:item/card_warrior_2"
+  },
+  {
+   "predicate": {
     "astral_world:card": 214
    },
    "model": "astral_world:item/card_warrior_3"
@@ -996,6 +1356,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1001
+   },
+   "model": "astral_world:item/card_apothecary_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1002
+   },
+   "model": "astral_world:item/card_apothecary_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1003
+   },
+   "model": "astral_world:item/card_apothecary_2_shiny"
+  },
+  {
+   "predicate": {
     "astral_world:card": 1004
    },
    "model": "astral_world:item/card_apothecary_3_shiny"
@@ -1077,6 +1455,24 @@
     "astral_world:card": 1010
    },
    "model": "astral_world:item/card_apothecary_9_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1011
+   },
+   "model": "astral_world:item/card_apprentice_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1012
+   },
+   "model": "astral_world:item/card_apprentice_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1013
+   },
+   "model": "astral_world:item/card_apprentice_2_shiny"
   },
   {
    "predicate": {
@@ -1164,6 +1560,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1021
+   },
+   "model": "astral_world:item/card_arbiter_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1022
+   },
+   "model": "astral_world:item/card_arbiter_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1023
+   },
+   "model": "astral_world:item/card_arbiter_2_shiny"
+  },
+  {
+   "predicate": {
     "astral_world:card": 1024
    },
    "model": "astral_world:item/card_arbiter_3_shiny"
@@ -1245,6 +1659,24 @@
     "astral_world:card": 1030
    },
    "model": "astral_world:item/card_arbiter_9_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1031
+   },
+   "model": "astral_world:item/card_assassin_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1032
+   },
+   "model": "astral_world:item/card_assassin_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1033
+   },
+   "model": "astral_world:item/card_assassin_2_shiny"
   },
   {
    "predicate": {
@@ -1332,6 +1764,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1041
+   },
+   "model": "astral_world:item/card_bard_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1042
+   },
+   "model": "astral_world:item/card_bard_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1043
+   },
+   "model": "astral_world:item/card_bard_2_shiny"
+  },
+  {
+   "predicate": {
     "astral_world:card": 1044
    },
    "model": "astral_world:item/card_bard_3_shiny"
@@ -1413,6 +1863,24 @@
     "astral_world:card": 1050
    },
    "model": "astral_world:item/card_bard_9_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1051
+   },
+   "model": "astral_world:item/card_corpse_collector_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1052
+   },
+   "model": "astral_world:item/card_corpse_collector_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1053
+   },
+   "model": "astral_world:item/card_corpse_collector_2_shiny"
   },
   {
    "predicate": {
@@ -1500,6 +1968,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1061
+   },
+   "model": "astral_world:item/card_criminal_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1062
+   },
+   "model": "astral_world:item/card_criminal_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1063
+   },
+   "model": "astral_world:item/card_criminal_2_shiny"
+  },
+  {
+   "predicate": {
     "astral_world:card": 1064
    },
    "model": "astral_world:item/card_criminal_3_shiny"
@@ -1581,6 +2067,24 @@
     "astral_world:card": 1070
    },
    "model": "astral_world:item/card_criminal_9_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1071
+   },
+   "model": "astral_world:item/card_hunter_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1072
+   },
+   "model": "astral_world:item/card_hunter_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1073
+   },
+   "model": "astral_world:item/card_hunter_2_shiny"
   },
   {
    "predicate": {
@@ -1668,6 +2172,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1081
+   },
+   "model": "astral_world:item/card_lawyer_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1082
+   },
+   "model": "astral_world:item/card_lawyer_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1083
+   },
+   "model": "astral_world:item/card_lawyer_2_shiny"
+  },
+  {
+   "predicate": {
     "astral_world:card": 1084
    },
    "model": "astral_world:item/card_lawyer_3_shiny"
@@ -1749,6 +2271,24 @@
     "astral_world:card": 1090
    },
    "model": "astral_world:item/card_lawyer_9_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1091
+   },
+   "model": "astral_world:item/card_marauder_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1092
+   },
+   "model": "astral_world:item/card_marauder_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1093
+   },
+   "model": "astral_world:item/card_marauder_2_shiny"
   },
   {
    "predicate": {
@@ -1836,6 +2376,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1101
+   },
+   "model": "astral_world:item/card_monster_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1102
+   },
+   "model": "astral_world:item/card_monster_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1103
+   },
+   "model": "astral_world:item/card_monster_2_shiny"
+  },
+  {
+   "predicate": {
     "astral_world:card": 1104
    },
    "model": "astral_world:item/card_monster_3_shiny"
@@ -1917,6 +2475,24 @@
     "astral_world:card": 1110
    },
    "model": "astral_world:item/card_monster_9_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1111
+   },
+   "model": "astral_world:item/card_mystery_pryer_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1112
+   },
+   "model": "astral_world:item/card_mystery_pryer_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1113
+   },
+   "model": "astral_world:item/card_mystery_pryer_2_shiny"
   },
   {
    "predicate": {
@@ -2004,6 +2580,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1121
+   },
+   "model": "astral_world:item/card_planter_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1122
+   },
+   "model": "astral_world:item/card_planter_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1123
+   },
+   "model": "astral_world:item/card_planter_2_shiny"
+  },
+  {
+   "predicate": {
     "astral_world:card": 1124
    },
    "model": "astral_world:item/card_planter_3_shiny"
@@ -2088,6 +2682,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1131
+   },
+   "model": "astral_world:item/card_prisoner_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1132
+   },
+   "model": "astral_world:item/card_prisoner_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1133
+   },
+   "model": "astral_world:item/card_prisoner_2_shiny"
+  },
+  {
+   "predicate": {
     "astral_world:card": 1134
    },
    "model": "astral_world:item/card_prisoner_3_shiny"
@@ -2169,6 +2781,24 @@
     "astral_world:card": 1140
    },
    "model": "astral_world:item/card_prisoner_9_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1141
+   },
+   "model": "astral_world:item/card_reader_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1142
+   },
+   "model": "astral_world:item/card_reader_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1143
+   },
+   "model": "astral_world:item/card_reader_2_shiny"
   },
   {
    "predicate": {
@@ -2358,6 +2988,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1161
+   },
+   "model": "astral_world:item/card_savant_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1162
+   },
+   "model": "astral_world:item/card_savant_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1163
+   },
+   "model": "astral_world:item/card_savant_2_shiny"
+  },
+  {
+   "predicate": {
     "astral_world:card": 1164
    },
    "model": "astral_world:item/card_savant_3_shiny"
@@ -2439,6 +3087,24 @@
     "astral_world:card": 1170
    },
    "model": "astral_world:item/card_savant_9_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1171
+   },
+   "model": "astral_world:item/card_secrets_supplicant_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1172
+   },
+   "model": "astral_world:item/card_secrets_supplicant_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1173
+   },
+   "model": "astral_world:item/card_secrets_supplicant_2_shiny"
   },
   {
    "predicate": {
@@ -2628,6 +3294,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1191
+   },
+   "model": "astral_world:item/card_sleepless_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1192
+   },
+   "model": "astral_world:item/card_sleepless_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1193
+   },
+   "model": "astral_world:item/card_sleepless_2_shiny"
+  },
+  {
+   "predicate": {
     "astral_world:card": 1194
    },
    "model": "astral_world:item/card_sleepless_3_shiny"
@@ -2712,6 +3396,24 @@
   },
   {
    "predicate": {
+    "astral_world:card": 1201
+   },
+   "model": "astral_world:item/card_spectator_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1202
+   },
+   "model": "astral_world:item/card_spectator_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1203
+   },
+   "model": "astral_world:item/card_spectator_2_shiny"
+  },
+  {
+   "predicate": {
     "astral_world:card": 1204
    },
    "model": "astral_world:item/card_spectator_3_shiny"
@@ -2793,6 +3495,24 @@
     "astral_world:card": 1210
    },
    "model": "astral_world:item/card_spectator_9_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1211
+   },
+   "model": "astral_world:item/card_warrior_0_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1212
+   },
+   "model": "astral_world:item/card_warrior_1_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 1213
+   },
+   "model": "astral_world:item/card_warrior_2_shiny"
   },
   {
    "predicate": {

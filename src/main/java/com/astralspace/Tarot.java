@@ -65,7 +65,7 @@ public final class Tarot {
 
     /** Which designed icon a card has: 0 for none (the plain rarity swatch), else pathway*10+seq+1. Has to match the overrides in tarot_card.json. */
     /** Pathways with animated cards for Seq 2, 1 and 0. */
-    public static final java.util.Set<String> ANIMATED = java.util.Set.of("sailor", "seer");
+    public static final java.util.Set<String> ANIMATED = java.util.Set.of(PATHWAYS);
     public static boolean hasAnim(String p, int q) { return q >= 0 && q <= 2 && ANIMATED.contains(p); }
 
     public static int cardIndex(ItemStack s) {

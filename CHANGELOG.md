@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.98
+- Animated Seq 2, 1 and 0 cards for every pathway (Seer, Sailor and Warrior were already done, this adds the other 19), each with its own scene, plus an animated black and gold shiny version of each. Every scene is made from that pathway's own theme (Moon: petals and a huge moon, Door: floating portals and a key of stars, Justiciar: scales and golden light, Sun: a blazing sun, Death: ghosts and a soul vortex, Abyss: red cracks and eyes, Mother: a glowing tree, Chained: swaying chains, Paragon: a clockwork of gears, and so on), with a finale at the end of each loop. They show in pack openings and the card viewer, and as a still in the inventory.
+- The mod download is much bigger because of the new animation sheets.
+
 ## 0.2.97
 - Seer Seq 2, 1 and 0 are now animated cards (and animated black and gold shiny versions), each with its own scene. Seq 2 Miracle Invoker: a violet night sky where constellations draw themselves between the stars, with meteors, and a finale where they all blaze gold. Seq 1 Attendant of Mysteries: a dark fog vortex behind two turning rune rings, with eyes opening and closing around the emblem. Seq 0 Fool: grey fog with six small coloured lights drifting in it and twelve tarot cards orbiting the emblem. Their inventory icons show a still of the animation.
 
