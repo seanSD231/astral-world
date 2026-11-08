@@ -26,8 +26,8 @@ public final class PartyItems {
     private PartyItems() {}
 
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(AstralMod.MOD_ID);
-    public static final DeferredItem<Item> POPPER = ITEMS.register("confetti_popper", () -> new Popper(new Item.Properties().stacksTo(1)));
-    public static final DeferredItem<Item> WAND = ITEMS.register("bubble_wand", () -> new Wand(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<Item> POPPER = ITEMS.register("confetti_popper", () -> new Popper(new Item.Properties().durability(10)));
+    public static final DeferredItem<Item> WAND = ITEMS.register("bubble_wand", () -> new Wand(new Item.Properties().durability(100)));
 
     public static final DeferredRegister<ParticleType<?>> PARTICLES = DeferredRegister.create(Registries.PARTICLE_TYPE, AstralMod.MOD_ID);
     public static final Supplier<SimpleParticleType> CONFETTI = PARTICLES.register("confetti", () -> new SimpleParticleType(false));
@@ -62,6 +62,7 @@ public final class PartyItems {
             }
             player.getCooldowns().addCooldown(this, 20);
             player.swing(hand);
+            if (level instanceof ServerLevel && !player.getAbilities().instabuild) stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
             return InteractionResultHolder.success(stack);
         }
     }
@@ -82,6 +83,10 @@ public final class PartyItems {
         public void onUseTick(Level level, LivingEntity user, ItemStack stack, int remaining) {
             if (!(level instanceof ServerLevel lv)) return;
             int t = getUseDuration(stack, user) - remaining;
+            if (t > 0 && t % 20 == 0 && !(user instanceof Player pl && pl.getAbilities().instabuild)) {
+                stack.hurtAndBreak(1, user, LivingEntity.getSlotForHand(user.getUsedItemHand()));
+                if (stack.isEmpty()) { user.stopUsingItem(); return; }
+            }
             if (t % 2 != 0) return;
             Vec3 look = user.getLookAngle(), from = user.getEyePosition().add(look.scale(.9)).add(0, -.25, 0);
             java.util.Random r = new java.util.Random();
