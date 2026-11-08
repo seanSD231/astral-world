@@ -74,6 +74,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private float rx, ry, rz, ux, uy, uz;   // camera right and up (world space)
     private int col1, col2;
     private float t;
+    private int curPath;
+    private boolean e_shiny;
 
     private static float h(int i, int salt) {
         double v = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453;
@@ -148,6 +150,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         Vector3f left = cam.getLeftVector(), up = cam.getUpVector();
         rx = -left.x; ry = -left.y; rz = -left.z; ux = up.x; uy = up.y; uz = up.z;
 
+        curPath = pi; e_shiny = shiny;
         Cfg c = CFG[Math.min(pi, CFG.length - 1)];
         col1 = shiny ? 0xFFD040 : c.c1; col2 = shiny ? 0xFFF4B0 : c.c2;
         if (seq >= 4) rare(c, seq);
@@ -223,9 +226,10 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
 
     private void legendary(Cfg c, boolean myth) {
-        float s = myth ? 1.7f : 1.15f;                  // overall scale
-        float top = (myth ? 7.5f : 5.2f);
-        float cy = (myth ? 3.2f : 2.3f) + (float) Math.sin(t * 1.3) * .1f * s;
+        if (curPath == 15) { sailor(myth); return; }
+        float s = myth ? 2.2f : 1.5f;                  // overall scale
+        float top = (myth ? 11f : 7.5f);
+        float cy = (myth ? 4.5f : 3.2f) + (float) Math.sin(t * 1.3) * .1f * s;
         float pulse = .7f + .3f * (float) Math.sin(t * 2.2);
         int ex = c.extras;
 
@@ -316,6 +320,97 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             float wv = fract(t * .35f);
             flat("ring", 0, .1f, 0, wv * 9f, 0, rgba(col1, (1 - wv) * .8f));
             bb("ring", 0, cy, 0, wv * 6f, wv * 6f, 0, rgba(0xFFFFFF, (1 - wv) * .5f));
+        }
+    }
+
+    // ---------------- Sailor / Tyrant: a hand-built storm ----------------
+    private void sailor(boolean myth) {
+        float R = myth ? 11f : 7f, top = myth ? 16f : 10f, s = myth ? 2.1f : 1.4f;
+        float cy = (myth ? 5.5f : 3.8f) + (float) Math.sin(t * 1.2) * .12f * s;
+        int sea = 0x40B8FF, foam = 0xC8F0FF, gold = 0xFFE860;
+        if (e_shiny) { sea = 0xFFC030; foam = 0xFFF0A0; gold = 0xFFFFFF; }
+        // lightning schedule first, because the whole scene brightens with it
+        int nb = myth ? 5 : 3;
+        float flash = 0;
+        float[] bi = new float[nb];
+        for (int i = 0; i < nb; i++) {
+            float period = 1.1f + .23f * i, q = t / period + h(i, 9);
+            float ph = fract(q);
+            float v = ph < .07f ? 1f : ph < .12f ? .25f : ph < .17f ? .9f : ph < .22f ? .4f * (1 - (ph - .17f) / .05f) : 0f;
+            bi[i] = v; flash = Math.max(flash, v);
+        }
+        // whirlpool on the ground and a waterspout funnel
+        flat("whirl", 0, .06f, 0, 2f * R, t * .6f, rgba(sea, .85f));
+        flat("whirl", 0, .08f, 0, 1.3f * R, -t * 1.0f, rgba(foam, .6f));
+        flat("ring_thick", 0, .09f, 0, 2f * R * .98f, t * .1f, rgba(foam, .6f));
+        flat("ring_dash", 0, .10f, 0, 1.5f * R, -t * .3f, rgba(gold, .6f));
+        for (int j = 0; j < 7; j++) {
+            float y = .3f + j * (cy - .3f) / 7f;
+            float size = R * (1.05f - j * .13f);
+            flat("whirl", 0, y, 0, size, t * (.9f + j * .12f) * (j % 2 == 0 ? 1 : -1), rgba(sea, .3f));
+        }
+        float pw = fract(t * .3f);
+        flat("ring", 0, .12f, 0, pw * 2.2f * R, 0, rgba(foam, (1 - pw) * .7f));
+        // storm clouds that light up with every strike
+        int nc = myth ? 18 : 11;
+        for (int i = 0; i < nc; i++) {
+            float a = t * .05f + i * TAU / nc, rr = R * (.35f + .45f * h(i, 11));
+            float lit = .28f + flash * .5f;
+            bb("cloud", (float) Math.cos(a) * rr, top + h(i, 12) * 1.5f, (float) Math.sin(a) * rr, R * (.9f + h(i, 13) * .6f), R * .55f, 0, rgba(mix(0x5A7AA8, 0xFFFFFF, flash * .6f), lit));
+        }
+        // rain sheets
+        int nr = myth ? 320 : 170;
+        for (int i = 0; i < nr; i++) {
+            float p = fract(t * (.9f + h(i, 3) * .5f) + h(i, 1));
+            float a = h(i, 2) * TAU, rr = (float) Math.sqrt(h(i, 4)) * R * .95f;
+            float y = top * (1 - p);
+            column("streak", (float) Math.cos(a) * rr, y - 1.3f * s, y, (float) Math.sin(a) * rr, .1f * s, rgba(foam, .55f));
+        }
+        // waves rising out of the whirlpool
+        int nw = myth ? 14 : 9;
+        for (int ring = 0; ring < (myth ? 2 : 1); ring++)
+            for (int i = 0; i < nw; i++) {
+                float a = (ring == 0 ? t * .32f : -t * .22f) + i * TAU / nw + ring * .3f;
+                float rad = R * (ring == 0 ? .6f : .88f);
+                float hgt = (1.9f + .6f * (float) Math.sin(t * 1.4f + i * 1.7f)) * s * (ring == 0 ? 1f : 1.35f);
+                stand("wave", (float) Math.cos(a) * rad, hgt / 2, (float) Math.sin(a) * rad, hgt * 2f, hgt, a + 1.5708f, rgba(mix(sea, foam, .25f), .75f));
+            }
+        // lightning strikes
+        for (int i = 0; i < nb; i++) {
+            float v = bi[i]; if (v <= 0) continue;
+            int k = (int) Math.floor(t / (1.1f + .23f * i) + h(i, 9));
+            float a = h(k * 7 + i, 21) * TAU, rr = (.1f + .75f * h(k * 5 + i, 22)) * R;
+            float x = (float) Math.cos(a) * rr, z = (float) Math.sin(a) * rr;
+            boolean mir = (k & 1) == 0;
+            float bw = top * .16f * (mir ? -1 : 1);
+            column(i % 2 == 0 ? "bolt" : "bolt2", x, .05f, top + .5f, z, bw, rgba(0xFFFFFF, v));
+            column(i % 2 == 0 ? "bolt" : "bolt2", x, .05f, top + .5f, z, bw * 1.8f, rgba(sea, v * .45f));
+            bb("glow", x, .4f, z, 5f * s, 5f * s, 0, rgba(0xFFFFFF, v * .9f));
+            flat("ring", x, .14f, z, (1.2f - v * .4f + (1 - v) * 3f) * s, 0, rgba(foam, v));
+        }
+        // the trident
+        float th = (myth ? 8.5f : 5.2f);
+        bb("whirl", 0, cy, 0, th * 1.5f, th * 1.5f, t * .8f, rgba(sea, .55f));
+        bb("corona", 0, cy, 0, th * 1.4f, th * 1.4f, -t * .3f, rgba(gold, .6f + flash * .3f));
+        bb("glow", 0, cy, 0, th * 1.1f, th * 1.1f, 0, rgba(sea, .5f));
+        stand("trident", 0, cy, 0, th * .5f, th, t * .8f, rgba(mix(gold, 0xFFFFFF, .5f), 1f));
+        column("beam", 0, .05f, cy - th / 2f, 0, .7f * s, rgba(sea, .55f));
+        for (int i = 0; i < 3; i++) {   // arcs from the prongs up into the clouds
+            float ph = fract(t * 2.3f + i * .37f);
+            if (ph < .35f) column(i % 2 == 0 ? "bolt2" : "bolt", (i - 1) * .55f * s, cy + th * .45f, top, 0, top * .1f * (i % 2 == 0 ? 1 : -1), rgba(gold, (1 - ph / .35f) * .8f));
+        }
+        // droplets spiralling up the funnel
+        int nd = myth ? 60 : 36;
+        for (int i = 0; i < nd; i++) {
+            float p = fract(t * .22f + h(i, 5));
+            float a = h(i, 6) * TAU + p * 8f, rr = R * (.55f - .45f * p) * (.6f + .4f * h(i, 7));
+            float sz = (.3f + .3f * h(i, 8)) * s;
+            bb("drop", (float) Math.cos(a) * rr, p * cy * 1.4f, (float) Math.sin(a) * rr, sz * .6f, sz, 0, rgba(foam, (float) Math.sin(p * Math.PI) * .9f));
+        }
+        // mist hugging the water
+        for (int i = 0; i < 10; i++) {
+            float a = t * .1f + i * TAU / 10;
+            bb("fog", (float) Math.cos(a) * R * .55f, .8f * s, (float) Math.sin(a) * R * .55f, 4f * s, 2f * s, 0, rgba(foam, .3f));
         }
     }
 }

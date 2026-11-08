@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.110
+- Sailor (Tyrant) Legendary and Mythic holograms rebuilt as a real storm: a whirlpool and waterspout on the ground, rising wave crests, rain sheets, storm clouds that light up, jagged lightning strikes, and a big spinning trident. All Legendary and Mythic holograms are now much bigger. Not tested in game.
+
 ## 0.2.109
 - Fixed the holograms showing as solid white squares: the glow textures and fades are now pre-darkened because the glow blend ignores transparency. Not tested in game.
 
