@@ -46,7 +46,7 @@ public final class PackScreen extends Screen {
         }
         // load every card's art now, while the pack is still closed, so nothing has to load (and stall the screen) when a card is flipped
         var tm = net.minecraft.client.Minecraft.getInstance().getTextureManager();
-        for (int i = 0; i < path.length; i++) { if (seq[i] >= 1 || Tarot.hasAnim(path[i], seq[i])) tm.getTexture(artTex(i)); tm.getTexture(tex("back_" + path[i])); }
+        for (int i = 0; i < path.length; i++) { if (seq[i] >= 0 || Tarot.hasAnim(path[i], seq[i])) tm.getTexture(artTex(i)); tm.getTexture(tex("back_" + path[i])); }
         tm.getTexture(tex("shiny_foil"));
         for (String n : new String[]{"shine_common", "shine_rare", "shine_epic", "shine_legendary", "shine_mythic"}) tm.getTexture(tex(n));
         for (int i = 0; i < path.length; i++) tm.getTexture(tex("front_" + RARITY[rarity(seq[i])]));
@@ -140,12 +140,13 @@ public final class PackScreen extends Screen {
         g.blit(tex("shiny_foil"), x, y, w, h, (f / 40) * 240f, (f % 40) * 360f, 240, 360, 480, 360 * 40);
     }
 
-    /** Designed card art exists for Seq 9 to 1 of every pathway as a still, and Seq 0 is an animation (50 frames, 5 per second, 5 columns of 10). */
+    /** Designed card art exists for Seq 9 to 0 of every pathway as a still (Seq 0 is 480x720, the rest 240x360). */
     private ResourceLocation artTex(int i) { return tex("card_" + path[i] + "_" + seq[i] + (Tarot.hasAnim(path[i], seq[i]) ? "_anim" : "") + (shiny[i] ? "_shiny" : "")); }
 
     private boolean drawArt(GuiGraphics g, int i, int x, int y, int w, int h) {
-        if (seq[i] >= 1) {
-            g.blit(tex("card_" + path[i] + "_" + seq[i] + (shiny[i] ? "_shiny" : "")), x, y, w, h, 0, 0, 240, 360, 240, 360);
+        if (seq[i] >= 0) {
+            int tw = seq[i] == 0 ? 480 : 240, th = seq[i] == 0 ? 720 : 360;
+            g.blit(tex("card_" + path[i] + "_" + seq[i] + (shiny[i] ? "_shiny" : "")), x, y, w, h, 0, 0, tw, th, tw, th);
             return true;
         }
         if (Tarot.hasAnim(path[i], seq[i])) {

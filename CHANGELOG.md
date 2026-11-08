@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.106
+- New Seq 0 (Mythic) cards for all 22 pathways, normal and shiny, in the same style as Seq 9 to 1 but over the top: a huge glowing symbol, rings of gold, a spiked crown halo, tinted glass petals, four tiers of wings, rune medallions and a lotus pedestal. They are 480x720, twice the size of the other cards.
+- Darkness, Hanged Man, Abyss, Black Emperor and Chained are dark and muted, and Death is a bit less dark.
+- Seq 0 is no longer animated, so no cards are animated now. The resources are about 45 MB, down from 88 MB.
+- Nothing here is tested in game.
+
 ## 0.2.105
 - New static art for every pathway's Seq 2 and Seq 1 cards (22 pathways, normal and shiny): Seq 2 has wings, a rune ring and a nameplate; Seq 1 has bigger wings, a sun-crown halo and a laurel banner. Only Seq 0 is animated now.
 - Removed the animated Seq 2/1 sheets, which cuts about 32 MB from the mod's resources.

@@ -64,15 +64,15 @@ public final class Tarot {
     }
 
     /** Which designed icon a card has: 0 for none (the plain rarity swatch), else pathway*10+seq+1. Has to match the overrides in tarot_card.json. */
-    /** Pathways with an animated card for Seq 0 (Seq 9 to 1 are static art). */
+    /** Nothing is animated any more: every card, Seq 9 to 0, is a still. Seq 0 cards are 480x720, the rest 240x360. */
     public static final java.util.Set<String> ANIMATED = java.util.Set.of(PATHWAYS);
-    public static boolean hasAnim(String p, int q) { return q == 0 && ANIMATED.contains(p); }
+    public static boolean hasAnim(String p, int q) { return false; }
 
     public static int cardIndex(ItemStack s) {
         CompoundTag t = s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         if (!t.contains("pathway")) return 0;
         String p = t.getString("pathway"); int q = t.getInt("seq");
-        if (!(q >= 1 && q <= 9 || hasAnim(p, q))) return 0;
+        if (!(q >= 0 && q <= 9 || hasAnim(p, q))) return 0;
         for (int i = 0; i < PATHWAYS.length; i++) if (PATHWAYS[i].equals(p)) return (t.getBoolean("shiny") ? 1000 : 0) + i * 10 + q + 1;   // shiny cards (Seq 9 to 3) have their own black and gold art
         return 0;
     }
