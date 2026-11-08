@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.102
+- Monster cards are now grey/silver instead of green (static Seq 9-3, animated and shiny Seq 2/1/0). Untested in game.
+
 ## 0.2.101
 - The weekly pack menu asks you to confirm your picks (a list of what you chose, with Confirm and Back) before you take the packs.
 - Corpse Collector's pack is green now, Prisoner's is more purple and Savant's is more orange.
