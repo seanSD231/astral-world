@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.111
+- Every pathway now has its own hand-built Legendary and Mythic hologram scene instead of the shared recipe (Moon, Door, Justiciar, Demoness, Sun, Death, Abyss, Red Priest, Black Emperor, Error, Wheel of Fortune, Hermit, Mother, Chained, White Tower, Paragon, Hanged Man, Fool, Darkness, Visionary, Twilight Giant; Tyrant already had one). Same large scale as the Sailor storm. Not tested in game, expect tuning.
+
 ## 0.2.110
 - Sailor (Tyrant) Legendary and Mythic holograms rebuilt as a real storm: a whirlpool and waterspout on the ground, rising wave crests, rain sheets, storm clouds that light up, jagged lightning strikes, and a big spinning trident. All Legendary and Mythic holograms are now much bigger. Not tested in game.
 
