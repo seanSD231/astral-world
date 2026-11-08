@@ -789,7 +789,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         this.t = (e.tickCount + pt) / 20f;
         clear(); strans = false;
         boolean symOnly = e.symbolOnly();
-        if (!symOnly) drawCard(e, bufs, light, pi, seq, shiny);
+        drawCard(e, bufs, light, pi, seq, shiny);
         if (seq >= 6 && !symOnly) return;
 
         Camera cam = Minecraft.getInstance().gameRenderer.getMainCamera();
@@ -980,10 +980,10 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         strikes(2, R, top, P3);
     }
 
-    /** Crouch-placed: just the pathway symbol, floating and glowing, no card and no scene. */
+    /** Crouch-placed: the card lies there with its pathway symbol floating above it, no scene. */
     private void symbolOnly() {
         float bob = (float) Math.sin(t * 1.6f) * .06f;
-        flat("ring", 0, .05f, 0, .9f, t * .5f, rgba(P2, .9f));
+        flat("ring", 0, .05f, 0, 1.4f, t * .5f, rgba(P2, .9f));
         bb("glow", 0, .85f + bob, 0, 1.7f, 1.7f, 0, rgba(P1, .3f));
         symPlane(curPath, 0, .85f + bob, 0, 1.1f, -face + (float) Math.sin(t * .5f) * .5f, 1f);
         for (int i = 0; i < 4; i++) { float p = fract(t * .3f + i * .25f); bb("mote", (float) Math.cos(i * 1.6f + t) * .5f, p * 1.4f, (float) Math.sin(i * 1.6f + t) * .5f, .1f, .1f, 0, rgba(P1, fd(p))); }

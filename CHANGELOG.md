@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.121
+- Crouch-placing a card now leaves the card on the ground with its pathway symbol floating above it (no hologram scene). Not tested in game.
+
 ## 0.2.120
 - Great Old Ones: a new rarity above Mythic, nine cards, one for each group of pathways: Lord of Mysteries, God Almighty, Eternal Darkness, Calamity of Destruction, Demon of Knowledge, Key of Light, Goddess of Origin, Father of Devils and The Anarchy. Each card shows its group's pathway symbols together under a crown. Pack drop: 0.1% per card in normal and shiny packs, 0.5% in rainbow packs, and a pack's own group counts 5x. Each has its own very large hologram scene with a dome. They are in the Astral Cards creative tab and /astralcards gives a white shulker box of all nine. Crouch-placing one shows just its symbol. Not tested in game.
 
