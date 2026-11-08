@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.103
+- Confetti popper fires about 4x more confetti in a slightly wider cone. Untested in game.
+
 ## 0.2.102
 - Monster cards are now grey/silver instead of green (static Seq 9-3, animated and shiny Seq 2/1/0). Untested in game.
 
