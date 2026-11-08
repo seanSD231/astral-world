@@ -27,5 +27,18 @@ public final class AstralTab {
                 out.accept(AstralFloor.CABINET_ITEM.get());
             }).build());
 
+    /** Every tarot card, Seq 9 to 0, normal and shiny, grouped by pathway. */
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> CARDS = TABS.register("cards", () -> CreativeModeTab.builder()
+            .title(Component.translatable("itemGroup.astral_world.cards"))
+            .icon(() -> Tarot.makeCard("sailor", 0, true))
+            .withTabsBefore(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "main"))
+            .displayItems((params, out) -> {
+                for (String p : Tarot.PATHWAYS)
+                    for (int seq = 9; seq >= 0; seq--) {
+                        out.accept(Tarot.makeCard(p, seq, false));
+                        out.accept(Tarot.makeCard(p, seq, true));
+                    }
+            }).build());
+
     public static void register(IEventBus modBus) { TABS.register(modBus); }
 }

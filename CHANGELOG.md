@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.113
+- New creative tab "Astral Cards" with every tarot card (all 22 pathways, Seq 9 to 0, normal and shiny: 440 cards). Not tested in game.
+
 ## 0.2.112
 - Pack rates: rainbow packs now roll Epic 75%, Legendary 20%, Mythic 5% per card. All shiny chances halved (Common 2.5%, Uncommon 5%, Rare 5%, Epic 7.5%, Legendary 10%, Mythic 20%). Not tested in game.
 

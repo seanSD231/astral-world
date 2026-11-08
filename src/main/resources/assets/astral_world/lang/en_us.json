@@ -72,5 +72,6 @@
   "item.astral_world.spectator_shiny_pack": "Spectator Shiny Tarot Pack",
   "item.astral_world.warrior_rainbow_pack": "Warrior Rainbow Tarot Pack",
   "item.astral_world.warrior_shiny_pack": "Warrior Shiny Tarot Pack",
-  "itemGroup.astral_world.main": "Astral World"
+  "itemGroup.astral_world.main": "Astral World",
+  "itemGroup.astral_world.cards": "Astral Cards"
 }
