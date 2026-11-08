@@ -96,6 +96,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         VertexConsumer vc = buf.getBuffer(RenderType.eyes(tex(tex)));
         int a = (argb >> 24) & 255, r = (argb >> 16) & 255, g = (argb >> 8) & 255, b = argb & 255;
         if (a <= 2) return;
+        r = r * a / 255; g = g * a / 255; b = b * a / 255;   // the glow blend ignores alpha, so fade by darkening
         float[][] p = {
             {cx - ax - bx, cy - ay - by, cz - az - bz}, {cx + ax - bx, cy + ay - by, cz + az - bz},
             {cx + ax + bx, cy + ay + by, cz + az + bz}, {cx - ax + bx, cy - ay + by, cz - az + bz}};

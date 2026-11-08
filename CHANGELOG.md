@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.109
+- Fixed the holograms showing as solid white squares: the glow textures and fades are now pre-darkened because the glow blend ignores transparency. Not tested in game.
+
 ## 0.2.108
 - Placed tarot cards: right-click the top of a block with a card to put it down; right-click it again to pick it up. Rare and better cards (Seq 5 and up) show a custom-drawn hologram above them (no vanilla particles): Rare is a small spinning symbol, Epic adds a beam, a ring of rune medallions and orbiting props, Legendary and Mythic are full scenes with a recipe per pathway (symbol, props, ambient motion and extras such as wings, chains, lightning, clouds, rays). Shiny cards glow gold. Everyone nearby sees it. Not tested in game, the visuals will likely need tuning.
 
