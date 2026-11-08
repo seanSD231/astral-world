@@ -71,7 +71,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private static float fract(float v) { return v - (float) Math.floor(v); }
     private static float fd(float p) { return Math.min(1f, 2.2f * (float) Math.sin(p * Math.PI)); }   // fade in and out, mostly fully visible
     private static int rgba(int rgb, float a) {
-        int al = Math.max(0, Math.min(255, (int) (Math.min(1f, a * 1.25f) * 255)));
+        int al = Math.max(0, Math.min(255, (int) (Math.min(1f, a * 1.7f) * 255)));
         return (al << 24) | (rgb & 0xFFFFFF);
     }
     private static int mix(int a, int b, float f) {
@@ -141,6 +141,153 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float hy = (y1 - y0) / 2, cy = (y0 + y1) / 2;
         quad(tex, x, cy, z, w / 2, 0, 0, 0, hy, 0, argb);
         quad(tex, x, cy, z, 0, 0, w / 2, 0, hy, 0, argb);
+    }
+
+    // ================= solid glowing quads (symbols, panels) and LOTM models =================
+    private void eq(ResourceLocation rl, float cx, float cy, float cz, float ax, float ay, float az, float bx, float by, float bz, int argb, float u0, float v0, float u1, float v1) {
+        int a = (argb >> 24) & 255, r = (argb >> 16) & 255, g = (argb >> 8) & 255, b = argb & 255;
+        if (a <= 2) return;
+        VertexConsumer vc = buf.getBuffer(RenderType.entityTranslucentEmissive(rl));
+        float[][] p = {
+            {cx - ax - bx, cy - ay - by, cz - az - bz}, {cx + ax - bx, cy + ay - by, cz + az - bz},
+            {cx + ax + bx, cy + ay + by, cz + az + bz}, {cx - ax + bx, cy - ay + by, cz - az + bz}};
+        float[][] uv = {{u0, v1}, {u1, v1}, {u1, v0}, {u0, v0}};
+        for (int side = 0; side < 2; side++)
+            for (int k = 0; k < 4; k++) {
+                int i = side == 0 ? k : 3 - k;
+                vc.addVertex(mat, p[i][0], p[i][1], p[i][2]).setColor(r, g, b, a).setUv(uv[i][0], uv[i][1])
+                  .setOverlay(OverlayTexture.NO_OVERLAY).setLight(LIGHT).setNormal(0, 1, 0);
+            }
+    }
+    private ResourceLocation symRL() { return ResourceLocation.fromNamespaceAndPath("astral_world", "textures/gui/tarot/sym_" + Tarot.PATHWAYS[curPath] + ".png"); }
+    /** The pathway symbol: one solid, bright plane, turned by yaw. */
+    private void symPlane(int path, float x, float y, float z, float size, float yaw, float alpha) {
+        float c = (float) Math.cos(yaw) * size / 2, s = (float) Math.sin(yaw) * size / 2;
+        int tint = gold ? 0xFFDD66 : 0xFFFFFF;
+        eq(ResourceLocation.fromNamespaceAndPath("astral_world", "textures/gui/tarot/sym_" + Tarot.PATHWAYS[path] + ".png"), x, y, z, c, 0, s, 0, size / 2, 0,
+           (Math.max(0, Math.min(255, (int) (alpha * 255))) << 24) | tint, 0, 0, 1, 1);
+    }
+    /** Solid glowing panel using one of the holo textures. */
+    private void panel(String name, float x, float y, float z, float w, float hgt, float yaw, int argb) {
+        float c = (float) Math.cos(yaw) * w / 2, s = (float) Math.sin(yaw) * w / 2;
+        eq(tex(name), x, y, z, c, 0, s, 0, hgt / 2, 0, argb, 0, 0, 1, 1);
+    }
+
+    /** A model out of the LOTM mod (Bedrock .geo.json), loaded from its resources. Missing mod or model: draws nothing. */
+    private static final class Geo {
+        final java.util.List<float[]> q = new java.util.ArrayList<>();
+        float minX = 1e9f, maxX = -1e9f, minY = 1e9f, maxY = -1e9f, minZ = 1e9f, maxZ = -1e9f;
+    }
+    private static final Map<String, Geo> GEOS = new HashMap<>();
+    private static Geo geo(String name) {
+        if (GEOS.containsKey(name)) return GEOS.get(name);
+        Geo g = null;
+        try {
+            var res = Minecraft.getInstance().getResourceManager().getResource(ResourceLocation.fromNamespaceAndPath("lotm", "geo/" + name + ".geo.json"));
+            if (res.isPresent()) {
+                try (java.io.Reader r = new java.io.InputStreamReader(res.get().open(), java.nio.charset.StandardCharsets.UTF_8)) {
+                    g = parseGeo(com.google.gson.JsonParser.parseReader(r).getAsJsonObject());
+                }
+            }
+        } catch (Throwable ex) { g = null; }
+        GEOS.put(name, g);
+        return g;
+    }
+    private static float[] arr(com.google.gson.JsonObject o, String k, float d) {
+        float[] r = {d, d, d};
+        if (o.has(k) && o.get(k).isJsonArray()) { var a = o.getAsJsonArray(k); for (int i = 0; i < 3 && i < a.size(); i++) r[i] = a.get(i).getAsFloat(); }
+        return r;
+    }
+    private static Matrix4f boneM(String n, Map<String, com.google.gson.JsonObject> bm, Map<String, Matrix4f> cache) {
+        if (cache.containsKey(n)) return cache.get(n);
+        com.google.gson.JsonObject b = bm.get(n);
+        Matrix4f m = new Matrix4f();
+        if (b.has("parent") && bm.containsKey(b.get("parent").getAsString())) m.set(boneM(b.get("parent").getAsString(), bm, cache));
+        float[] pv = arr(b, "pivot", 0), ro = arr(b, "rotation", 0);
+        m.translate(-pv[0], pv[1], pv[2]).rotateZ((float) Math.toRadians(ro[2])).rotateY((float) Math.toRadians(-ro[1])).rotateX((float) Math.toRadians(-ro[0])).translate(pv[0], -pv[1], -pv[2]);
+        cache.put(n, m);
+        return m;
+    }
+    private static Geo parseGeo(com.google.gson.JsonObject root) {
+        com.google.gson.JsonObject go = root.getAsJsonArray("minecraft:geometry").get(0).getAsJsonObject();
+        com.google.gson.JsonObject desc = go.getAsJsonObject("description");
+        float tw = desc.get("texture_width").getAsFloat(), th = desc.get("texture_height").getAsFloat();
+        Map<String, com.google.gson.JsonObject> bm = new HashMap<>();
+        for (var e : go.getAsJsonArray("bones")) bm.put(e.getAsJsonObject().get("name").getAsString(), e.getAsJsonObject());
+        Map<String, Matrix4f> cache = new HashMap<>();
+        Geo g = new Geo(); Vector3f tmp = new Vector3f();
+        for (var be : bm.entrySet()) {
+            com.google.gson.JsonObject b = be.getValue();
+            if (!b.has("cubes")) continue;
+            Matrix4f bmx = boneM(be.getKey(), bm, cache);
+            for (var ce : b.getAsJsonArray("cubes")) {
+                com.google.gson.JsonObject c = ce.getAsJsonObject();
+                if (!c.has("uv") || !c.has("origin") || !c.has("size")) continue;
+                float[] o = arr(c, "origin", 0), sz = arr(c, "size", 0), cp = arr(c, "pivot", 0), cr = arr(c, "rotation", 0);
+                float inf = c.has("inflate") ? c.get("inflate").getAsFloat() : 0;
+                Matrix4f m = new Matrix4f(bmx);
+                m.translate(-cp[0], cp[1], cp[2]).rotateZ((float) Math.toRadians(cr[2])).rotateY((float) Math.toRadians(-cr[1])).rotateX((float) Math.toRadians(-cr[0])).translate(cp[0], -cp[1], -cp[2]);
+                float x0 = -(o[0] + sz[0]) - inf, x1 = -o[0] + inf, y0 = o[1] - inf, y1 = o[1] + sz[1] + inf, z0 = o[2] - inf, z1 = o[2] + sz[2] + inf;
+                float sx = sz[0], sy = sz[1], sze = sz[2];
+                String[] names = {"north", "south", "east", "west", "up", "down"};
+                float[][][] corners = {
+                    {{x1, y0, z0}, {x0, y0, z0}, {x0, y1, z0}, {x1, y1, z0}}, {{x0, y0, z1}, {x1, y0, z1}, {x1, y1, z1}, {x0, y1, z1}},
+                    {{x1, y0, z1}, {x1, y0, z0}, {x1, y1, z0}, {x1, y1, z1}}, {{x0, y0, z0}, {x0, y0, z1}, {x0, y1, z1}, {x0, y1, z0}},
+                    {{x0, y1, z1}, {x1, y1, z1}, {x1, y1, z0}, {x0, y1, z0}}, {{x0, y0, z0}, {x1, y0, z0}, {x1, y0, z1}, {x0, y0, z1}}};
+                for (int f = 0; f < 6; f++) {
+                    float u, v, w, hh;
+                    if (c.get("uv").isJsonObject()) {
+                        com.google.gson.JsonObject uo = c.getAsJsonObject("uv");
+                        if (!uo.has(names[f])) continue;
+                        com.google.gson.JsonObject fo = uo.getAsJsonObject(names[f]);
+                        u = fo.getAsJsonArray("uv").get(0).getAsFloat(); v = fo.getAsJsonArray("uv").get(1).getAsFloat();
+                        if (fo.has("uv_size")) { w = fo.getAsJsonArray("uv_size").get(0).getAsFloat(); hh = fo.getAsJsonArray("uv_size").get(1).getAsFloat(); } else { w = 0; hh = 0; }
+                    } else {
+                        float bu = c.getAsJsonArray("uv").get(0).getAsFloat(), bv = c.getAsJsonArray("uv").get(1).getAsFloat();
+                        switch (f) {
+                            case 0 -> { u = bu + sze; v = bv + sze; w = sx; hh = sy; }
+                            case 1 -> { u = bu + 2 * sze + sx; v = bv + sze; w = sx; hh = sy; }
+                            case 2 -> { u = bu; v = bv + sze; w = sze; hh = sy; }
+                            case 3 -> { u = bu + sze + sx; v = bv + sze; w = sze; hh = sy; }
+                            case 4 -> { u = bu + sze; v = bv; w = sx; hh = sze; }
+                            default -> { u = bu + sze + sx; v = bv; w = sx; hh = sze; }
+                        }
+                    }
+                    if (w == 0 && hh == 0) continue;
+                    float[] uvs = {u, v + hh, u + w, v + hh, u + w, v, u, v};
+                    float[] qd = new float[20];
+                    for (int k = 0; k < 4; k++) {
+                        m.transformPosition(corners[f][k][0], corners[f][k][1], corners[f][k][2], tmp);
+                        qd[k * 5] = tmp.x / 16f; qd[k * 5 + 1] = tmp.y / 16f; qd[k * 5 + 2] = tmp.z / 16f;
+                        qd[k * 5 + 3] = uvs[k * 2] / tw; qd[k * 5 + 4] = uvs[k * 2 + 1] / th;
+                        g.minX = Math.min(g.minX, qd[k * 5]); g.maxX = Math.max(g.maxX, qd[k * 5]); g.minY = Math.min(g.minY, qd[k * 5 + 1]); g.maxY = Math.max(g.maxY, qd[k * 5 + 1]);
+                        g.minZ = Math.min(g.minZ, qd[k * 5 + 2]); g.maxZ = Math.max(g.maxZ, qd[k * 5 + 2]);
+                    }
+                    g.q.add(qd);
+                }
+            }
+        }
+        return g.q.isEmpty() ? null : g;
+    }
+    /** Draw a LOTM model with its base at the origin, scaled so it is targetH blocks tall. Returns false when the model is not available. */
+    private boolean drawGeo(String name, String ns, String texPath, float targetH) {
+        Geo g = geo(name);
+        if (g == null) return false;
+        float sc = targetH / Math.max(.001f, g.maxY - g.minY), cx = (g.minX + g.maxX) / 2, cz = (g.minZ + g.maxZ) / 2;
+        VertexConsumer vc = buf.getBuffer(RenderType.entityCutoutNoCull(ResourceLocation.fromNamespaceAndPath(ns, texPath)));
+        for (float[] q : g.q) {
+            float ex = q[5] - q[0], ey = q[6] - q[1], ez = q[7] - q[2], fx2 = q[15] - q[0], fy2 = q[16] - q[1], fz2 = q[17] - q[2];
+            float nx = ey * fz2 - ez * fy2, ny = ez * fx2 - ex * fz2, nz = ex * fy2 - ey * fx2, l = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
+            if (l < 1e-9f) { nx = 0; ny = 1; nz = 0; } else { nx /= l; ny /= l; nz /= l; }
+            cur.transformDirection(nx, ny, nz, tn);
+            float tnx = tn.x, tny = tn.y, tnz = tn.z;
+            for (int k = 0; k < 4; k++) {
+                cur.transformPosition((q[k * 5] - cx) * sc, (q[k * 5 + 1] - g.minY) * sc, (q[k * 5 + 2] - cz) * sc, tp);
+                vc.addVertex(mat, tp.x, tp.y, tp.z).setColor(255, 255, 255, 255).setUv(q[k * 5 + 3], q[k * 5 + 4])
+                  .setOverlay(OverlayTexture.NO_OVERLAY).setLight(LIGHT).setNormal(tnx, tny, tnz);
+            }
+        }
+        return true;
     }
 
     // ================= lit 3D models =================
@@ -271,6 +418,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         frustum(0, .8f * L, .018f * L, .018f * L, 8, 1, 1, rgb, 255, true);
         taper(.8f * L, L, .035f * L, .012f * L, 0, 0, rgb, 255); taper(.74f * L, .8f * L, .03f * L, .012f * L, .035f * L, .012f * L, rgb, 255);
         for (int s = -1; s <= 1; s += 2) {
+            torus(0, .73f * L, 0, .15f * L * s, .0f, .0f, 1, 3, 0, 0, rgb, 0);
             box(s * .075f * L, .72f * L, 0, .078f * L, .014f * L, .014f * L, rgb, 255);
             frustum(.72f * L, .9f * L, .014f * L, .014f * L, 6, 1, 1, rgb, 255, false);
             push(); tr(s * .15f * L, .9f * L, 0); taper(0, .1f * L, .03f * L, .012f * L, 0, 0, rgb, 255); pop();
@@ -283,6 +431,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         frustum(0, .28f * r, r, r * 1.04f, 16, 1, 1, rgb, 255, false);
         for (int i = 0; i < 8; i++) { float a = i * TAU / 8; push(); tr((float) Math.cos(a) * r, .28f * r, (float) Math.sin(a) * r); taper(0, .5f * r, .09f * r, .09f * r, 0, 0, rgb, 255); tr(0, .52f * r, 0); sphere(0, 0, 0, .06f * r, .06f * r, .06f * r, 3, 5, gem, 255); pop(); }
         for (int i = 0; i < 8; i++) { float a = (i + .5f) * TAU / 8; sphere((float) Math.cos(a) * r * 1.03f, .14f * r, (float) Math.sin(a) * r * 1.03f, .05f * r, .05f * r, .05f * r, 3, 5, gem, 255); }
+        torus(0, 0, 0, r, r, .03f * r, 1, 3, 0, 0, rgb, 0);
     }
     private void gear(float r, int teeth, float thick, int rgb, int hub) {
         push(); rX(PI / 2);
@@ -297,38 +446,70 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         box(.07f * L, .12f * L, 0, .07f * L, .035f * L, .03f * L, rgb, 255); box(.06f * L, .25f * L, 0, .06f * L, .035f * L, .03f * L, rgb, 255);
     }
     private void skull(float r, int bone, int glow) {
-        sphere(0, 0, 0, r, r * .92f, r * .95f, 8, 14, bone, 255);
-        box(0, -r * .62f, r * .1f, r * .55f, r * .22f, r * .6f, bone, 255);
-        for (int i = -2; i <= 2; i++) box(i * r * .2f, -r * .7f, r * .68f, r * .07f, r * .1f, r * .02f, mix(bone, 0xFFFFFF, .5f), 255);
-        sphere(-r * .36f, -r * .05f, r * .8f, r * .22f, r * .25f, r * .2f, 5, 8, 0x080808, 255);
-        sphere(r * .36f, -r * .05f, r * .8f, r * .22f, r * .25f, r * .2f, 5, 8, 0x080808, 255);
-        box(0, -r * .3f, r * .93f, r * .07f, r * .12f, r * .03f, 0x080808, 255);
-        sphere(-r * .36f, -r * .05f, r * .86f, r * .09f, r * .09f, r * .05f, 4, 6, glow, 255); sphere(r * .36f, -r * .05f, r * .86f, r * .09f, r * .09f, r * .05f, 4, 6, glow, 255);
+        int shade = mix(bone, 0x504838, .35f), dark = 0x060606;
+        sphere(0, .12f * r, -.05f * r, .92f * r, .88f * r, 1.0f * r, 10, 18, bone, 255);
+        box(0, .28f * r, .78f * r, .66f * r, .09f * r, .17f * r, bone, 255);                       // brow ridge
+        sphere(-.62f * r, -.22f * r, .62f * r, .2f * r, .17f * r, .17f * r, 5, 8, bone, 255);      // cheekbones
+        sphere(.62f * r, -.22f * r, .62f * r, .2f * r, .17f * r, .17f * r, 5, 8, bone, 255);
+        push(); tr(0, 0, .5f * r); taper(-.62f * r, -.12f * r, .48f * r, .3f * r, .54f * r, .3f * r, bone, 255); pop();
+        sphere(-.37f * r, .02f * r, .83f * r, .26f * r, .29f * r, .17f * r, 6, 10, dark, 255);       // eye sockets
+        sphere(.37f * r, .02f * r, .83f * r, .26f * r, .29f * r, .17f * r, 6, 10, dark, 255);
+        sphere(-.37f * r, .02f * r, .9f * r, .1f * r, .1f * r, .06f * r, 4, 6, glow, 255);
+        sphere(.37f * r, .02f * r, .9f * r, .1f * r, .1f * r, .06f * r, 4, 6, glow, 255);
+        push(); tr(0, -.28f * r, .96f * r); taper(-.2f * r, .2f * r, .02f * r, .02f * r, .13f * r, .04f * r, dark, 255); pop();   // nose
+        for (int i = -3; i <= 3; i++) box(i * .13f * r, -.64f * r, .78f * r, .055f * r, .09f * r, .03f * r, mix(bone, 0xFFFFFF, .5f), 255);   // upper teeth
+        box(0, -.97f * r, .56f * r, .48f * r, .1f * r, .34f * r, shade, 255);                       // lower jaw
+        box(-.52f * r, -.78f * r, .26f * r, .08f * r, .24f * r, .14f * r, shade, 255); box(.52f * r, -.78f * r, .26f * r, .08f * r, .24f * r, .14f * r, shade, 255);
+        for (int i = -3; i <= 3; i++) box(i * .13f * r, -.84f * r, .82f * r, .05f * r, .08f * r, .03f * r, mix(bone, 0xFFFFFF, .5f), 255);   // lower teeth
+        for (int i = 0; i < 3; i++) box(-.02f * r + i * .03f * r, .9f * r - i * .08f * r, .3f * r, .012f * r, .15f * r, .012f * r, shade, 255);  // cracks
+    }
+    /** A wide open flower: stem of height .4 L, petals spreading out like a dahlia. */
+    private void flowerModel(float L, int petal, int petal2, int heart, int leaf) {
+        float st = .4f * L;
+        frustum(0, st, .04f * L, .032f * L, 8, 1, 1, leaf, 255, true);
+        for (int s = -1; s <= 1; s += 2) {
+            push(); tr(0, .45f * st, 0); rY(s > 0 ? 0 : PI); rZ(-1.0f); sphere(.2f * L, 0, 0, .22f * L, .012f * L, .085f * L, 4, 8, leaf, 255); pop();
+            push(); tr(0, .75f * st, 0); rY(s > 0 ? PI / 2 : -PI / 2); rZ(-1.2f); sphere(.15f * L, 0, 0, .16f * L, .01f * L, .07f * L, 4, 8, leaf, 255); pop();
+        }
+        push(); tr(0, st, 0);
+        float[] tilt = {1.42f, 1.22f, .98f, .72f, .42f}, len = {.62f, .56f, .46f, .36f, .26f}; int[] cnt = {14, 12, 10, 8, 6};
+        for (int layer = 0; layer < 5; layer++) {
+            for (int i = 0; i < cnt[layer]; i++) {
+                push(); rY(i * TAU / cnt[layer] + layer * .31f); rZ(tilt[layer]); tr(0, .02f * L, 0);
+                float ln = len[layer] * L;
+                sphere(0, ln * .5f, 0, ln * .2f, ln * .5f, ln * .035f, 5, 8, (layer & 1) == 0 ? petal : petal2, 255);
+                sphere(0, ln * .42f, ln * .01f, ln * .12f, ln * .36f, ln * .035f, 4, 6, mix((layer & 1) == 0 ? petal : petal2, 0xFFFFFF, .3f), 255);
+                pop();
+            }
+        }
+        sphere(0, .03f * L, 0, .1f * L, .06f * L, .1f * L, 6, 10, heart, 255);
+        for (int i = 0; i < 14; i++) { push(); rY(i * TAU / 14); rZ(.55f); frustum(.05f * L, .2f * L, .004f * L, .004f * L, 4, 1, 1, heart, 255, false); tr(0, .2f * L, 0); sphere(0, 0, 0, .014f * L, .014f * L, .014f * L, 3, 4, heart, 255); pop(); }
+        pop();
+    }
+    /** A rose: thorny stem and a closed, layered, cupped bloom. */
+    private void rose(float L, int petal, int petal2, int leaf) {
+        float st = .55f * L;
+        frustum(0, st, .035f * L, .03f * L, 8, 1, 1, leaf, 255, true);
+        for (int i = 0; i < 6; i++) { push(); tr(0, (.1f + i * .075f) * L, 0); rY(i * 2.1f); rZ(-1.2f); taper(0, .06f * L, .012f * L, .012f * L, 0, 0, 0x2A2A2A, 255); pop(); }
+        for (int s = -1; s <= 1; s += 2) { push(); tr(0, .4f * st, 0); rY(s > 0 ? .5f : PI + .5f); rZ(-.9f); sphere(.16f * L, 0, 0, .18f * L, .01f * L, .07f * L, 4, 8, leaf, 255); pop(); }
+        push(); tr(0, st, 0);
+        float[] tilt = {1.1f, .9f, .7f, .5f, .3f, .15f}, len = {.5f, .44f, .38f, .32f, .25f, .18f}; int[] cnt = {7, 7, 6, 5, 4, 3};
+        for (int layer = 0; layer < 6; layer++) for (int i = 0; i < cnt[layer]; i++) {
+            push(); rY(i * TAU / cnt[layer] + layer * .9f); tr(.04f * L, 0, 0); rZ(tilt[layer]); float ln = len[layer] * L;
+            sphere(0, ln * .5f, 0, ln * .32f, ln * .5f, ln * .06f, 5, 8, (layer & 1) == 0 ? petal : petal2, 255); pop();
+        }
+        pop();
+    }
+    private void mirrorModel(float s, int frame, int glass) {
+        torus(0, 0, 0, .55f * s, .8f * s, .07f * s, 20, 5, 0, TAU, frame, 255);
+        for (int i = 0; i < 12; i++) { float a = i * TAU / 12; sphere((float) Math.cos(a) * .6f * s, (float) Math.sin(a) * .87f * s, 0, .05f * s, .05f * s, .05f * s, 3, 5, mix(frame, 0xFFFFFF, .4f), 255); }
+        solid(true); push(); rX(PI / 2); frustum(-.02f * s, .02f * s, .55f * s, .55f * s, 20, 1, 1.45f, glass, 120, true); pop(); solid(false);
+        frustum(-1.7f * s, -.8f * s, .06f * s, .05f * s, 8, 1, 1, frame, 255, true); sphere(0, -1.75f * s, 0, .09f * s, .09f * s, .09f * s, 4, 6, frame, 255);
     }
     private void flask(float r, int glass, int liquid) {
         solid(true); sphere(0, 0, 0, r, r, r, 8, 12, glass, 150); frustum(r * .8f, r * 1.7f, r * .3f, r * .25f, 10, 1, 1, glass, 150, false); solid(false);
         sphere(0, -r * .15f, 0, r * .8f, r * .65f, r * .8f, 6, 10, liquid, 255);
         frustum(r * 1.7f, r * 2.0f, r * .3f, r * .33f, 10, 1, 1, 0x7A5A38, 255, true);
-    }
-    private void flowerModel(float L, int petal, int petal2, int heart, int leaf) {
-        frustum(0, L, .035f * L, .028f * L, 8, 1, 1, leaf, 255, true);
-        for (int s = -1; s <= 1; s += 2) {
-            push(); tr(0, .3f * L, 0); rY(s > 0 ? 0 : PI); rZ(-1.0f); sphere(.18f * L, 0, 0, .2f * L, .015f * L, .075f * L, 4, 8, leaf, 255); pop();
-            push(); tr(0, .55f * L, 0); rY(s > 0 ? PI / 2 : -PI / 2); rZ(-1.15f); sphere(.14f * L, 0, 0, .15f * L, .012f * L, .06f * L, 4, 8, leaf, 255); pop();
-        }
-        push(); tr(0, L, 0);
-        for (int layer = 0; layer < 3; layer++) {
-            int n = 9 + layer * 3; float tilt = 1.25f - layer * .4f, len = (.34f + layer * .0f) * L * (layer == 0 ? 1.0f : layer == 1 ? .9f : .7f);
-            for (int i = 0; i < n; i++) {
-                push(); rY(i * TAU / n + layer * .35f); rZ(tilt); tr(0, .03f * L, 0);
-                taper(0, len * .5f, .055f * L, .004f * L, .1f * L, .004f * L, layer == 1 ? petal2 : petal, 255);
-                taper(len * .5f, len, .1f * L, .004f * L, .005f * L, .002f * L, layer == 1 ? petal2 : petal, 255);
-                pop();
-            }
-        }
-        sphere(0, .02f * L, 0, .09f * L, .06f * L, .09f * L, 6, 10, heart, 255);
-        for (int i = 0; i < 10; i++) { push(); rY(i * TAU / 10); rZ(.5f); frustum(.05f * L, .22f * L, .004f * L, .004f * L, 4, 1, 1, heart, 255, false); tr(0, .22f * L, 0); sphere(0, 0, 0, .014f * L, .014f * L, .014f * L, 3, 4, heart, 255); pop(); }
-        pop();
     }
     private void towerModel(float H, float W, int stone, int trim, int glow) {
         frustum(0, .1f * H, .66f * W, .52f * W, 20, 1, 1, trim, 255, true);
@@ -348,6 +529,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         box(0, 0, 0, .7f * W, .05f * W, .16f * W, mix(frame, 0x000000, .2f), 255);
         push(); tr(-.5f * W, 0, 0); rY(open);
         box(.5f * W, Hh / 2, 0, .5f * W, Hh / 2, .035f * W, leaf, 255);
+        taper(Hh, Hh, 0, 0, 0, 0, leaf, 0);
+        torus(.5f * W, Hh, 0, .5f * W, .5f * W, .035f * W, 1, 3, 0, 0, leaf, 0);
         box(.5f * W, Hh * .72f, 0, .36f * W, Hh * .2f, .045f * W, mix(leaf, 0xFFFFFF, .12f), 255);
         box(.5f * W, Hh * .28f, 0, .36f * W, Hh * .2f, .045f * W, mix(leaf, 0xFFFFFF, .12f), 255);
         sphere(.88f * W, Hh * .5f, .06f * W, .05f * W, .05f * W, .05f * W, 4, 6, knob, 255);
@@ -389,11 +572,11 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         frustum(0, L, .05f * L, .035f * L, 8, 1, 1, wood, 255, true);
         torus(.32f * L, L, 0, .32f * L, .3f * L, .04f * L, 12, 5, PI / 2, PI, wood, 255);
         box(.16f * L, .08f * L, 0, .18f * L, .05f * L, .04f * L, wood, 255);
-        for (int i = 0; i < 9; i++) { float x = (.06f + i * .05f) * L; push(); tr(x, 0, 0); frustum(.1f * L, (.95f - i * .012f) * L, .006f * L, .006f * L, 4, 1, 1, string, 255, false); pop(); }
+        for (int i = 0; i < 9; i++) { float x = (.06f + i * .05f) * L; frustum(.1f * L, (.95f - i * .012f) * L, .006f * L, .006f * L, 4, 1, 1, string, 255, false); push(); tr(x, 0, 0); pop(); }
     }
 
     // ================= render =================
-    private float face;
+    private float face, camDist;
     private int symTint() { return gold ? 0xFFDD66 : 0xFFFFFF; }
     private String symTex() { return "sym_" + Tarot.PATHWAYS[curPath]; }
 
@@ -409,6 +592,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         if (seq >= 6) return;
 
         Camera cam = Minecraft.getInstance().gameRenderer.getMainCamera();
+        camDist = (float) cam.getPosition().distanceTo(e.getPosition(pt));
         Vector3f left = cam.getLeftVector(), up = cam.getUpVector();
         rx = -left.x; ry = -left.y; rz = -left.z; ux = up.x; uy = up.y; uz = up.z;
         fyaw = (float) Math.toRadians(e.getYRot());
@@ -444,6 +628,17 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         flat("ring", 0, .05f, 0, 1.0f, t * .5f, rgba(P2, .9f));
         column("beam", 0, .05f, 1.5f, 0, .35f, rgba(P1, .4f));
         float bob = (float) Math.sin(t * 2) * .06f;
+        if (curPath == 3) {   // Demoness: a rose
+            push(); tr(0, .35f + bob, 0); rY(t * .8f); rose(1.5f, P1, P2, mix(P2, 0x103018, .3f)); pop();
+            sprites("petal", 8, FALLM, .6f, 0, 1.8f, .22f, P1, 1f, .3f, 3, true);
+            return;
+        }
+        if (curPath == 9) {   // Marauder: a tiny glitching symbol
+            for (int k = 0; k < 6; k++) { boolean g = fract(t * .8f + h(k, 3)) > .5f; float dx = g ? (h((int) (t * 7) + k, 5) - .5f) * .35f : 0; float sz = .75f;
+                float v0 = k / 6f, v1 = (k + 1) / 6f, yc = 1.1f + bob + (.5f - (k + .5f) / 6f) * sz; float yw = -face;
+                eq(symRL(), (float) Math.cos(yw) * dx, yc, (float) Math.sin(yw) * dx, (float) Math.cos(yw) * sz / 2, 0, (float) Math.sin(yw) * sz / 2, 0, sz / 12, 0, rgba(symTint(), 1f), 0, v0, 1, v1); }
+            return;
+        }
         stand(c.core, 0, 1.1f + bob, 0, seq == 4 ? .6f : .46f, seq == 4 ? .6f : .46f, t * 1.8f, rgba(mix(P1, 0xFFFFFF, .4f), pulse));
         int motes = seq == 4 ? 5 : 3;
         for (int i = 0; i < motes; i++) {
@@ -452,33 +647,35 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
     }
 
+    /** The pathway symbol: a single solid bright plane that gently swings so it can be read from most sides. */
     private void sym(float y, float size, float spin) {
-        stand2(symTex(), 0, y, 0, size, size, t * spin, rgba(symTint(), 1f));
+        symPlane(curPath, 0, y, 0, size, -face + (float) Math.sin(t * .5f) * .8f, 1f);
     }
 
     private void epic(Cfg c, int seq) {
         boolean two = seq == 2;
         float tp2 = two ? 3.8f : 3.2f;
-        column("beam", 0, 0.05f, tp2, 0, two ? .8f : .6f, rgba(P1, .6f));
-        column("beam", 0, 0.05f, tp2, 0, .22f, rgba(P3, .6f));
+        column("beam", 0, 0.05f, tp2, 0, two ? .7f : .5f, rgba(P1, .6f));
+        column("beam", 0, 0.05f, tp2, 0, .2f, rgba(P3, .6f));
         flat("ring_dash", 0, .05f, 0, 2.4f, -t * .4f, rgba(P1, .9f));
         flat("ring", 0, .06f, 0, 1.3f, t * .6f, rgba(P2, .9f));
         flat("ring_thick", 0, .07f, 0, 3f, t * .15f, rgba(P2, .6f));
-        float cy = 1.8f + (float) Math.sin(t * 1.6) * .08f;
-        stand2(symTex(), 0, cy, 0, 1.5f, 1.5f, t * 1.0f, rgba(symTint(), 1f));
+        float cy = 1.9f + (float) Math.sin(t * 1.6) * .08f;
+        symPlane(curPath, 0, cy, 0, 1.9f, -face + (float) Math.sin(t * .5f) * .8f, 1f);
         int med = two ? 8 : 6;
         for (int i = 0; i < med; i++) {
-            float a = -t * .5f + i * TAU / med, r = 1.4f, y = .9f + (float) Math.sin(t * 2 + i) * .08f;
-            stand2(symTex(), (float) Math.cos(a) * r, y, (float) Math.sin(a) * r, .5f, .5f, t * 2 + i, rgba(symTint(), .95f));
+            float a = -t * .5f + i * TAU / med, r = 1.5f, y = .75f + (float) Math.sin(t * 2 + i) * .08f;
+            symPlane(curPath, (float) Math.cos(a) * r, y, (float) Math.sin(a) * r, .5f, a + PI / 2, .95f);
         }
         int props = two ? 4 : 2;
         for (int i = 0; i < props; i++) {
-            float a = t * .9f + i * TAU / props;
-            bb(c.prop, (float) Math.cos(a) * .9f, cy + (float) Math.sin(t * 1.5f + i) * .3f, (float) Math.sin(a) * .9f, .38f, .38f, a, rgba(mix(P1, P3, .3f), 1f));
+            float a = t * .9f + i * TAU / props, px = (float) Math.cos(a) * 1.0f, py = cy + (float) Math.sin(t * 1.5f + i) * .3f - .5f, pz = (float) Math.sin(a) * 1.0f;
+            if (curPath == 2) { push(); tr(px, py, pz); rY(-a); rZ(PI / 2); tr(0, -.45f, 0); sword(.9f, metal(.8f), mix(P1, 0x806010, .2f), P3); pop(); }
+            else bb(c.prop, px, py + .5f, pz, .4f, .4f, a, rgba(mix(P1, P3, .3f), 1f));
         }
         for (int i = 0; i < 12; i++) {
             float p = fract(t * .3f + h(i, 1));
-            bb("mote", (h(i, 2) - .5f) * 2f, p * tp2, (h(i, 3) - .5f) * 2f, .14f, .14f, 0, rgba(P1, fd(p)));
+            bb("mote", (h(i, 2) - .5f) * 2f, p * tp2, (h(i, 3) - .5f) * 2f, .16f, .16f, 0, rgba(P1, fd(p)));
         }
     }
 
@@ -538,22 +735,41 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             flat("ring", x, .14f, z, (1f + (1 - v) * 3f) * S, 0, rgba(rgb, v));
         }
     }
-    /** Three layered fixed flames (outer, middle, hot core) that flicker. */
+    /** A real fire: many flame tongues that rise, sway, shrink and cool from white-yellow to red, plus embers. */
     private void flameAt(float x, float y, float z, float size, int seed, int outer, int mid, int core, float alpha) {
-        float fl = .92f + .12f * (float) Math.sin(t * 9 + seed * 5), wob = (float) Math.sin(t * 5 + seed) * .06f * size;
-        stand2("flame", x + wob, y + size * .5f * fl, z, size * .75f, size * fl, t * .5f + seed, rgba(outer, alpha * .9f));
-        stand2("flame", x + wob * 1.3f, y + size * .42f * fl, z, size * .55f, size * .8f * fl, t * .6f + seed + 1, rgba(mid, alpha));
-        stand2("flame", x + wob * 1.6f, y + size * .3f * fl, z, size * .34f, size * .55f * fl, t * .7f + seed + 2, rgba(core, alpha));
+        int n = Math.max(8, (int) (10 + size * 2.2f));
+        for (int i = 0; i < n; i++) {
+            float life = .9f + .5f * h(i, seed + 3), p = fract(t * life + h(i, seed + 1));
+            float ang = h(i, seed + 2) * TAU, rr = (float) Math.sqrt(h(i, seed + 4)) * size * .22f * (1f - p * .6f);
+            float sway = (float) Math.sin(t * 3f + i * 1.7f + p * 5f) * size * .14f * p, sway2 = (float) Math.cos(t * 2.6f + i * 2.3f + p * 4f) * size * .14f * p;
+            float px = x + (float) Math.cos(ang) * rr + sway, py = y + p * size * (.8f + .35f * h(i, seed + 5)), pz = z + (float) Math.sin(ang) * rr + sway2;
+            float sz = size * (.55f + .4f * h(i, seed + 6)) * (1f - p * .6f);
+            int col = p < .25f ? mix(core, mid, p * 4f) : p < .65f ? mix(mid, outer, (p - .25f) / .4f) : outer;
+            float a = alpha * Math.min(1f, p * 7f) * (float) Math.pow(1f - p, .55);
+            bb("flame", px, py + sz * .3f, pz, sz * .75f, sz, (float) Math.sin(t * 4 + i) * .3f * p + sway * .3f, rgba(col, a));
+        }
+        for (int i = 0; i < Math.max(3, n / 4); i++) {
+            float p = fract(t * .7f + h(i, seed + 9));
+            bb("spark", x + (h(i, seed + 10) - .5f) * size * .6f + (float) Math.sin(t * 2 + i) * size * .2f * p, y + p * size * 1.8f, z + (h(i, seed + 11) - .5f) * size * .6f, size * .09f, size * .09f, t + i, rgba(mid, (1 - p)));
+        }
+        bb("glow", x, y + size * .15f, z, size * .8f, size * .35f, 0, rgba(outer, .35f * alpha));
     }
+    /** A dark sky dome plus a shaded ground disc. Seen from outside it is nearly clear so you can see what is inside. */
     private void dome(float rad, int rgb, int alpha) {
+        boolean inside = camDist < rad * .97f;
+        int a1 = inside ? alpha : Math.max(0, (int) (alpha * .10f)), a2 = inside ? (int) (alpha * .6f) : (int) (alpha * .06f);
         solid(true);
-        int lat = 8, lon = 22; float[] hint = v3(0, 0, 0);
+        int lat = 10, lon = 28; float[] hint = v3(0, 0, 0);
         for (int i = 0; i < lat; i++) {
             float l0 = PI / 2 * i / lat, l1 = PI / 2 * (i + 1) / lat;
             for (int j = 0; j < lon; j++) {
                 float g0 = TAU * j / lon, g1 = TAU * (j + 1) / lon;
-                sq(sp(0, 0, 0, rad, rad, rad, l0, g0), sp(0, 0, 0, rad, rad, rad, l0, g1), sp(0, 0, 0, rad, rad, rad, l1, g1), sp(0, 0, 0, rad, rad, rad, l1, g0), hint, rgb, alpha);
+                sq(sp(0, 0, 0, rad, rad, rad, l0, g0), sp(0, 0, 0, rad, rad, rad, l0, g1), sp(0, 0, 0, rad, rad, rad, l1, g1), sp(0, 0, 0, rad, rad, rad, l1, g0), hint, rgb, a1);
             }
+        }
+        for (int j = 0; j < lon; j++) {   // shade the ground so it is night down here too
+            float g0 = TAU * j / lon, g1 = TAU * (j + 1) / lon, rr = rad * .98f;
+            sq(v3(0, .04f, 0), v3((float) Math.cos(g0) * rr, .04f, (float) Math.sin(g0) * rr), v3((float) Math.cos(g1) * rr, .04f, (float) Math.sin(g1) * rr), v3(0, .04f, 0), v3(0, -9, 0), rgb, a2);
         }
         solid(false);
     }
@@ -572,386 +788,392 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void scene(int p, boolean m) {
         int N = m ? 2 : 1;
         switch (p) {
-            case 0 -> moon(N); case 1 -> door(N); case 2 -> justiciar(N); case 3 -> demoness(N, m); case 4 -> sun(N);
+            case 0 -> moon(N); case 1 -> door(N, m); case 2 -> justiciar(N); case 3 -> demoness(N, m); case 4 -> sun(N);
             case 5 -> death(N); case 6 -> abyss(N, m); case 7 -> redPriest(N); case 8 -> blackEmperor(N, m); case 9 -> error(N);
             case 10 -> wheel(N); case 11 -> hermit(N); case 12 -> mother(N); case 13 -> chained(N, m); case 14 -> whiteTower(N);
             case 15 -> sailor(N, m); case 16 -> paragon(N); case 17 -> hangedMan(m); case 18 -> fool(N); case 19 -> darkness(N, m);
             case 20 -> visionary(N); default -> twilight(N);
         }
     }
+    /** The symbol floating in front of the hologram (toward the person who placed the card). */
+    private void symFront(float y, float size, float dist) {
+        symPlane(curPath, -fx * dist, y, -fz * dist, size, -face + (float) Math.sin(t * .5f) * .8f, 1f);
+    }
+    private float sideX(float k) { return sx0 * k; }
+    private float sideZ(float k) { return sz0 * k; }
 
     private void moon(int N) {
-        sigil(R); float my = top * .85f;
-        stand2("crescent", 0, my, 0, 10 * S, 10 * S, t * .15f, rgba(P3, .55f));
-        stand2("crescent", 0, my, 0, 8 * S, 8 * S, t * .15f, rgba(mix(P1, 0xFFFFFF, .55f), 1f));
-        column("beam", 0, 0, my - 3 * S, 0, 2.4f * S, rgba(P1, .4f));
-        sym(CY, 3.4f * S, .6f);
+        sigil(R); float my = top * .9f;
+        facing("crescent", sideX(R * .55f), my, sideZ(R * .55f), 8 * S, 8 * S, 0.5f, rgba(mix(P1, 0xFFFFFF, .5f), 1f));
+        column("beam", sideX(R * .55f), 0, my - 3 * S, sideZ(R * .55f), 1.6f * S, rgba(P1, .35f));
+        sym(CY, 3.8f * S, 0);
         for (int i = 0; i < 5 * N; i++) {
-            float a = t * .5f + i * TAU / (5 * N), r = R * .55f, y = CY - .6f * S + (float) Math.sin(a * 2 + i) * 1.2f * S;
+            float a = t * .5f + i * TAU / (5 * N), r = R * .6f, y = CY - 1.2f * S + (float) Math.sin(a * 2 + i) * 1.1f * S;
             push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(t + i); rZ((float) Math.sin(t + i) * .3f);
             flask(.5f * S, mix(P3, 0xFFFFFF, .3f), i % 2 == 0 ? P1 : mix(P1, P2, .5f)); pop();
-            glint((float) Math.cos(a) * r, y, (float) Math.sin(a) * r, 1.2f * S, P3, .8f);
+            glint((float) Math.cos(a) * r, y + .4f * S, (float) Math.sin(a) * r, 1.0f * S, P3, 1f);
         }
         sprites("petal", 40 * N, SPIRALM, R * .8f, 0, top * .8f, .7f * S, P1, 1f, .14f, 40, true);
         sprites("leaf", 24 * N, FALLM, R, 0, top, .8f * S, P2, 1f, .12f, 20, true);
-        sprites("star", 36 * N, DRIFTM, R * 1.2f, 2, top, .5f * S, 0xFFFFFF, 1f, .3f, 4, true);
-        clouds(6 * N, R, top * .55f, P2, .3f, R);
+        sprites("star", 24 * N, DRIFTM, R * 1.2f, 2, top, .5f * S, 0xFFFFFF, 1f, .3f, 4, true);
+        clouds(5 * N, R, top * .55f, P2, .35f, R);
     }
 
-    private void door(int N) {
-        sigil(R); float W = 3.2f * S, H = 5.4f * S;
-        pushFace(); doorModel(W, H, mix(P2, 0x182030, .3f), mix(P2, 0x0A1428, .2f), P3, -1.15f); pop();
-        // light pouring out of the doorway
-        facing("solid", 0, H * .5f, 0, W * 1.0f, H * .96f, 0, rgba(mix(P1, 0xFFFFFF, .7f), .55f));
-        facing("rays", 0, H * .5f, 0, 14 * S, 14 * S, t * .08f, rgba(P1, .65f));
-        column("beam", 0, 0, H * 1.2f, 0, W * .9f, rgba(P1, .35f));
-        sym(H + 1.8f * S, 3f * S, .7f);
+    private void door(int N, boolean m) {
+        sigil(R);
+        float H = m ? 3.6f : 2.3f;
+        pushFace();
+        boolean ok = m ? drawGeo("high_sequence_door", "lotm", "textures/entity/high_sequence_door.png", H) : drawGeo("mid_sequence_door", "lotm", "textures/entity/mid_sequence_door.png", H);
+        if (!ok) doorModel(H * .7f, H, mix(P2, 0x182030, .3f), mix(P2, 0x0A1428, .2f), P3, -1.15f);
+        pop();
+        facing("rays", 0, H * .55f, 0, H * 4.5f, H * 4.5f, t * .08f, rgba(P1, .5f));
+        column("beam", 0, 0, H * 1.3f, 0, H * .5f, rgba(P1, .3f));
+        sym(H + 3.4f * S, 3.6f * S, 0);
         for (int i = 0; i < 6 * N; i++) {
-            float a = t * .6f + i * TAU / (6 * N), r = R * .7f, y = H * .5f + (float) Math.sin(a * 2 + i) * 1.4f * S;
-            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(-a); rX(t * 2 + i); tr(0, -.6f * S, 0); key(1.3f * S, metal(.6f)); pop();
-            glint((float) Math.cos(a) * r, y, (float) Math.sin(a) * r, 1.3f * S, P3, .8f);
+            float a = t * .6f + i * TAU / (6 * N), r = H * 1.9f, y = H * .6f + (float) Math.sin(a * 2 + i) * .9f * S;
+            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(-a); rX(t * 2 + i); tr(0, -.5f * S, 0); key(1.1f * S, metal(.6f)); pop();
+            glint((float) Math.cos(a) * r, y, (float) Math.sin(a) * r, 1.1f * S, P3, 1f);
         }
-        sprites("spark", 70 * N, RADIALM, R * 1.3f, H * .5f, 0, .5f * S, P3, 1f, .3f, 5, true);
-        sprites("mote", 60 * N, RISEM, R * .7f, 0, top, .35f * S, P1, 1f, .25f, 6, false);
+        sprites("spark", 60 * N, RADIALM, R * 1.2f, H * .55f, 0, .5f * S, P3, 1f, .3f, 5, true);
+        sprites("mote", 50 * N, RISEM, R * .6f, 0, top, .35f * S, P1, 1f, .25f, 6, false);
     }
 
     private void justiciar(int N) {
         sigil(R);
-        for (int i = 0; i < 8 * N; i++) { float a = i * TAU / (8 * N); column("beam", (float) Math.cos(a) * R * .8f, 0, top * .85f, (float) Math.sin(a) * R * .8f, 1.3f * S, rgba(P1, .35f)); column("line", (float) Math.cos(a) * R * .8f, 0, top * .9f, (float) Math.sin(a) * R * .8f, .5f * S, rgba(0xFFFFFF, .7f)); }
-        // giant scales
-        float L = 4.4f * S, tilt = (float) Math.sin(t * .6f) * .12f;
-        pushFace(); tr(0, CY - L * .5f, 0);
+        for (int i = 0; i < 8 * N; i++) { float a = i * TAU / (8 * N); column("beam", (float) Math.cos(a) * R * .8f, 0, top * .85f, (float) Math.sin(a) * R * .8f, 1.2f * S, rgba(P1, .35f)); column("line", (float) Math.cos(a) * R * .8f, 0, top * .9f, (float) Math.sin(a) * R * .8f, .45f * S, rgba(P3, .8f)); }
+        float L = 3.8f * S, tilt = (float) Math.sin(t * .6f) * .12f;
+        pushFace(); tr(0, .5f * S, 0);
         frustum(0, L, .04f * L, .028f * L, 10, 1, 1, metal(.5f), 255, true); frustum(0, .07f * L, .2f * L, .15f * L, 12, 1, 1, metal(.3f), 255, true);
         sphere(0, L, 0, .045f * L, .045f * L, .045f * L, 5, 8, P3, 255);
         push(); tr(0, L, 0); rZ(tilt); box(0, 0, 0, .56f * L, .018f * L, .02f * L, metal(.6f), 255);
         for (int s = -1; s <= 1; s += 2) { push(); tr(s * .54f * L, 0, 0); rZ(-tilt);
             for (int k = 0; k < 3; k++) { push(); rY(k * TAU / 3); frustum(-.46f * L, 0, .006f * L, .006f * L, 4, 1, 1, metal(.4f), 255, false); pop(); }
-            tr(0, -.48f * L, 0); frustum(-.06f * L, 0, .09f * L, .24f * L, 14, 1, 1, metal(.55f), 255, true); pop(); }
+            tr(0, -.48f * L, 0); frustum(-.06f * L, 0, .09f * L, .24f * L, 14, 1, 1, P1, 255, true); pop(); }
         pop(); pop();
-        sym(CY + L * .62f, 2.6f * S, .5f);
-        for (int i = 0; i < 8 * N; i++) { float a = -t * .1f + i * TAU / (8 * N), r = R * (.35f + .3f * (i % 2)); float y = top * .55f + (float) Math.sin(t * 1.2f + i) * .5f;
-            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rZ(PI); rY(a); sword(3.6f * S, metal(.8f), metal(.45f), P3); pop();
-            column("line", (float) Math.cos(a) * r, y - 3.6f * S, y, (float) Math.sin(a) * r, .3f * S, rgba(0xFFFFFF, .3f)); }
-        sprites("line", 90 * N, FALLM, R, 0, top, .4f * S, 0xFFFFFF, .7f, .9f, 6, false);
+        sym(CY + L * .55f + 1.5f * S, 3.4f * S, 0);
+        for (int i = 0; i < 6 * N; i++) { float a = -t * .1f + i * TAU / (6 * N), r = R * .62f; float y = top * .5f + (float) Math.sin(t * 1.2f + i) * .4f;
+            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rZ(PI); rY(a); sword(3.4f * S, metal(.85f), P1, P3); pop();
+            column("line", (float) Math.cos(a) * r, y - 3.4f * S, y, (float) Math.sin(a) * r, .3f * S, rgba(P3, .4f)); }
+        sprites("spark", 70 * N, FALLM, R, 0, top, .4f * S, P3, 1f, .15f, 6, true);
     }
 
     private void demoness(int N, boolean m) {
         sigil(R);
-        flat("star", 0, .1f, 0, R * 1.2f, t * .2f, rgba(P1, .8f));
-        stand2("disc", 0, top * .72f, 0, 9 * S, 9 * S, t * .06f, rgba(mix(P2, 0x300008, .2f), .95f));
-        stand2("corona", 0, top * .72f, 0, 14 * S, 14 * S, t * .1f, rgba(P2, .6f));
+        flat("star", 0, .1f, 0, R * 1.3f, t * .15f, rgba(P1, .9f)); flat("ring_dash", 0, .11f, 0, R * 1.0f, -t * .2f, rgba(P3, .8f));
+        facing("disc", sideX(-R * .6f), top * .85f, sideZ(-R * .6f), 6 * S, 6 * S, 0, rgba(mix(P2, 0x500018, .2f), 1f));
+        facing("corona", sideX(-R * .6f), top * .85f, sideZ(-R * .6f), 10 * S, 10 * S, t * .1f, rgba(P2, .7f));
         for (int s = -1; s <= 1; s += 2) {
-            facing("wing", s * sx0 * 3.4f * S, CY + .6f * S, s * sz0 * 3.4f * S, s * 7f * S, 6.4f * S, 0, rgba(P1, .85f));
-            facing("wing", s * sx0 * 5.2f * S, CY - .7f * S, s * sz0 * 5.2f * S, s * 4.6f * S, 4.4f * S, 0, rgba(P2, .8f));
+            facing("wing", s * sx0 * 5.4f * S, CY + .2f * S, s * sz0 * 5.4f * S, s * 6f * S, 5.4f * S, 0, rgba(P1, .9f));
+            facing("wing", s * sx0 * 6.8f * S, CY - 1.2f * S, s * sz0 * 6.8f * S, s * 3.8f * S, 3.6f * S, 0, rgba(P2, .85f));
         }
-        sym(CY, 3.2f * S, .7f);
-        for (int ring = 0; ring < N; ring++) for (int i = 0; i < 8; i++) {
-            float a = (ring == 0 ? t * .7f : -t * .5f) + i * TAU / 8, r = R * (ring == 0 ? .5f : .75f), y = CY + (float) Math.sin(a * 2) * 1.2f * S;
-            float x = (float) Math.cos(a) * r, z = (float) Math.sin(a) * r;
-            push(); tr(x, y, z); aim(-x, -(y - CY) * .6f, -z); dagger(2.6f * S, metal(.7f), mix(P2, 0x200010, .3f), P1); pop();
-        }
-        push(); tr(0, CY + 6.2f * S, 0); rZ(PI); dagger(5.6f * S, metal(.85f), mix(P2, 0x200010, .3f), P1); pop();
-        column("beam", 0, CY + .8f * S, CY + 3.6f * S, 0, .8f * S, rgba(P1, .6f));
+        push(); tr(0, 0, 0); rY(t * .1f); rose(5f * S, P1, mix(P1, P2, .6f), mix(P2, 0x103018, .3f)); pop();
+        sym(CY + 2.2f * S, 3.4f * S, 0);
+        for (int i = 0; i < 6 * N; i++) { float a = t * .35f + i * TAU / (6 * N), r = R * .62f, y = 1.6f * S + (float) Math.sin(a * 2 + i) * 1.1f * S;
+            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(-a + PI / 2 + (float) Math.sin(t + i) * .3f); rZ((float) Math.sin(t * .9f + i) * .15f); mirrorModel(1.3f * S, metal(.5f), mix(P1, 0xFFFFFF, .4f)); pop();
+            glint((float) Math.cos(a) * r, y, (float) Math.sin(a) * r, .9f * S, P3, 1f); }
         sprites("petal", 120 * N, FALLM, R, 0, top, .7f * S, P1, 1f, .16f, 7, true);
-        fogRing(10, R * .6f, P2, .4f);
+        fogRing(10, R * .6f, P2, .5f);
         if (m) strikes(2, R, top, P1);
     }
 
     private void sun(int N) {
-        sigil(R); float sy = top * .66f;
-        rays(sy, 22 * S, P1, .65f, .2f); rays(sy, 15 * S, P2, .6f, -.3f);
-        stand2("corona", 0, sy, 0, 13 * S, 13 * S, t * .3f, rgba(P1, .95f));
-        stand2("disc", 0, sy, 0, 6 * S, 6 * S, 0, rgba(0xFFFFFF, 1f));
-        column("beam", 0, .05f, sy, 0, 2.6f * S, rgba(P1, .5f));
-        pushFace(); tr(0, CY - 2.2f * S, 0); harp(4.4f * S, mix(P2, 0x402010, .3f), P3); pop();
-        for (int s = -1; s <= 1; s += 2) facing("wing", s * sx0 * 3.2f * S, CY, s * sz0 * 3.2f * S, s * 5.2f * S, 4.8f * S, 0, rgba(0xFFFFFF, .9f));
-        sym(CY + 3.2f * S, 2.6f * S, .6f);
-        sprites("note", 50 * N, RADIALM, R * 1.1f, CY, 0, 1.1f * S, P1, 1f, .22f, 9, true);
-        sprites("feather", 40 * N, FALLM, R, 0, top, .9f * S, 0xFFFFFF, 1f, .12f, 10, true);
-        sprites("spark", 80 * N, RISEM, R, 0, top, .35f * S, 0xFFFFFF, 1f, .3f, 11, true);
+        sigil(R); float sy = top * .88f;
+        rays(sy, 16 * S, P1, .6f, .2f); rays(sy, 11 * S, P2, .55f, -.3f);
+        stand2("corona", 0, sy, 0, 9 * S, 9 * S, t * .3f, rgba(P1, .95f));
+        stand2("disc", 0, sy, 0, 4 * S, 4 * S, 0, rgba(0xFFFFFF, 1f));
+        column("beam", 0, .05f, sy, 0, 2f * S, rgba(P1, .35f));
+        for (int s = -1; s <= 1; s += 2) facing("wing", s * sx0 * 4.4f * S, CY, s * sz0 * 4.4f * S, s * 5.6f * S, 5.2f * S, 0, rgba(0xFFFFFF, .9f));
+        sym(CY, 3.4f * S, 0);
+        for (int i = 0; i < 10 * N; i++) { float a = t * .3f + i * TAU / (10 * N); column("line", (float) Math.cos(a) * R * .6f, 0, 5f * S, (float) Math.sin(a) * R * .6f, .3f * S, rgba(P1, .9f)); }
+        sprites("note", 40 * N, RADIALM, R * 1.1f, CY, 0, 1.1f * S, P1, 1f, .22f, 9, true);
+        sprites("feather", 36 * N, FALLM, R, 0, top, .9f * S, 0xFFFFFF, 1f, .12f, 10, true);
+        sprites("spark", 70 * N, RISEM, R, 0, top, .35f * S, 0xFFFFFF, 1f, .3f, 11, true);
     }
 
     private void death(int N) {
         sigil(R);
-        pushFace(); tr(0, CY, 0); rY((float) Math.sin(t * .4f) * .4f); skull(2.3f * S, mix(P1, 0xFFFFFF, .5f), P1); pop();
-        sym(CY + 3.8f * S, 2.6f * S, .5f);
-        stand2("rays", 0, CY, 0, 12 * S, 12 * S, t * .1f, rgba(P1, .35f));
+        push(); tr(0, CY - 1.4f * S, 0); rY(face + (float) Math.sin(t * .4f) * .4f); skull(2.2f * S, mix(P1, 0xE8E8D0, .5f), P1); pop();
+        sym(CY + 3.6f * S, 3.2f * S, 0);
         for (int i = 0; i < 8 * N; i++) { float a = i * TAU / (8 * N) + .2f, rr = R * .9f;
             push(); tr((float) Math.cos(a) * rr, 0, (float) Math.sin(a) * rr); rY(PI - a + PI / 2);
-            box(0, 1.1f * S, 0, .7f * S, 1.1f * S, .18f * S, 0x707878, 255); sphere(0, 2.2f * S, 0, .7f * S, .55f * S, .18f * S, 5, 10, 0x707878, 255);
-            box(0, 1.6f * S, .19f * S, .08f * S, .45f * S, .01f * S, P1, 255); box(0, 1.8f * S, .19f * S, .3f * S, .07f * S, .01f * S, P1, 255); pop(); }
-        for (int i = 0; i < 10 * N; i++) { float a = -t * .15f + i * TAU / (10 * N), rr = R * .65f; flameAt((float) Math.cos(a) * rr, 0, (float) Math.sin(a) * rr, 3f * S, i, P2, P1, P3, .9f); }
-        sprites("mote", 80 * N, RISEM, R, 0, top, .45f * S, P1, 1f, .25f, 14, false);
-        sprites("smoke", 30 * N, RISEM, R, 0, top * .8f, 2.4f * S, P2, .5f, .12f, 13, true);
-        fogRing(10, R * .6f, P1, .3f);
+            box(0, 1.0f * S, 0, .65f * S, 1.0f * S, .18f * S, 0x707878, 255); sphere(0, 2.0f * S, 0, .65f * S, .5f * S, .18f * S, 5, 10, 0x707878, 255);
+            box(0, 1.5f * S, .19f * S, .08f * S, .42f * S, .01f * S, P1, 255); box(0, 1.7f * S, .19f * S, .28f * S, .07f * S, .01f * S, P1, 255); pop(); }
+        for (int i = 0; i < 6 * N; i++) { float a = -t * .15f + i * TAU / (6 * N), rr = R * .6f; flameAt((float) Math.cos(a) * rr, 0, (float) Math.sin(a) * rr, 2.6f * S, i, P2, P1, P3, .95f); }
+        sprites("mote", 70 * N, RISEM, R, 0, top, .45f * S, P1, 1f, .25f, 14, false);
+        sprites("smoke", 24 * N, RISEM, R, 0, top * .8f, 2.4f * S, P2, .6f, .12f, 13, true);
+        fogRing(10, R * .6f, P1, .4f);
     }
 
     private void abyss(int N, boolean m) {
         flat("whirl", 0, .06f, 0, 2.2f * R, -t * .5f, rgba(P1, .9f)); flat("whirl", 0, .08f, 0, 1.4f * R, t * .8f, rgba(P2, .9f));
         sigil(R);
         for (int i = 0; i < 8; i++) { float pw = fract(t * .25f + i / 8f); flat("ring", 0, .1f + i * .02f, 0, (1 - pw) * 2.2f * R, 0, rgba(P1, fd(pw))); }
-        float vr = 2.2f * S;
-        flat("whirl", 0, CY, 0, 11 * S, t * 1.2f, rgba(P1, .95f)); flat("whirl", 0, CY, 0, 7 * S, -t * 1.8f, rgba(mix(P1, 0xFFFFFF, .4f), .9f));
-        stand2("ring_thick", 0, CY, 0, 8 * S, 8 * S, t * .5f, rgba(P1, .8f));
-        sphere(0, CY, 0, vr, vr, vr, 10, 16, 0x050205, 255);
-        sym(CY + 4.4f * S, 2.8f * S, .5f);
-        for (int i = 0; i < 6; i++) { float a = i * TAU / 6 + t * .1f, r = 3.5f * S;
-            push(); tr((float) Math.cos(a) * r, CY - 1f * S, (float) Math.sin(a) * r); rY(-a + PI / 2); rZ(-.2f); horn(5f * S, .5f * S, 1.9f, mix(P2, 0x120505, .45f)); pop(); }
+        float vr = 1.9f * S, vy = CY + .8f * S;
+        flat("whirl", 0, vy, 0, 9 * S, t * 1.2f, rgba(P1, .95f)); flat("whirl", 0, vy, 0, 6 * S, -t * 1.8f, rgba(mix(P1, 0xFFFFFF, .4f), .9f));
+        sphere(0, vy, 0, vr, vr, vr, 10, 16, 0x050205, 255);
+        sym(vy + 4.6f * S, 3.4f * S, 0);
+        int dark = mix(P2, 0x120505, .5f);
+        for (int i = 0; i < 8; i++) {   // tentacles rising out of the ground and curling in over the void
+            float a = i * TAU / 8 + t * .05f, r = R * .55f;
+            push(); tr((float) Math.cos(a) * r, 0, (float) Math.sin(a) * r); rY(PI - a); tentacle(7f * S * (.8f + .2f * h(i, 3)), .55f * S, 1.5f + .3f * h(i, 4), i, dark); pop();
+        }
         for (int i = 0; i < 12 * N; i++) { float a = i * TAU / (12 * N) + t * .08f, r = R * .85f;
             column("crack", (float) Math.cos(a) * r, 0, top * (.5f + .4f * h(i, 3)), (float) Math.sin(a) * r, 1.5f * S, rgba(P1, .9f)); }
         sprites("mote", 90 * N, SPIRALM, R, 0, top, .4f * S, P1, 1f, .2f, 16, false);
-        sprites("smoke", 24 * N, DRIFTM, R, .5f, 6f, 4f * S, P2, .5f, .1f, 15, true);
+        sprites("smoke", 24 * N, DRIFTM, R, .5f, 6f, 4f * S, P2, .6f, .1f, 15, true);
         strikes(2 * N, R, top, P1);
-        if (m) dome(R * 1.5f, 0x020002, 190);
+        if (m) dome(R * 3f, 0x020002, 190);
     }
-    /** A curved horn starting along +Y. */
-    private void horn(float len, float r0, float bend, int rgb) {
-        int segs = 8; float seg = len / segs;
+    /** A tentacle that grows out of the ground along +Y and curls toward local +X, wriggling. */
+    private void tentacle(float len, float r0, float bend, int seed, int rgb) {
+        int segs = 14; float seg = len / segs;
         push();
         for (int i = 0; i < segs; i++) {
-            float ra = r0 * (1f - i / (float) segs), rb = r0 * (1f - (i + 1) / (float) segs);
-            frustum(0, seg, ra, rb, 8, 1, 1, rgb, 255, i == segs - 1); tr(0, seg, 0); rZ(-bend / segs);
+            float ra = r0 * (1f - .85f * i / segs), rb = r0 * (1f - .85f * (i + 1) / segs);
+            frustum(0, seg, ra, rb, 8, 1, 1, rgb, 255, i == segs - 1); tr(0, seg, 0);
+            rZ(-bend / segs + (float) Math.sin(t * 1.6f + i * .5f + seed) * .09f); rX((float) Math.cos(t * 1.3f + i * .45f + seed) * .08f);
+            if (i % 3 == 1) { push(); rY(PI / 2); tr(ra * .5f, 0, 0); sphere(0, 0, 0, ra * .5f, ra * .5f, ra * .5f, 3, 5, mix(rgb, P1, .5f), 255); pop(); }
         }
         pop();
     }
 
     private void redPriest(int N) {
         sigil(R);
-        rays(CY, 14 * S, P1, .5f, .15f);
-        pushFace(); tr(0, 0, 0);
-        frustum(0, 1.4f * S, .5f * S, .35f * S, 12, 1, 1, mix(P2, 0x201008, .5f), 255, true); frustum(1.4f * S, 2f * S, .35f * S, 1.2f * S, 14, 1, 1, mix(P2, 0x201008, .5f), 255, true);
-        for (int i = 0; i < 3; i++) { push(); rY(i * TAU / 3); rZ(.25f); frustum(0, 1.5f * S, .12f * S, .08f * S, 6, 1, 1, mix(P2, 0x201008, .5f), 255, false); pop(); }
-        for (int s = -1; s <= 1; s += 2) { push(); tr(0, 6.3f * S, -2.6f * S); rZ(s * .55f); rX(0); sword(10.5f * S, metal(.8f), mix(P2, 0x302010, .4f), P1); pop(); }
+        facing("rays", 0, CY, 0, 12 * S, 12 * S, t * .15f, rgba(P1, .4f));
+        pushFace();
+        int ir = mix(P2, 0x201008, .5f);
+        frustum(0, 1.2f * S, .5f * S, .35f * S, 12, 1, 1, ir, 255, true); frustum(1.2f * S, 1.7f * S, .35f * S, 1.1f * S, 14, 1, 1, ir, 255, true);
+        for (int i = 0; i < 3; i++) { push(); rY(i * TAU / 3); rZ(.25f); frustum(0, 1.3f * S, .12f * S, .08f * S, 6, 1, 1, ir, 255, false); pop(); }
+        for (int s = -1; s <= 1; s += 2) { push(); tr(s * 2.2f * S, 0, -1.8f * S); rZ(-s * .35f); sword(8f * S, metal(.8f), ir, P1); pop(); }
         pop();
-        flameAt(0, 1.8f * S, 0, 7f * S, 1, P2, P1, P3, 1f); flameAt(.8f * S, 1.8f * S, .4f * S, 5f * S, 2, P2, P1, P3, 1f); flameAt(-.7f * S, 1.8f * S, -.3f * S, 5.5f * S, 3, P2, P1, P3, 1f);
-        sym(CY + 5f * S, 2.8f * S, .5f);
-        for (int i = 0; i < 12 * N; i++) { float a = i * TAU / (12 * N), rr = R * .78f;
-            push(); tr((float) Math.cos(a) * rr, 0, (float) Math.sin(a) * rr); frustum(0, 3.2f * S, .12f * S, .1f * S, 6, 1, 1, mix(P2, 0x201008, .5f), 255, true); frustum(3.2f * S, 3.5f * S, .1f * S, .26f * S, 8, 1, 1, mix(P2, 0x201008, .5f), 255, true); pop();
-            flameAt((float) Math.cos(a) * rr, 3.5f * S, (float) Math.sin(a) * rr, 2.2f * S, i + 5, P2, P1, P3, .95f); }
-        sprites("spark", 120 * N, RISEM, R, 0, top * 1.1f, .3f * S, P3, 1f, .5f, 18, true);
-        sprites("smoke", 20 * N, RISEM, R * .5f, top * .3f, top, 3f * S, mix(P2, 0x000000, .6f), .5f, .1f, 19, true);
+        flameAt(0, 1.7f * S, 0, 6f * S, 1, P2, P1, P3, 1f);
+        sym(CY + 5.5f * S, 3.4f * S, 0);
+        for (int i = 0; i < 8 * N; i++) { float a = i * TAU / (8 * N), rr = R * .75f;
+            push(); tr((float) Math.cos(a) * rr, 0, (float) Math.sin(a) * rr); frustum(0, 2.8f * S, .12f * S, .1f * S, 6, 1, 1, ir, 255, true); frustum(2.8f * S, 3.1f * S, .1f * S, .26f * S, 8, 1, 1, ir, 255, true); pop();
+            flameAt((float) Math.cos(a) * rr, 3.1f * S, (float) Math.sin(a) * rr, 2.2f * S, i + 5, P2, P1, P3, .95f); }
+        sprites("spark", 90 * N, RISEM, R, 0, top * 1.1f, .3f * S, P3, 1f, .5f, 18, true);
+        sprites("smoke", 16 * N, RISEM, R * .5f, top * .3f, top, 3f * S, mix(P2, 0x000000, .6f), .5f, .1f, 19, true);
     }
 
     private void blackEmperor(int N, boolean m) {
-        dome(R * 1.7f, 0x000000, m ? 215 : 140);
+        dome(R * 4f, 0x000000, m ? 215 : 150);
         sigil(R);
-        for (int i = 0; i < 6 * N; i++) { float a = i * TAU / (6 * N) + .3f; column("beam", (float) Math.cos(a) * R * .5f, 0, top, (float) Math.sin(a) * R * .5f, 1.6f * S, rgba(P1, .35f)); }
-        pushFace(); throneModel(1.3f * S, mix(P3, 0x000000, .2f), metal(.6f)); pop();
-        pushFace(); tr(0, CY + 4.2f * S, 0); rY(t * .4f); crown(1.7f * S, metal(.7f), P1); pop();
-        stand2("rays", 0, CY + 4.5f * S, 0, 9 * S, 9 * S, t * .15f, rgba(P1, .5f));
-        sym(CY + 7f * S, 2.6f * S, .5f);
-        for (int i = 0; i < 6 * N; i++) { float a = i * TAU / (6 * N) + .1f, r = R * .6f * (.7f + .3f * (i % 2)); push(); tr((float) Math.cos(a) * r, top + 1f, (float) Math.sin(a) * r); chain(top + 1f - CY * .7f, .8f * S, mix(P2, 0x000000, .45f)); pop(); }
+        for (int i = 0; i < 6 * N; i++) { float a = i * TAU / (6 * N) + .3f; column("beam", (float) Math.cos(a) * R * .5f, 0, top, (float) Math.sin(a) * R * .5f, 1.4f * S, rgba(P1, .35f)); }
+        pushFace(); throneModel(.95f * S, mix(P3, 0x000000, .2f), metal(.6f)); pop();
+        pushFace(); tr(0, 4.6f * S, 0); rY(t * .4f); crown(1.3f * S, metal(.7f), P1); pop();
+        sym(CY + 5.6f * S, 3.2f * S, 0);
+        for (int i = 0; i < 6 * N; i++) { float a = i * TAU / (6 * N) + .1f, r = R * .55f * (.7f + .3f * (i % 2)); push(); tr((float) Math.cos(a) * r, top + 1f, (float) Math.sin(a) * r); chain(top + 1f - 4f * S, .8f * S, mix(0x50545C, P1, .1f)); pop(); }
         for (int i = 0; i < 14 * N; i++) { float a = i * TAU / (14 * N), r = R * .85f; push(); tr((float) Math.cos(a) * r, 0, (float) Math.sin(a) * r); taper(0, (3f + 3f * h(i, 5)) * S, .35f * S, .35f * S, 0, 0, mix(P3, 0x000000, .2f), 255); pop(); }
         sprites("spark", 70 * N, FALLM, R, 0, top, .45f * S, 0xFFFFFF, 1f, .15f, 20, true);
-        fogRing(8, R * .6f, P2, .3f);
+        fogRing(8, R * .6f, P2, .4f);
     }
 
+    /** Marauder: a server error. Stepped, choppy time like a lagging server; glitching symbol; error windows; binary rain; static. */
     private void error(int N) {
+        float t0 = t; t = (float) Math.floor(t * 4f) / 4f;
         sigil(R);
-        int slices = 14; float size = 7f * S;
+        int slices = 14; float size = 5.6f * S, yw = -face;
         for (int k = 0; k < slices; k++) {
-            int tick = (int) (t * 7);
             boolean glitch = fract(t * .6f + h(k, 3)) > .55f;
-            float dx = glitch ? (h(tick + k, 77) - .5f) * 1.6f * S : 0;
-            float v0 = k / (float) slices, v1 = (k + 1) / (float) slices;
-            float yc = CY + (.5f - (k + .5f) / slices) * size;
-            quadUV(symTex(), sx0 * dx, yc, sz0 * dx, sx0 * size / 2, 0, sz0 * size / 2, 0, size / slices / 2, 0, rgba(symTint(), glitch ? .9f : 1f), 0, v0, 1, v1);
-            if (glitch) quadUV(symTex(), sx0 * (dx * -1.6f), yc, sz0 * (dx * -1.6f), sx0 * size / 2, 0, sz0 * size / 2, 0, size / slices / 2, 0, rgba(P2, .6f), 0, v0, 1, v1);
+            float dx = glitch ? (h((int) (t * 7) + k, 77) - .5f) * 1.8f * S : 0, v0 = k / (float) slices, v1 = (k + 1) / (float) slices, yc = CY + (.5f - (k + .5f) / slices) * size;
+            float cx = (float) Math.cos(yw), sx = (float) Math.sin(yw);
+            eq(symRL(), cx * dx, yc, sx * dx, cx * size / 2, 0, sx * size / 2, 0, size / slices / 2, 0, rgba(symTint(), 1f), 0, v0, 1, v1);
+            if (glitch) eq(symRL(), cx * dx * -1.7f, yc, sx * dx * -1.7f, cx * size / 2, 0, sx * size / 2, 0, size / slices / 2, 0, rgba(P2, .6f), 0, v0, 1, v1);
         }
-        for (int i = 0; i < 12 * N; i++) {
-            float a = t * (i % 2 == 0 ? .4f : -.35f) + i * TAU / (12 * N), r = R * (.4f + .45f * h(i, 4)), y = 1f + h(i, 5) * top * .7f;
-            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(t * (.6f + h(i, 6))); rX(t * (.5f + h(i, 7)) + i); rZ(i); shardModel(1.3f * S * (.6f + h(i, 8)), metal(.5f + .4f * h(i, 9))); pop();
+        for (int i = 0; i < 6 * N; i++) {   // error windows that jump around
+            int slot = (int) Math.floor(t / 1.1f + h(i, 5) * 3);
+            float a = h(slot * 5 + i, 71) * TAU, r = R * (.6f + .5f * h(slot * 3 + i, 72)), y = 1.5f * S + h(slot * 7 + i, 73) * top * .7f;
+            if (fract(t * 1.3f + h(i, 8)) < .85f) panel("errwin", (float) Math.cos(a) * r, y, (float) Math.sin(a) * r, 3.2f * S, 2.0f * S, a + PI / 2, rgba(0xFFFFFF, 1f));
         }
-        for (int k = 0; k < 14 * N; k++) { int seg = (int) Math.floor(t * 3.2f + k * .37f); float vis = fract(t * 3.2f + k * .37f);
-            float a = h(seg + k, 41) * TAU, rr = h(seg + k, 42) * R, yy = h(seg + k, 43) * top * .8f;
-            if (vis < .75f) bb("crack", (float) Math.cos(a) * rr, yy, (float) Math.sin(a) * rr, 2.8f * S, 2.8f * S, h(seg + k, 44) * TAU, rgba(k % 3 == 0 ? 0xFFFFFF : P1, 1f - vis * .6f)); }
-        for (int k = 0; k < 9; k++) { float a = k * TAU / 9; if (fract(t * 2f + h(k, 5)) > .3f) column("line", (float) Math.cos(a) * R * .8f, 0, top * (.5f + .5f * h(k, 6)), (float) Math.sin(a) * R * .8f, .5f * S, rgba(P1, .7f)); }
-        sprites("mote", 100 * N, DRIFTM, R, 0, top, .4f * S, 0xFFFFFF, 1f, .6f, 21, false);
-        strikes(2 * N, R, top, P1);
+        String[] words = {"errtext", "nulltext", "deadtext", "t404"};
+        for (int i = 0; i < 4; i++) { if (fract(t * .9f + h(i, 31)) < .6f) { int slot = (int) Math.floor(t * .9f + h(i, 31));
+            float a = h(slot * 3 + i, 81) * TAU, r = R * (.4f + .6f * h(slot + i, 82)); bb(words[(slot + i) & 3], (float) Math.cos(a) * r, 1f * S + h(slot + i, 83) * top * .8f, (float) Math.sin(a) * r, 4f * S, 1f * S, 0, rgba(0xFFFFFF, 1f)); } }
+        for (int c = 0; c < 8 * N; c++) {   // binary rain
+            float a = c * TAU / (8 * N) + .3f, r = R * (.4f + .5f * h(c, 4));
+            for (int k = 0; k < 9; k++) { float yy = top - fract(t * .35f * (.6f + h(c, 5)) + k / 9f + h(c, 6)) * top; bb(((c + k + (int) (t * 2)) & 1) == 0 ? "bit0" : "bit1", (float) Math.cos(a) * r, yy, (float) Math.sin(a) * r, .7f * S, .7f * S, 0, rgba(P3, 1f)); }
+        }
+        for (int i = 0; i < 5 * N; i++) { int slot = (int) Math.floor(t * 2.5f + i); float a = h(slot * 3 + i, 91) * TAU, r = R * .9f * h(slot * 5 + i, 92);
+            if (fract(t * 2.5f + i) < .8f) eq(tex("checker"), (float) Math.cos(a) * r, .06f, (float) Math.sin(a) * r, 1.4f * S, 0, 0, 0, 0, 1.4f * S, rgba(0xFFFFFF, .85f), 0, 0, 1, 1); }
+        for (int k = 0; k < 3; k++) { if (fract(t * 1.7f + h(k, 9)) < .35f) { float yy = h((int) (t * 6) + k, 41) * top; float dx2 = (h((int) (t * 6) + k, 42) - .5f) * 4 * S;
+            quad("solid", dx2, yy, 0, R * .9f, 0, 0, 0, .12f * S, 0, rgba(P3, .55f)); quad("solid", dx2, yy, 0, 0, 0, R * .9f, 0, .12f * S, 0, rgba(P3, .55f)); } }
+        for (int k = 0; k < 9; k++) { float a = k * TAU / 9; if (fract(t * 2f + h(k, 5)) > .3f) column("line", (float) Math.cos(a) * R * .8f, 0, top * (.5f + .5f * h(k, 6)), (float) Math.sin(a) * R * .8f, .5f * S, rgba(P1, .8f)); }
+        sprites("mote", 80 * N, DRIFTM, R, 0, top, .4f * S, 0xFFFFFF, 1f, .6f, 21, false);
+        t = t0;
     }
 
     private void wheel(int N) {
         sigil(R);
-        stand2("wheel", 0, .1f, 0, 1.9f * R, 1.9f * R, 0, 0); flat("wheel", 0, .1f, 0, 1.9f * R, t * .3f, rgba(P2, .6f));
-        float wy = top * .5f;
-        rays(wy, 18 * S, P1, .55f, .15f);
-        pushFace(); tr(0, wy, 0); rZ(t * .4f); wheelModel(5.6f * S, metal(.55f), metal(.35f), P3); pop();
-        pushFace(); tr(0, wy, -.2f * S); rZ(-t * .6f); wheelModel(3f * S, mix(P2, 0xFFFFFF, .2f), metal(.4f), metal(.8f)); pop();
-        sym(wy, 2.4f * S, .8f);
-        for (int i = 0; i < 8 * N; i++) {
-            float a = t * .5f + i * TAU / (8 * N), r = R * .65f, y = 1.6f * S + (float) Math.sin(a * 2 + i) * 1.2f * S;
-            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(t * 1.3f + i); rX(t * 1.7f + i); die(.9f * S); pop();
+        flat("fortune", 0, .1f, 0, 1.9f * R, t * .2f, rgba(P2, .45f));
+        float wr = 3.6f * S, wy = Math.max(top * .55f, wr + .5f), yaw = -face + (float) Math.sin(t * .35f) * .6f, c = (float) Math.cos(yaw), s = (float) Math.sin(yaw);
+        float roll = t * .35f, cr = (float) Math.cos(roll), sr = (float) Math.sin(roll);
+        eq(tex("fortune"), 0, wy, 0, c * cr * wr, sr * wr, s * cr * wr, -c * sr * wr, cr * wr, -s * sr * wr, rgba(mix(0xFFFFFF, P3, .1f), 1f), 0, 0, 1, 1);
+        push(); tr(0, wy, 0); rY(-yaw); rZ(roll); ring(wr * .99f, .06f * wr, metal(.7f), 255); pop();
+        symPlane(curPath, 0, wy, 0, wr * .5f, yaw, 1f);
+        rays(wy, 11 * S, P1, .4f, .12f);
+        for (int i = 0; i < 4 * N; i++) {
+            float a = t * .4f + i * TAU / (4 * N), r = R * .85f, y = 1.4f * S + (float) Math.sin(a * 2 + i) * .8f * S;
+            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(t * 1.3f + i); rX(t * 1.7f + i); die(.65f * S); pop();
         }
-        sprites("spark", 90 * N, RADIALM, R * 1.2f, wy, 0, .5f * S, 0xFFFFFF, 1f, .3f, 22, true);
-        sprites("diamond", 24 * N, RISEM, R, 0, top, .6f * S, P2, 1f, .2f, 23, true);
+        sprites("spark", 70 * N, RADIALM, R * 1.2f, wy, 0, .5f * S, 0xFFFFFF, 1f, .3f, 22, true);
+        sprites("diamond", 18 * N, RISEM, R, 0, top, .5f * S, P1, 1f, .2f, 23, true);
     }
     private void die(float s) {
         box(0, 0, 0, s, s, s, metal(.7f), 255);
-        float[][] face = {{0, 1.02f, 0}, {0, -1.02f, 0}, {1.02f, 0, 0}, {-1.02f, 0, 0}, {0, 0, 1.02f}, {0, 0, -1.02f}};
-        for (float[] f : face) sphere(f[0] * s, f[1] * s, f[2] * s, .22f * s, .22f * s, .22f * s, 3, 6, P3, 255);
+        float[][] face2 = {{0, 1.02f, 0}, {0, -1.02f, 0}, {1.02f, 0, 0}, {-1.02f, 0, 0}, {0, 0, 1.02f}, {0, 0, -1.02f}};
+        for (float[] f : face2) sphere(f[0] * s, f[1] * s, f[2] * s, .22f * s, .22f * s, .22f * s, 3, 6, P3, 255);
     }
 
     private void hermit(int N) {
         sigil(R);
-        float ly = top * .78f;
-        solid(true); push(); tr(0, 0, 0); frustum(0, ly - .6f * S, R * .55f, .25f * S, 18, 1, 1, P3, 38, false); pop(); solid(false);
-        column("beam", 0, 0, ly, 0, 3f * S, rgba(P3, .4f));
-        push(); tr(0, top + 2f, 0); chain(top + 2f - ly - 4.4f * S, .9f * S, metal(.3f)); pop();
-        push(); tr(0, ly - 4.4f * S, 0); rY(t * .2f); lanternModel(5.2f * S, metal(.35f), P3); pop();
-        flameAt(0, ly - 3.5f * S, 0, 2.6f * S, 4, P3, mix(P3, 0xFFFFFF, .4f), 0xFFFFFF, 1f);
-        sym(CY - .4f * S, 2.8f * S, .5f);
+        float ly = top * .75f;
+        column("beam", 0, 0, ly, 0, 2f * S, rgba(P3, .28f));
+        push(); tr(0, top + 2f, 0); chain(top + 2f - ly - 3.6f * S, .9f * S, metal(.3f)); pop();
+        push(); tr(0, ly - 3.6f * S, 0); rY(t * .2f); lanternModel(4.4f * S, metal(.35f), P3); pop();
+        flameAt(0, ly - 3.0f * S, 0, 2.0f * S, 4, P3, mix(P3, 0xFFFFFF, .4f), 0xFFFFFF, 1f);
+        sym(CY - .2f * S, 3.4f * S, 0);
         for (int i = 0; i < 7 * N; i++) { float a = t * .15f + i * TAU / (7 * N), r = R * .7f, y = 2f * S + 1.8f * S * (i % 3);
             push(); tr((float) Math.cos(a) * r, y + 2.4f * S, (float) Math.sin(a) * r); chain(2.2f * S, .45f * S, metal(.3f)); pop();
-            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(a); lanternModel(1.7f * S, metal(.35f), P3); pop();
-            flameAt((float) Math.cos(a) * r, y + .4f * S, (float) Math.sin(a) * r, .9f * S, i, P3, mix(P3, 0xFFFFFF, .4f), 0xFFFFFF, 1f); }
-        sprites("star", 60 * N, SPIRALM, R, 0, top, .6f * S, P1, 1f, .15f, 23, true);
-        sprites("mote", 60 * N, DRIFTM, R, .5f, top, .4f * S, 0xFFFFFF, 1f, .2f, 24, false);
-        fogRing(10, R * .6f, P2, .4f);
+            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(a); lanternModel(1.5f * S, metal(.35f), P3); pop();
+            flameAt((float) Math.cos(a) * r, y + .3f * S, (float) Math.sin(a) * r, .7f * S, i, P3, mix(P3, 0xFFFFFF, .4f), 0xFFFFFF, 1f); }
+        for (int i = 0; i < 9 * N; i++) {   // eyes opening in the dark
+            float a = t * .1f + i * TAU / (9 * N), r = R * (.55f + .35f * h(i, 2)), y = 1.5f * S + h(i, 3) * top * .75f, bl = Math.max(.12f, Math.abs((float) Math.cos(t * .5f + i * 1.9f)));
+            bb("eye", (float) Math.cos(a) * r, y, (float) Math.sin(a) * r, 2.4f * S, 1.2f * S * bl, 0, rgba(P1, 1f)); }
+        sprites("star", 40 * N, SPIRALM, R, 0, top, .6f * S, P1, 1f, .15f, 23, true);
+        sprites("mote", 40 * N, DRIFTM, R, .5f, top, .4f * S, 0xFFFFFF, 1f, .2f, 24, false);
+        fogRing(10, R * .6f, P2, .5f);
     }
 
     private void mother(int N) {
         sigil(R);
-        rays(CY, 16 * S, P1, .4f, .1f);
-        pushFace(); rY(t * .1f); flowerModel(6.5f * S, mix(P1, 0xFFFFFF, .15f), mix(P1, P3, .5f), 0xFFD860, mix(P2, 0x103018, .2f)); pop();
-        sym(CY + 5f * S, 2.8f * S, .5f);
-        for (int s = -1; s <= 1; s += 2) facing("wing", s * sx0 * 3.8f * S, CY + 1f * S, s * sz0 * 3.8f * S, s * 6f * S, 5f * S, 0, rgba(P2, .6f));
+        facing("rays", 0, CY, 0, 12 * S, 12 * S, t * .1f, rgba(P1, .35f));
+        push(); rY(t * .1f); flowerModel(4.4f * S, mix(P1, 0xFFFFFF, .15f), mix(P1, P3, .5f), 0xFFD860, mix(P2, 0x103018, .2f)); pop();
+        sym(CY + 5f * S, 3.4f * S, 0);
         for (int i = 0; i < 6 * N; i++) { float a = i * TAU / (6 * N) + t * .08f, rr = R * .75f;
-            push(); tr((float) Math.cos(a) * rr, 0, (float) Math.sin(a) * rr); rY(a); rZ((float) Math.sin(t + i) * .06f); flowerModel(1.8f * S, mix(P3, 0xFFFFFF, .1f), P1, 0xFFD860, mix(P2, 0x103018, .2f)); pop(); }
-        sprites("petal", 120 * N, SPIRALM, R, 0, top, .7f * S, P3, 1f, .14f, 25, true);
-        sprites("leaf", 36 * N, FALLM, R, 0, top, 1f * S, P2, 1f, .12f, 26, true);
-        sprites("mote", 100 * N, RISEM, R, 0, top, .3f * S, 0xFFF0A0, 1f, .25f, 27, false);
+            push(); tr((float) Math.cos(a) * rr, 0, (float) Math.sin(a) * rr); rY(a); rZ((float) Math.sin(t + i) * .06f); flowerModel(1.9f * S, mix(P3, 0xFFFFFF, .1f), P1, 0xFFD860, mix(P2, 0x103018, .2f)); pop(); }
+        sprites("petal", 100 * N, SPIRALM, R, 0, top, .7f * S, P3, 1f, .14f, 25, true);
+        sprites("leaf", 30 * N, FALLM, R, 0, top, 1f * S, P2, 1f, .12f, 26, true);
+        sprites("mote", 80 * N, RISEM, R, 0, top, .3f * S, 0xFFF0A0, 1f, .25f, 27, false);
     }
 
     private void chained(int N, boolean m) {
         sigil(R); int iron = mix(0x707890, P1, .15f);
-        stand2("rays", 0, CY, 0, 12 * S, 12 * S, t * .1f, rgba(P1, .3f));
-        column("beam", 0, 0, top, 0, 3.2f * S, rgba(P1, .25f));
-        sym(CY, 3.4f * S, .5f);
-        for (int i = 0; i < 12 * N; i++) { float a = i * TAU / (12 * N), r = R * (.6f + .35f * h(i, 2)); push(); tr((float) Math.cos(a) * r + (float) Math.sin(t * .8f + i) * .15f * S, top + 1.5f, (float) Math.sin(a) * r); chain(top + 1.5f - 1.2f * S * h(i, 3), .9f * S, iron); pop(); }
-        for (int ring = 0; ring < N; ring++) {
-            int links = 30; float rr = R * (ring == 0 ? .5f : .8f), yy = CY + ring * 1.4f * S, dir = ring == 0 ? 1 : -1;
-            for (int i = 0; i < links; i++) { float a = dir * t * .12f + i * TAU / links;
-                push(); tr((float) Math.cos(a) * rr, yy, (float) Math.sin(a) * rr); rY(-a); if ((i & 1) == 1) rX(PI / 2);
-                torus(0, 0, 0, .28f * S, .5f * S, .1f * S, 8, 4, 0, TAU, iron, 255); pop(); }
-        }
-        for (int i = 0; i < 4 * N; i++) { float a = i * TAU / (4 * N) + .6f, r = R * .35f;   // shackles
-            push(); tr((float) Math.cos(a) * r, CY - 2.2f * S, (float) Math.sin(a) * r); rY(-a); torus(0, 0, 0, .55f * S, .6f * S, .12f * S, 14, 4, -.4f, PI + .4f, iron, 255); box(0, -.65f * S, 0, .6f * S, .16f * S, .18f * S, mix(iron, 0x000000, .3f), 255); pop(); }
-        for (int i = 0; i < 14; i++) { float a = i * TAU / 14, r = R * .33f; push(); tr((float) Math.cos(a) * r, 0, (float) Math.sin(a) * r); frustum(0, 5.5f * S, .1f * S, .1f * S, 6, 1, 1, iron, 255, true); pop(); }
-        push(); tr(0, 5.5f * S, 0); rX(PI / 2); ring(R * .33f, .1f * S, iron, 255); pop();
-        sprites("spark", 60 * N, RISEM, R, 0, top, .35f * S, P1, 1f, .3f, 28, true);
-        fogRing(10, R * .6f, P2, .35f);
+        column("beam", 0, 0, top, 0, 2.6f * S, rgba(P1, .22f));
+        sym(CY, 3.4f * S, 0);
+        for (int i = 0; i < 7 * N; i++) { float a = i * TAU / (7 * N), r = R * (.6f + .3f * h(i, 2)); push(); tr((float) Math.cos(a) * r + (float) Math.sin(t * .8f + i) * .15f * S, top + 1.5f, (float) Math.sin(a) * r); chain(top + 1.5f - 1.4f * S * (1 + h(i, 3)), .9f * S, iron); pop(); }
+        if (m) for (int i = 0; i < 28; i++) { float a = -t * .12f + i * TAU / 28, rr = R * .55f; push(); tr((float) Math.cos(a) * rr, CY + 2.8f * S, (float) Math.sin(a) * rr); rY(-a); if ((i & 1) == 1) rX(PI / 2);
+            torus(0, 0, 0, .28f * S, .5f * S, .1f * S, 8, 4, 0, TAU, iron, 255); pop(); }
+        for (int i = 0; i < 3 * N; i++) { float a = i * TAU / (3 * N) + .6f, r = R * .42f;
+            push(); tr((float) Math.cos(a) * r, CY - 2.4f * S, (float) Math.sin(a) * r); rY(-a); torus(0, 0, 0, .55f * S, .6f * S, .12f * S, 14, 4, -.4f, PI + .4f, iron, 255); box(0, -.65f * S, 0, .6f * S, .16f * S, .18f * S, mix(iron, 0x000000, .3f), 255); pop(); }
+        sprites("spark", 40 * N, RISEM, R, 0, top, .35f * S, P1, 1f, .3f, 28, true);
+        fogRing(8, R * .6f, P2, .45f);
     }
 
     private void whiteTower(int N) {
-        sigil(R); float H = top * .95f;
-        pushFace(); towerModel(H, 1.7f * S, mix(P1, 0xFFFFFF, .75f), mix(P1, 0xFFFFFF, .45f), P3); pop();
-        for (int i = 0; i < 4; i++) { float a = t * .5f * (i % 2 == 0 ? 1 : -1) + i * PI / 2; float len = 9 * S;
-            quad("beam", 0, H * .93f, 0, 0, .3f * S, 0, (float) Math.cos(a) * len / 2, 0, (float) Math.sin(a) * len / 2, rgba(P3, .5f));
-            quad("beam", (float) Math.cos(a) * len / 2, H * .93f, (float) Math.sin(a) * len / 2, 0, .3f * S, 0, (float) Math.cos(a) * len / 2, 0, (float) Math.sin(a) * len / 2, rgba(P3, .55f)); }
-        for (int i = 0; i < 8 * N; i++) { float yy = (i + 1) * H / (8 * N + 1); flat("ring_dash", 0, yy, 0, (4f + 1.6f * (float) Math.sin(i * .9f)) * S, t * (i % 2 == 0 ? .7f : -.7f), rgba(i % 2 == 0 ? P1 : P2, .9f)); }
-        sym(H * 1.25f, 3f * S, .5f);
-        sprites("page", 40 * N, SPIRALM, R * .9f, 0, top, 1.5f * S, 0xFFFFFF, 1f, .13f, 30, true);
-        clouds(9 * N, R * 1.2f, top * .3f, 0xFFFFFF, .4f, R * 1.1f);
-        clouds(6 * N, R, top * 1.05f, 0xFFFFFF, .4f, R);
-        sprites("mote", 90 * N, RISEM, R * .6f, 0, top, .35f * S, P1, 1f, .3f, 31, false);
+        sigil(R); float H = top * .92f;
+        pushFace(); towerModel(H, 1.6f * S, mix(P1, 0x3A4A70, .55f), mix(P1, 0x6078A0, .4f), P3); pop();
+        for (int i = 0; i < 2; i++) { float a = t * .5f * (i == 0 ? 1 : -1) + i * PI; float len = 8 * S;
+            quad("beam", (float) Math.cos(a) * len / 2, H * .93f, (float) Math.sin(a) * len / 2, 0, .3f * S, 0, (float) Math.cos(a) * len / 2, 0, (float) Math.sin(a) * len / 2, rgba(P3, .35f)); }
+        for (int i = 0; i < 7 * N; i++) { float yy = (i + 1) * H / (7 * N + 1); flat("ring_dash", 0, yy, 0, (4f + 1.4f * (float) Math.sin(i * .9f)) * S, t * (i % 2 == 0 ? .7f : -.7f), rgba(i % 2 == 0 ? P1 : P2, .8f)); }
+        symFront(CY + .8f * S, 3.2f * S, 3.4f * S);
+        sprites("page", 24 * N, SPIRALM, R * .9f, 0, top, 1.3f * S, mix(P1, 0xFFFFFF, .3f), .9f, .13f, 30, true);
+        clouds(7 * N, R * 1.2f, top * .3f, mix(P1, 0xFFFFFF, .3f), .22f, R * 1.1f);
+        sprites("mote", 60 * N, RISEM, R * .6f, 0, top, .35f * S, P1, 1f, .3f, 31, false);
     }
 
     private void paragon(int N) {
         sigil(R);
-        pushFace(); tr(0, CY, 0); armillary(3.4f * S, mix(P1, 0xFFFFFF, .2f), P3); pop();
-        sym(CY, 2.4f * S, .6f);
-        pushFace(); tr(-4.4f * S, CY + 1f * S, -1.4f * S); rZ(t * .4f); gear(2.4f * S, 14, .5f * S, metal(.55f), P1); pop();
-        pushFace(); tr(1.6f * S, CY + 3.2f * S, -1.4f * S); rZ(-t * .4f * 1.5f + .2f); gear(1.6f * S, 10, .45f * S, mix(P1, 0x402008, .3f), P3); pop();
-        pushFace(); tr(4.6f * S, CY - 1.4f * S, -1.4f * S); rZ(t * .4f * 1.2f); gear(2f * S, 12, .45f * S, metal(.45f), P1); pop();
+        push(); tr(0, CY, 0); armillary(4.3f * S, mix(P1, 0xFFFFFF, .2f), P3); pop();
+        sym(CY, 3.4f * S, 0);
+        pushFace(); tr(-6f * S, CY + 1f * S, -1.2f * S); rZ(t * .4f); gear(2.2f * S, 14, .5f * S, metal(.55f), P1); pop();
+        pushFace(); tr(-3f * S, CY + 3.8f * S, -1.2f * S); rZ(-t * .6f + .2f); gear(1.4f * S, 10, .45f * S, mix(P1, 0x402008, .3f), P3); pop();
+        pushFace(); tr(6f * S, CY - 1.2f * S, -1.2f * S); rZ(t * .48f); gear(1.9f * S, 12, .45f * S, metal(.45f), P1); pop();
         push(); tr(0, .15f, 0); rX(-PI / 2); rZ(t * .12f); gear(R * .5f, 18, .3f * S, mix(P2, 0x402008, .4f), P1); pop();
-        stand2("rays", 0, CY, 0, 16 * S, 16 * S, t * .15f, rgba(P1, .5f));
         for (int k = 0; k < 4; k++) flat("ring_dash", 0, (1 + k * 2.2f) * S, 0, R * 1.6f - k * 1.2f * S, t * (k % 2 == 0 ? .3f : -.4f), rgba(k % 2 == 0 ? P1 : P2, .8f));
-        for (int k = 0; k < 8 * N; k++) { float a = t * .5f + k * TAU / (8 * N); bb("clock", (float) Math.cos(a) * R * .75f, 1.5f * S + (k % 4) * 1.5f * S, (float) Math.sin(a) * R * .75f, 1.4f * S, 1.4f * S, 0, rgba(0xFFFFFF, 1f)); }
-        sprites("spark", 100 * N, SPIRALM, R, 0, top, .4f * S, P1, 1f, .2f, 32, true);
+        for (int k = 0; k < 6 * N; k++) { float a = t * .5f + k * TAU / (6 * N); bb("clock", (float) Math.cos(a) * R * .8f, 1.5f * S + (k % 4) * 1.5f * S, (float) Math.sin(a) * R * .8f, 1.3f * S, 1.3f * S, 0, rgba(0xFFFFFF, 1f)); }
+        sprites("spark", 70 * N, SPIRALM, R, 0, top, .4f * S, P1, 1f, .2f, 32, true);
     }
 
     private void hangedMan(boolean m) {
-        dome(R * 1.8f, 0x000000, m ? 235 : 150);
+        dome(R * 4f, 0x000000, m ? 235 : 170);
         flat("whirl", 0, .06f, 0, 2f * R, t * .3f, rgba(P2, .9f));
         sigil(R);
-        float ey = top * .85f;
-        stand2("corona", 0, ey, 0, 15 * S, 15 * S, t * .1f, rgba(P1, .95f));
-        stand2("rays", 0, ey, 0, 20 * S, 20 * S, t * .06f, rgba(P2, .6f));
-        sphere(0, ey, 0, 2.6f * S, 2.6f * S, 2.6f * S, 10, 16, 0x000000, 255);
-        int dark = mix(P2, 0x100008, .4f);
-        for (int i = 0; i < 5; i++) { float a = i * TAU / 5, r = 2.4f * S; push(); tr((float) Math.cos(a) * r, top + 1.5f, (float) Math.sin(a) * r); chain(top + 1.5f - (CY + 3.4f * S), .8f * S, mix(0x707078, P1, .15f)); pop(); }
-        pushFace(); tr(0, CY, 0); rY(t * .15f); rZ(PI);
-        box(0, 0, 0, .5f * S, 3.2f * S, .35f * S, dark, 255); box(0, 1.6f * S, 0, 2f * S, .5f * S, .35f * S, dark, 255);
-        box(0, 0, .36f * S, .12f * S, 3f * S, .02f * S, P1, 255); box(0, 1.6f * S, .36f * S, 1.8f * S, .1f * S, .02f * S, P1, 255);
+        float ey = top * 1.0f;
+        stand2("corona", 0, ey, 0, 13 * S, 13 * S, t * .1f, rgba(P1, .95f));
+        sphere(0, ey, 0, 3.2f * S, 3.2f * S, 3.2f * S, 12, 20, 0x000000, 255);
+        for (int i = 0; i < 4; i++) { float a = i * TAU / 4 + .4f, r = 2f * S; push(); tr((float) Math.cos(a) * r, ey - 2f * S, (float) Math.sin(a) * r); chain(ey - 2f * S - (CY + 2.6f * S), .8f * S, mix(0x707078, P1, .15f)); pop(); }
+        push(); tr(0, CY - 2.4f * S, 0); rY(t * .12f); tr(0, 4.6f * S, 0); rZ(PI);
+        if (!drawGeo("cross", "lotm", "textures/entity/cross.png", 4.6f * S)) { box(0, 2.3f * S, 0, .5f * S, 2.3f * S, .35f * S, mix(P2, 0x100008, .4f), 255); box(0, 3.4f * S, 0, 1.7f * S, .45f * S, .35f * S, mix(P2, 0x100008, .4f), 255); }
         pop();
-        sym(CY - 4.6f * S, 2.2f * S, .4f);
-        sprites("drop", 90, FALLM, R * .9f, 0, top, .7f * S, P1, 1f, .45f, 34, false);
+        symFront(CY, 3.4f * S, 3.6f * S);
+        sprites("drop", 70, FALLM, R * .9f, 0, top, .7f * S, P1, 1f, .45f, 34, false);
         for (int i = 0; i < 6; i++) { float pw = fract(t * .5f + i / 6f); flat("ring", (h(i, 61) - .5f) * R, .1f, (h(i, 62) - .5f) * R, pw * 3f * S, 0, rgba(P1, fd(pw))); }
     }
 
     private void fool(int N) {
         sigil(R);
-        for (int i = 0; i < 12; i++) { float a = t * .08f + i * TAU / 12; bb("fog", (float) Math.cos(a) * R * .6f, .9f * S, (float) Math.sin(a) * R * .6f, 7 * S, 2.6f * S, 0, rgba(P2, .55f)); }
-        float ey = CY + .6f * S, w = 9f * S;
-        stand("eye", 0, ey, 0, w, w * .52f, -face + (float) Math.sin(t * .35f) * .5f, rgba(mix(P1, 0xFFFFFF, .5f), 1f));
-        stand("eye", 0, ey, 0, w * 1.25f, w * .65f, -face + (float) Math.sin(t * .35f) * .5f, rgba(P1, .4f));
-        stand("ring_thick", 0, ey, 0, w * .36f, w * .36f, -face + (float) Math.sin(t * .35f) * .5f + .02f, rgba(P3, .9f));
-        for (int i = 0; i < 9 * N; i++) {   // fan of tarot cards behind the eye
-            float a = (i / (9f * N - 1) - .5f) * 2.6f, r = 5.8f * S;
-            float x = sx0 * (float) Math.sin(a) * r - fx * 1.2f * S, z = sz0 * (float) Math.sin(a) * r - fz * 1.2f * S, y = ey + (float) Math.cos(a) * r * .55f - r * .1f + (float) Math.sin(t + i) * .15f * S;
-            facing("page", x, y, z, 1.6f * S, 2.6f * S, -a * .8f, rgba(mix(P1, 0xFFFFFF, .3f), .95f));
-        }
-        sym(ey + 5.4f * S, 2.6f * S, .5f);
-        for (int i = 0; i < 4; i++) column("beam", (i - 1.5f) * 1.2f * S, 0, ey - 1.2f * S, 0, 1.4f * S, rgba(P1, .25f));
-        sprites("star", 80 * N, DRIFTM, R * 1.2f, 1, top, .6f * S, 0xFFFFFF, 1f, .3f, 36, true);
-        sprites("mote", 70 * N, SPIRALM, R, 0, top, .4f * S, P3, 1f, .18f, 37, false);
+        for (int i = 0; i < 16; i++) { float a = t * .07f + i * TAU / 16, rr = R * (.35f + .45f * h(i, 6)); bb("fog", (float) Math.cos(a) * rr, (.5f + 1.2f * h(i, 7)) * S, (float) Math.sin(a) * rr, 8 * S, 3 * S, 0, rgba(mix(P2, 0xC0C0D0, .5f), .6f)); }
+        for (int i = 0; i < 10; i++) { float a = -t * .05f + i * TAU / 10; bb("fog", (float) Math.cos(a) * R * .9f, (1.5f + 3f * h(i, 8)) * S, (float) Math.sin(a) * R * .9f, 9 * S, 3.4f * S, 0, rgba(mix(P2, 0xB0B0C0, .5f), .4f)); }
+        float ey = CY + .4f * S, w = 6.4f * S, yw = -face + (float) Math.sin(t * .35f) * .5f;
+        stand("eye", 0, ey, 0, w, w * .52f, yw, rgba(mix(P1, 0xFFFFFF, .3f), .85f));
+        stand("ring_thick", 0, ey, 0, w * .34f, w * .34f, yw + .02f, rgba(P3, .7f));
+        sym(ey + 4.4f * S, 3.2f * S, 0);
+        for (int i = 0; i < 4; i++) column("beam", (i - 1.5f) * 1.2f * S, 0, ey - 1.2f * S, 0, 1.2f * S, rgba(P1, .22f));
+        sprites("star", 40 * N, DRIFTM, R * 1.2f, 1, top, .5f * S, 0xFFFFFF, .8f, .3f, 36, true);
+        sprites("mote", 50 * N, SPIRALM, R, 0, top, .35f * S, P3, .8f, .18f, 37, false);
+        sprites("smoke", 20 * N, RISEM, R, 0, top * .6f, 3f * S, P2, .4f, .1f, 38, true);
     }
 
     private void darkness(int N, boolean m) {
-        dome(R * 1.9f, 0x02030C, m ? 215 : 170);
+        dome(R * 4f, 0x02030C, m ? 215 : 170);
         sigil(R);
-        for (int i = 0; i < 150 * N; i++) { float a = h(i, 1) * TAU, el = h(i, 2) * 1.3f + .15f, d = R * 1.7f;
-            bb("star", (float) Math.cos(a) * d * (float) Math.cos(el), (float) Math.sin(el) * d + 1, (float) Math.sin(a) * d * (float) Math.cos(el), (.5f + h(i, 3)) * S, (.5f + h(i, 3)) * S, t * .3f + i, rgba(i % 4 == 0 ? P1 : 0xFFFFFF, .45f + .55f * Math.abs((float) Math.sin(t * (.6f + h(i, 4)) + i)))); }
-        stand2("crescent", 0, top * .75f, 0, 12 * S, 12 * S, t * .1f, rgba(P2, .6f));
-        stand2("crescent", 0, top * .75f, 0, 9 * S, 9 * S, t * .1f, rgba(mix(P1, 0xFFFFFF, .5f), 1f));
-        column("beam", 0, 0, top * .7f, 0, 3f * S, rgba(P1, .3f));
-        sym(CY, 3.4f * S, .5f);
-        clouds(10 * N, R * 1.2f, top * .4f, P2, .5f, R * 1.3f);
-        fogRing(12, R * .7f, P2, .45f);
-        sprites("mote", 100 * N, DRIFTM, R * 1.2f, .5f, top, .45f * S, P1, 1f, .2f, 35, false);
-        sprites("star", 24 * N, FALLM, R * 1.3f, 0, top * 1.4f, .9f * S, 0xFFFFFF, 1f, .35f, 36, true);
+        for (int i = 0; i < 45 * N; i++) { float a = h(i, 1) * TAU, el = h(i, 2) * 1.2f + .2f, d = R * 3.2f;
+            bb("star", (float) Math.cos(a) * d * (float) Math.cos(el), (float) Math.sin(el) * d + 1, (float) Math.sin(a) * d * (float) Math.cos(el), (.9f + h(i, 3)) * S, (.9f + h(i, 3)) * S, t * .3f + i, rgba(i % 4 == 0 ? P1 : 0xFFFFFF, .35f + .5f * Math.abs((float) Math.sin(t * (.6f + h(i, 4)) + i)))); }
+        facing("crescent", sideX(R * 1.2f), top * .9f, sideZ(R * 1.2f), 9 * S, 9 * S, -.4f, rgba(mix(P1, 0xFFFFFF, .5f), .85f));
+        sym(CY, 3.6f * S, 0);
+        clouds(6 * N, R * 1.2f, top * .4f, P2, .3f, R * 1.3f);
+        fogRing(10, R * .7f, P2, .35f);
+        sprites("mote", 50 * N, DRIFTM, R * 1.2f, .5f, top, .45f * S, P1, .8f, .2f, 35, false);
+        sprites("star", 10 * N, FALLM, R * 1.3f, 0, top * 1.4f, .9f * S, 0xFFFFFF, .9f, .35f, 36, true);
     }
 
+    /** Spectator (Visionary): a mind palace. Vision frames showing other pathways' symbols, thought beads, brain waves. */
     private void visionary(int N) {
         sigil(R);
         flat("whirl", 0, .06f, 0, 2f * R, t * .4f, rgba(P2, .9f));
-        float ly = CY + .8f * S;
-        pushFace(); tr(0, ly, 0); ring(3.6f * S, .22f * S, mix(P3, 0xFFFFFF, .3f), 255); ring(4.1f * S, .08f * S, mix(P1, 0xFFFFFF, .5f), 255);
-        solid(true); push(); rX(PI / 2); frustum(-.15f * S, .15f * S, 3.5f * S, 3.5f * S, 24, 1, 1, P1, 70, true); pop(); solid(false); pop();
-        for (int i = 0; i < 3 * N; i++) { float a = i * TAU / (3 * N) + t * .2f, r = R * 1.0f; int col = i % 3 == 0 ? P3 : i % 3 == 1 ? 0xFF80FF : P1;
-            float x = (float) Math.cos(a) * r, z = (float) Math.sin(a) * r;
-            quad("beam", x / 2, ly, z / 2, 0, .5f * S, 0, x / 2, 0, z / 2, rgba(col, .7f)); }
-        column("beam", 0, 0, ly + 8 * S, 0, 1.4f * S, rgba(0xFFFFFF, .5f));
-        sym(ly, 3f * S, .8f);
-        for (int i = 0; i < 6 * N; i++) { float a = t * .3f + i * TAU / (6 * N), r = R * .6f, y = 1.4f * S + h(i, 7) * 5 * S;
-            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(t * .8f + i); rX(t * .6f + i);
-            solid(true); box(0, 0, 0, 1.1f * S, 1.5f * S, .05f * S, mix(P1, 0xFFFFFF, .6f), 90); solid(false); box(0, 0, 0, 1.15f * S, 1.55f * S, .03f * S, P3, 70); pop(); }
+        sym(CY, 3.4f * S, 0);
+        pushFace(); tr(0, CY, 0); ring(3.0f * S, .06f * S, mix(P3, 0xFFFFFF, .3f), 255); ring(3.4f * S, .03f * S, mix(P1, 0xFFFFFF, .5f), 255); pop();
+        int frames = 7 * N;
+        for (int i = 0; i < frames; i++) {
+            float a = t * .12f + i * TAU / frames, r = R * (.62f + .12f * (i % 2)), y = 1.8f * S + (float) Math.sin(t * .7f + i) * .5f * S + (i % 3) * 1.2f * S;
+            float x = (float) Math.cos(a) * r, z = (float) Math.sin(a) * r, yw = a + PI / 2, w = 3.2f * S;
+            panel("vframe", x, y, z, w, w, yw, rgba(0xFFFFFF, 1f));
+            int shown = (i * 5 + (int) Math.floor(t * .5f + i * .7f)) % Tarot.PATHWAYS.length;
+            float fl = fract(t * .5f + i * .7f); float aa = Math.min(1f, Math.min(fl, 1f - fl) * 6f);
+            symPlane(shown, x, y, z, w * .6f, yw, aa);
+        }
+        for (int ribbon = 0; ribbon < 3; ribbon++) for (int k = 0; k < 40; k++) {   // brain-wave ribbons made of beads
+            float u = k / 40f, a = t * (.35f + ribbon * .1f) + u * TAU * 1.5f + ribbon * 2.1f, r = R * (.35f + .2f * (float) Math.sin(u * 9 + t));
+            bb("mote", (float) Math.cos(a) * r, CY + (float) Math.sin(u * TAU * 2 + t * 1.5f + ribbon) * 2.2f * S, (float) Math.sin(a) * r, .45f * S, .45f * S, 0, rgba(ribbon == 1 ? P3 : P1, 1f));
+        }
+        for (int i = 0; i < 16 * N; i++) { float p = fract(t * .2f + h(i, 3)), a = h(i, 2) * TAU, r = R * .3f * (1 + h(i, 4));
+            bb("ring", (float) Math.cos(a) * r, p * top * .9f, (float) Math.sin(a) * r, (.4f + .8f * p) * S, (.4f + .8f * p) * S, 0, rgba(P3, fd(p))); }
         for (int i = 0; i < 4; i++) { float pw = fract(t * .3f + i / 4f); flat("ring", 0, .12f, 0, pw * 2.2f * R, 0, rgba(P3, fd(pw))); }
-        sprites("mote", 90 * N, SPIRALM, R, 0, top, .4f * S, P3, 1f, .18f, 37, false);
-        sprites("shard", 20 * N, FALLM, R, 0, top, .8f * S, mix(P1, 0xFFFFFF, .5f), 1f, .15f, 38, true);
+        column("beam", 0, 0, top, 0, 1.4f * S, rgba(0xFFFFFF, .3f));
+        sprites("mote", 70 * N, SPIRALM, R, 0, top, .35f * S, P3, 1f, .18f, 37, false);
     }
 
     private void twilight(int N) {
         sigil(R);
-        facing("rays", 0, 1f * S, 0, R * 3f, R * 3f, 0, rgba(P1, .4f));
-        float L = 9f * S;
-        pushFace(); tr(0, L * .88f, 0); rZ(PI); sword(L, metal(.35f), mix(P2, 0x302010, .3f), P1); pop();
-        for (int s = -1; s <= 1; s += 2) facing("wing", s * sx0 * 4.8f * S, CY + 1.2f * S, s * sz0 * 4.8f * S, s * 7f * S, 6f * S, 0, rgba(P2, .55f));
-        sym(CY + L * .55f, 2.6f * S, .5f);
-        for (int i = 0; i < 14 * N; i++) { float a = i * TAU / (14 * N) + .1f; flat("crack", (float) Math.cos(a) * R * .55f, .1f, (float) Math.sin(a) * R * .55f, 3.4f * S, a, rgba(P1, .7f)); }
-        for (int i = 0; i < 8 * N; i++) { float a = -t * .1f + i * TAU / (8 * N), r = R * .85f; flameAt((float) Math.cos(a) * r, 0, (float) Math.sin(a) * r, 2.6f * S, i, P2, P1, P3, .7f); }
-        sprites("spark", 70 * N, RISEM, R * 1.1f, 0, top * 1.1f, .3f * S, P3, .9f, .4f, 41, true);
-        sprites("smoke", 16 * N, RISEM, R * .7f, 1f, top * .8f, 3f * S, mix(P2, 0x000000, .5f), .4f, .1f, 42, true);
+        facing("rays", 0, 1f * S, 0, R * 2.6f, R * 2.6f, 0, rgba(P1, .3f));
+        float L = 8.5f * S;
+        push(); tr(0, L * .95f, 0); rZ(PI); rY(face);
+        if (!drawGeo("sword_of_twilight", "lotm", "textures/item/sword_of_twilight.png", L)) sword(L, metal(.35f), mix(P2, 0x302010, .3f), P1);
+        pop();
+        symFront(CY + .8f * S, 3.4f * S, 3.6f * S);
+        for (int i = 0; i < 12 * N; i++) { float a = i * TAU / (12 * N) + .1f; flat("crack", (float) Math.cos(a) * R * .55f, .1f, (float) Math.sin(a) * R * .55f, 3.2f * S, a, rgba(P1, .8f)); }
+        for (int i = 0; i < 6 * N; i++) { float a = -t * .1f + i * TAU / (6 * N), r = R * .85f; flameAt((float) Math.cos(a) * r, 0, (float) Math.sin(a) * r, 2.2f * S, i, P2, P1, P3, .75f); }
+        sprites("spark", 50 * N, RISEM, R * 1.1f, 0, top * 1.1f, .3f * S, P3, .9f, .4f, 41, true);
+        sprites("smoke", 12 * N, RISEM, R * .7f, 1f, top * .8f, 3f * S, mix(P2, 0x000000, .5f), .45f, .1f, 42, true);
     }
 
     // ================= Sailor: a storm over a heaving sea =================
@@ -978,10 +1200,10 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void waveWall(float radius, float H0, float dir) {
         solid(true);
         float[][] prof = {{-1.5f, 0f}, {-1.1f, .16f}, {-.7f, .42f}, {-.3f, .76f}, {.1f, 1f}, {.5f, 1f}, {.82f, .84f}, {.92f, .62f}};
-        int na = 56; float[] hint = v3(0, -60, 0);
+        int na = 72; float[] hint = v3(0, -60, 0);
         for (int i = 0; i < na; i++) {
             float a0 = dir * t * .22f + TAU * i / na, a1 = dir * t * .22f + TAU * (i + 1) / na;
-            float hh0 = H0 * Math.max(.3f, .6f + .4f * (float) Math.sin(3 * a0 - dir * t * 1.1f) + .15f * (float) Math.sin(9 * a0 + t)), hh1 = H0 * Math.max(.3f, .6f + .4f * (float) Math.sin(3 * a1 - dir * t * 1.1f) + .15f * (float) Math.sin(9 * a1 + t));
+            float hh0 = H0 * Math.max(.3f, .6f + .4f * (float) Math.sin(3 * a0 - dir * t * 1.1f)), hh1 = H0 * Math.max(.3f, .6f + .4f * (float) Math.sin(3 * a1 - dir * t * 1.1f));
             for (int k = 0; k < prof.length - 1; k++) {
                 float[] q0 = wp(radius, a0, prof[k], hh0), q1 = wp(radius, a1, prof[k], hh1), q2 = wp(radius, a1, prof[k + 1], hh1), q3 = wp(radius, a0, prof[k + 1], hh0);
                 float s = (k + .5f) / (prof.length - 1);
@@ -990,8 +1212,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             }
         }
         solid(false);
-        for (int i = 0; i < 18; i++) { float a = dir * t * .22f + TAU * i / 18 + .1f; float hh = H0 * Math.max(.3f, .6f + .4f * (float) Math.sin(3 * a - dir * t * 1.1f));
-            bb("spark", (float) Math.cos(a) * (radius + .5f * S), hh * 1.05f, (float) Math.sin(a) * (radius + .5f * S), .9f * S, .9f * S, t + i, rgba(0xFFFFFF, .8f + .2f * (float) Math.sin(t * 4 + i))); }
     }
     private float[] wp(float radius, float a, float[] pr, float H) {
         float rr = radius + pr[0] * H * .6f;
@@ -1016,8 +1236,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         push(); tr(0, CY - th * .45f, 0); rY(t * .5f); trident(th, metal(.8f), P1); pop();
         column("beam", 0, 0, CY - th * .45f, 0, .9f * S, rgba(P1, .45f));
         for (int i = 0; i < 3; i++) { float ph = fract(t * 2.3f + i * .37f); if (ph < .35f) column(i % 2 == 0 ? "bolt2" : "bolt", (i - 1) * .5f * S, CY + th * .5f, top, 0, top * .1f * (i % 2 == 0 ? 1 : -1), rgba(P1, (1 - ph / .35f))); }
-        sym(CY + th * .78f, 2.4f * S, .6f);
-        sprites("drop", 36 * N, SPIRALM, R * .6f, 0, CY * 1.6f, .8f * S, P3, 1f, .22f, 8, false);
+        sym(CY + th * .78f, 3.2f * S, 0);
         fogRing(10, R * .55f, P3, .35f);
     }
 }

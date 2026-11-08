@@ -69,7 +69,8 @@ public class HoloCardEntity extends Entity {
     @Override public boolean canBeCollidedWith() { return false; }
     @Override public boolean hurt(DamageSource source, float amount) { return false; }
     /** The hologram reaches several blocks above the card, so the renderer must not be culled with the thin card box. */
-    @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(16, 20, 16); }
+    @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(48, 30, 48); }
+    @Override public boolean shouldRenderAtSqrDistance(double d) { return d < 200.0 * 200.0; }
 
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
