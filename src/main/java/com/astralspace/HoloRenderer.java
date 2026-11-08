@@ -788,8 +788,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         this.buf = bufs; this.mat = ps.last().pose();
         this.t = (e.tickCount + pt) / 20f;
         clear(); strans = false;
-        drawCard(e, bufs, light, pi, seq, shiny);
-        if (seq >= 6) return;
+        boolean symOnly = e.symbolOnly();
+        if (!symOnly) drawCard(e, bufs, light, pi, seq, shiny);
+        if (seq >= 6 && !symOnly) return;
 
         Camera cam = Minecraft.getInstance().gameRenderer.getMainCamera();
         camDist = (float) cam.getPosition().distanceTo(e.getPosition(pt));
@@ -801,6 +802,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         curPath = Math.min(pi, PAL.length - 1); gold = shiny;
         int[] pal = PAL[curPath];
         P1 = gold ? 0xFFD040 : pal[0]; P2 = gold ? 0xB87810 : pal[1]; P3 = gold ? 0xFFF4B0 : pal[2];
+        if (symOnly) { symbolOnly(); return; }
         Cfg c = CFG[curPath];
         if (seq >= 4) rare(c, seq);
         else if (seq >= 2) epic(c, seq);
@@ -820,6 +822,15 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int k = 0; k < 4; k++)
             vc.addVertex(mat, ssx * p[k][0] + ffx * p[k][1], y, ssz * p[k][0] + ffz * p[k][1]).setColor(255, 255, 255, 255)
               .setUv(uv[k][0], uv[k][1]).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(0, 1, 0);
+    }
+
+    /** Crouch-placed: just the pathway symbol, floating and glowing, no card and no scene. */
+    private void symbolOnly() {
+        float bob = (float) Math.sin(t * 1.6f) * .06f;
+        flat("ring", 0, .05f, 0, .9f, t * .5f, rgba(P2, .9f));
+        bb("glow", 0, .85f + bob, 0, 1.7f, 1.7f, 0, rgba(P1, .3f));
+        symPlane(curPath, 0, .85f + bob, 0, 1.1f, -face + (float) Math.sin(t * .5f) * .5f, 1f);
+        for (int i = 0; i < 4; i++) { float p = fract(t * .3f + i * .25f); bb("mote", (float) Math.cos(i * 1.6f + t) * .5f, p * 1.4f, (float) Math.sin(i * 1.6f + t) * .5f, .1f, .1f, 0, rgba(P1, fd(p))); }
     }
 
     // ================= Rare and Epic =================

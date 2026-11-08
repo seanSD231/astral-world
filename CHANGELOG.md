@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.119
+- Crouch and right click on a block to place a card as just its pathway symbol (a floating glowing symbol, no card and no hologram scene). Right click it to pick the card back up. Not tested in game.
+
 ## 0.2.118
 - Hologram round three. Flowers (Demoness rose, Planter, Mother) now have real cupped petals and real leaves and are smaller. Real eyeballs for Mystery Pryer, real dice for Monster, a real silhouette bound in chains (Bearing of Sins) for Hanged Man, scales for Arbiter epic, a flickering flame for Hunter. LOTM models: sword of dawn (Arbiter), spear of dawn (Hunter), silver sword (Warrior Seq 1), twilight sword (Warrior Seq 0). The Door legendary door now faces you. Bard has a single flaring sun and no wings. Abyss is a red and purple night with tentacles wrapping the orb. Death is an emperor sitting on the throne. Throne now has real steps and a skirt into the ground. Darker domes (Darkness, Hanged Man, Abyss, Black Emperor), Minecraft-style twinkling stars, Apothecary dark with a full moon at Seq 0, dark gray Fool fog with coloured lights (and a bronze table and chairs at Seq 0), Sailor uses wave sheets again, Prisoner has an iron cage and locks, Spectator is less cluttered, Marauder has purple and rare symbol swaps and its ground patches lie on the real blocks. Cards are easier to pick up. Not tested in game.
 

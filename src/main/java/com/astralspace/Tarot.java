@@ -129,7 +129,7 @@ public final class Tarot {
 
         @Override public boolean isFoil(ItemStack stack) { return tag(stack).getBoolean("shiny") || super.isFoil(stack); }
 
-        /** Right click on the top of a block: put the card down. Rare and better cards (Seq 5 and up) show a hologram above it. */
+        /** Right click on the top of a block: put the card down. Rare and better cards (Seq 5 and up) show a hologram above it; crouch while placing to show only the pathway symbol. */
         @Override
         public net.minecraft.world.InteractionResult useOn(net.minecraft.world.item.context.UseOnContext c) {
             if (c.getClickedFace() != net.minecraft.core.Direction.UP) return net.minecraft.world.InteractionResult.PASS;
@@ -145,6 +145,7 @@ public final class Tarot {
                 HoloCardEntity e = new HoloCardEntity(HoloCardEntity.TYPE.get(), lv);
                 int seq = Math.max(0, Math.min(9, t.getInt("seq")));
                 e.setCard(t.getString("pathway"), seq, t.getBoolean("shiny")); e.setOwner(c.getPlayer());
+                e.setSymbolOnly(c.getPlayer().isShiftKeyDown());
                 e.moveTo(at.x, at.y, at.z, c.getPlayer().getYRot(), 0);
                 lv.addFreshEntity(e);
                 if (!c.getPlayer().getAbilities().instabuild) st.shrink(1);

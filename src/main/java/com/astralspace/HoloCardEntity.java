@@ -31,6 +31,7 @@ public class HoloCardEntity extends Entity {
     private static final EntityDataAccessor<Integer> PATH = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> SEQ = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> SHINY = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> SYMBOL = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
     private UUID owner;
     private String ownerName = "";
 
@@ -52,15 +53,19 @@ public class HoloCardEntity extends Entity {
     public int pathIndex() { return Math.max(0, Math.min(Tarot.PATHWAYS.length - 1, entityData.get(PATH))); }
     public int seq() { return entityData.get(SEQ); }
     public boolean shiny() { return entityData.get(SHINY); }
+    /** Placed while crouching: only the pathway symbol is shown, no card and no hologram scene. */
+    public boolean symbolOnly() { return entityData.get(SYMBOL); }
+    public void setSymbolOnly(boolean b) { entityData.set(SYMBOL, b); }
 
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); }
+    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); b.define(SYMBOL, false); }
 
     @Override protected void readAdditionalSaveData(CompoundTag t) {
         setCard(t.getString("pathway"), t.getInt("seq"), t.getBoolean("shiny"));
+        setSymbolOnly(t.getBoolean("symbolOnly"));
         owner = t.hasUUID("owner") ? t.getUUID("owner") : null; ownerName = t.getString("ownerName");
     }
     @Override protected void addAdditionalSaveData(CompoundTag t) {
-        t.putString("pathway", pathway()); t.putInt("seq", seq()); t.putBoolean("shiny", shiny());
+        t.putBoolean("symbolOnly", symbolOnly()); t.putString("pathway", pathway()); t.putInt("seq", seq()); t.putBoolean("shiny", shiny());
         if (owner != null) t.putUUID("owner", owner); t.putString("ownerName", ownerName);
     }
 
@@ -89,7 +94,7 @@ public class HoloCardEntity extends Entity {
 
     /** Throne holograms (Death and Black Emperor, Seq 1 and 0) turn in quarter turns so their solid parts line up with the model. */
     public int throneQuarter() { return (int) Math.round((Math.PI - Math.toRadians(getYRot())) / (Math.PI / 2)); }
-    public boolean hasThrone() { return seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8); }
+    public boolean hasThrone() { return !symbolOnly() && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8); }
 
     /** Real, solid boxes matching HoloRenderer.throneModel (s = .95 * scale): three steps, seat, armrests and the back. */
     private void spawnThrone() {
