@@ -33,7 +33,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     /** Palette per pathway (Tarot.PATHWAYS order): main colour, deep colour, accent. Taken from each pathway's own symbol. */
     private static final int[][] PAL = {
         {0xF2A0B0, 0xC04860, 0xFFE0E6}, {0x5AA8FF, 0x2A5CC8, 0xB8E0FF}, {0xF4EFE8, 0x9AA4B8, 0xFFE8A0}, {0xFF5FA8, 0x8A1850, 0xFFC0DC},
-        {0xFFD84A, 0xFF9A20, 0xFFF4B0}, {0xCFEFC0, 0x4E8A5A, 0xFFFFFF}, {0xE04030, 0x6A1410, 0xFF9080}, {0xFF6A38, 0xB02818, 0xFFC060},
+        {0xFFD84A, 0xFF9A20, 0xFFF4B0}, {0xE6E8F0, 0x5C6480, 0xD0F0FF}, {0xE04030, 0x6A1410, 0xFF9080}, {0xFF6A38, 0xB02818, 0xFFC060},
         {0xE0E6F2, 0x6A7890, 0x20242E}, {0xD8DCE0, 0x808890, 0xFFFFFF}, {0xDCE6EC, 0x9AA8B0, 0x58A878}, {0xB890F0, 0x5A3AA0, 0xFFE8A0},
         {0x7AD890, 0x2E8A50, 0xFF9CC4}, {0xC8C4EC, 0x6A5CA8, 0x8890A0}, {0x90C0FF, 0x4A78D8, 0xFFFFFF}, {0x4CC0FF, 0x1A5ED0, 0xE8FAFF},
         {0xFFB860, 0xC87020, 0xFFE8B0}, {0xFF6A5C, 0x8A1818, 0xFFC0B8}, {0xC0B8F0, 0x6A5CB0, 0xFFFFFF}, {0x88B0F0, 0x2C3C90, 0xE8F0FF},
@@ -892,8 +892,12 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
 
     private void death(int N) {
         sigil(R);
-        push(); tr(0, CY - 1.4f * S, 0); rY(face + (float) Math.sin(t * .4f) * .4f); skull(2.2f * S, mix(P1, 0xE8E8D0, .5f), P1); pop();
-        sym(CY + 3.6f * S, 3.2f * S, 0);
+        pushFace(); throneModel(.95f * S, mix(P1, 0x303848, .6f), mix(P1, 0xFFFFFF, .2f)); pop();
+        push(); tr(0, CY + .6f * S, 0); rY(face + (float) Math.sin(t * .4f) * .4f); skull(1.7f * S, mix(P1, 0xE8E8D0, .5f), P1); tr(0, 1.9f * S, 0); crown(1.1f * S, metal(.75f), P3); pop();
+        for (int i = 0; i < 6 * N; i++) { float a = t * .3f + i * TAU / (6 * N), r = R * .5f, y = 1.2f * S + (float) Math.sin(t + i) * .5f * S;
+            push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(-a + PI / 2); skull(.7f * S, mix(P1, 0xE8E8D0, .5f), P1); pop();
+            flameAt((float) Math.cos(a) * r, y + .7f * S, (float) Math.sin(a) * r, 1.2f * S, i, P2, P1, P3, .9f); }
+        sym(CY + 5.2f * S, 3.2f * S, 0);
         for (int i = 0; i < 8 * N; i++) { float a = i * TAU / (8 * N) + .2f, rr = R * .9f;
             push(); tr((float) Math.cos(a) * rr, 0, (float) Math.sin(a) * rr); rY(PI - a + PI / 2);
             box(0, 1.0f * S, 0, .65f * S, 1.0f * S, .18f * S, 0x707878, 255); sphere(0, 2.0f * S, 0, .65f * S, .5f * S, .18f * S, 5, 10, 0x707878, 255);

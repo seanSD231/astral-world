@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.116
+- Pale Emperor (Death) is now pale bone and cold white-blue instead of green, with a bone throne, a crowned skull and a ring of orbiting skulls with ghost flames. Not tested in game.
+
 ## 0.2.115
 - Hologram fixes, round two. The pathway symbol is now one solid, bright plane in front of everything (no doubling, nothing covering it). Effects are much more opaque. Uses real LOTM models where possible: the Door pathway doors, the Hanged Man cross, and the Sword of Twilight for Warrior. Fire is now real particle flame. Abyss tentacles grow from the ground. Darkness, Hanged Man, Black Emperor and Abyss domes are bigger, shade the ground, and can be seen into from outside. Arbiter is gold with new swords; Assassin, Bard, Marauder (now a server error), Monster (a real wheel of fortune), Mystery Pryer (eyes, no cone), Planter (spread-out flower), Chained, Reader, Seer, Sailor (smoother waves, no drops), Sleepless, Savant, Spectator (mind palace) and Warrior reworked. New testing command /astralcards [normal|shiny|both] gives shulker boxes of every Seq 4, 2, 1 and 0 card. Not tested in game.
 
