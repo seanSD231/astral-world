@@ -57,7 +57,7 @@ public final class AstralClient {
     public static void init(IEventBus modBus) {
         loadHud();
         modBus.addListener((net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers ev) ->
-            ev.registerEntityRenderer(HoloCardEntity.TYPE.get(), HoloRenderer::new));
+            { ev.registerEntityRenderer(HoloCardEntity.TYPE.get(), HoloRenderer::new); ev.registerEntityRenderer(ThronePart.TYPE.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); });
         BarrierRenderer.init();
         TreeRenderer.init();
         TreeBossBar.init();

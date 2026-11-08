@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.117
+- Pale Emperor (Death) is green again (a clear, lighter green), keeping the bone throne, crowned skull and orbiting skulls. Thrones (Death and Black Emperor, Seq 1 and 0) are now solid: invisible collision boxes follow the steps, seat, armrests and back, so you can walk up and stand on them, and right click the seat to sit (sneak to get off). Throne holograms now turn in quarter turns so the boxes line up. Not tested in game.
+
 ## 0.2.116
 - Pale Emperor (Death) is now pale bone and cold white-blue instead of green, with a bone throne, a crowned skull and a ring of orbiting skulls with ghost flames. Not tested in game.
 

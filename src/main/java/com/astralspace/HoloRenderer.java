@@ -33,7 +33,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     /** Palette per pathway (Tarot.PATHWAYS order): main colour, deep colour, accent. Taken from each pathway's own symbol. */
     private static final int[][] PAL = {
         {0xF2A0B0, 0xC04860, 0xFFE0E6}, {0x5AA8FF, 0x2A5CC8, 0xB8E0FF}, {0xF4EFE8, 0x9AA4B8, 0xFFE8A0}, {0xFF5FA8, 0x8A1850, 0xFFC0DC},
-        {0xFFD84A, 0xFF9A20, 0xFFF4B0}, {0xE6E8F0, 0x5C6480, 0xD0F0FF}, {0xE04030, 0x6A1410, 0xFF9080}, {0xFF6A38, 0xB02818, 0xFFC060},
+        {0xFFD84A, 0xFF9A20, 0xFFF4B0}, {0x9CE0A0, 0x2E7A48, 0xE8FFE8}, {0xE04030, 0x6A1410, 0xFF9080}, {0xFF6A38, 0xB02818, 0xFFC060},
         {0xE0E6F2, 0x6A7890, 0x20242E}, {0xD8DCE0, 0x808890, 0xFFFFFF}, {0xDCE6EC, 0x9AA8B0, 0x58A878}, {0xB890F0, 0x5A3AA0, 0xFFE8A0},
         {0x7AD890, 0x2E8A50, 0xFF9CC4}, {0xC8C4EC, 0x6A5CA8, 0x8890A0}, {0x90C0FF, 0x4A78D8, 0xFFFFFF}, {0x4CC0FF, 0x1A5ED0, 0xE8FAFF},
         {0xFFB860, 0xC87020, 0xFFE8B0}, {0xFF6A5C, 0x8A1818, 0xFFC0B8}, {0xC0B8F0, 0x6A5CB0, 0xFFFFFF}, {0x88B0F0, 0x2C3C90, 0xE8F0FF},
@@ -562,9 +562,11 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void throneModel(float s, int dark, int trim) {
         for (int i = 0; i < 3; i++) frustum(i * .22f * s, (i + 1) * .22f * s, (1.5f - i * .22f) * s, (1.5f - (i + 1) * .22f) * s, 6, 1, 1, mix(dark, trim, .15f * i), 255, true);
         box(0, .95f * s, 0, .55f * s, .16f * s, .5f * s, dark, 255);
+        push(); tr(0, 0, -.4f * s);
         taper(.85f * s, 3.2f * s, .6f * s, .1f * s, .42f * s, .08f * s, dark, 255);
         taper(3.2f * s, 3.8f * s, .42f * s, .08f * s, 0, 0, dark, 255);
         for (int i = -2; i <= 2; i++) { push(); tr(i * .27f * s, 3.0f * s - Math.abs(i) * .12f * s, 0); rZ(-i * .18f); taper(0, (.9f - Math.abs(i) * .12f) * s, .07f * s, .05f * s, 0, 0, dark, 255); pop(); }
+        pop();
         for (int sd = -1; sd <= 1; sd += 2) { box(sd * .62f * s, 1.25f * s, 0, .09f * s, .3f * s, .46f * s, dark, 255); box(sd * .62f * s, 1.58f * s, .3f * s, .1f * s, .03f * s, .22f * s, trim, 255); }
         box(0, 1.2f * s, .46f * s, .3f * s, .02f * s, .02f * s, trim, 255);
     }
@@ -583,7 +585,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     @Override
     public void render(HoloCardEntity e, float yaw, float pt, PoseStack ps, MultiBufferSource bufs, int light) {
         super.render(e, yaw, pt, ps, bufs, light);
-        int seq = e.seq(), pi = e.pathIndex();
+        int seq = e.seq(), pi = e.pathIndex(); thQ = e.throneQuarter();
         boolean shiny = e.shiny();
         this.buf = bufs; this.mat = ps.last().pose();
         this.t = (e.tickCount + pt) / 20f;
@@ -774,6 +776,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         solid(false);
     }
     private void pushFace() { push(); rY(face); }
+    private int thQ;
+    private void pushThrone() { push(); rY(thQ * PI / 2); }
     /** Point the model's +Y axis along (dx, dy, dz). */
     private void aim(float dx, float dy, float dz) {
         float l = (float) Math.sqrt(dx * dx + dy * dy + dz * dz); if (l < 1e-6f) return;
@@ -892,7 +896,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
 
     private void death(int N) {
         sigil(R);
-        pushFace(); throneModel(.95f * S, mix(P1, 0x303848, .6f), mix(P1, 0xFFFFFF, .2f)); pop();
+        pushThrone(); throneModel(.95f * S, mix(P1, 0x303848, .6f), mix(P1, 0xFFFFFF, .2f)); pop();
         push(); tr(0, CY + .6f * S, 0); rY(face + (float) Math.sin(t * .4f) * .4f); skull(1.7f * S, mix(P1, 0xE8E8D0, .5f), P1); tr(0, 1.9f * S, 0); crown(1.1f * S, metal(.75f), P3); pop();
         for (int i = 0; i < 6 * N; i++) { float a = t * .3f + i * TAU / (6 * N), r = R * .5f, y = 1.2f * S + (float) Math.sin(t + i) * .5f * S;
             push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(-a + PI / 2); skull(.7f * S, mix(P1, 0xE8E8D0, .5f), P1); pop();
@@ -963,7 +967,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         dome(R * 4f, 0x000000, m ? 215 : 150);
         sigil(R);
         for (int i = 0; i < 6 * N; i++) { float a = i * TAU / (6 * N) + .3f; column("beam", (float) Math.cos(a) * R * .5f, 0, top, (float) Math.sin(a) * R * .5f, 1.4f * S, rgba(P1, .35f)); }
-        pushFace(); throneModel(.95f * S, mix(P3, 0x000000, .2f), metal(.6f)); pop();
+        pushThrone(); throneModel(.95f * S, mix(P3, 0x000000, .2f), metal(.6f)); pop();
         pushFace(); tr(0, 4.6f * S, 0); rY(t * .4f); crown(1.3f * S, metal(.7f), P1); pop();
         sym(CY + 5.6f * S, 3.2f * S, 0);
         for (int i = 0; i < 6 * N; i++) { float a = i * TAU / (6 * N) + .1f, r = R * .55f * (.7f + .3f * (i % 2)); push(); tr((float) Math.cos(a) * r, top + 1f, (float) Math.sin(a) * r); chain(top + 1f - 4f * S, .8f * S, mix(0x50545C, P1, .1f)); pop(); }

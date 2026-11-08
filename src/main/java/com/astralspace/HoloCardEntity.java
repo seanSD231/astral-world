@@ -38,7 +38,7 @@ public class HoloCardEntity extends Entity {
     public static final DeferredHolder<EntityType<?>, EntityType<HoloCardEntity>> TYPE = ENTITIES.register("holo_card", () ->
         EntityType.Builder.<HoloCardEntity>of(HoloCardEntity::new, MobCategory.MISC).sized(0.6f, 0.08f).fireImmune().clientTrackingRange(10).updateInterval(1000).build("holo_card"));
 
-    public static void register(IEventBus bus) { ENTITIES.register(bus); }
+    public static void register(IEventBus bus) { ENTITIES.register(bus); ThronePart.register(bus); }
 
     public HoloCardEntity(EntityType<?> type, Level level) { super(type, level); this.noPhysics = true; }
 
@@ -86,9 +86,34 @@ public class HoloCardEntity extends Entity {
         return InteractionResult.CONSUME;
     }
 
+    /** Throne holograms (Death and Black Emperor, Seq 1 and 0) turn in quarter turns so their solid parts line up with the model. */
+    public int throneQuarter() { return (int) Math.round((Math.PI - Math.toRadians(getYRot())) / (Math.PI / 2)); }
+    public boolean hasThrone() { return seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8); }
+
+    /** Real, solid boxes matching HoloRenderer.throneModel (s = .95 * scale): three steps, seat, armrests and the back. */
+    private void spawnThrone() {
+        float s = .95f * (seq() == 0 ? 2.1f : 1.15f);
+        int k = throneQuarter();
+        double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));
+        // entity boxes are always square: {local x, bottom y, local z, side, height, seat?}
+        java.util.List<float[]> parts = new java.util.ArrayList<>();
+        for (int i = 0; i < 3; i++) parts.add(new float[]{0, .22f * i * s, 0, (1.5f - .22f * (i + 1)) * s * 1.7f, .22f * s, 0});
+        parts.add(new float[]{0, .66f * s, 0, 1.0f * s, .45f * s, 1});
+        for (int sd = -1; sd <= 1; sd += 2) for (int j = -1; j <= 1; j += 2) parts.add(new float[]{sd * .62f * s, .66f * s, j * .23f * s, .46f * s, .9f * s, 0});
+        for (int j = -1; j <= 1; j++) parts.add(new float[]{j * .37f * s, .85f * s, -.4f * s, .37f * s, 2.35f * s, 0});
+        for (float[] q : parts) {
+            double wx = q[0] * c + q[2] * sn, wz = -q[0] * sn + q[2] * c;
+            ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
+            tp.setup(getUUID(), q[3], q[4], q[5] > 0);
+            tp.setPos(getX() + wx, getY() + q[1], getZ() + wz);
+            level().addFreshEntity(tp);
+        }
+    }
+
     @Override
     public void tick() {
         super.tick();
+        if (!level().isClientSide && tickCount == 2 && hasThrone()) spawnThrone();
         // if the block under the card is broken, the card drops as an item instead of floating
         if (!level().isClientSide && tickCount % 10 == 0 && level().getBlockState(blockPosition().below()).isAir() && level().getBlockState(blockPosition()).isAir()) {
             level().addFreshEntity(new ItemEntity(level(), getX(), getY() + .2, getZ(), Tarot.makeCard(pathway(), seq(), shiny())));
