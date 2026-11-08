@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.105
+- New static art for every pathway's Seq 2 and Seq 1 cards (22 pathways, normal and shiny): Seq 2 has wings, a rune ring and a nameplate; Seq 1 has bigger wings, a sun-crown halo and a laurel banner. Only Seq 0 is animated now.
+- Removed the animated Seq 2/1 sheets, which cuts about 32 MB from the mod's resources.
+- New "Astral World" creative tab with every tarot pack (normal, rainbow, shiny), the confetti popper, bubble wand, tree smiter and osu cabinet.
+- Nothing here is tested in game.
+
 ## 0.2.104
 - Confetti popper now has 10 uses and the bubble wand has 100 seconds of use (durability bar). Creative mode doesn't use durability. Untested in game.
 

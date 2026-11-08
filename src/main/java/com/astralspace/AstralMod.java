@@ -30,6 +30,7 @@ public class AstralMod {
         Cosmos.register(modBus);
         PartyItems.register(modBus);
         Tarot.register(modBus);
+        AstralTab.register(modBus);
         AstralBarrier.onBreak(Stage::onBarrierBroken);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             AstralClient.init(modBus);
