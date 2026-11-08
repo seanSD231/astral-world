@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.100
+- Players who log in with weekly tarot packs they have not picked yet get a message with a clickable link that opens the weekly menu.
+
 ## 0.2.99
 - Fixed the glitch when clicking a rare card in a pack: for a few frames its shine and sparkle overlays showed as a washed out diagonal band and a solid gold frame (blending was being switched off by the flip burst behind another card). All card and shine textures are also loaded when the pack opens now.
 - The animated Seq 2, 1 and 0 cards are 50 frames at 5 per second instead of 100 at 10 per second, which roughly halves their size in the mod file and in video memory.

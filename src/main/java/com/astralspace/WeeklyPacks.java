@@ -106,6 +106,15 @@ public final class WeeklyPacks {
         p.sendSystemMessage(Component.literal("You took your " + total + " weekly tarot pack" + (total == 1 ? "" : "s") + ". The next ones are ready when the week resets.").withStyle(ChatFormatting.GOLD));
     }
 
+    /** Tell a player who logs in that they still have their weekly packs to pick (click the message to open the menu). */
+    @SubscribeEvent
+    public static void onLogin(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer p) || total(p) <= 0 || claimed(p)) return;
+        p.sendSystemMessage(Component.literal("You have " + total(p) + " weekly tarot pack" + (total(p) == 1 ? "" : "s") + " to pick. ").withStyle(ChatFormatting.GOLD)
+            .append(Component.literal("[Click here or use /weeklypacks]").withStyle(s -> s.withColor(ChatFormatting.YELLOW).withUnderlined(true)
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/weeklypacks")))));
+    }
+
     @SubscribeEvent
     public static void onCommands(RegisterCommandsEvent event) {
         for (String name : new String[]{"weeklypacks", "packs"}) {
