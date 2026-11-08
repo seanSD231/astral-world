@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.99
+- Fixed the glitch when clicking a rare card in a pack: for a few frames its shine and sparkle overlays showed as a washed out diagonal band and a solid gold frame (blending was being switched off by the flip burst behind another card). All card and shine textures are also loaded when the pack opens now.
+- The animated Seq 2, 1 and 0 cards are 50 frames at 5 per second instead of 100 at 10 per second, which roughly halves their size in the mod file and in video memory.
+- Weekly tarot packs: players use /weeklypacks (or /packs) to open a menu and pick their packs for the week, then take them. How many packs a player gets, and whether some can be Rainbow or Shiny packs, comes from their FTB Ranks rank through the permission nodes astral_world.weekly_packs (a number), astral_world.weekly_packs.rainbow and astral_world.weekly_packs.shiny (a number, or true for any). Players without those nodes get weekly_packs_default from settings.properties (1) and only normal packs. The week resets on weekly_reset_day (settings.properties, 1 = Monday). Ops can give someone another go with /weeklypacks reset <player>.
+
 ## 0.2.98
 - Animated Seq 2, 1 and 0 cards for every pathway (Seer, Sailor and Warrior were already done, this adds the other 19), each with its own scene, plus an animated black and gold shiny version of each. Every scene is made from that pathway's own theme (Moon: petals and a huge moon, Door: floating portals and a key of stars, Justiciar: scales and golden light, Sun: a blazing sun, Death: ghosts and a soul vortex, Abyss: red cracks and eyes, Mother: a glowing tree, Chained: swaying chains, Paragon: a clockwork of gears, and so on), with a finale at the end of each loop. They show in pack openings and the card viewer, and as a still in the inventory.
 - The mod download is much bigger because of the new animation sheets.

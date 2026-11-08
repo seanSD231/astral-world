@@ -41,6 +41,8 @@ public final class Settings {
         KEYS.put("boss_days", new String[]{"3", "After the evacuation: real days to defeat the planet bosses (each boss defeated adds this many days again)."});
         KEYS.put("recovery_days", new String[]{"10", "After the raid boss is beaten: real days the world stays at stage 0 before it returns to its earlier stage."});
         KEYS.put("chaos_destroys_blocks", new String[]{"false", "Stage 5 (the end): true = meteors and explosions also destroy blocks. The world is kept when the server resets,\n# so this is off by default."});
+        KEYS.put("weekly_packs_default", new String[]{"1", "Weekly tarot packs (/weeklypacks): how many packs a player without an FTB Ranks node may pick each week. Ranks set their own number\n# with the permission node astral_world.weekly_packs, and allow Rainbow / Shiny packs with astral_world.weekly_packs.rainbow and .shiny\n# (a number = that many of the packs, true = any of them). Use 0 to give nothing to players without a rank."});
+        KEYS.put("weekly_reset_day", new String[]{"1", "Weekly tarot packs: the day the week resets, 1 = Monday ... 7 = Sunday (server time)."});
         KEYS.put("nearby_radius", new String[]{"32", "Stage 2+: how close (blocks) players must be to someone who names an Outer God to be affected. Doubled in stage 3."});
     }
 
@@ -57,6 +59,8 @@ public final class Settings {
     public static volatile double evacuationMinutes = 10.0;
     public static volatile double bossDays = 3.0;
     public static volatile double recoveryDays = 10.0;
+    public static volatile int weeklyPacksDefault = 1;
+    public static volatile int weeklyResetDay = 1;
 
     private Settings() {}
 
@@ -103,6 +107,8 @@ public final class Settings {
             evacuationMinutes = Double.parseDouble(p.getProperty("evacuation_minutes").trim());
             bossDays = Double.parseDouble(p.getProperty("boss_days").trim());
             recoveryDays = Double.parseDouble(p.getProperty("recovery_days").trim());
+            weeklyPacksDefault = Math.max(0, Integer.parseInt(p.getProperty("weekly_packs_default").trim()));
+            weeklyResetDay = Math.max(1, Math.min(7, Integer.parseInt(p.getProperty("weekly_reset_day").trim())));
             LOGGER.info("[astral] settings: surface {} down to {}, astral_barrier_level {}, stage3_days {}, damage every {} min, nearby_radius {}",
                     surfaceTop, surfaceBottom, barrierY, stage3Days, barrierDamageMinutes, nearbyRadius);
         } catch (IOException | NumberFormatException e) {

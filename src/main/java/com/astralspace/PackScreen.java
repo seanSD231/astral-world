@@ -44,6 +44,12 @@ public final class PackScreen extends Screen {
             tornAt = System.currentTimeMillis() - 10_000;
             for (int i = 0; i < flipAt.length; i++) flipAt[i] = tornAt;
         }
+        // load every card's art now, while the pack is still closed, so nothing has to load (and stall the screen) when a card is flipped
+        var tm = net.minecraft.client.Minecraft.getInstance().getTextureManager();
+        for (int i = 0; i < path.length; i++) { if (seq[i] >= 3 || Tarot.hasAnim(path[i], seq[i])) tm.getTexture(artTex(i)); tm.getTexture(tex("back_" + path[i])); }
+        tm.getTexture(tex("shiny_foil"));
+        for (String n : new String[]{"shine_common", "shine_rare", "shine_epic", "shine_legendary", "shine_mythic"}) tm.getTexture(tex(n));
+        for (int i = 0; i < path.length; i++) tm.getTexture(tex("front_" + RARITY[rarity(seq[i])]));
     }
 
     public static void open(String pack, String cards) { Minecraft.getInstance().setScreen(new PackScreen(pack, cards)); }
@@ -53,6 +59,11 @@ public final class PackScreen extends Screen {
     private static float ease(float x) { x = Math.max(0, Math.min(1, x)); return 1 - (1 - x) * (1 - x) * (1 - x); }
 
     @Override public boolean isPauseScreen() { return false; }
+
+    /** GuiGraphics.fill and text are batched, and ending a batch switches blending off. Blits are drawn at once, so without turning blending
+     *  back on, a card drawn after one of those batches (for example while another card's flip burst is on screen) shows its shine and
+     *  sparkle overlays opaque, as a washed out diagonal band and a solid gold frame, for a few frames. */
+    private static void blend() { RenderSystem.enableBlend(); RenderSystem.defaultBlendFunc(); }
 
     private void ui(net.minecraft.sounds.SoundEvent s, float pitch, float vol) { Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(s, pitch, vol)); }
 
@@ -113,6 +124,7 @@ public final class PackScreen extends Screen {
     }
 
     private void drawShine(GuiGraphics g, int rar, int x, int y, int w, int h) {
+        blend();
         if (rar == 5) {
             int frame = (int) ((System.currentTimeMillis() / MYTHIC_MS) % MYTHIC_FRAMES);
             g.blit(tex("shine_mythic"), x, y, w, h, 0, frame * 360f, 240, 360, 240, 360 * MYTHIC_FRAMES);
@@ -123,19 +135,22 @@ public final class PackScreen extends Screen {
 
     /** Twinkling sparkles over a shiny card, on top of its rarity shine: 80 frames in two columns, 75 ms each (a 6 second loop). */
     private void drawFoil(GuiGraphics g, int x, int y, int w, int h) {
+        blend();
         int f = (int) ((System.currentTimeMillis() / 75) % 80);
         g.blit(tex("shiny_foil"), x, y, w, h, (f / 40) * 240f, (f % 40) * 360f, 240, 360, 480, 360 * 40);
     }
 
-    /** Designed card art exists for Seq 9 to 3 of every pathway, and as an animation (100 frames, 10 per second, 5 columns of 20) for Sailor Seq 2 and 1. */
+    /** Designed card art exists for Seq 9 to 3 of every pathway, and as an animation (50 frames, 5 per second, 5 columns of 10) for Seq 2, 1 and 0. */
+    private ResourceLocation artTex(int i) { return tex("card_" + path[i] + "_" + seq[i] + (Tarot.hasAnim(path[i], seq[i]) ? "_anim" : "") + (shiny[i] ? "_shiny" : "")); }
+
     private boolean drawArt(GuiGraphics g, int i, int x, int y, int w, int h) {
         if (seq[i] >= 3) {
             g.blit(tex("card_" + path[i] + "_" + seq[i] + (shiny[i] ? "_shiny" : "")), x, y, w, h, 0, 0, 240, 360, 240, 360);
             return true;
         }
         if (Tarot.hasAnim(path[i], seq[i])) {
-            int f = (int) ((System.currentTimeMillis() / 100) % 100);
-            g.blit(tex("card_" + path[i] + "_" + seq[i] + "_anim" + (shiny[i] ? "_shiny" : "")), x, y, w, h, (f / 20) * 240f, (f % 20) * 360f, 240, 360, 1200, 7200);
+            int f = (int) ((System.currentTimeMillis() / 200) % 50);
+            g.blit(artTex(i), x, y, w, h, (f / 10) * 240f, (f % 10) * 360f, 240, 360, 1200, 3600);
             return true;
         }
         return false;
@@ -178,8 +193,10 @@ public final class PackScreen extends Screen {
                     if (bp > 0 && bp < 1) {
                         int a = (int) ((1 - bp) * (rar >= 4 ? 120 : 80)); int e = (int) (8 + bp * 40);
                         g.fill(r[0] - e, r[1] - e, r[0] + r[2] + e, r[1] + r[3] + e, (a << 24) | RCOL[rar]);
+                        g.flush();
                     }
                 }
+                blend();
                 g.setColor(1, 1, 1, r[4] / 255f);
                 g.pose().pushPose();
                 float cx = r[0] + r[2] / 2f, cy = r[1] + r[3] / 2f;
@@ -187,6 +204,7 @@ public final class PackScreen extends Screen {
                 float sx = (float) Math.abs(Math.cos(Math.PI * fp)), lift = hover ? 1.06f : 1f;
                 g.pose().scale(Math.max(0.02f, sx) * lift, lift, 1);
                 g.pose().translate(-cx, -cy, 0);
+                blend();
                 if (fp < 0.5f) {
                     g.blit(tex("back_" + path[i]), r[0], r[1], r[2], r[3], 0, 0, 240, 360, 240, 360);
                     drawShine(g, rar, r[0], r[1], r[2], r[3]);

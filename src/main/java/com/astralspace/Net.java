@@ -67,6 +67,22 @@ public final class Net {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -> client: open the weekly pack menu. `total` packs may be picked, up to `rainbow` of them Rainbow packs and `shiny` Shiny packs. */
+    public record WeeklyOpenPayload(int total, int rainbow, int shiny, boolean claimed) implements CustomPacketPayload {
+        public static final Type<WeeklyOpenPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "weekly_open"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, WeeklyOpenPayload> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, WeeklyOpenPayload::total, ByteBufCodecs.VAR_INT, WeeklyOpenPayload::rainbow,
+                ByteBufCodecs.VAR_INT, WeeklyOpenPayload::shiny, ByteBufCodecs.BOOL, WeeklyOpenPayload::claimed, WeeklyOpenPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    /** Client -> server: the packs picked in the weekly menu, "pathway:type:count,...". */
+    public record WeeklyClaimPayload(String picks) implements CustomPacketPayload {
+        public static final Type<WeeklyClaimPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "weekly_claim"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, WeeklyClaimPayload> CODEC = StreamCodec.composite(ByteBufCodecs.STRING_UTF8, WeeklyClaimPayload::picks, WeeklyClaimPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** Server -> client: a tarot pack was opened. `pack` is its pathway, `cards` is "pathway:seq,pathway:seq,..." (the cards are already in the inventory). */
     public record PackPayload(String pack, String cards) implements CustomPacketPayload {
         public static final Type<PackPayload> TYPE =
@@ -264,6 +280,10 @@ public final class Net {
             ClientState.cutsceneKind = payload.kind();
             ClientState.cutsceneTicks = payload.ticks();
             ClientState.cutsceneStart = System.currentTimeMillis();
+        }));
+        registrar.playToClient(WeeklyOpenPayload.TYPE, WeeklyOpenPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> WeeklyPackScreen.open(payload.total(), payload.rainbow(), payload.shiny(), payload.claimed())));
+        registrar.playToServer(WeeklyClaimPayload.TYPE, WeeklyClaimPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) WeeklyPacks.claim(sp, payload.picks());
         }));
         registrar.playToClient(PackPayload.TYPE, PackPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> PackScreen.open(payload.pack(), payload.cards())));
         registrar.playToClient(TreeAnimPayload.TYPE, TreeAnimPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
