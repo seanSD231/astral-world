@@ -29,6 +29,7 @@ public class AstralMod {
         AstralFloor.register(modBus);
         Cosmos.register(modBus);
         PartyItems.register(modBus);
+        HoloCardEntity.register(modBus);
         Tarot.register(modBus);
         AstralTab.register(modBus);
         AstralBarrier.onBreak(Stage::onBarrierBroken);

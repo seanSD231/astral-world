@@ -126,6 +126,31 @@ public final class Tarot {
 
         @Override public boolean isFoil(ItemStack stack) { return tag(stack).getBoolean("shiny") || super.isFoil(stack); }
 
+        /** Right click on the top of a block: put the card down. Rare and better cards (Seq 5 and up) show a hologram above it. */
+        @Override
+        public net.minecraft.world.InteractionResult useOn(net.minecraft.world.item.context.UseOnContext c) {
+            if (c.getClickedFace() != net.minecraft.core.Direction.UP) return net.minecraft.world.InteractionResult.PASS;
+            ItemStack st = c.getItemInHand(); CompoundTag t = tag(st);
+            if (!t.contains("pathway")) return net.minecraft.world.InteractionResult.PASS;
+            Level lv = c.getLevel();
+            if (!lv.isClientSide && c.getPlayer() != null) {
+                net.minecraft.core.BlockPos bp = c.getClickedPos();
+                double top = bp.getY() + lv.getBlockState(bp).getShape(lv, bp).max(net.minecraft.core.Direction.Axis.Y);
+                if (top < bp.getY() + .1) top = bp.getY() + 1;
+                net.minecraft.world.phys.Vec3 at = new net.minecraft.world.phys.Vec3(c.getClickLocation().x, top + .01, c.getClickLocation().z);
+                if (!lv.getEntitiesOfClass(HoloCardEntity.class, new net.minecraft.world.phys.AABB(at, at).inflate(.45, .3, .45)).isEmpty()) return net.minecraft.world.InteractionResult.FAIL;
+                HoloCardEntity e = new HoloCardEntity(HoloCardEntity.TYPE.get(), lv);
+                int seq = Math.max(0, Math.min(9, t.getInt("seq")));
+                e.setCard(t.getString("pathway"), seq, t.getBoolean("shiny")); e.setOwner(c.getPlayer());
+                e.moveTo(at.x, at.y, at.z, c.getPlayer().getYRot(), 0);
+                lv.addFreshEntity(e);
+                if (!c.getPlayer().getAbilities().instabuild) st.shrink(1);
+                float pitch = seq >= 5 ? 1.2f : 1.6f;
+                lv.playSound(null, at.x, at.y, at.z, seq == 0 ? net.minecraft.sounds.SoundEvents.END_PORTAL_SPAWN : seq <= 1 ? net.minecraft.sounds.SoundEvents.BEACON_ACTIVATE : seq <= 3 ? net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME : net.minecraft.sounds.SoundEvents.UI_TOAST_IN, net.minecraft.sounds.SoundSource.PLAYERS, seq == 0 ? .5f : .8f, pitch);
+            }
+            return net.minecraft.world.InteractionResult.sidedSuccess(lv.isClientSide);
+        }
+
         /** Right click: look at the card (its art, and the shiny sparkles if it is shiny). */
         @Override
         public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
