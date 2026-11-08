@@ -46,7 +46,7 @@ public final class PackScreen extends Screen {
         }
         // load every card's art now, while the pack is still closed, so nothing has to load (and stall the screen) when a card is flipped
         var tm = net.minecraft.client.Minecraft.getInstance().getTextureManager();
-        for (int i = 0; i < path.length; i++) { if (seq[i] >= 0 || Tarot.hasAnim(path[i], seq[i])) tm.getTexture(artTex(i)); tm.getTexture(tex("back_" + path[i])); }
+        for (int i = 0; i < path.length; i++) { if (seq[i] >= 0 || Tarot.hasAnim(path[i], seq[i])) tm.getTexture(artTex(i)); tm.getTexture(tex("back_" + backOf(path[i]))); }
         tm.getTexture(tex("shiny_foil"));
         for (String n : new String[]{"shine_common", "shine_rare", "shine_epic", "shine_legendary", "shine_mythic"}) tm.getTexture(tex(n));
         for (int i = 0; i < path.length; i++) tm.getTexture(tex("front_" + RARITY[rarity(seq[i])]));
@@ -54,6 +54,7 @@ public final class PackScreen extends Screen {
 
     public static void open(String pack, String cards) { Minecraft.getInstance().setScreen(new PackScreen(pack, cards)); }
 
+    private static String backOf(String p) { return p.startsWith("goo_") ? "seer" : p; }
     private static ResourceLocation tex(String p) { return ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "textures/gui/tarot/" + p + ".png"); }
     private static int rarity(int seq) { return seq >= 8 ? 0 : seq >= 6 ? 1 : seq >= 4 ? 2 : seq >= 2 ? 3 : seq == 1 ? 4 : 5; }
     private static float ease(float x) { x = Math.max(0, Math.min(1, x)); return 1 - (1 - x) * (1 - x) * (1 - x); }
@@ -170,7 +171,7 @@ public final class PackScreen extends Screen {
         g.pose().popPose();
         g.pose().pushPose(); g.pose().scale(1.3f, 1.3f, 1);
         g.drawCenteredString(font, "Sequence " + seq[i], 0, (int) (128 / 1.3f), 0xCCCCD8);
-        g.drawCenteredString(font, RARITY[rar].substring(0, 1).toUpperCase() + RARITY[rar].substring(1), 0, (int) (148 / 1.3f), RCOL[rar]);
+        g.drawCenteredString(font, path[i].startsWith("goo_") ? "Great Old One" : RARITY[rar].substring(0, 1).toUpperCase() + RARITY[rar].substring(1), 0, (int) (148 / 1.3f), path[i].startsWith("goo_") ? 0xFFFFFF : RCOL[rar]);
         g.pose().popPose();
         g.pose().popPose();
     }
@@ -207,7 +208,7 @@ public final class PackScreen extends Screen {
                 g.pose().translate(-cx, -cy, 0);
                 blend();
                 if (fp < 0.5f) {
-                    g.blit(tex("back_" + path[i]), r[0], r[1], r[2], r[3], 0, 0, 240, 360, 240, 360);
+                    g.blit(tex("back_" + backOf(path[i])), r[0], r[1], r[2], r[3], 0, 0, 240, 360, 240, 360);
                     drawShine(g, rar, r[0], r[1], r[2], r[3]);
                     if (shiny[i]) drawFoil(g, r[0], r[1], r[2], r[3]);
                 } else {

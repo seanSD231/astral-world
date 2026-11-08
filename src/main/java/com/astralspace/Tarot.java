@@ -42,6 +42,19 @@ public final class Tarot {
     private static final int[][] RARITY_SEQS = {{9, 8}, {7, 6}, {5, 4}, {3, 2}, {1}, {0}};
     private static final String[] RARITY = {"Mythic", "Legendary", "Epic", "Epic", "Rare", "Rare", "Uncommon", "Uncommon", "Common", "Common"};
     private static final ChatFormatting[] RARITY_COLOR = {ChatFormatting.LIGHT_PURPLE, ChatFormatting.GOLD, ChatFormatting.DARK_PURPLE, ChatFormatting.DARK_PURPLE, ChatFormatting.AQUA, ChatFormatting.AQUA, ChatFormatting.GREEN, ChatFormatting.GREEN, ChatFormatting.GRAY, ChatFormatting.GRAY};
+    /** The nine Great Old Ones, one per pathway group (a card's pathway is "goo_<id>", its seq 0). A rarity above Mythic. */
+    public static final String[] GOO_IDS = {"lord_of_mysteries", "god_almighty", "eternal_darkness", "calamity_of_destruction", "demon_of_knowledge", "key_of_light", "goddess_of_origin", "father_of_devils", "the_anarchy"};
+    public static final String[] GOO_NAMES = {"Lord of Mysteries", "God Almighty", "Eternal Darkness", "Calamity of Destruction", "Demon of Knowledge", "Key of Light", "Goddess of Origin", "Father of Devils", "The Anarchy"};
+    /** The pathways under each Great Old One. */
+    public static final String[][] GOO_PATHS = {{"seer", "marauder", "apprentice"}, {"spectator", "bard", "sailor", "reader", "secrets_supplicant"}, {"sleepless", "corpse_collector", "warrior"}, {"assassin", "hunter"}, {"mystery_pryer", "savant"}, {"monster"}, {"planter", "apothecary"}, {"criminal", "prisoner"}, {"lawyer", "arbiter"}};
+    /** Chance per card of a Great Old One, percent: normal and shiny packs, rainbow packs. */
+    private static final double GOO_CHANCE = 0.1, GOO_CHANCE_RAINBOW = 0.5;
+    public static int gooIndex(String pathway) {
+        if (pathway == null || !pathway.startsWith("goo_")) return -1;
+        for (int i = 0; i < GOO_IDS.length; i++) if (pathway.equals("goo_" + GOO_IDS[i])) return i;
+        return -1;
+    }
+    public static int gooOf(String own) { for (int g = 0; g < GOO_PATHS.length; g++) for (String p : GOO_PATHS[g]) if (p.equals(own)) return g; return 0; }
     private static final int PACK_CARDS = 3;
     private static final double OWN_BONUS = 5.0;
 
@@ -74,12 +87,14 @@ public final class Tarot {
         CompoundTag t = s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         if (!t.contains("pathway")) return 0;
         String p = t.getString("pathway"); int q = t.getInt("seq");
+        if (gooIndex(p) >= 0) return 3001 + gooIndex(p);
         if (!(q >= 0 && q <= 9 || hasAnim(p, q))) return 0;
         for (int i = 0; i < PATHWAYS.length; i++) if (PATHWAYS[i].equals(p)) return (t.getBoolean("shiny") ? 1000 : 0) + i * 10 + q + 1;   // shiny cards (Seq 9 to 3) have their own black and gold art
         return 0;
     }
 
     static String pretty(String id) {
+        if (gooIndex(id) >= 0) return GOO_NAMES[gooIndex(id)];
         StringBuilder b = new StringBuilder();
         for (String w : id.split("_")) b.append(b.length() > 0 ? " " : "").append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
         return b.toString();
@@ -100,6 +115,11 @@ public final class Tarot {
      */
     static ItemStack draw(String own, Random r, int mode) {
         // rainbow packs (mode 1) only roll Epic and above (Seq 3, 2, 1, 0); shiny packs (mode 2) roll normally but every card is shiny
+        if (r.nextDouble() * 100 < (mode == 1 ? GOO_CHANCE_RAINBOW : GOO_CHANCE)) {   // a Great Old One; the pack's own group counts 5x
+            int own0 = gooOf(own); double tot = GOO_IDS.length - 1 + OWN_BONUS, pk = r.nextDouble() * tot; int g = own0;
+            for (int i = 0; i < GOO_IDS.length; i++) { pk -= i == own0 ? OWN_BONUS : 1.0; if (pk < 0) { g = i; break; } }
+            return makeCard("goo_" + GOO_IDS[g], 0, false);
+        }
         int first = mode == 1 ? 3 : 0;
         double[] chance = mode == 1 ? RAINBOW_CHANCE : RARITY_CHANCE;
         double sum = 0; for (int i = first; i < chance.length; i++) sum += chance[i];
@@ -123,6 +143,7 @@ public final class Tarot {
         public Component getName(ItemStack stack) {
             CompoundTag t = tag(stack);
             if (!t.contains("pathway")) return Component.literal("Tarot Card (temp)").withStyle(ChatFormatting.LIGHT_PURPLE);
+            if (gooIndex(t.getString("pathway")) >= 0) return Component.literal("Great Old One - " + GOO_NAMES[gooIndex(t.getString("pathway"))]).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD);
             int seq = Math.max(0, Math.min(9, t.getInt("seq")));
             return Component.literal((t.getBoolean("shiny") ? "Shiny " : "") + pretty(t.getString("pathway")) + " - Seq " + seq).withStyle(RARITY_COLOR[seq]);
         }
@@ -150,6 +171,7 @@ public final class Tarot {
                 lv.addFreshEntity(e);
                 if (!c.getPlayer().getAbilities().instabuild) st.shrink(1);
                 float pitch = seq >= 5 ? 1.2f : 1.6f;
+                if (e.goo() >= 0) lv.playSound(null, at.x, at.y, at.z, net.minecraft.sounds.SoundEvents.ENDER_DRAGON_GROWL, net.minecraft.sounds.SoundSource.PLAYERS, .6f, .7f);
                 lv.playSound(null, at.x, at.y, at.z, seq == 0 ? net.minecraft.sounds.SoundEvents.END_PORTAL_SPAWN : seq <= 1 ? net.minecraft.sounds.SoundEvents.BEACON_ACTIVATE : seq <= 3 ? net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME : net.minecraft.sounds.SoundEvents.UI_TOAST_IN, net.minecraft.sounds.SoundSource.PLAYERS, seq == 0 ? .5f : .8f, pitch);
             }
             return net.minecraft.world.InteractionResult.sidedSuccess(lv.isClientSide);
@@ -169,6 +191,7 @@ public final class Tarot {
         public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> lines, net.minecraft.world.item.TooltipFlag flag) {
             CompoundTag t = tag(stack);
             if (!t.contains("pathway")) { lines.add(Component.literal("A placeholder card for testing.").withStyle(ChatFormatting.GRAY)); return; }
+            if (gooIndex(t.getString("pathway")) >= 0) { lines.add(Component.literal("Great Old One").withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD)); return; }
             int seq = Math.max(0, Math.min(9, t.getInt("seq")));
             lines.add(Component.literal(RARITY[seq]).withStyle(RARITY_COLOR[seq]));
             if (t.getBoolean("shiny")) lines.add(Component.literal("Shiny").withStyle(ChatFormatting.YELLOW));

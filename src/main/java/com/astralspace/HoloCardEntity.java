@@ -31,6 +31,7 @@ public class HoloCardEntity extends Entity {
     private static final EntityDataAccessor<Integer> PATH = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> SEQ = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> SHINY = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> GOO = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> SYMBOL = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
     private UUID owner;
     private String ownerName = "";
@@ -44,12 +45,17 @@ public class HoloCardEntity extends Entity {
     public HoloCardEntity(EntityType<?> type, Level level) { super(type, level); this.noPhysics = true; }
 
     public void setCard(String pathway, int seq, boolean shiny) {
+        int gi = Tarot.gooIndex(pathway);
+        entityData.set(GOO, gi);
+        if (gi >= 0) { entityData.set(PATH, 0); entityData.set(SEQ, 0); entityData.set(SHINY, false); return; }
         int p = 0;
         for (int i = 0; i < Tarot.PATHWAYS.length; i++) if (Tarot.PATHWAYS[i].equals(pathway)) p = i;
         entityData.set(PATH, p); entityData.set(SEQ, seq); entityData.set(SHINY, shiny);
     }
     public void setOwner(Player p) { owner = p.getUUID(); ownerName = p.getGameProfile().getName(); }
-    public String pathway() { return Tarot.PATHWAYS[Math.max(0, Math.min(Tarot.PATHWAYS.length - 1, entityData.get(PATH)))]; }
+    /** Index of the Great Old One this card is (0..8), or -1 for an ordinary card. */
+    public int goo() { return entityData.get(GOO); }
+    public String pathway() { if (goo() >= 0) return "goo_" + Tarot.GOO_IDS[goo()]; return Tarot.PATHWAYS[Math.max(0, Math.min(Tarot.PATHWAYS.length - 1, entityData.get(PATH)))]; }
     public int pathIndex() { return Math.max(0, Math.min(Tarot.PATHWAYS.length - 1, entityData.get(PATH))); }
     public int seq() { return entityData.get(SEQ); }
     public boolean shiny() { return entityData.get(SHINY); }
@@ -57,7 +63,7 @@ public class HoloCardEntity extends Entity {
     public boolean symbolOnly() { return entityData.get(SYMBOL); }
     public void setSymbolOnly(boolean b) { entityData.set(SYMBOL, b); }
 
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); b.define(SYMBOL, false); }
+    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); b.define(SYMBOL, false); b.define(GOO, -1); }
 
     @Override protected void readAdditionalSaveData(CompoundTag t) {
         setCard(t.getString("pathway"), t.getInt("seq"), t.getBoolean("shiny"));
@@ -75,7 +81,7 @@ public class HoloCardEntity extends Entity {
     @Override public boolean canBeCollidedWith() { return false; }
     @Override public boolean hurt(DamageSource source, float amount) { return false; }
     /** The hologram reaches several blocks above the card, so the renderer must not be culled with the thin card box. */
-    @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(48, 30, 48); }
+    @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(goo() >= 0 ? 80 : 48, goo() >= 0 ? 50 : 30, goo() >= 0 ? 80 : 48); }
     @Override public boolean shouldRenderAtSqrDistance(double d) { return d < 200.0 * 200.0; }
 
     @Override
@@ -94,7 +100,7 @@ public class HoloCardEntity extends Entity {
 
     /** Throne holograms (Death and Black Emperor, Seq 1 and 0) turn in quarter turns so their solid parts line up with the model. */
     public int throneQuarter() { return (int) Math.round((Math.PI - Math.toRadians(getYRot())) / (Math.PI / 2)); }
-    public boolean hasThrone() { return !symbolOnly() && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8); }
+    public boolean hasThrone() { return goo() < 0 && !symbolOnly() && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8); }
 
     /** Real, solid boxes matching HoloRenderer.throneModel (s = .95 * scale): three steps, seat, armrests and the back. */
     private void spawnThrone() {

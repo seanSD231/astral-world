@@ -38,6 +38,7 @@ public final class AstralTab {
                         out.accept(Tarot.makeCard(p, seq, false));
                         out.accept(Tarot.makeCard(p, seq, true));
                     }
+                for (String id : Tarot.GOO_IDS) out.accept(Tarot.makeCard("goo_" + id, 0, false));
             }).build());
 
     public static void register(IEventBus modBus) { TABS.register(modBus); }

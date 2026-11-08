@@ -3597,6 +3597,60 @@
     "astral_world:card": 1220
    },
    "model": "astral_world:item/card_warrior_9_shiny"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 3001
+   },
+   "model": "astral_world:item/card_goo_lord_of_mysteries_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 3002
+   },
+   "model": "astral_world:item/card_goo_god_almighty_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 3003
+   },
+   "model": "astral_world:item/card_goo_eternal_darkness_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 3004
+   },
+   "model": "astral_world:item/card_goo_calamity_of_destruction_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 3005
+   },
+   "model": "astral_world:item/card_goo_demon_of_knowledge_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 3006
+   },
+   "model": "astral_world:item/card_goo_key_of_light_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 3007
+   },
+   "model": "astral_world:item/card_goo_goddess_of_origin_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 3008
+   },
+   "model": "astral_world:item/card_goo_father_of_devils_0"
+  },
+  {
+   "predicate": {
+    "astral_world:card": 3009
+   },
+   "model": "astral_world:item/card_goo_the_anarchy_0"
   }
  ]
 }

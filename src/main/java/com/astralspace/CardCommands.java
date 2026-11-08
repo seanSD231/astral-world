@@ -50,8 +50,17 @@ public final class CardCommands {
                 boxes++;
             }
         }
+        if (normal) {
+            List<ItemStack> goo = new ArrayList<>();
+            for (String id : Tarot.GOO_IDS) goo.add(Tarot.makeCard("goo_" + id, 0, false));
+            ItemStack box = new ItemStack(Items.WHITE_SHULKER_BOX);
+            box.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(goo));
+            box.set(DataComponents.CUSTOM_NAME, Component.literal("Great Old One cards"));
+            if (!p.getInventory().add(box)) p.drop(box, false);
+            boxes++;
+        }
         final int n = boxes;
-        ctx.getSource().sendSuccess(() -> Component.literal("Gave " + n + " shulker boxes (one per sequence, 22 cards each)."), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("Gave " + n + " shulker boxes (one per sequence, 22 cards each, plus one of the 9 Great Old Ones)."), false);
         return 1;
     }
 }
