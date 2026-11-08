@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.114
+- Hologram rework. Holograms no longer turn to follow your camera: everything big is fixed in the world and faces the way the card was placed. Palettes now come from each pathway's own symbol (Apprentice blue, Marauder grey, Monster silver, Black Emperor black and white, Warrior dimmer). Epic and up use the pathway symbol. Real lit 3D models: swords, daggers, chains, the tower, a flower, a trident, a door, a throne, a wheel, a harp, lanterns, gears, skull, flasks, crown and more. New flames, a real heaving sea and breaking waves for Sailor (no sun), a black night dome for Hanged Man, Black Emperor, Abyss and Darkness. Redone: Seer (eye and tarot fan), Demoness (blood moon, wings, daggers), Spectator (glass lens and light), Abyss (void and horns, no eye), Black Emperor (throne, no towers), Marauder (glitching symbol and shards, no gears), Chained (iron chains and shackles), Hanged Man (much emptier). No glow orbs. Legendary scenes are smaller. Fades are stronger so effects are not nearly invisible. Not tested in game.
+
 ## 0.2.113
 - New creative tab "Astral Cards" with every tarot card (all 22 pathways, Seq 9 to 0, normal and shiny: 440 cards). Not tested in game.
 
