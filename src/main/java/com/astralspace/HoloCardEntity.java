@@ -36,7 +36,7 @@ public class HoloCardEntity extends Entity {
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, AstralMod.MOD_ID);
     public static final DeferredHolder<EntityType<?>, EntityType<HoloCardEntity>> TYPE = ENTITIES.register("holo_card", () ->
-        EntityType.Builder.<HoloCardEntity>of(HoloCardEntity::new, MobCategory.MISC).sized(0.6f, 0.08f).fireImmune().clientTrackingRange(10).updateInterval(1000).build("holo_card"));
+        EntityType.Builder.<HoloCardEntity>of(HoloCardEntity::new, MobCategory.MISC).sized(0.8f, 0.3f).fireImmune().clientTrackingRange(10).updateInterval(1000).build("holo_card"));
 
     public static void register(IEventBus bus) { ENTITIES.register(bus); ThronePart.register(bus); }
 
@@ -65,6 +65,7 @@ public class HoloCardEntity extends Entity {
     }
 
     @Override public boolean isPickable() { return true; }
+    @Override public float getPickRadius() { return 0.3f; }
     @Override public boolean isPushable() { return false; }
     @Override public boolean canBeCollidedWith() { return false; }
     @Override public boolean hurt(DamageSource source, float amount) { return false; }

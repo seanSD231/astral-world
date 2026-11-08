@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.118
+- Hologram round three. Flowers (Demoness rose, Planter, Mother) now have real cupped petals and real leaves and are smaller. Real eyeballs for Mystery Pryer, real dice for Monster, a real silhouette bound in chains (Bearing of Sins) for Hanged Man, scales for Arbiter epic, a flickering flame for Hunter. LOTM models: sword of dawn (Arbiter), spear of dawn (Hunter), silver sword (Warrior Seq 1), twilight sword (Warrior Seq 0). The Door legendary door now faces you. Bard has a single flaring sun and no wings. Abyss is a red and purple night with tentacles wrapping the orb. Death is an emperor sitting on the throne. Throne now has real steps and a skirt into the ground. Darker domes (Darkness, Hanged Man, Abyss, Black Emperor), Minecraft-style twinkling stars, Apothecary dark with a full moon at Seq 0, dark gray Fool fog with coloured lights (and a bronze table and chairs at Seq 0), Sailor uses wave sheets again, Prisoner has an iron cage and locks, Spectator is less cluttered, Marauder has purple and rare symbol swaps and its ground patches lie on the real blocks. Cards are easier to pick up. Not tested in game.
+
 ## 0.2.117
 - Pale Emperor (Death) is green again (a clear, lighter green), keeping the bone throne, crowned skull and orbiting skulls. Thrones (Death and Black Emperor, Seq 1 and 0) are now solid: invisible collision boxes follow the steps, seat, armrests and back, so you can walk up and stand on them, and right click the seat to sit (sneak to get off). Throne holograms now turn in quarter turns so the boxes line up. Not tested in game.
 
