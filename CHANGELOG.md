@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.112
+- Pack rates: rainbow packs now roll Epic 75%, Legendary 20%, Mythic 5% per card. All shiny chances halved (Common 2.5%, Uncommon 5%, Rare 5%, Epic 7.5%, Legendary 10%, Mythic 20%). Not tested in game.
+
 ## 0.2.111
 - Every pathway now has its own hand-built Legendary and Mythic hologram scene instead of the shared recipe (Moon, Door, Justiciar, Demoness, Sun, Death, Abyss, Red Priest, Black Emperor, Error, Wheel of Fortune, Hermit, Mother, Chained, White Tower, Paragon, Hanged Man, Fool, Darkness, Visionary, Twilight Giant; Tyrant already had one). Same large scale as the Sailor storm. Not tested in game, expect tuning.
 

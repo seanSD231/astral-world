@@ -25,7 +25,7 @@ import java.util.Random;
 /**
  * Tarot cards and the 22 pathway packs (/give only for now).
  * One card item, `astral_world:tarot_card`, carries its pathway and sequence in custom_data: {pathway:"seer",seq:9}. With no data it is the temp test card.
- * A pack gives 3 cards: rarity is rolled first (50/25/20/3/1.5/0.5 %), then the pathway (the pack's own counts 5x), then the shiny roll (5/10/10/15/20/40 % by rarity).
+ * A pack gives 3 cards: rarity is rolled first (50/25/20/3/1.5/0.5 %), then the pathway (the pack's own counts 5x), then the shiny roll (2.5/5/5/7.5/10/20 % by rarity); rainbow packs roll Epic/Legendary/Mythic at 75/20/5 %.
  */
 public final class Tarot {
     private Tarot() {}
@@ -34,8 +34,10 @@ public final class Tarot {
     /** Weight of each sequence, index = sequence 0..9. Seq 9 is the most common, Seq 0 the rarest. */
     /** Chance of each rarity per card (common, uncommon, rare, epic, legendary, mythic), percent. */
     private static final double[] RARITY_CHANCE = {50, 25, 20, 3, 1.5, 0.5};
+    /** Rainbow packs: rarity chances instead of the normal ones (Epic, Legendary, Mythic only), percent. */
+    private static final double[] RAINBOW_CHANCE = {0, 0, 0, 75, 20, 5};
     /** Chance that a card of that rarity is shiny, rolled after its rarity, percent. */
-    private static final double[] SHINY_CHANCE = {5, 10, 10, 15, 20, 40};
+    private static final double[] SHINY_CHANCE = {2.5, 5, 5, 7.5, 10, 20};
     /** The sequences each rarity covers. */
     private static final int[][] RARITY_SEQS = {{9, 8}, {7, 6}, {5, 4}, {3, 2}, {1}, {0}};
     private static final String[] RARITY = {"Mythic", "Legendary", "Epic", "Epic", "Rare", "Rare", "Uncommon", "Uncommon", "Common", "Common"};
@@ -99,10 +101,11 @@ public final class Tarot {
     static ItemStack draw(String own, Random r, int mode) {
         // rainbow packs (mode 1) only roll Epic and above (Seq 3, 2, 1, 0); shiny packs (mode 2) roll normally but every card is shiny
         int first = mode == 1 ? 3 : 0;
-        double sum = 0; for (int i = first; i < RARITY_CHANCE.length; i++) sum += RARITY_CHANCE[i];
+        double[] chance = mode == 1 ? RAINBOW_CHANCE : RARITY_CHANCE;
+        double sum = 0; for (int i = first; i < chance.length; i++) sum += chance[i];
         double pick = r.nextDouble() * sum, acc = 0;
         int rar = RARITY_CHANCE.length - 1;
-        for (int i = first; i < RARITY_CHANCE.length; i++) { acc += RARITY_CHANCE[i]; if (pick < acc) { rar = i; break; } }
+        for (int i = first; i < RARITY_CHANCE.length; i++) { acc += chance[i]; if (pick < acc) { rar = i; break; } }
         int[] seqs = RARITY_SEQS[rar];
         int seq = seqs[r.nextInt(seqs.length)];
         double total = PATHWAYS.length - 1 + OWN_BONUS, pp = r.nextDouble() * total;
