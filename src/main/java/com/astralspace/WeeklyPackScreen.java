@@ -18,7 +18,8 @@ public final class WeeklyPackScreen extends Screen {
     private final int[][] picked = new int[3][Tarot.PATHWAYS.length];
     private int tab = 0;
     private Button claimBtn;
-    private static final int COLS = 6, CELL = 52;
+    private static final int COLS = 6;
+    private int cell = 52;
 
     private WeeklyPackScreen(int total, int rainbow, int shiny, boolean claimed) {
         super(Component.literal("Weekly Tarot Packs"));
@@ -29,15 +30,16 @@ public final class WeeklyPackScreen extends Screen {
 
     private int picks() { int n = 0; for (int[] a : picked) for (int v : a) n += v; return n; }
     private int picksOf(int t) { int n = 0; for (int v : picked[t]) n += v; return n; }
-    private int gridLeft() { return width / 2 - COLS * CELL / 2; }
-    private int gridTop() { return height / 2 - 70; }
+    private int gridLeft() { return width / 2 - COLS * cell / 2; }
+    private int gridTop() { return 82; }
 
     @Override
     protected void init() {
         int cx = width / 2;
+        cell = Math.max(30, Math.min(52, (height - gridTop() - 6) / 4));
         for (int t = 0; t < 3; t++) {
             final int tt = t;
-            Button b = Button.builder(Component.literal(TYPE[t] + (t == 0 ? "" : " (" + cap[t] + ")")), x -> tab = tt).bounds(cx - 156 + t * 106, gridTop() - 36, 100, 20).build();
+            Button b = Button.builder(Component.literal(TYPE[t] + (t == 0 ? "" : " (" + cap[t] + ")")), x -> tab = tt).bounds(cx - 156 + t * 106, 34, 100, 20).build();
             b.active = cap[t] > 0 && !claimed;
             addRenderableWidget(b);
         }
@@ -57,13 +59,13 @@ public final class WeeklyPackScreen extends Screen {
                 if (yes) { PacketDistributor.sendToServer(new Net.WeeklyClaimPayload(payload)); mc.setScreen(null); }
                 else mc.setScreen(this);
             }, Component.literal("Take these " + total + " weekly pack" + (total == 1 ? "" : "s") + "?"), Component.literal(msg.toString()), Component.literal("Confirm"), Component.literal("Back")));
-        }).bounds(cx - 105, gridTop() + 4 * CELL + 22, 100, 20).build();
+        }).bounds(cx - 105, 58, 100, 20).build();
         addRenderableWidget(claimBtn);
-        addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose()).bounds(cx + 5, gridTop() + 4 * CELL + 22, 100, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose()).bounds(cx + 5, 58, 100, 20).build());
     }
 
     private int cellAt(double mx, double my) {
-        int c = (int) Math.floor((mx - gridLeft()) / CELL), r = (int) Math.floor((my - gridTop()) / CELL);
+        int c = (int) Math.floor((mx - gridLeft()) / cell), r = (int) Math.floor((my - gridTop()) / cell);
         if (mx < gridLeft() || my < gridTop() || c < 0 || c >= COLS || r < 0) return -1;
         int i = r * COLS + c; return i < Tarot.PATHWAYS.length ? i : -1;
     }
@@ -85,19 +87,19 @@ public final class WeeklyPackScreen extends Screen {
         g.fill(0, 0, width, height, 0xC0080810);
         super.render(g, mx, my, pt);
         int cx = width / 2;
-        g.drawCenteredString(font, "Weekly Tarot Packs", cx, gridTop() - 62, 0xFFFFD870);
+        g.drawCenteredString(font, "Weekly Tarot Packs", cx, 6, 0xFFFFD870);
         String info = claimed ? "You already took your packs this week. They reset on the next reset day."
             : "Pick " + total + " pack" + (total == 1 ? "" : "s") + ":  " + picks() + " / " + total + "     (left click adds, right click removes)";
-        g.drawCenteredString(font, info, cx, gridTop() - 50, claimed ? 0xFFFF9090 : 0xFFD8D8E8);
+        g.drawCenteredString(font, info, cx, 20, claimed ? 0xFFFF9090 : 0xFFD8D8E8);
         int hover = cellAt(mx, my);
         for (int i = 0; i < Tarot.PATHWAYS.length; i++) {
-            int x = gridLeft() + (i % COLS) * CELL, y = gridTop() + (i / COLS) * CELL;
+            int x = gridLeft() + (i % COLS) * cell, y = gridTop() + (i / COLS) * cell; int ic = cell * 40 / 52, ix = (cell - ic) / 2;
             int n = picked[tab][i]; int all = 0; for (int t = 0; t < 3; t++) all += picked[t][i];
-            g.fill(x + 1, y + 1, x + CELL - 1, y + CELL - 1, i == hover ? 0x60FFFFFF : all > 0 ? 0x4090B0FF : 0x30000000);
-            g.blit(icon(Tarot.PATHWAYS[i], tab), x + 6, y + 2, 40, 40, 0, 0, 188, 188, 188, 188);
-            String nm = Tarot.pretty(Tarot.PATHWAYS[i]); if (font.width(nm) > CELL - 2) nm = font.plainSubstrByWidth(nm, CELL - 6) + ".";
-            g.drawCenteredString(font, nm, x + CELL / 2, y + 42, 0xFFE0E0F0);
-            if (n > 0) { g.fill(x + CELL - 16, y + 2, x + CELL - 2, y + 14, 0xE0000000); g.drawCenteredString(font, String.valueOf(n), x + CELL - 9, y + 4, 0xFFFFD870); }
+            g.fill(x + 1, y + 1, x + cell - 1, y + cell - 1, i == hover ? 0x60FFFFFF : all > 0 ? 0x4090B0FF : 0x30000000);
+            g.blit(icon(Tarot.PATHWAYS[i], tab), x + ix, y + 1, ic, ic, 0, 0, 188, 188, 188, 188);
+            String nm = Tarot.pretty(Tarot.PATHWAYS[i]); if (font.width(nm) > cell - 2) nm = font.plainSubstrByWidth(nm, cell - 6) + ".";
+            g.drawCenteredString(font, nm, x + cell / 2, y + ic + 2, 0xFFE0E0F0);
+            if (n > 0) { g.fill(x + cell - 16, y + 2, x + cell - 2, y + 14, 0xE0000000); g.drawCenteredString(font, String.valueOf(n), x + cell - 9, y + 4, 0xFFFFD870); }
             if (all - n > 0) g.drawString(font, "+" + (all - n), x + 4, y + 4, 0xFFA0C0FF);
         }
         if (claimBtn != null) claimBtn.active = !claimed && picks() == total;
