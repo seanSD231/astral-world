@@ -44,8 +44,19 @@ public final class WeeklyPackScreen extends Screen {
         claimBtn = Button.builder(Component.literal("Take packs"), b -> {
             StringBuilder s = new StringBuilder();
             for (int t = 0; t < 3; t++) for (int i = 0; i < Tarot.PATHWAYS.length; i++) if (picked[t][i] > 0) s.append(Tarot.PATHWAYS[i]).append(':').append(t).append(':').append(picked[t][i]).append(',');
-            PacketDistributor.sendToServer(new Net.WeeklyClaimPayload(s.toString()));
-            onClose();
+            final String payload = s.toString();
+            StringBuilder msg = new StringBuilder();
+            for (int t = 0; t < 3; t++) {
+                StringBuilder line = new StringBuilder();
+                for (int i = 0; i < Tarot.PATHWAYS.length; i++) if (picked[t][i] > 0) line.append(line.length() > 0 ? ", " : "").append(Tarot.pretty(Tarot.PATHWAYS[i])).append(" x").append(picked[t][i]);
+                if (line.length() > 0) msg.append(TYPE[t]).append(": ").append(line).append('\n');
+            }
+            msg.append("You cannot change this until the week resets.");
+            Minecraft mc = Minecraft.getInstance();
+            mc.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(yes -> {
+                if (yes) { PacketDistributor.sendToServer(new Net.WeeklyClaimPayload(payload)); mc.setScreen(null); }
+                else mc.setScreen(this);
+            }, Component.literal("Take these " + total + " weekly pack" + (total == 1 ? "" : "s") + "?"), Component.literal(msg.toString()), Component.literal("Confirm"), Component.literal("Back")));
         }).bounds(cx - 105, gridTop() + 4 * CELL + 22, 100, 20).build();
         addRenderableWidget(claimBtn);
         addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose()).bounds(cx + 5, gridTop() + 4 * CELL + 22, 100, 20).build());

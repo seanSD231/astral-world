@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.101
+- The weekly pack menu asks you to confirm your picks (a list of what you chose, with Confirm and Back) before you take the packs.
+- Corpse Collector's pack is green now, Prisoner's is more purple and Savant's is more orange.
+
 ## 0.2.100
 - Players who log in with weekly tarot packs they have not picked yet get a message with a clickable link that opens the weekly menu.
 
