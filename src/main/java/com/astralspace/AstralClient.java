@@ -63,6 +63,7 @@ public final class AstralClient {
         TreeBossBar.init();
         TreeCutscene.init();
         CallScene.init();
+        LotmFx.init();
         MeteorScene.init();
         IntroScene.init();
         TreeAnim.init();

@@ -869,7 +869,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     @Override
     public void render(HoloCardEntity e, float yaw, float pt, PoseStack ps, MultiBufferSource bufs, int light) {
         super.render(e, yaw, pt, ps, bufs, light);
-        int seq = e.seq(), pi = e.pathIndex(); thQ = e.throneQuarter(); ex = e.getX(); ey = e.getY(); ez = e.getZ();
+        int seq = e.seq(), pi = e.pathIndex(); thQ = e.throneQuarter(); curId = e.getId(); ex = e.getX(); ey = e.getY(); ez = e.getZ();
         boolean shiny = e.shiny();
         this.buf = bufs; this.mat = ps.last().pose();
         this.t = (e.tickCount + pt) / 20f;
@@ -1162,7 +1162,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 bb("glow", 0, 1.15f * u, 0, .6f, .6f, 0, rgba(P3, .5f));
             }
             case 4 -> {   // Bard: a small flaring sun and a few notes
-                flareSun(0, 1.0f + bob, 0, .24f * u, P1, P2);
+                if (!lotmSun(0, 1.0f + bob, 0, .3f * u)) flareSun(0, 1.0f + bob, 0, .24f * u, P1, P2);
                 for (int i = 0; i < 4; i++) { float a = t * .8f + i * TAU / 4, p = fract(t * .3f + i * .25f); bb("note", gc(a) * .7f, .6f + p * .9f, gs(a) * .7f, .22f, .22f, 0, rgba(P1, fd(p))); }
             }
             case 5 -> {   // Corpse Collector: a skull wreathed in green fire
@@ -1501,9 +1501,12 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         fogRing(10, R * .6f, P2, .5f);
         if (m) strikes(2, R, top, P1);
     }
+    private int curId;
+    /** LOTM's real flaring sun (a Photon effect), if LOTM is present. */
+    private boolean lotmSun(float lx, float ly, float lz, float scale) { return LotmFx.hold(curId, "bard/flaring_sun", ex + lx, ey + ly, ez + lz, scale); }
     private void sun(int N) {
         sigil(R); float sy = top * .9f;
-        flareSun(0, sy, 0, 1.7f * S, P1, P2);
+        if (!lotmSun(0, sy, 0, S * 1.2f)) flareSun(0, sy, 0, 1.7f * S, P1, P2);
         column("beam", 0, .05f, sy, 0, 2f * S, rgba(P1, .35f));
         sym(CY, 3.4f * S, 0);
         for (int i = 0; i < 10 * N; i++) { float a = t * .3f + i * TAU / (10 * N); column("line", (float) Math.cos(a) * R * .6f, 0, 5f * S, (float) Math.sin(a) * R * .6f, .3f * S, rgba(P1, .9f)); }

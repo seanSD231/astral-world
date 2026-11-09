@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.133
+- Bard sun now plays LOTM's own flaring_sun Photon effect inside the hologram (rare and legendary), through LOTM's ClientFX. It is killed when the hologram is no longer drawn. If LOTM or the effect cannot be found it falls back to the texture-built sun.
+
 ## 0.2.132
 - Monster wheel of fortune now has a solid backing disc, so clouds and fog no longer show through it.
 
