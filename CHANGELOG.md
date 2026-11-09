@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.142
+- Fool hall, from your new references: a ribbed stone dome with an open eye now covers the table, on ten fluted columns joined by pointed arches. Looking up you see the eye: a bright white-teal rosette inside a blue ring of ticks and arrowheads.
+- Better columns (plinth, ringed and grooved shaft, carved collar, flared capital with horned corners, a red glint) standing in the fog all around, tall and broken.
+- A colourful nebula sky (blue, pink, cyan) and stars above the grey fog.
+- The old square pillars and far round towers are gone, replaced by the above.
+- Untested in game.
+
 ## 0.2.141
 - Lord of Mysteries: the whole space now glitches now and then (a short burst about every 14 seconds, and a shorter one in between): the hall jumps, motion stutters and torn slabs of colour flash across the sphere.
 - Its door of light is now smaller, further back, at the top of a stair behind the head seat of the table, and white. New model: carved jambs and a pointed arch edged in light, open leaves, a glowing white doorway with a pillar of light, a lit stair with railings.
