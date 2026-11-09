@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.147
+- GOO cards sit between the old size and legendary size (radius 12, height 19, scale 2.35). Untested in game.
+
 ## 0.2.146
 - GOO cards toned down to legendary-card scale (about 15-25% smaller scenes, smaller domes and spreads).
 - Lord of Mysteries is now a compact stage: the glitching Fool symbol over the three pathways, with a small door of light behind. The giant hall, stair and dome are gone from it (the Fool legendary keeps its hall). Untested in game.
