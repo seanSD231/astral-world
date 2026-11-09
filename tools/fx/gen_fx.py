@@ -115,6 +115,10 @@ write('fool_fog', [
     emitter('mid fog #area', PUFF, ((0x252B2F, .12), (0x30373B, .1)), (.07, .13), (70, 110), rate=8, maxp=900, radius=1.0, sscale=(1, .45, 1), speed=(.0004, .0012), lin=(-.0015, .0006, 0), noise=(.01, .2), pos=(0, .3, 0)),
     emitter('high fog #area', PUFF, ((0x1C2124, .14), (0x262C30, .12)), (.09, .16), (80, 120), rate=6, maxp=700, radius=1.0, sscale=(1, .5, 1), speed=(.0004, .001), lin=(.001, 0, 0), noise=(.01, .2), pos=(0, .65, 0)),
     emitter('lights #detail', GLOW, ((0x9AD8DC, .65), (0xD8E0FF, .55)), (.006, .016), (80, 160), rate=2.5, maxp=700, radius=1.0, sscale=(1, .6, 1), pos=(0, .35, 0), lin=(0, .0006, 0), noise=(.004, .3), add=True),
+    emitter('red lights #detail', GLOW, ((0xFF2030, .9), (0xFF4458, .8)), (.004, .01), (80, 170), rate=1.4, maxp=450, radius=1.0, sscale=(1, .7, 1), pos=(0, .35, 0), lin=(0, .0005, 0), noise=(.004, .3), add=True),
+    emitter('nebula teal #area', PUFF, ((0x1B6E78, .1), (0x2A9AA0, .08)), (.12, .22), (90, 140), rate=1.6, maxp=200, radius=1.0, thick=.3, sscale=(1, .22, 1), speed=(.0002, .0006), pos=(0, .85, 0), noise=(.006, .15), add=True),
+    emitter('nebula green #area', PUFF, ((0x2FBF7A, .06), (0x4AD8A0, .05)), (.1, .18), (90, 140), rate=.8, maxp=100, radius=1.0, thick=.3, sscale=(1, .2, 1), speed=(.0002, .0006), pos=(0, .9, 0), noise=(.006, .15), add=True),
+    emitter('ribbons #detail', LT + 'streak.png', ((0xFFFFFF, .8), (0xD8F4FF, .7)), (.004, .01), (70, 130), rate=.3, maxp=60, radius=1.0, sscale=(1, .7, 1), speed=(.003, .01), pos=(0, .4, 0), noise=(.02, .4), add=True, mode='StretchedBillboard'),
     emitter('far lights #detail', GLOW, ((0xFFFFFF, .4), (0x90C0FF, .4)), (.005, .012), (100, 180), rate=3, maxp=900, radius=1.0, thick=.25, sscale=(1, .7, 1), pos=(0, .4, 0), noise=(.002, .3), add=True),
     emitter('motes #detail', EMBER, ((0xFFFFFF, .8), (0xA8E8FF, .8)), (.002, .005), (80, 140), rate=3, maxp=900, radius=1.0, sscale=(1, .7, 1), pos=(0, .35, 0), lin=(0, .0006, 0), noise=(.003, .3), add=True),
 ])

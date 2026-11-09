@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.141
+- Lord of Mysteries: the whole space now glitches now and then (a short burst about every 14 seconds, and a shorter one in between): the hall jumps, motion stutters and torn slabs of colour flash across the sphere.
+- Its door of light is now smaller, further back, at the top of a stair behind the head seat of the table, and white. New model: carved jambs and a pointed arch edged in light, open leaves, a glowing white doorway with a pillar of light, a lit stair with railings.
+- Fool hall, from your new references: pillars are square with recessed carved panels outlined in teal, great round stepped towers stand far off in the fog, and the fog fx gained floating red lights, a teal and green nebula high up, and drifting white ribbons.
+- The last chair stays past the end of the table (moved in 0.2.140).
+- Untested in game.
+
 ## 0.2.140
 - Fool hall rebuilt bigger (1.9x a person) and in more detail to match the picture: a long ribbed stone table like a bridge with teal inlay, rails and lamps, tall carved chairs with gabled backs and teal edges, a tall high seat at the head, a dark stone floor with teal edging, and tall carved pillars with glowing slits. The real seats and table (sit and walk on them) are scaled to match.
 - The symbol behind each chair is now the pathway of whoever is sitting in it (read from LOTM on the server and synced). Empty chairs show only a faint glow. The head seat shows the Fool's symbol.

@@ -955,18 +955,47 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private float gz(float lx, float lz) { return sz0 * lx - fz * lz; }
 
     /** Lord of Mysteries: the whole Sefirah hall (grey fog, bronze table, seated pathways), the Fool's symbol glitching through the others, and a door of light at the far end. */
+    /** A white door of light at the top of a stair, in the hall's frame (local z is toward the head of the table, so this stands behind the head seat). */
+    private void lightDoor() {
+        int stone = 0x3A4A4E, dark = 0x1F2A2E; int white = 0xFFFFFF;
+        float z0 = 5.4f, steps = 7, rise = .3f, run = .55f, zd = z0 + steps * run + .9f, top0 = steps * rise, dh = 4.4f, dw = 1.1f;
+        pushThrone(); cur.scale(HK, HK, HK);
+        for (int i = 0; i < steps; i++) { float y = (i + 1) * rise, z = z0 + i * run + run / 2;
+            box(0, y / 2, z, 2.3f, y / 2, run / 2, i % 2 == 0 ? stone : mix(stone, dark, .3f), 255);
+            box(0, y + .004f, z - run / 2 + .02f, 2.3f, .006f, .012f, white, 255);
+            for (int sd = -1; sd <= 1; sd += 2) { box(sd * 2.45f, y + .3f, z, .1f, y / 2 + .3f, run / 2, dark, 255); box(sd * 2.45f, y + .62f, z, .12f, .02f, run / 2, mix(white, 0x78D0D4, .5f), 255); } }
+        box(0, top0 / 2, zd, 2.6f, top0 / 2, 1.0f, stone, 255); box(0, top0 + .01f, zd - .98f, 2.6f, .01f, .01f, white, 255);   // the landing
+        for (int sd = -1; sd <= 1; sd += 2) {   // jambs, carved and edged in light
+            box(sd * (dw + .22f), top0 + dh / 2, zd, .22f, dh / 2, .3f, stone, 255); box(sd * (dw + .22f), top0 + dh / 2, zd - .31f, .16f, dh / 2 - .05f, .012f, dark, 255);
+            box(sd * (dw - .01f), top0 + dh / 2, zd - .29f, .014f, dh / 2, .01f, white, 255);
+            box(sd * (dw + .22f), top0 + dh + .08f, zd, .3f, .08f, .36f, dark, 255);
+            push(); tr(sd * (dw + .22f), top0 + dh + .16f, zd); taper(0, 1.6f, .2f, .26f, 0, 0, stone, 255); pop(); }
+        push(); tr(0, top0 + dh - .1f, zd); torus(0, 0, 0, dw + .12f, dw + .12f, .14f, 24, 6, 0, PI, stone, 255); torus(0, 0, -.02f, dw - .02f, dw - .02f, .03f, 24, 4, 0, PI, white, 255); pop();   // the arch
+        box(0, top0 + dh + .5f, zd, .14f, .5f, .14f, stone, 255); push(); tr(0, top0 + dh + 1.0f, zd); taper(0, .9f, .12f, .12f, 0, 0, white, 255); pop();
+        for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * dw, top0 + dh / 2 - .1f, zd - .05f); rY(sd * 1.15f); box(-sd * .42f, 0, 0, .42f, dh / 2 - .15f, .035f, mix(stone, white, .15f), 255); box(-sd * .42f, 0, -.04f, .34f, dh / 2 - .25f, .006f, mix(stone, white, .5f), 255); pop(); }   // the leaves, swung open
+        pop();
+        float cx = hxk(0, zd + .2f), cz = hzk(0, zd + .2f), by = (top0 + dh / 2) * HK;
+        eq(tex("solid"), cx, by, cz, hx(dw * HK, 0), 0, hz(dw * HK, 0), 0, dh / 2 * HK, 0, rgba(white, 1f), 0, 0, 1, 1);   // the light itself
+        eq(tex("solid"), cx, by, cz, -hx(dw * HK, 0), 0, -hz(dw * HK, 0), 0, dh / 2 * HK, 0, rgba(white, 1f), 0, 0, 1, 1);   // and from the other side
+        bb("glow", cx, by, cz, 7f * HK, 9f * HK, 0, rgba(white, .55f)); bb("lotm:sunburst", cx, by, cz, 11f * HK, 11f * HK, 0, rgba(white, .4f));
+        column("beam", cx, top0 * HK, top0 * HK + 40f, cz, 1.6f * HK, rgba(white, .3f));
+        for (int k = 0; k < 6; k++) { float p = fract(t * .3f + k / 6f), sx2 = (h(k, 31) - .5f) * 1.6f; bb("lotm:ember_hd", hxk(sx2, zd - .5f - p * 3f), (top0 + .4f + p * 3f) * HK, hzk(sx2, zd - .5f - p * 3f), .5f * HK, .5f * HK, 0, rgba(white, fd(p))); }
+    }
+    /** Lord of Mysteries: the Fool's hall, a white door of light up a stair behind the head seat, and now and then the whole space glitches. */
     private void gooLord() {
         float sv = S; S = 1.7f; int cp = curPath; curPath = 18;
+        float t0 = t, ph = t % 14f; boolean gl = ph < .35f || (ph > 6.5f && ph < 6.65f); int fb = (int) (t * 25);   // rarely: a short burst, then a shorter one
+        if (gl) { t = t0 - .3f * h(fb, 3); glX = (h(fb, 4) - .5f) * 1.2f; glZ = (h(fb, 5) - .5f) * 1.2f; }
         fool(2, true);
         float gy = CY + 1.5f * S;
         glitchSym(gx(0, 0), gy + 3.6f * S, gz(0, 0), 3.2f * S, -face);   // the Fool's symbol glitching through every pathway
-        for (int k = 0; k < 4; k++) { float p = fract(t * .5f + k * .25f); bb("lotm:ember_hd", hxk((k - 1.5f) * 2f, -9f), 1f + p * 8f, hzk((k - 1.5f) * 2f, -9f), .9f * S, .9f * S, 0, rgba(0xFFF4C0, fd(p))); }
-        float ox = hxk(0, -21f), oz = hzk(0, -21f);   // the door of light, at the foot of the table
-        bb("glow", ox, 4.8f * S, oz, 18f * S, 18f * S, 0, rgba(0xFFF4D0, .45f)); bb("lotm:sunburst", ox, 4.8f * S, oz, 20f * S, 20f * S, t * .03f, rgba(0xFFF0B0, .35f));
-        pushThrone(); tr(0, 0, -21f * HK); doorModel(2.4f * S, 8.4f * S, metal(.7f), 0xFFF6D8, metal(.95f), 1.25f); pop();
-        column("beam", ox, 0, top, oz, 4f * S, rgba(0xFFF0C0, .35f));
+        lightDoor();
         gooSymbols(0, 2.0f * S, R * .5f, 2.4f * S);
-        S = sv; curPath = cp;
+        if (gl) {   // torn slabs of colour across the whole sphere
+            int[] cols = {0x40FFFF, 0xFF40C0, 0xFFFFFF, 0x60FF80};
+            for (int i = 0; i < 16; i++) { float a = h(fb, 10 + i) * TAU, rr = R * (.3f + 1.4f * h(fb, 30 + i)); bb("solid", (float) Math.cos(a) * rr, (h(fb, 50 + i) * 16f) * S, (float) Math.sin(a) * rr, (6f + 40f * h(fb, 70 + i)) * S, (.05f + .4f * h(fb, 90 + i)) * S, 0, rgba(cols[i % 4], .25f + .3f * h(fb, 110 + i))); }
+        }
+        t = t0; glX = 0; glZ = 0; S = sv; curPath = cp;
     }
     /** God Almighty: a round golden dais under a great gold armillary around a seed of light, the five symbols on tall stelae facing it, and a pillar of light. */
     private void gooAlmighty() {
@@ -1396,7 +1425,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
     private void pushFace() { push(); rY(face); }
     private int thQ;
-    private void pushThrone() { push(); rY(thQ * PI / 2); }
+    private float glX, glZ;   // while Lord of Mysteries glitches, the whole hall is knocked sideways by this much
+    private void pushThrone() { push(); if (glX != 0 || glZ != 0) tr(glX, 0, glZ); rY(thQ * PI / 2); }
     /** Point the model's +Y axis along (dx, dy, dz). */
     private void aim(float dx, float dy, float dz) {
         float l = (float) Math.sqrt(dx * dx + dy * dy + dz * dz); if (l < 1e-6f) return;
@@ -1812,15 +1842,27 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         box(0, -.04f, zc - .6f, 3.4f, .04f, hl + 1.8f, mix(dark, 0x000000, .3f), 255);          // the dark stone floor and its teal edging
         for (int sd = -1; sd <= 1; sd += 2) { box(sd * 3.4f, -.005f, zc - .6f, .03f, .02f, hl + 1.8f, edge, 255); box(sd * 2.9f, -.01f, zc - .6f, .015f, .015f, hl + 1.8f, mix(edge, dark, .5f), 255); }
         for (int k = 0; k < 30; k++) box(0, -.003f, 2f - k * .96f, 3.35f, .004f, .012f, mix(dark, edge, .25f), 255);
-        for (int sx = -1; sx <= 1; sx += 2) for (int k = 0; k < 4; k++) {   // tall carved pillars down both sides
+        for (int sx = -1; sx <= 1; sx += 2) for (int k = 0; k < 4; k++) {   // tall square pillars down both sides, carved with inset panels like the picture
             push(); tr(sx * 4.6f, 0, -1.5f - k * 3.6f); float H = 7.5f;
-            box(0, .15f, 0, .95f, .15f, .95f, dark, 255); box(0, .4f, 0, .8f, .1f, .8f, stone, 255); box(0, H / 2, 0, .55f, H / 2, .55f, stone, 255);
-            for (int c = 0; c < 4; c++) { float cx = (c & 1) == 0 ? -.6f : .6f, cz = (c & 2) == 0 ? -.6f : .6f; box(cx, H / 2, cz, .1f, H / 2, .1f, dark, 255); box(cx, H * .93f, cz, .13f, .06f, .13f, edge, 255); }
-            for (int j = 1; j < 6; j++) box(0, j * H / 6, 0, .62f, .04f, .62f, dark, 255);
-            for (int j = 0; j < 8; j++) box(-sx * .56f, .7f + j * .85f, 0, .02f, .06f, .3f - .02f * (j % 2), mix(edge, 0x000000, j % 2 == 0 ? 0f : .35f), 255);   // glowing slits facing the table
-            box(0, H + .1f, 0, .8f, .1f, .8f, dark, 255); box(0, H + .24f, 0, .66f, .04f, .66f, edge, 255);
-            taper(H + .28f, H + 2.4f, .6f, .6f, .06f, .06f, stone, 255); taper(H + 2.4f, H + 3.2f, .06f, .06f, 0, 0, edge, 255);
+            box(0, .15f, 0, .95f, .15f, .95f, dark, 255); box(0, .4f, 0, .8f, .1f, .8f, stone, 255); box(0, H / 2, 0, .6f, H / 2, .6f, stone, 255);
+            for (int c = 0; c < 4; c++) { float cx = (c & 1) == 0 ? -.62f : .62f, cz = (c & 2) == 0 ? -.62f : .62f; box(cx, H / 2, cz, .06f, H / 2, .06f, dark, 255); }
+            for (int f = 0; f < 4; f++) { push(); rY(f * PI / 2); tr(0, 0, .61f);   // each face: a recessed panel with a teal outline, a long diamond and a centre line
+                box(0, H * .5f, 0, .42f, H * .4f, .012f, dark, 255);
+                float py0 = H * .1f, py1 = H * .9f;
+                box(-.42f, H * .5f, .012f, .012f, H * .4f, .008f, edge, 255); box(.42f, H * .5f, .012f, .012f, H * .4f, .008f, edge, 255);
+                box(0, py0, .012f, .42f, .012f, .008f, edge, 255); box(0, py1, .012f, .42f, .012f, .008f, edge, 255);
+                box(0, H * .5f, .014f, .008f, H * .38f, .006f, mix(edge, dark, .4f), 255);
+                for (int d = -1; d <= 1; d += 2) for (int j = 0; j < 3; j++) { push(); tr(0, H * (.3f + .2f * j), .014f); rZ(d * .62f); box(0, 0, 0, .006f, .42f, .006f, mix(edge, dark, .35f), 255); pop(); }
+                pop(); }
+            box(0, H + .1f, 0, .8f, .1f, .8f, dark, 255); box(0, H + .24f, 0, .68f, .04f, .68f, edge, 255);
+            taper(H + .28f, H + 2.4f, .62f, .62f, .06f, .06f, stone, 255); taper(H + 2.4f, H + 3.4f, .06f, .06f, 0, 0, edge, 255);
             pop();
+        }
+        for (int sx = -1; sx <= 1; sx += 2) for (int k = 0; k < 3; k++) {   // great round towers standing far off in the fog, stepped, with teal bands
+            push(); tr(sx * (11f + 2f * k), 0, -4f - k * 7f); float rr = 2.4f - .2f * k;
+            for (int j = 0; j < 5; j++) { float y0 = j * 4.2f, y1 = y0 + 4.2f, r0 = rr * (1f - j * .1f), r1 = rr * (1f - (j + 1) * .1f) * (j == 4 ? .8f : 1f);
+                frustum(y0, y1, r0, r1, 16, 1, 1, j % 2 == 0 ? stone : dark, 255, true); frustum(y1 - .12f, y1, r1 + .06f, r1 + .06f, 16, 1, 1, mix(edge, dark, .3f), 255, true); }
+            frustum(21f, 24f, rr * .4f, 0f, 16, 1, 1, dark, 255, true); pop();
         }
         // the table
         box(0, .74f, zc, .82f, .05f, hl + .05f, stone, 255);                                      // top
