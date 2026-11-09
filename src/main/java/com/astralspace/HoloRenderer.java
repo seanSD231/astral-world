@@ -1175,12 +1175,15 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 flameAt(0, .35f, -.05f, 1.5f * u, 3, P2, P1, P3, .9f);
                 bb("glow", 0, .95f + bob, 0, 1.3f, 1.3f, 0, rgba(P1, .4f));
                 facing("skull", 0, .95f + bob, 0, .6f * u, .6f * u, 0, rgba(mix(P3, 0xFFFFFF, .5f), 1f));
-                for (int i = 0; i < 4; i++) { float p = fract(t * .35f + i * .25f), a = i * 1.7f; bb("lotm:wisp", gc(a) * .5f, .3f + p * 1.1f, gs(a) * .5f, .18f, .3f, 0, rgba(P3, .8f * fd(p))); }
+                for (int i = 0; i < 4; i++) { float p = fract(t * .35f + i * .25f), a = i * 1.7f; bb("wisp", gc(a) * .5f, .3f + p * 1.1f, gs(a) * .5f, .2f, .4f, 0, rgba(P3, .7f * fd(p))); }
             }
-            case 6 -> {   // Criminal: a little void with tentacles
-                float vy = .95f + bob; sphere(0, vy, 0, .3f * u, .3f * u, .3f * u, 8, 12, 0x050205, 255);
-                bb("glow", 0, vy, 0, 1f, 1f, 0, rgba(P1, .35f));
-                for (int i = 0; i < 3; i++) wrapTentacle(0, vy, 0, .3f * u, 1.0f, i * TAU / 3, i % 2 == 0 ? 1 : -1, i, mix(P2, 0x1A0830, .5f), .05f);
+            case 6 -> {   // Abyss: a glowing void with a bright rim and a few thin tendrils, the same size and light as the others
+                float vy = .95f + bob;
+                bb("glow", 0, vy, 0, 1.6f, 1.6f, 0, rgba(P1, .5f * (.8f + .2f * (float) Math.sin(t * 2f))));
+                sphere(0, vy, 0, .2f * u, .2f * u, .2f * u, 8, 12, 0x050205, 255);
+                bb("ring", 0, vy, 0, .62f * u, .62f * u, 0, rgba(mix(P3, 0xFFFFFF, .3f), .9f));
+                for (int i = 0; i < 3; i++) wrapTentacle(0, vy, 0, .2f * u, .5f, i * TAU / 3, i % 2 == 0 ? 1 : -1, i, mix(P1, P3, .4f), .03f);
+                for (int i = 0; i < 4; i++) { float p = fract(t * .4f + i * .25f), a = i * 1.6f; bb("mote", gc(a) * .35f, vy - .3f + p * .9f, gs(a) * .35f, .1f, .1f, 0, rgba(P3, fd(p))); }
             }
             case 8 -> {   // Lawyer: a floating crown and a coin
                 push(); tr(0, .95f + bob, 0); rY(face); rX(.2f); crown(.36f * u, metal(.7f), P1); pop();
