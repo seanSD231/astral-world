@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.148
+- All GOO cards redesigned legendary-style: one hero model per card on a small circle, no huge dome, stars or ring of scenery. Almighty (armillary and seed with the five symbols circling), Darkness (black pool, reeds, crescent), Calamity (molten core and shards), Knowledge (open book with orbiting books), Key (key through a gate with spectrum beams), Goddess (vine-wrapped seed), Devils (horns over a whirling pit), Anarchy (tipped scales and loose crown). Lord of Mysteries stays the compact glitch stage. Untested in game.
+
 ## 0.2.147
 - GOO cards sit between the old size and legendary size (radius 12, height 19, scale 2.35). Untested in game.
 
