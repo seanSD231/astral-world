@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.156
+- Savant 1: a steam train (locomotive, tender, two carriages) circling a ring of track with smoke; Savant 0 adds an airship circling above. Gears and armillary replaced.
+- Fool 1: bigger, with a round bronze table, eight tall carved chairs and fluted columns.
+- Black Emperor 0: space distortion round the throne (warped expanding rings, stepped tears, flickers).
+- Abyss 0: swirls and cracks across the whole floor out to the dome, and swirls turning in the sky.
+- Secrets Supplicant 0: the great bound figure from your picture (arms along a beam, chains, gold and red bands, black tentacles, hanging block, red grid sky). Untested in game.
+
 ## 0.2.155
 - Arbiter: scales use one gold (no blue and red pans); seq 0 uses silver swords too.
 - Prisoner: the padlocks are round and link-like to match the chain, and each hangs straight from its chain.
