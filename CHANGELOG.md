@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.125
+- Fool 0 rebuilt from the books' Sefirah Castle: an ancient mottled bronze long table with ten high backed chairs a side and one at each end (the Fool's at the head, taller), crimson constellations glowing on the chair backs, tall stone pillars around it.
+- Thrones no longer float: the seat sits on a solid block and the arms are supported (Black Emperor, Death and the Lawyer thrones). The Corpse Collector throne is empty.
+- Bard uses the LOTM flaring sun model instead of a ball. Hanged Man uses the LOTM hanged man creature model everywhere.
+- Error: when it glitches into another pathway's symbol it now stays that symbol for a while and then glitches back.
+- Assassin and Planter scenes are now fields of many small flowers instead of one big one (and a few small flowers at Rare). Rare Mystery Pryer is a small flat eye effect instead of a 3D eyeball.
+- Seq 2 keeps only the dashed ground circle (no extra ground effects). Stars in dark domes are smaller. Apothecary 0 moon is a small, far away flat full moon.
+- Arbiter's scales stand on the ground. Arbiter and Warrior swapped sword models. Savant 1 is smaller. Mystery Pryer 1 lantern no longer covers the symbol. Prisoner 0 symbol is solid and in front of the cage. Spectator 0 eyes replaced by thought crystals. Reader 0's tower moved behind the card so the card can be seen and clicked. Not tested in game.
+
 ## 0.2.124
 - Great Old One holograms rebuilt from scratch, one new scene each, none reusing the Seq 0 scenes: Lord of Mysteries (a standing ring of all 22 symbols with a fog whirl and an eye), God Almighty (a seven step golden sanctum, pillar of light, halo), Eternal Darkness (a black sun with accretion discs and black spires), Calamity of Destruction (a molten core bursting into shards, shockwaves, cracks), Demon of Knowledge (ring of bookcases around a giant open book), Key of Light (a crystal splitting into seven beams behind mirrors), Goddess of Origin (a vine wrapped seed with roots), Father of Devils (two vast horns over a whirling pit, hellfire braziers, eyes) and The Anarchy (a split slab of law with spinning tablets and a breaking floor).
 - Great Old One card fronts redesigned: an eye shaped window of swirling colour in the group's triangle or wedge split, dark grey fog, an eye in place of the number, a ribbon name banner. The revealed card no longer carries the gold shine from the back.
