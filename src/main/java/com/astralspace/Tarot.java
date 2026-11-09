@@ -218,16 +218,14 @@ public final class Tarot {
             Random r = new Random();
             StringBuilder got = new StringBuilder();
             int gooSlot = r.nextInt(PACK_CARDS);
+            ItemStack[] cards = new ItemStack[PACK_CARDS];
             for (int i = 0; i < PACK_CARDS; i++) {
                 ItemStack c = mode == 3 ? (i == gooSlot ? makeCard("goo_" + GOO_IDS[r.nextInt(GOO_IDS.length)], 0, false) : draw(PATHWAYS[r.nextInt(PATHWAYS.length)], r, 0)) : draw(pathway, r, mode);
                 var tg = c.get(DataComponents.CUSTOM_DATA).copyTag();
                 got.append(i > 0 ? "," : "").append(tg.getString("pathway")).append(':').append(tg.getInt("seq")).append(':').append(tg.getBoolean("shiny") ? 1 : 0);
-                if (!sp.getInventory().add(c)) sp.drop(c, false);
+                cards[i] = c;
             }
-            if (got.indexOf("goo_") >= 0) {   // advancement: pulled a Great Old One from a pack
-                var adv = sp.server.getAdvancements().get(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "great_old_one"));
-                if (adv != null) sp.getAdvancements().award(adv, "got");
-            }
+            PackDelivery.hold(sp, cards);   // handed over card by card as they are flipped
             if (!sp.getAbilities().instabuild) pack.shrink(1);
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new Net.PackPayload(pathway + (mode == 3 ? "" : mode == 1 ? "_rainbow" : mode == 2 ? "_shiny" : ""), got.toString()));
             return InteractionResultHolder.success(pack);

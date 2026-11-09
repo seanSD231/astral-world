@@ -29,8 +29,8 @@ public final class PartyParticles {
             pickSprite(set);
             float[] c = COLS[random.nextInt(COLS.length)];
             rCol = c[0]; gCol = c[1]; bCol = c[2];
-            lifetime = 40 + random.nextInt(30);
-            gravity = 0.045f; friction = 0.9f;
+            lifetime = 200 + random.nextInt(150);   // five times as long
+            gravity = 0.03f; friction = 0.9f;
             quadSize = 0.07f + random.nextFloat() * 0.04f;
             phase = random.nextFloat() * 6.28f; spin = (random.nextFloat() - .5f) * 0.5f;
             roll = oRoll = random.nextFloat() * 6.28f;
@@ -41,7 +41,7 @@ public final class PartyParticles {
         public void tick() {
             oRoll = roll; roll += spin;
             xd += Math.sin(age * 0.35 + phase) * 0.004; zd += Math.cos(age * 0.31 + phase) * 0.004;
-            if (age > lifetime - 10) alpha = Math.max(0, (lifetime - age) / 10f);
+            if (age > lifetime - 20) alpha = Math.max(0, (lifetime - age) / 20f);
             super.tick();
             if (onGround) { xd *= 0.5; zd *= 0.5; }
         }

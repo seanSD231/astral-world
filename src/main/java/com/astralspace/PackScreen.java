@@ -25,6 +25,7 @@ public final class PackScreen extends Screen {
     private final int[] seq;
     private final boolean[] shiny;
     private final long[] flipAt;
+    private final long[] gooFlipAt;   // a Great Old One needs a second click to turn over, after its gold has peeled away
     private final long born = System.currentTimeMillis();
     private double tear = 0;          // 0..1 across the top
     private boolean dragging = false;
@@ -38,14 +39,14 @@ public final class PackScreen extends Screen {
         super(Component.literal("Tarot Pack"));
         this.pack = pack;
         String[] parts = cards.split(",");
-        path = new String[parts.length]; seq = new int[parts.length]; shiny = new boolean[parts.length]; flipAt = new long[parts.length]; gooStage = new int[parts.length];
+        path = new String[parts.length]; seq = new int[parts.length]; shiny = new boolean[parts.length]; flipAt = new long[parts.length]; gooFlipAt = new long[parts.length]; gooStage = new int[parts.length];
         for (int i = 0; i < parts.length; i++) {
             String[] x = parts[i].split(":");
-            path[i] = x[0]; seq[i] = Integer.parseInt(x[1]); shiny[i] = x.length > 2 && x[2].equals("1"); flipAt[i] = -1;
+            path[i] = x[0]; seq[i] = Integer.parseInt(x[1]); shiny[i] = x.length > 2 && x[2].equals("1"); flipAt[i] = -1; gooFlipAt[i] = -1;
         }
         if (pack.equals("view")) {   // looking at a card (right click): no pack, already face up
             tornAt = System.currentTimeMillis() - 10_000;
-            for (int i = 0; i < flipAt.length; i++) { flipAt[i] = tornAt; gooStage[i] = 3; }
+            for (int i = 0; i < flipAt.length; i++) { flipAt[i] = tornAt; gooFlipAt[i] = tornAt; gooStage[i] = 3; }
         }
         // load every card's art now, while the pack is still closed, so nothing has to load (and stall the screen) when a card is flipped
         var tm = net.minecraft.client.Minecraft.getInstance().getTextureManager();
@@ -63,7 +64,10 @@ public final class PackScreen extends Screen {
     private boolean isGoo(int i) { return path[i].startsWith("goo_"); }
     /** Which ordinary rarity shine its disguise wears (uncommon, rare or epic). */
     private int disguise(int i) { return 1 + Math.floorMod(path[i].hashCode() + i, 3); }
-    private boolean cardDone(int i, long now) { return flipAt[i] >= 0 && now - flipAt[i] >= (isGoo(i) ? G_END : 450); }
+    private boolean turned(int i) { return isGoo(i) ? gooFlipAt[i] >= 0 : flipAt[i] >= 0; }
+    private boolean cardDone(int i, long now) { return isGoo(i) ? gooFlipAt[i] >= 0 && now - gooFlipAt[i] >= G_END - G_FLIP : flipAt[i] >= 0 && now - flipAt[i] >= 450; }
+    private void give(int i) { if (!pack.equals("view")) net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Net.PackRevealPayload(i)); }
+    @Override public void removed() { give(-1); super.removed(); }
     private boolean allDone(long now) { for (int i = 0; i < flipAt.length; i++) if (!cardDone(i, now)) return false; return true; }
     /** No skipping the reveal: after the pack is torn, Esc only closes once every card has been turned over. */
     @Override public boolean shouldCloseOnEsc() { return tornAt < 0 || allDone(System.currentTimeMillis()); }
@@ -101,7 +105,9 @@ public final class PackScreen extends Screen {
             if (mx >= r[0] && mx <= r[0] + r[2] && my >= r[1] && my <= r[1] + r[3]) {
                 if (flipAt[i] < 0) {
                     flipAt[i] = System.currentTimeMillis();
-                    if (isGoo(i)) ui(SoundEvents.AMETHYST_BLOCK_RESONATE, .7f, 1f); else ui(SoundEvents.BOOK_PAGE_TURN, 1.1f, 1f);
+                    if (isGoo(i)) ui(SoundEvents.AMETHYST_BLOCK_RESONATE, .7f, 1f); else { ui(SoundEvents.BOOK_PAGE_TURN, 1.1f, 1f); give(i); }
+                } else if (isGoo(i) && gooFlipAt[i] < 0 && System.currentTimeMillis() - flipAt[i] >= G_PEEL_END) {
+                    gooFlipAt[i] = System.currentTimeMillis(); give(i);   // the second click: turn it over, and only now is the card handed over
                 }
                 return true;
             }
@@ -110,8 +116,9 @@ public final class PackScreen extends Screen {
         return true;
     }
 
-    private boolean allFlipped() { for (long f : flipAt) if (f < 0) return false; return true; }
-    private long lastFlip() { long m = 0; for (long f : flipAt) m = Math.max(m, f); return m; }
+    private boolean waitingGoo(long now) { for (int i = 0; i < flipAt.length; i++) if (isGoo(i) && flipAt[i] >= 0 && gooFlipAt[i] < 0 && now - flipAt[i] >= G_PEEL_END) return true; return false; }
+    private boolean allFlipped() { for (int i = 0; i < flipAt.length; i++) if (!turned(i)) return false; return true; }
+    private long lastFlip() { long m = 0; for (int i = 0; i < flipAt.length; i++) m = Math.max(m, Math.max(flipAt[i], gooFlipAt[i])); return m; }
 
     @Override
     public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
@@ -238,7 +245,7 @@ public final class PackScreen extends Screen {
             }
         }
         String hint = tornAt < 0 ? "Hold left click and drag across the top to tear it open"
-            : now - tornAt < 900 ? "" : allDone(now) ? "Click anywhere to close" : allFlipped() ? "" : "Click a card to flip it";
+            : now - tornAt < 900 ? "" : allDone(now) ? "Click anywhere to close" : allFlipped() ? "" : waitingGoo(now) ? "Click the Great Old One again to turn it over" : "Click a card to flip it";
         g.drawCenteredString(font, hint, width / 2, height - 22, 0xFFD8D8E8);
     }
 
@@ -258,7 +265,8 @@ public final class PackScreen extends Screen {
 
     /** A Great Old One that has been clicked: shake, turn gold, the gold peels away from the pathway coloured back, then the card turns over. */
     private void drawGoo(GuiGraphics g, int i, int[] r, long now) {
-        long t = now - flipAt[i];
+        // before the second click the reveal waits on the pathway coloured back; the turn-over runs from that click
+        long t = gooFlipAt[i] >= 0 ? G_FLIP + (now - gooFlipAt[i]) : Math.min(now - flipAt[i], G_FLIP - 1);
         float al = r[4] / 255f;
         int st = gooStage[i];
         if (st < 1 && t >= G_GOLD) { gooStage[i] = 1; ui(SoundEvents.BEACON_ACTIVATE, 1.7f, .6f); }

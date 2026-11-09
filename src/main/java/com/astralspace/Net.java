@@ -83,7 +83,14 @@ public final class Net {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
-    /** Server -> client: a tarot pack was opened. `pack` is its pathway, `cards` is "pathway:seq,pathway:seq,..." (the cards are already in the inventory). */
+    /** Client -> server: this card of the open pack was flipped, so give it now (-1 = give every card still held, sent when the screen closes). */
+    public record PackRevealPayload(int index) implements CustomPacketPayload {
+        public static final Type<PackRevealPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "pack_reveal"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, PackRevealPayload> CODEC = StreamCodec.composite(ByteBufCodecs.VAR_INT, PackRevealPayload::index, PackRevealPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    /** Server -> client: a tarot pack was opened. `pack` is its pathway, `cards` is "pathway:seq,pathway:seq,..." (the cards are held until flipped, see PackDelivery). */
     public record PackPayload(String pack, String cards) implements CustomPacketPayload {
         public static final Type<PackPayload> TYPE =
                 new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "pack"));
@@ -284,6 +291,9 @@ public final class Net {
         registrar.playToClient(WeeklyOpenPayload.TYPE, WeeklyOpenPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> WeeklyPackScreen.open(payload.total(), payload.rainbow(), payload.shiny(), payload.claimed())));
         registrar.playToServer(WeeklyClaimPayload.TYPE, WeeklyClaimPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) WeeklyPacks.claim(sp, payload.picks());
+        }));
+        registrar.playToServer(PackRevealPayload.TYPE, PackRevealPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) PackDelivery.reveal(sp, payload.index());
         }));
         registrar.playToClient(PackPayload.TYPE, PackPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> PackScreen.open(payload.pack(), payload.cards())));
         registrar.playToClient(TreeAnimPayload.TYPE, TreeAnimPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {

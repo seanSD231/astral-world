@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.138
+- Confetti from the popper lasts about five times as long and falls more slowly.
+- Great Old One cards need a second click: the first click shakes and peels the gold away to show the pathway back, and it waits there until you click it again to turn it over.
+- Pack cards are now handed to you as you flip them, not all at once when the pack opens, so the Great Old One advancement no longer spoils the reveal. Cards you have not flipped are given when the screen closes, when you open another pack, when you leave the game, or after three minutes.
+- Untested in game.
+
 ## 0.2.137
 - Warrior swords now match the icon: three swords of our own model, the big one upright with its point at the ground and its pommel up, and two behind it crossed in an X (rare and Twilight). They no longer use LOTM's blocky sword model.
 - Fool hall: the fog is much thinner and the hall (dome, pillars, table, seats) is lighter, so you can see the room.
