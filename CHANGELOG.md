@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.154
+- Hanged Man: the cross and flower are drawn fixed in space instead of Photon billboards that flickered and followed the camera; the legendary's camera-facing circle is now crossed rings.
+- Savant 4: the gears were tipped flat; now three gears really mesh, turning opposite ways at the right speeds.
+- Corpse Collector 4: skull drawn as a model (no flat rectangles), flame dimmer.
+- Moon: seq 4 has a cratered moon instead of the big potion; seq 1 loses the pink camera-facing sphere and gains a ring of moon phases, a small cauldron, bats and falling stars; seq 0 has fewer potions and a moon-phase ring.
+- Monster legendary: symbol on the wheel's hub (it was hidden inside the backing), and prizes (coins, clovers, gems, cards) on the wheel.
+- Sailor trident rebuilt with three real prongs, barbs, grip rings.
+- Clouds now always sit up in the sky so they cannot cover symbols.
+- Error: glitch ground patches are purple and black, one per third of the circle so they never overlap.
+- Sleepless: fog moved up and thinner, many more round stars. Untested in game.
+
 ## 0.2.153
 - Hermit legendary: the lanterns had huge, nearly opaque purple glows (the biggest 7 wide) that formed a ball washing out the symbol. Glows are now about half the size and half the strength. Untested in game.
 
