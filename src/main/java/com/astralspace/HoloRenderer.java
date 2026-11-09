@@ -1657,6 +1657,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         bb("glow", 0, wy, 0, wr * 3.4f, wr * 3.4f, 0, rgba(P1, .3f));
         eq(tex("fortune"), 0, wy, 0, c * cr * wr, sr * wr, s2 * cr * wr, -c * sr * wr, cr * wr, -s2 * sr * wr, rgba(mix(0xFFFFFF, P3, .1f), 1f), 0, 0, 1, 1);
         push(); tr(0, wy, 0); rY(-yaw); rZ(roll);
+        push(); rX(PI / 2); frustum(-.02f * wr, .02f * wr, wr * .99f, wr * .99f, 32, 1, 1, mix(0x101428, P2, .25f), 255, true); pop();   // solid backing so nothing shows through the wheel
         ring(wr * 1.0f, .075f * wr, metal(.7f), 255); ring(wr * .62f, .035f * wr, metal(.5f), 255); ring(wr * .22f, .03f * wr, metal(.8f), 255);
         for (int i = 0; i < 8; i++) { push(); rZ(i * TAU / 8); box(0, wr * .5f, .03f * wr, .03f * wr, wr * .5f, .03f * wr, metal(.55f), 255); box(0, wr * .5f, -.03f * wr, .03f * wr, wr * .5f, .03f * wr, metal(.55f), 255); pop(); }
         for (int i = 0; i < 24; i++) { float a = i * TAU / 24; boolean lit = ((i + (int) Math.floor(t * (ph < .4f ? 10f : 2f))) % 4) == 0;   // chasing bulbs round the rim

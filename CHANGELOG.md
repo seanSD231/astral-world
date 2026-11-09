@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.132
+- Monster wheel of fortune now has a solid backing disc, so clouds and fog no longer show through it.
+
 ## 0.2.131
 - Great Old One holograms are smaller (about 70% of their old area), and the small symbol-only form of a GOO card now shows all of its pathway symbols instead of just the first.
 - Lord of Mysteries: a full Sefirah hall with the Fool's symbol glitching through the other pathways and a door of light at the far end.
