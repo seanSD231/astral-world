@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.131
+- Great Old One holograms are smaller (about 70% of their old area), and the small symbol-only form of a GOO card now shows all of its pathway symbols instead of just the first.
+- Lord of Mysteries: a full Sefirah hall with the Fool's symbol glitching through the other pathways and a door of light at the far end.
+- God Almighty: round golden dais, great gold armillary round a seed of light, five tall stelae each carrying a symbol.
+- Eternal Darkness: a winding river of black water with pale lights drifting down it, ripples, mist and black reeds.
+- Calamity of Destruction: the core is now a real 3D molten sphere in glowing shells with cracks, so it no longer turns to face the camera.
+- Key of Light: an enormous golden key standing through a vertical gate ring, a spectrum of seven beams fanning out, colour shards circling.
+- The Anarchy: broken scales tipped and half sunk, a cracked crown spinning above, snapped pillars and splitting law tablets.
+
 ## 0.2.130
 - Justiciar scales: far more detailed model (stepped plinth, fluted column, scrolled beam, chains, dished pans with an orb of law and a feather) used at every step.
 - Hanged Man: the Bearing of Sins is now the thick red cross with a burning white cross at its heart over the flower symbol, as in LOTM; epic Hanged Man hangs it from a chain with falling sins and shackles instead of orbiting copies.
