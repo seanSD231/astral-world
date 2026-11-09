@@ -66,6 +66,7 @@ public final class Tarot {
             ITEMS.register(id + "_rainbow_pack", () -> new PackItem(new Item.Properties().stacksTo(16), id, 1));
             ITEMS.register(id + "_shiny_pack", () -> new PackItem(new Item.Properties().stacksTo(16), id, 2));
         }
+        ITEMS.register("ancient_one_pack", () -> new PackItem(new Item.Properties().stacksTo(16), "ancient_one", 3));
     }
 
     public static void register(IEventBus modBus) { ITEMS.register(modBus); }
@@ -200,11 +201,12 @@ public final class Tarot {
 
     static final class PackItem extends Item {
         private final String pathway;
-        private final int mode;   // 0 normal, 1 rainbow (every card Seq 3 or higher), 2 shiny (every card shiny)
+        private final int mode;   // 0 normal, 1 rainbow (every card Seq 3 or higher), 2 shiny (every card shiny), 3 Ancient One (one card is always a Great Old One)
         PackItem(Properties p, String pathway, int mode) { super(p); this.pathway = pathway; this.mode = mode; }
 
         @Override
         public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> lines, net.minecraft.world.item.TooltipFlag flag) {
+            if (mode == 3) { lines.add(Component.literal(PACK_CARDS + " cards. One of them is always a Great Old One.").withStyle(ChatFormatting.GOLD)); return; }
             lines.add(Component.literal(PACK_CARDS + " cards. " + pretty(pathway) + " cards come up 5x as often. "
                 + (mode == 1 ? "Every card is Seq 3 or higher. Any card can be shiny." : mode == 2 ? "Every card is shiny." : "Any card can be shiny.")).withStyle(ChatFormatting.GRAY));
         }
@@ -215,14 +217,15 @@ public final class Tarot {
             if (level.isClientSide || !(player instanceof ServerPlayer sp)) return InteractionResultHolder.success(pack);
             Random r = new Random();
             StringBuilder got = new StringBuilder();
+            int gooSlot = r.nextInt(PACK_CARDS);
             for (int i = 0; i < PACK_CARDS; i++) {
-                ItemStack c = draw(pathway, r, mode);
+                ItemStack c = mode == 3 ? (i == gooSlot ? makeCard("goo_" + GOO_IDS[r.nextInt(GOO_IDS.length)], 0, false) : draw(PATHWAYS[r.nextInt(PATHWAYS.length)], r, 0)) : draw(pathway, r, mode);
                 var tg = c.get(DataComponents.CUSTOM_DATA).copyTag();
                 got.append(i > 0 ? "," : "").append(tg.getString("pathway")).append(':').append(tg.getInt("seq")).append(':').append(tg.getBoolean("shiny") ? 1 : 0);
                 if (!sp.getInventory().add(c)) sp.drop(c, false);
             }
             if (!sp.getAbilities().instabuild) pack.shrink(1);
-            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new Net.PackPayload(pathway + (mode == 1 ? "_rainbow" : mode == 2 ? "_shiny" : ""), got.toString()));
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new Net.PackPayload(pathway + (mode == 3 ? "" : mode == 1 ? "_rainbow" : mode == 2 ? "_shiny" : ""), got.toString()));
             return InteractionResultHolder.success(pack);
         }
     }

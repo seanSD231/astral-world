@@ -30,23 +30,27 @@ public final class PackScreen extends Screen {
     private boolean dragging = false;
     private long tornAt = -1;
     private double lastTearSound = 0;
+    private final int[] gooStage;     // which sounds of a Great Old One reveal have played
+    // Great Old One reveal, ms after the click: shake, turn gold, peel the gold away to show the pathway coloured back, hold, flip to the card
+    private static final int G_GOLD = 650, G_PEEL = 1450, G_PEEL_END = 2250, G_FLIP = 2750, G_DONE = 3200, G_END = 3900;
 
     private PackScreen(String pack, String cards) {
         super(Component.literal("Tarot Pack"));
         this.pack = pack;
         String[] parts = cards.split(",");
-        path = new String[parts.length]; seq = new int[parts.length]; shiny = new boolean[parts.length]; flipAt = new long[parts.length];
+        path = new String[parts.length]; seq = new int[parts.length]; shiny = new boolean[parts.length]; flipAt = new long[parts.length]; gooStage = new int[parts.length];
         for (int i = 0; i < parts.length; i++) {
             String[] x = parts[i].split(":");
             path[i] = x[0]; seq[i] = Integer.parseInt(x[1]); shiny[i] = x.length > 2 && x[2].equals("1"); flipAt[i] = -1;
         }
         if (pack.equals("view")) {   // looking at a card (right click): no pack, already face up
             tornAt = System.currentTimeMillis() - 10_000;
-            for (int i = 0; i < flipAt.length; i++) flipAt[i] = tornAt;
+            for (int i = 0; i < flipAt.length; i++) { flipAt[i] = tornAt; gooStage[i] = 3; }
         }
         // load every card's art now, while the pack is still closed, so nothing has to load (and stall the screen) when a card is flipped
         var tm = net.minecraft.client.Minecraft.getInstance().getTextureManager();
-        for (int i = 0; i < path.length; i++) { if (seq[i] >= 0 || Tarot.hasAnim(path[i], seq[i])) tm.getTexture(artTex(i)); tm.getTexture(tex("back_" + backOf(path[i]))); }
+        for (int i = 0; i < path.length; i++) { if (seq[i] >= 0 || Tarot.hasAnim(path[i], seq[i])) tm.getTexture(artTex(i)); tm.getTexture(tex("back_" + backOf(path[i]))); if (isGoo(i)) tm.getTexture(tex("back_" + path[i])); }
+        tm.getTexture(tex("shine_goo"));
         tm.getTexture(tex("shiny_foil"));
         for (String n : new String[]{"shine_common", "shine_rare", "shine_epic", "shine_legendary", "shine_mythic"}) tm.getTexture(tex(n));
         for (int i = 0; i < path.length; i++) tm.getTexture(tex("front_" + RARITY[rarity(seq[i])]));
@@ -54,7 +58,15 @@ public final class PackScreen extends Screen {
 
     public static void open(String pack, String cards) { Minecraft.getInstance().setScreen(new PackScreen(pack, cards)); }
 
-    private static String backOf(String p) { return p.startsWith("goo_") ? "seer" : p; }
+    /** A Great Old One hides behind the back of one of its own pathways until it is clicked. */
+    private static String backOf(String p) { int g = Tarot.gooIndex(p); return g >= 0 ? Tarot.GOO_PATHS[g][0] : p; }
+    private boolean isGoo(int i) { return path[i].startsWith("goo_"); }
+    /** Which ordinary rarity shine its disguise wears (uncommon, rare or epic). */
+    private int disguise(int i) { return 1 + Math.floorMod(path[i].hashCode() + i, 3); }
+    private boolean cardDone(int i, long now) { return flipAt[i] >= 0 && now - flipAt[i] >= (isGoo(i) ? G_END : 450); }
+    private boolean allDone(long now) { for (int i = 0; i < flipAt.length; i++) if (!cardDone(i, now)) return false; return true; }
+    /** No skipping the reveal: after the pack is torn, Esc only closes once every card has been turned over. */
+    @Override public boolean shouldCloseOnEsc() { return tornAt < 0 || allDone(System.currentTimeMillis()); }
     private static ResourceLocation tex(String p) { return ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "textures/gui/tarot/" + p + ".png"); }
     private static int rarity(int seq) { return seq >= 8 ? 0 : seq >= 6 ? 1 : seq >= 4 ? 2 : seq >= 2 ? 3 : seq == 1 ? 4 : 5; }
     private static float ease(float x) { x = Math.max(0, Math.min(1, x)); return 1 - (1 - x) * (1 - x) * (1 - x); }
@@ -89,12 +101,12 @@ public final class PackScreen extends Screen {
             if (mx >= r[0] && mx <= r[0] + r[2] && my >= r[1] && my <= r[1] + r[3]) {
                 if (flipAt[i] < 0) {
                     flipAt[i] = System.currentTimeMillis();
-                    ui(SoundEvents.BOOK_PAGE_TURN, 1.1f, 1f);
+                    if (isGoo(i)) ui(SoundEvents.AMETHYST_BLOCK_RESONATE, .7f, 1f); else ui(SoundEvents.BOOK_PAGE_TURN, 1.1f, 1f);
                 }
                 return true;
             }
         }
-        if (allFlipped() && System.currentTimeMillis() - lastFlip() > 700) onClose();
+        if (allFlipped() && allDone(System.currentTimeMillis()) && System.currentTimeMillis() - lastFlip() > 700) onClose();
         return true;
     }
 
@@ -188,6 +200,12 @@ public final class PackScreen extends Screen {
                 if (r[4] <= 0) continue;
                 float fp = flipAt[i] < 0 ? 0 : Math.min(1f, (now - flipAt[i]) / 450f);
                 int rar = rarity(seq[i]);
+                if (isGoo(i) && flipAt[i] >= 0) {
+                    drawGoo(g, i, r, now);
+                    g.setColor(1, 1, 1, 1);
+                    continue;
+                }
+                if (isGoo(i)) rar = disguise(i);
                 boolean hover = flipAt[i] < 0 && now - tornAt > 900 && mx >= r[0] && mx <= r[0] + r[2] && my >= r[1] && my <= r[1] + r[3];
                 // a burst of the rarity colour behind a freshly flipped rare card
                 if (flipAt[i] >= 0 && rar >= 2) {
@@ -220,8 +238,99 @@ public final class PackScreen extends Screen {
             }
         }
         String hint = tornAt < 0 ? "Hold left click and drag across the top to tear it open"
-            : now - tornAt < 900 ? "" : allFlipped() ? "Click anywhere to close" : "Click a card to flip it";
+            : now - tornAt < 900 ? "" : allDone(now) ? "Click anywhere to close" : allFlipped() ? "" : "Click a card to flip it";
         g.drawCenteredString(font, hint, width / 2, height - 22, 0xFFD8D8E8);
+    }
+
+    private void goldSweep(GuiGraphics g, int x, int y, int w, int h, int u, int uw, float a, float al) {
+        blend();
+        g.setColor(1, 1, 1, a * al);
+        int f = (int) ((System.currentTimeMillis() / 75) % 40);
+        g.blit(tex("shine_goo"), x, y, w, h, u, f * 360f, uw, 360, 240, 360 * 40);
+        g.setColor(1, 1, 1, al);
+    }
+
+    private void tinted(GuiGraphics g, ResourceLocation t, int x, int y, int w, int h, int u, int uw, float rr, float gg, float bb, float a) {
+        blend();
+        g.setColor(rr, gg, bb, a);
+        g.blit(t, x, y, w, h, u, 0, uw, 360, 240, 360);
+    }
+
+    /** A Great Old One that has been clicked: shake, turn gold, the gold peels away from the pathway coloured back, then the card turns over. */
+    private void drawGoo(GuiGraphics g, int i, int[] r, long now) {
+        long t = now - flipAt[i];
+        float al = r[4] / 255f;
+        int st = gooStage[i];
+        if (st < 1 && t >= G_GOLD) { gooStage[i] = 1; ui(SoundEvents.BEACON_ACTIVATE, 1.7f, .6f); }
+        if (st < 2 && t >= G_PEEL) { gooStage[i] = 2; ui(SoundEvents.AMETHYST_CLUSTER_BREAK, .7f, 1f); ui(SoundEvents.BOOK_PAGE_TURN, .6f, 1f); }
+        if (st < 3 && t >= G_FLIP) { gooStage[i] = 3; ui(SoundEvents.ENDER_DRAGON_GROWL, 1.9f, .35f); ui(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1f, .6f); }
+        int x = r[0], y = r[1], w = r[2], h = r[3];
+        ResourceLocation plain = tex("back_" + backOf(path[i])), goo = tex("back_" + path[i]);
+        // a gold glow behind the card that builds up, then bursts when it turns over
+        if (t >= 0 && t < G_PEEL) {
+            float gp = Math.min(1f, t / (float) G_PEEL);
+            int e = (int) (4 + gp * 18), a = (int) (gp * gp * 90);
+            g.fill(x - e, y - e, x + w + e, y + h + e, (a << 24) | 0xFFC040); g.flush();
+        }
+        if (t >= G_FLIP + 250 && t < G_END) {
+            float bp = (t - G_FLIP - 250) / (float) (G_END - G_FLIP - 250);
+            int e = (int) (8 + bp * 52), a = (int) ((1 - bp) * 140);
+            g.fill(x - e, y - e, x + w + e, y + h + e, (a << 24) | 0xFFD060); g.flush();
+        }
+        blend();
+        g.setColor(1, 1, 1, al);
+        g.pose().pushPose();
+        float cx = x + w / 2f, cy = y + h / 2f;
+        g.pose().translate(cx, cy, 0);
+        float sx = 1f; boolean front = false;
+        if (t < G_FLIP) {
+            float amp = Math.min(1f, t / 600f) * (t < G_PEEL ? 1f : Math.max(0f, 1f - (t - G_PEEL) / 300f));
+            g.pose().mulPose(Axis.ZP.rotationDegrees((float) Math.sin(t * 0.055) * 4.5f * amp));
+            g.pose().translate((float) Math.sin(t * 0.09) * 3f * amp, (float) Math.cos(t * 0.07) * 1.5f * amp, 0);
+        } else {
+            float fp = Math.min(1f, (t - G_FLIP) / 450f);
+            sx = (float) Math.abs(Math.cos(Math.PI * fp)); front = fp >= 0.5f;
+        }
+        g.pose().scale(Math.max(0.02f, sx), 1f, 1);
+        g.pose().translate(-cx, -cy, 0);
+        blend();
+        if (front) {
+            drawFront(g, i, x, y, w, h);
+            float fl = (t - G_FLIP - 225) / 700f;
+            if (fl > 0 && fl < 1) { g.fill(x, y, x + w, y + h, (((int) ((1 - fl) * 170)) << 24) | 0xFFD878); g.flush(); }
+            if (t > G_FLIP + 600) goldSweep(g, x, y, w, h, 0, 240, .55f, al);
+        } else if (t >= G_PEEL) {
+            // the pathway coloured back, with the gold card peeling off it in strips
+            tinted(g, goo, x, y, w, h, 0, 240, 1, 1, 1, al);
+            goldSweep(g, x, y, w, h, 0, 240, 1f, al);
+            float p = (t - G_PEEL) / (float) (G_PEEL_END - G_PEEL);
+            if (p < 1f) {
+                int N = 10;
+                for (int k = 0; k < N; k++) {
+                    float q = Math.max(0f, Math.min(1f, (p - k * 0.045f) / 0.55f));
+                    if (q >= 1f) continue;
+                    int x0 = x + k * w / N, x1 = x + (k + 1) * w / N;
+                    float mid = (k - (N - 1) / 2f);
+                    g.pose().pushPose();
+                    float px = (x0 + x1) / 2f, py = y + h / 2f;
+                    g.pose().translate(px + mid * q * 9f, py - q * h * 0.45f, 0);
+                    g.pose().mulPose(Axis.ZP.rotationDegrees(mid * q * 6f + q * 14f));
+                    g.pose().translate(-px, -py, 0);
+                    float a = (1f - q * q) * al;
+                    tinted(g, plain, x0, y, x1 - x0, h, k * 240 / N, 240 / N, 1f, .78f, .3f, a);
+                    goldSweep(g, x0, y, x1 - x0, h, k * 240 / N, 240 / N, 1f - q, al * (1f - q));
+                    g.pose().popPose();
+                }
+            }
+        } else {
+            // the ordinary back it was hiding behind, turning gold
+            blend(); g.setColor(1, 1, 1, al); g.blit(plain, x, y, w, h, 0, 0, 240, 360, 240, 360);
+            drawShine(g, disguise(i), x, y, w, h);
+            float ga = ease((t - G_GOLD) / 800f);
+            if (ga > 0) { tinted(g, plain, x, y, w, h, 0, 240, 1f, .78f, .3f, ga * al); goldSweep(g, x, y, w, h, 0, 240, ga, al); }
+        }
+        g.pose().popPose();
+        g.setColor(1, 1, 1, 1);
     }
 
     private void renderPack(GuiGraphics g, long now) {

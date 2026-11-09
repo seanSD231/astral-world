@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.122
+- Great Old One cards now hide behind the back of one of their own pathways in a pack. Click one and it shakes, turns gold, the gold peels away in strips to show its pathway coloured back (split into diagonal triangles or wedges, one colour per pathway, with trim in the same colours and a gold shine), then the card turns over with a gold flash and keeps a gold shine. Nine new backs.
+- You can no longer tear a pack open and press Esc to skip turning the cards over. Esc only works once every card has been turned over and its animation has finished.
+- New Ancient One Pack (creative tab and /give): 3 cards, one of them always a Great Old One. Art is a placeholder pick of three options. Not tested in game.
+
 ## 0.2.121
 - Crouch-placing a card now leaves the card on the ground with its pathway symbol floating above it (no hologram scene). Not tested in game.
 

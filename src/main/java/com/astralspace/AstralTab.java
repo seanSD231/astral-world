@@ -18,6 +18,7 @@ public final class AstralTab {
             .title(Component.translatable("itemGroup.astral_world.main"))
             .icon(() -> new ItemStack(Tarot.ITEMS.getEntries().stream().filter(h -> h.getId().getPath().equals("sailor_shiny_pack")).findFirst().map(h -> (net.minecraft.world.item.Item) h.get()).orElse(PartyItems.POPPER.get())))
             .displayItems((params, out) -> {
+                Tarot.ITEMS.getEntries().stream().filter(h -> h.getId().getPath().equals("ancient_one_pack")).findFirst().ifPresent(h -> out.accept(h.get()));
                 for (String mode : new String[]{"_pack", "_rainbow_pack", "_shiny_pack"})
                     for (String p : Tarot.PATHWAYS)
                         Tarot.ITEMS.getEntries().stream().filter(h -> h.getId().getPath().equals(p + mode)).findFirst().ifPresent(h -> out.accept(h.get()));
