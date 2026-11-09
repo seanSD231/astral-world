@@ -298,7 +298,6 @@ public final class PackScreen extends Screen {
             drawFront(g, i, x, y, w, h);
             float fl = (t - G_FLIP - 225) / 700f;
             if (fl > 0 && fl < 1) { g.fill(x, y, x + w, y + h, (((int) ((1 - fl) * 170)) << 24) | 0xFFD878); g.flush(); }
-            if (t > G_FLIP + 600) goldSweep(g, x, y, w, h, 0, 240, .55f, al);
         } else if (t >= G_PEEL) {
             // the pathway coloured back, with the gold card peeling off it in strips
             tinted(g, goo, x, y, w, h, 0, 240, 1, 1, 1, al);

@@ -1,0 +1,14 @@
+{
+  "display": {
+    "icon": {"id": "astral_world:tarot_card"},
+    "title": {"translate": "advancement.astral_world.great_old_one.title"},
+    "description": {"translate": "advancement.astral_world.great_old_one.description"},
+    "background": "minecraft:textures/gui/advancements/backgrounds/end.png",
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {"got": {"trigger": "minecraft:impossible"}},
+  "requirements": [["got"]]
+}

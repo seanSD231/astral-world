@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.124
+- Great Old One holograms rebuilt from scratch, one new scene each, none reusing the Seq 0 scenes: Lord of Mysteries (a standing ring of all 22 symbols with a fog whirl and an eye), God Almighty (a seven step golden sanctum, pillar of light, halo), Eternal Darkness (a black sun with accretion discs and black spires), Calamity of Destruction (a molten core bursting into shards, shockwaves, cracks), Demon of Knowledge (ring of bookcases around a giant open book), Key of Light (a crystal splitting into seven beams behind mirrors), Goddess of Origin (a vine wrapped seed with roots), Father of Devils (two vast horns over a whirling pit, hellfire braziers, eyes) and The Anarchy (a split slab of law with spinning tablets and a breaking floor).
+- Great Old One card fronts redesigned: an eye shaped window of swirling colour in the group's triangle or wedge split, dark grey fog, an eye in place of the number, a ribbon name banner. The revealed card no longer carries the gold shine from the back.
+- New advancement "Something Ancient Stirs" for pulling a Great Old One card from a pack. Not tested in game.
+
 ## 0.2.123
 - Ancient One Pack has its final art: swirling colours under drifting dark grey fog, with an unbroken gold border. Not tested in game.
 

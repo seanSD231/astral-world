@@ -224,6 +224,10 @@ public final class Tarot {
                 got.append(i > 0 ? "," : "").append(tg.getString("pathway")).append(':').append(tg.getInt("seq")).append(':').append(tg.getBoolean("shiny") ? 1 : 0);
                 if (!sp.getInventory().add(c)) sp.drop(c, false);
             }
+            if (got.indexOf("goo_") >= 0) {   // advancement: pulled a Great Old One from a pack
+                var adv = sp.server.getAdvancements().get(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "great_old_one"));
+                if (adv != null) sp.getAdvancements().award(adv, "got");
+            }
             if (!sp.getAbilities().instabuild) pack.shrink(1);
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new Net.PackPayload(pathway + (mode == 3 ? "" : mode == 1 ? "_rainbow" : mode == 2 ? "_shiny" : ""), got.toString()));
             return InteractionResultHolder.success(pack);
