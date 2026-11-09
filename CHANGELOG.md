@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.155
+- Arbiter: scales use one gold (no blue and red pans); seq 0 uses silver swords too.
+- Prisoner: the padlocks are round and link-like to match the chain, and each hangs straight from its chain.
+- Planter 1: the flowers stay put.
+- Mystery Pryer: the hanging lantern rebuilt as a six-sided lantern with posts, glass, cap and flame.
+- Spectator 0: crystals removed; a quill writes on a card, each finished card flies off and floats round the area.
+- Warrior: 1 and 0 now sit in a twilight sky; swords are the Sword of Twilight, crossed closer together.
+- Hunter: spears are flipped point-down into the ground; the symbol is higher.
+- Assassin: star removed, mirrors replaced by rose-wound thorn arches; seq 0 has many more roses and chaos (tumbling roses, writhing vines).
+- Apprentice 0: a small galaxy turning above the door. Untested in game.
+
 ## 0.2.154
 - Hanged Man: the cross and flower are drawn fixed in space instead of Photon billboards that flickered and followed the camera; the legendary's camera-facing circle is now crossed rings.
 - Savant 4: the gears were tipped flat; now three gears really mesh, turning opposite ways at the right speeds.
