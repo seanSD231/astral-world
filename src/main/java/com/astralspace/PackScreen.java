@@ -245,7 +245,7 @@ public final class PackScreen extends Screen {
             }
         }
         String hint = tornAt < 0 ? "Hold left click and drag across the top to tear it open"
-            : now - tornAt < 900 ? "" : allDone(now) ? "Click anywhere to close" : allFlipped() ? "" : waitingGoo(now) ? "Click the Great Old One again to turn it over" : "Click a card to flip it";
+            : now - tornAt < 900 ? "" : allDone(now) ? "Click anywhere to close" : allFlipped() ? "" : waitingGoo(now) ? "" : "Click a card to flip it";
         g.drawCenteredString(font, hint, width / 2, height - 22, 0xFFD8D8E8);
     }
 

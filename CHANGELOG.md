@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.139
+- Removed the "click the Great Old One again" hint; it just waits for the second click.
+- Untested in game.
+
 ## 0.2.138
 - Confetti from the popper lasts about five times as long and falls more slowly.
 - Great Old One cards need a second click: the first click shakes and peels the gold away to show the pathway back, and it waits there until you click it again to turn it over.
