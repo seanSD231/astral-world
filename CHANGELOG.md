@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.134
+- Rares: Corpse Collector skull and wisps redone, Apprentice door redone, Bard back to the music note, Abyss no longer has a ground effect, Criminal swirl removed.
+- Warrior uses three upright Sword of Dawn models (rare and Twilight); hunter keeps its fire and gains a ring of spears around it.
+- Nothing on the cards rotates any more; they face you and stay still.
+- Arbiter scales are coloured. Mirrors are opaque with a glint. Chained locks are padlocks hanging on the chains and facing you.
+- Wheel of fortune faces are no longer black.
+- Hanged Man's Bearing of Sins uses LOTM's Photon sin-bearing effects plus the cross symbol (approximation).
+- Fool 0 hall rebuilt at player scale: 22 real seats you can sit in, a solid table, the card lying at the head of the table, a symbol behind each seat that changes, and LOTM's nightmare fog (Photon). Lord of Mysteries' door now stands at the table's foot.
+- Untested in game.
+
 ## 0.2.133
 - Bard sun now plays LOTM's own flaring_sun Photon effect inside the hologram (rare and legendary), through LOTM's ClientFX. It is killed when the hologram is no longer drawn. If LOTM or the effect cannot be found it falls back to the texture-built sun.
 

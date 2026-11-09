@@ -100,10 +100,28 @@ public class HoloCardEntity extends Entity {
 
     /** Throne holograms (Death and Black Emperor, Seq 1 and 0) turn in quarter turns so their solid parts line up with the model. */
     public int throneQuarter() { return (int) Math.round((Math.PI - Math.toRadians(getYRot())) / (Math.PI / 2)); }
-    public boolean hasThrone() { return goo() < 0 && !symbolOnly() && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8); }
+    public boolean hasThrone() { return goo() < 0 && !symbolOnly() && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8 || pathIndex() == 18 && seq() == 0); }
 
     /** Real, solid boxes matching HoloRenderer.throneModel (s = .95 * scale): three steps, seat, armrests and the back. */
+    /** The Fool's hall: twenty-two seats you can sit in and the long table under the card, matching HoloRenderer.foolHall (local x right, z toward you). */
+    private void spawnHall() {
+        int k = throneQuarter();
+        double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));
+        java.util.List<float[]> parts = new java.util.ArrayList<>();
+        for (int i = 0; i < 9; i++) parts.add(new float[]{0, 0, -1.5f * i, 1.5f, .8f, 0});
+        for (int sd = -1; sd <= 1; sd += 2) for (int i = 0; i < 10; i++) parts.add(new float[]{sd * 1.25f, 0, -.9f - i * 1.1f, .8f, .5f, 1});
+        parts.add(new float[]{0, 0, 1.7f, .8f, .5f, 1}); parts.add(new float[]{0, 0, -12.3f, .8f, .5f, 1});
+        for (float[] q : parts) {
+            double wx = q[0] * c + q[2] * sn, wz = -q[0] * sn + q[2] * c;
+            ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
+            tp.setup(getUUID(), q[3], q[4], q[5] > 0);
+            tp.setPos(getX() + wx, getY() + q[1], getZ() + wz);
+            level().addFreshEntity(tp);
+        }
+    }
+
     private void spawnThrone() {
+        if (pathIndex() == 18) { spawnHall(); return; }
         float s = .95f * (seq() == 0 ? 2.1f : 1.15f);
         int k = throneQuarter();
         double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));

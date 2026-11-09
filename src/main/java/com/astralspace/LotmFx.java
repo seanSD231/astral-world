@@ -20,7 +20,7 @@ import net.neoforged.neoforge.common.NeoForge;
 final class LotmFx {
     private LotmFx() {}
 
-    private static final Map<Integer, Object[]> LIVE = new HashMap<>();   // entity id -> {handle, last seen tick, x, y, z, scale}
+    private static final Map<String, Object[]> LIVE = new HashMap<>();   // entity id + effect -> {handle, last seen tick, x, y, z, scale}
     private static Method hold, kill;
     private static boolean tried, ok;
 
@@ -44,15 +44,16 @@ final class LotmFx {
         Level lv = Minecraft.getInstance().level;
         if (lv == null) return false;
         long now = lv.getGameTime();
-        Object[] e = LIVE.get(id);
+        String key = id + ":" + fx;
+        Object[] e = LIVE.get(key);
         if (e != null) {
             boolean moved = Math.abs((double) e[2] - x) + Math.abs((double) e[3] - y) + Math.abs((double) e[4] - z) > .02 || Math.abs((float) e[5] - scale) > .01f;
             if (!moved) { e[1] = now; return e[0] != null; }
-            stop(e[0]); LIVE.remove(id);
+            stop(e[0]); LIVE.remove(key);
         }
         Object h = null;
         try { h = hold.invoke(null, ResourceLocation.fromNamespaceAndPath("lotm", fx), new Vec3(x, y, z), new Vec3(0, 1, 0), scale, 1f, 1f); } catch (Throwable t) { h = null; }
-        LIVE.put(id, new Object[] {h, now, x, y, z, scale});
+        LIVE.put(key, new Object[] {h, now, x, y, z, scale});
         return h != null;
     }
 
@@ -62,7 +63,7 @@ final class LotmFx {
         if (LIVE.isEmpty()) return;
         Level lv = Minecraft.getInstance().level;
         long now = lv == null ? Long.MAX_VALUE / 2 : lv.getGameTime();
-        for (Iterator<Map.Entry<Integer, Object[]>> it = LIVE.entrySet().iterator(); it.hasNext();) {
+        for (Iterator<Map.Entry<String, Object[]>> it = LIVE.entrySet().iterator(); it.hasNext();) {
             Object[] e = it.next().getValue();
             if (lv == null || now - (long) e[1] > 8 || now < (long) e[1]) { stop(e[0]); it.remove(); }
         }
