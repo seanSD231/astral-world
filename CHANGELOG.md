@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.123
+- Ancient One Pack has its final art: swirling colours under drifting dark grey fog, with an unbroken gold border. Not tested in game.
+
 ## 0.2.122
 - Great Old One cards now hide behind the back of one of their own pathways in a pack. Click one and it shakes, turns gold, the gold peels away in strips to show its pathway coloured back (split into diagonal triangles or wedges, one colour per pathway, with trim in the same colours and a gold shine), then the card turns over with a gold flash and keeps a gold shine. Nine new backs.
 - You can no longer tear a pack open and press Esc to skip turning the cards over. Esc only works once every card has been turned over and its animation has finished.
