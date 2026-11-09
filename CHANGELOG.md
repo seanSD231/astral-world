@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.127
+- Great Old One card fronts and backs: wedge colours fixed (Warrior orange, Corpse green, Door blue, Error grey, Bard yellow, Spectator light blue, Sailor dark blue, Hanged Man dark red, White Tower white) and every wedge is now centred on its symbol, with symbols spaced evenly in a triangle/pentagon.
+
 ## 0.2.126
 - Bard sun is now a pure-vfx flaring sun like LOTM's, not a model: orange body and bright heart, ray halo, drifting sacred-flame wisps, prominences that flare out and fall back, kindling streaks pulled inward and drifting embers. `sun_halo` model removed from the scene.
 
