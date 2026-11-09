@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.144
+- Lord of Mysteries: the marble stair to the door of light is now solid, so you can walk up it (each step is one block high, so jump). Untested in game.
+
 ## 0.2.143
 - Fool and Lord of Mysteries space rebuilt much bigger (hall scale 2.4): a round dome on a ring of twelve columns, far taller darker pillars standing off in the fog (none tiny), a round dark floor.
 - New very long bronze table (mottled green), wider, with chairs 10% smaller and spaced well apart. The table now works like an item frame: right click with an item to set it down, empty hand or sneak to take it back (Fool only; untested).

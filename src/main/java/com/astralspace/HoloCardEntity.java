@@ -100,7 +100,7 @@ public class HoloCardEntity extends Entity {
 
     /** Throne holograms (Death and Black Emperor, Seq 1 and 0) turn in quarter turns so their solid parts line up with the model. */
     public int throneQuarter() { return (int) Math.round((Math.PI - Math.toRadians(getYRot())) / (Math.PI / 2)); }
-    public boolean hasThrone() { return goo() < 0 && !symbolOnly() && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8 || pathIndex() == 18 && seq() == 0); }
+    public boolean hasThrone() { return goo() == 0 && !symbolOnly() || goo() < 0 && !symbolOnly() && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8 || pathIndex() == 18 && seq() == 0); }
 
     /** Real, solid boxes matching HoloRenderer.throneModel (s = .95 * scale): three steps, seat, armrests and the back. */
     /** The Fool's hall: twenty-two seats you can sit in and the long table under the card, matching HoloRenderer.foolHall (local x right, z toward you). */
@@ -126,7 +126,22 @@ public class HoloCardEntity extends Entity {
         }
     }
 
+    /** Lord of Mysteries: the marble stair up to the door of light, as solid boxes matching HoloRenderer.lightDoor (z0 9.5, 14 steps of .42 rise, .9 run, half width 5.8). */
+    private void spawnStairs() {
+        int k = throneQuarter(); float K = HALL_K;
+        double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));
+        float side = 2.34f, z0 = 9.5f, run = .9f, rise = .42f;
+        for (int i = 0; i <= 14; i++) for (int j = 0; j < 5; j++) {
+            double x = (-4.68f + j * side) * K, z = (z0 + i * run + side / 2) * K, wx = x * c + z * sn, wz = -x * sn + z * c;
+            ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
+            tp.setup(getUUID(), side * K, Math.min(14, i + 1) * rise * K, false);
+            tp.setPos(getX() + wx, getY(), getZ() + wz);
+            level().addFreshEntity(tp);
+        }
+    }
+
     private void spawnThrone() {
+        if (goo() == 0) { spawnStairs(); return; }
         if (pathIndex() == 18) { spawnHall(); return; }
         float s = .95f * (seq() == 0 ? 2.1f : 1.15f);
         int k = throneQuarter();
