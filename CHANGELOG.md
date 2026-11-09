@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.157
+Great Old One redesigns (batch 3, untested in game):
+- God Almighty: five-tier golden dais with four pillars, a huge five-ring armillary round a blazing sun, wings and rays of light, five symbols circling.
+- Father of Devils: giant horned skull above the whirling pit, ring of black spires, braziers, hanging chains and eyes.
+- The Anarchy: everything 1.5x bigger, with falling rubble, lightning and more broken pillars.
+- Lord of Mysteries: huge door of light over a round bronze table with chairs, six more coloured doors, all 22 pathway symbols circling, bigger glitching Fool symbol.
+- Eternal Darkness: much wider river with pale banks, moonlight and ripples, gravestones, dead trees; floating figures and souls removed.
+- Goddess of Origin: a giant mystical tree with twisting trunk, forking branches, glowing blossom canopies, roots and fruit of light.
+- Demon of Knowledge: towers of books, great tome on a lectern, giant horned eye, rune rings, page whirlwind.
+- Calamity of Destruction: bigger core, erupting spikes, falling meteors, many more and larger shards.
+
 ## 0.2.156
 - Savant 1: a steam train (locomotive, tender, two carriages) circling a ring of track with smoke; Savant 0 adds an airship circling above. Gears and armillary replaced.
 - Fool 1: bigger, with a round bronze table, eight tall carved chairs and fluted columns.
