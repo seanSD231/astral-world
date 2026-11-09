@@ -2,6 +2,22 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.130
+- Justiciar scales: far more detailed model (stepped plinth, fluted column, scrolled beam, chains, dished pans with an orb of law and a feather) used at every step.
+- Hanged Man: the Bearing of Sins is now the thick red cross with a burning white cross at its heart over the flower symbol, as in LOTM; epic Hanged Man hangs it from a chain with falling sins and shackles instead of orbiting copies.
+- Hunter: much less fire, more spears (a field of planted spears; at Seq 0 also axes, swords and circling spears).
+- Demoness: no spiky ball; mirrors are now tall arched standing mirrors.
+- Prisoner: cage removed.
+- Warrior: three swords like its icon (rare and legendary).
+- Bard sun: rebuilt from LOTM's flaring_sun fx emitters using LOTM's own particle textures.
+- Monster wheel: only spins (no turning), spins for a few seconds then rests, smaller; dice much smaller everywhere.
+- Fool/Seer 0 hall: dark teal stone table with ladder lines and rail posts, tall dark chairs, square pillars, thicker fog, many faint distant lights, a pathway symbol behind every seat that changes with its occupant, giant eye removed.
+- Fog texture softened so it no longer shows hard rectangle edges (Seer fog screenshot).
+- Sleepless fog spread out across the whole dark dome.
+- Corpse 0, Mother 1/0 and Error 0 calmed down (fewer props and particles); Error symbol smaller, fewer windows, plus chromatic ghosts, dead pixels and a stuttering loading bar.
+- Apothecary 0 scaled down.
+- Rare models no longer all spin.
+
 ## 0.2.129
 - Rare holograms (Seq 5 and 4) all get a bespoke small model instead of a spinning sprite on a beam: Apothecary potions and bat, Apprentice opening door, Arbiter scales, Bard mini flaring sun, Corpse skull in green fire, Criminal void with tentacles, Lawyer crown, Monster wheel of fortune, Prisoner padlock and chains, Reader white tower, Sailor whirlpool, Savant meshing gears, Hanged Man Bearing of Sins, Seer armillary, Sleepless night orb, Spectator crystal, Warrior sword. Demoness, Planter, Hunter, Marauder and Mystery Pryer keep theirs.
 
