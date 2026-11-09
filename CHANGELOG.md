@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.149
+- Lord of Mysteries: grey fog with colourful drifting lights, a ring of seven Lord of Mysteries doors in different colours, the glitching Fool symbol with the three pathways; doors and colours flicker when it glitches.
+- Eternal Darkness: a river of eternal darkness where the dead rest, with shrouded pale figures lying on the black water, souls rising, reeds and mist. Untested in game.
+
 ## 0.2.148
 - All GOO cards redesigned legendary-style: one hero model per card on a small circle, no huge dome, stars or ring of scenery. Almighty (armillary and seed with the five symbols circling), Darkness (black pool, reeds, crescent), Calamity (molten core and shards), Knowledge (open book with orbiting books), Key (key through a gate with spectrum beams), Goddess (vine-wrapped seed), Devils (horns over a whirling pit), Anarchy (tipped scales and loose crown). Lord of Mysteries stays the compact glitch stage. Untested in game.
 

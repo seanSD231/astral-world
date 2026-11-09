@@ -961,16 +961,26 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         int cp = curPath; curPath = 18;
         float t0 = t, ph = t % 14f; boolean gl = ph < .35f || (ph > 6.5f && ph < 6.65f); int fb = (int) (t * 25);   // rarely: a short burst, then a shorter one
         if (gl) t = t0 - .3f * h(fb, 3);
-        LotmFx.hold(curId, "astral_world:seer_fog", ex, ey, ez, R * .95f);
-        // a compact stage like the legendary cards: the Fool's symbol glitching through the others, the three pathways below it, and a small door of light behind
+        // grey fog everywhere with colourful lights drifting in it
+        boolean pf = LotmFx.hold(curId, "astral_world:fool_fog", ex, ey, ez, R * 1.5f) & LotmFx.hold(curId, "astral_world:fool_hall_fog", ex, ey, ez, R * 1.3f);
+        if (!pf) for (int i = 0; i < 22; i++) { float a = t * .05f + i * TAU / 22, rr = R * (.1f + .8f * h(i, 6)); ebb("fog", (float) Math.cos(a) * rr, (.3f + 3f * h(i, 7)) * S, (float) Math.sin(a) * rr, 8 * S, 3f * S, h(i, 9) * 3f, rgba(0x3A4044, .5f)); }
+        for (int i = 0; i < 26; i++) {
+            float a = t * (.05f + .05f * h(i, 11)) + h(i, 12) * TAU, rr = R * (.15f + .8f * h(i, 13)), y = (.6f + 7f * h(i, 14)) * S + (float) Math.sin(t * .8f + i) * .4f * S, tw = .6f + .4f * (float) Math.sin(t * 1.7f + i * 2f);
+            int c = hsv(h(i, 15), .75f);
+            bb("glow", (float) Math.cos(a) * rr, y, (float) Math.sin(a) * rr, 1.5f * S, 1.5f * S, 0, rgba(c, tw * .7f)); bb("mote", (float) Math.cos(a) * rr, y, (float) Math.sin(a) * rr, .3f * S, .3f * S, 0, rgba(0xFFFFFF, tw));
+        }
+        // the doors of Lord of Mysteries, standing in the fog in a ring, each a different colour and flickering when the space glitches
+        for (int i = 0; i < 7; i++) {
+            float a = i * TAU / 7 + .3f, rr = R * (.62f + .06f * h(i, 21)), dh = (5.2f + 1.6f * h(i, 22)) * S, dx = (float) Math.cos(a) * rr, dz = (float) Math.sin(a) * rr;
+            int c = gl ? hsv(h(fb, 40 + i), .9f) : mix(hsv(h(i, 23), .55f), 0xFFFFFF, .55f);
+            float jit = gl ? (h(fb, 50 + i) - .5f) * 1.2f * S : 0f;
+            bb("glow", dx + jit, dh * .5f, dz, 4.2f * S, dh * 1.15f, 0, rgba(c, .4f));
+            stand("door", dx + jit, dh * .5f, dz, 2.4f * S, dh, -a + PI / 2, rgba(c, 1f));
+            for (int k = 0; k < 3; k++) { float p = fract(t * .3f + k / 3f + i * .13f); bb("lotm:ember_hd", dx, p * dh, dz, .3f * S, .3f * S, 0, rgba(c, fd(p))); }
+        }
         float gy = CY + 1.2f * S;
-        glitchSym(gx(0, 0), gy + 2.2f * S, gz(0, 0), 3.4f * S, -face);
-        gooSymbols(0, 1.4f * S, R * .55f, 1.8f * S);
-        float dx = gx(0, -R * .75f), dz = gz(0, -R * .75f), dh = 5.5f * S;
-        eq(tex("solid"), dx, dh * .55f, dz, sx0 * 1.3f * S, 0, sz0 * 1.3f * S, 0, dh * .45f, 0, rgba(0xE8F0FF, .85f), 0, 0, 1, 1);
-        eq(tex("solid"), dx, dh * .55f, dz, -sx0 * 1.3f * S, 0, -sz0 * 1.3f * S, 0, dh * .45f, 0, rgba(0xE8F0FF, .85f), 0, 0, 1, 1);
-        bb("glow", dx, dh * .55f, dz, 5f * S, dh * 1.1f, 0, rgba(0xFFFFFF, .5f)); column("beam", dx, 0, top * 1.6f, dz, 1.4f * S, rgba(0xFFFFFF, .3f));
-        for (int k = 0; k < 8; k++) { float p = fract(t * .3f + k / 8f); bb("lotm:ember_hd", dx + (h(k, 31) - .5f) * 2f * S, p * dh, dz, .35f * S, .35f * S, 0, rgba(0xFFFFFF, fd(p))); }
+        glitchSym(gx(0, 0), gy + 2.0f * S, gz(0, 0), 3.2f * S, -face);
+        gooSymbols(0, 1.2f * S, R * .3f, 1.7f * S);
         if (gl) {   // torn slabs of colour
             int[] cols = {0x40FFFF, 0xFF40C0, 0xFFFFFF, 0x60FF80};
             for (int i = 0; i < 10; i++) { float a = h(fb, 10 + i) * TAU, rr = R * (.3f + 1.0f * h(fb, 30 + i)); bb("solid", (float) Math.cos(a) * rr, h(fb, 50 + i) * 12f * S, (float) Math.sin(a) * rr, (4f + 24f * h(fb, 70 + i)) * S, (.05f + .3f * h(fb, 90 + i)) * S, 0, rgba(cols[i % 4], .25f + .3f * h(fb, 110 + i))); }
@@ -994,20 +1004,37 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
         sprites("feather", 24, FALLM, R * .8f, 0, top, 1f * S, 0xFFFFFF, 1f, .12f, 54, true); sprites("spark", 50, RISEM, R * .7f, 0, top, .35f * S, 0xFFFFFF, 1f, .3f, 55, true);
     }
-    /** Eternal Darkness: a round pool of black water ringed with black reeds, pale lights rising from it under a pale crescent, mist round it. */
+    private float riverZ(float x) { return R * .3f * gs(x / (R * 1.0f) * 2f + 1f) + R * .08f * gs(x / (R * .4f)); }
+    private float riverW(float x) { return 2.2f * S * (.8f + .3f * gs(x * .35f + 2f)); }
+    /** Eternal Darkness: a river of eternal darkness where the dead rest: black water winding through, shrouded pale figures lying on it, souls rising, black reeds, mist. */
     private void gooDarkness() {
-        frustum(0, .1f, 4.8f * S, 4.8f * S, 32, 1, 1, 0x010103, 255, true);
-        flat("ring", 0, .14f, 0, 9.6f * S, t * .1f, rgba(mix(P1, 0xFFFFFF, .2f), .5f));
-        for (int i = 0; i < 3; i++) { float pw = fract(t * .25f + i / 3f); flat("ring", 0, .16f, 0, pw * 9f * S, 0, rgba(0x9A9AB0, fd(pw) * .6f)); }
-        for (int k = 0; k < 14; k++) {
-            float p = fract(t * .12f + h(k, 7)), a = t * .35f + k * TAU / 14, r = 3.8f * S * (1f - p * .45f), y = p * top * .75f;
-            bb("glow", gc(a) * r, y, gs(a) * r, 1.5f * S, 1.5f * S, 0, rgba(mix(P1, 0xFFFFFF, .4f), .6f * fd(p))); bb("mote", gc(a) * r, y, gs(a) * r, .3f * S, .3f * S, 0, rgba(0xFFFFFF, fd(p)));
+        float len = R * 2.6f; int seg = 36;
+        for (int i = 0; i < seg; i++) {
+            float x0 = (i / (float) seg - .5f) * len, x1 = ((i + 1) / (float) seg - .5f) * len, z0 = riverZ(x0), z1 = riverZ(x1), dx = x1 - x0, dz = z1 - z0, l = (float) Math.sqrt(dx * dx + dz * dz), w = riverW((x0 + x1) / 2) / 2;
+            float ux2 = dx / l, uz2 = dz / l, px = -uz2, pz = ux2, mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+            float wax = gx(ux2 * l * .52f, uz2 * l * .52f) - gx(0, 0), waz = gz(ux2 * l * .52f, uz2 * l * .52f) - gz(0, 0), wbx = gx(px * w, pz * w) - gx(0, 0), wbz = gz(px * w, pz * w) - gz(0, 0);
+            eq(tex("solid"), gx(mx, mz), .07f, gz(mx, mz), wax, 0, waz, wbx, 0, wbz, rgba(0x010103, .97f), 0, 0, 1, 1);
+            float fe = .5f + .5f * gs(t * .8f + i * .7f);
+            quad("solid", gx(mx, mz) + wbx * .985f, .08f, gz(mx, mz) + wbz * .985f, wax, 0, waz, wbx * .03f, 0, wbz * .03f, rgba(mix(P1, 0xFFFFFF, .2f), .35f * fe));
+            quad("solid", gx(mx, mz) - wbx * .985f, .08f, gz(mx, mz) - wbz * .985f, wax, 0, waz, wbx * .03f, 0, wbz * .03f, rgba(mix(P1, 0xFFFFFF, .2f), .35f * (1f - fe)));
         }
-        for (int k = 0; k < 14; k++) { float a = k * TAU / 14 + h(k, 12) * .3f, r = (5.3f + 1.2f * h(k, 13)) * S; push(); tr(gc(a) * r, 0, gs(a) * r); taper(0, (2.4f + 2.6f * h(k, 14)) * S, .13f * S, .13f * S, 0, 0, 0x050507, 255); pop(); }
-        facing("crescent", 0, CY + 5.5f * S, 0, 6f * S, 6f * S, -.4f, rgba(mix(P1, 0xFFFFFF, .5f), .85f));
-        if (!LotmFx.hold(curId, "astral_world:dark_mist", ex, ey, ez, R * 1.1f)) for (int k = 0; k < 8; k++) fogRing(10, R * (.4f + .15f * k), P2, .3f);
-        sprites("mote", 30, SPIRALM, R * .8f, 0, top, .5f * S, 0xB0B070, .8f, .2f, 56, false);
-        gooSymbols(2, CY + 2f * S, R * .5f, 2.8f * S);
+        for (int k = 0; k < 7; k++) {   // the dead, shrouded and pale, drifting slowly down the water
+            float u = fract(t * .012f + k / 7f), x = (u - .5f) * len, off = (h(k, 5) - .5f) * .5f, z = riverZ(x) + off * riverW(x), x1 = x + .8f, z1 = riverZ(x1) + off * riverW(x1);
+            float yaw = (float) Math.atan2(gz(x1 - x, z1 - z) - gz(0, 0), gx(x1 - x, z1 - z) - gx(0, 0)), bob = .18f * S + .05f * S * gs(t * .9f + k * 1.7f);
+            push(); tr(gx(x, z), bob, gz(x, z)); rY(-yaw);
+            box(0, 0, 0, 1.15f * S, .17f * S, .34f * S, 0xB8B8C4, 255); box(-.95f * S, .06f * S, 0, .32f * S, .2f * S, .3f * S, 0xC8C8D2, 255); box(0, .18f * S, 0, 1.0f * S, .03f * S, .3f * S, 0x8A8A9A, 255);
+            pop();
+            bb("glow", gx(x, z), bob + .3f * S, gz(x, z), 2.4f * S, 2.4f * S, 0, rgba(mix(P1, 0xFFFFFF, .5f), .22f * fd(u)));
+        }
+        for (int k = 0; k < 16; k++) {   // souls rising from the water
+            float u = fract(t * (.025f + .015f * h(k, 6)) + h(k, 7)), x = (h(k, 8) - .5f) * len, z = riverZ(x) + (h(k, 9) - .5f) * riverW(x) * .8f, y = u * 7f * S;
+            bb("glow", gx(x, z), y, gz(x, z), 1.3f * S, 1.3f * S, 0, rgba(mix(P1, 0xFFFFFF, .4f), .5f * fd(u))); bb("mote", gx(x, z), y, gz(x, z), .25f * S, .25f * S, 0, rgba(0xFFFFFF, fd(u)));
+        }
+        for (int k = 0; k < 18; k++) { float u = h(k, 11), x = (u - .5f) * len, side = h(k, 12) < .5f ? -1f : 1f, z = riverZ(x) + side * (riverW(x) * .5f + .4f * S + h(k, 13) * 1.8f * S);
+            push(); tr(gx(x, z), 0, gz(x, z)); taper(0, (1.2f + 1.8f * h(k, 14)) * S, .09f * S, .09f * S, 0, 0, 0x050507, 255); pop(); }
+        if (!LotmFx.hold(curId, "astral_world:dark_mist", ex, ey, ez, R * 1.3f)) for (int k = 0; k < 8; k++) fogRing(10, R * (.4f + .15f * k), P2, .3f);
+        sprites("mote", 30, SPIRALM, R * .9f, 0, top, .45f * S, 0xB0B070, .8f, .2f, 56, false);
+        gooSymbols(2, CY + 3f * S, R * .5f, 2.8f * S);
     }
     /** Calamity of Destruction: a cracked molten core in glowing shells, bursting into flying shards and shockwaves. */
     private void gooCalamity() {
