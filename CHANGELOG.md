@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.129
+- Rare holograms (Seq 5 and 4) all get a bespoke small model instead of a spinning sprite on a beam: Apothecary potions and bat, Apprentice opening door, Arbiter scales, Bard mini flaring sun, Corpse skull in green fire, Criminal void with tentacles, Lawyer crown, Monster wheel of fortune, Prisoner padlock and chains, Reader white tower, Sailor whirlpool, Savant meshing gears, Hanged Man Bearing of Sins, Seer armillary, Sleepless night orb, Spectator crystal, Warrior sword. Demoness, Planter, Hunter, Marauder and Mystery Pryer keep theirs.
+
 ## 0.2.128
 - Epic Black Emperor and Abyss no longer carry miniature legendary set pieces (throne, void orb and tentacles); epic Sailor loses its mini ocean, epic Monster loses its dice, epic Mystery Pryer's eyeballs are now vfx eyes.
 - Bard sun reworked again to match the Photon flaring sun: compact, soft orange body with a bright heart, tiny ray flecks, wisps, embers. No big spikes.

@@ -1058,6 +1058,96 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
 
     // ================= Rare and Epic =================
+    /** A small bespoke model for every rare pathway, so none of them is just a spinning sprite. Returns false for paths with their own scene above. */
+    private boolean rareModel(int seq, float bob) {
+        float u = seq == 4 ? 1f : .82f; int gl = mix(P1, 0xFFFFFF, .4f);
+        flat("glow", 0, .06f, 0, 1.5f, 0, rgba(P1, .4f));
+        switch (curPath) {
+            case 0 -> {   // Apothecary: a potion, tiny ones orbiting, bubbles, a bat
+                push(); tr(0, .75f + bob, 0); rY(t * .8f); rZ((float) Math.sin(t) * .1f); flask(.34f * u, mix(P3, 0xFFFFFF, .3f), P1); pop();
+                for (int i = 0; i < 4; i++) { float a = -t * .9f + i * TAU / 4; push(); tr(gc(a) * .75f, .6f + gs(t * 1.5f + i) * .12f, gs(a) * .75f); rY(t + i); flask(.12f * u, mix(P3, 0xFFFFFF, .3f), i % 2 == 0 ? P2 : hsv(h(i, 5), .8f)); pop(); }
+                for (int i = 0; i < 5; i++) { float p = fract(t * .5f + i * .2f); bb("drop", gc(i * 2f) * .12f, .9f + p * .8f, gs(i * 2f) * .12f, .1f, .1f, 0, rgba(P1, fd(p))); }
+                if (seq == 4) { float a = t * 1.2f; push(); tr(gc(a) * .95f, 1.5f + gs(t * 3) * .1f, gs(a) * .95f); rY(-a); bat(.4f, t * 9f); pop(); }
+            }
+            case 1 -> {   // Apprentice: a door that opens on light
+                bb("glow", 0, .7f, 0, 1.5f, 1.5f, 0, rgba(P3, .6f * (.5f + .5f * (float) Math.sin(t))));
+                pushFace(); doorModel(.5f * u, 1.1f * u, metal(.5f), mix(P2, 0x302010, .3f), metal(.9f), .6f + .4f * (float) Math.sin(t * .8f)); pop();
+                for (int i = 0; i < 4; i++) { float p = fract(t * .4f + i * .25f); bb("mote", gx(.1f * (i - 1.5f), .1f), .3f + p * .9f, gz(.1f * (i - 1.5f), .1f), .1f, .1f, 0, rgba(P3, fd(p))); }
+            }
+            case 2 -> {   // Arbiter: a balance
+                push(); tr(0, .05f, 0); rY(t * .5f); scalesModel(1.1f * u, metal(.75f), P1); pop();
+                bb("glow", 0, 1.15f * u, 0, .6f, .6f, 0, rgba(P3, .5f));
+            }
+            case 4 -> {   // Bard: a small flaring sun and a few notes
+                flareSun(0, 1.0f + bob, 0, .24f * u, P1, P2);
+                for (int i = 0; i < 4; i++) { float a = t * .8f + i * TAU / 4, p = fract(t * .3f + i * .25f); bb("note", gc(a) * .7f, .6f + p * .9f, gs(a) * .7f, .22f, .22f, 0, rgba(P1, fd(p))); }
+            }
+            case 5 -> {   // Corpse Collector: a skull wreathed in green fire
+                flameAt(0, .5f, -.05f, 1.2f * u, 3, P2, P1, P3, .85f);
+                push(); tr(0, .85f + bob, 0); rY(face); skull(.34f * u, 0xD8D4C0, P1); pop();
+                for (int i = 0; i < 3; i++) { float a = t * .8f + i * TAU / 3; bb("mote", gc(a) * .5f, .5f + gs(t * 2 + i) * .15f, gs(a) * .5f, .12f, .12f, 0, rgba(P3, 1f)); }
+            }
+            case 6 -> {   // Criminal: a little void with tentacles
+                float vy = .95f + bob; sphere(0, vy, 0, .3f * u, .3f * u, .3f * u, 8, 12, 0x050205, 255); flat("whirl", 0, vy, 0, 1.4f * u, t * 1.4f, rgba(P1, .9f));
+                bb("glow", 0, vy, 0, 1f, 1f, 0, rgba(P1, .35f));
+                for (int i = 0; i < 3; i++) wrapTentacle(0, vy, 0, .3f * u, 1.0f, i * TAU / 3, i % 2 == 0 ? 1 : -1, i, mix(P2, 0x1A0830, .5f), .05f);
+            }
+            case 8 -> {   // Lawyer: a floating crown and a coin
+                push(); tr(0, .95f + bob, 0); rY(t * .9f); rX(.2f); crown(.36f * u, metal(.7f), P1); pop();
+                for (int i = 0; i < 3; i++) { float a = -t + i * TAU / 3; bb("diamond", gc(a) * .65f, .8f + gs(t * 2 + i) * .1f, gs(a) * .65f, .16f, .16f, 0, rgba(P3, 1f)); }
+            }
+            case 10 -> {   // Monster: a wheel of fortune with a ticker, coins and a die
+                push(); tr(0, .95f + bob, 0); rY(face); rZ(t * 1.1f); wheelModel(.5f * u, metal(.7f), metal(.5f), P1); pop();
+                push(); tr(gx(0, 0), 1.5f * u + bob, gz(0, 0)); rY(face); rZ(PI); frustum(0, .14f * u, .04f, 0, 5, 1, 1, 0xE03030, 255, true); pop();
+                for (int i = 0; i < 3; i++) { float a = t * .9f + i * TAU / 3; bb("disc", gc(a) * .8f, .7f + gs(t * 1.6f + i) * .15f, gs(a) * .8f, .2f, .2f, 0, rgba(0xFFD040, 1f)); }
+                push(); tr(.7f, .35f, .3f); rY(t); rX(t * 1.3f); die(.1f); pop();
+            }
+            case 13 -> {   // Prisoner: a padlock bound in chains
+                push(); tr(0, 1.7f, 0); chain(.8f, .14f, metal(.3f)); pop();
+                push(); tr(0, .75f + bob, 0); rY(t * .6f); box(0, 0, 0, .22f * u, .18f * u, .1f * u, metal(.55f), 255); torus(0, .2f * u, 0, .12f * u, .14f * u, .035f * u, 10, 5, 0, PI, metal(.8f), 255);
+                box(0, 0, .105f * u, .03f * u, .06f * u, .01f * u, 0x101010, 255); pop();
+                for (int i = 0; i < 3; i++) { float a = t * .5f + i * TAU / 3; push(); tr(gc(a) * .6f, .2f, gs(a) * .6f); rY(-a); torus(0, .1f, 0, .1f, .12f, .03f, 8, 4, 0, TAU, metal(.3f), 255); pop(); }
+            }
+            case 14 -> {   // Reader: a small white tower
+                bb("glow", 0, .9f, 0, 1.4f, 1.4f, 0, rgba(P3, .4f));
+                push(); rY(t * .3f); towerModel(1.5f * u, .55f * u, mix(0xF0F0F4, P1, .15f), metal(.6f), P3); pop();
+                for (int i = 0; i < 3; i++) { float a = t * .8f + i * TAU / 3; bb("page", gc(a) * .6f, .8f + gs(t * 1.4f + i) * .2f, gs(a) * .6f, .22f, .26f, a, rgba(P1, 1f)); }
+            }
+            case 15 -> {   // Sailor: a whirlpool with spray
+                push(); tr(0, .08f, 0); ocean(.9f, .07f); pop(); waveRing(1.0f, .22f, 10, 1f, P1); flat("whirl", 0, .1f, 0, 1.8f, -t * .8f, rgba(P2, .9f));
+                for (int i = 0; i < 6; i++) { float p = fract(t * .6f + i / 6f), a = i * 1.1f + t; bb("drop", gc(a) * .5f * p, .1f + gs(p * PI) * .8f, gs(a) * .5f * p, .14f, .2f, 0, rgba(P3, fd(p))); }
+            }
+            case 16 -> {   // Savant: meshing gears
+                push(); tr(0, 1.0f + bob, 0); rY(face); push(); rX(-PI / 2); gear(.34f * u, 10, .1f, metal(.6f), P1); pop(); pop();
+                push(); tr(gx(.5f * u, 0), 1.0f + bob, gz(.5f * u, 0)); rY(face); push(); rX(-PI / 2); rY(-t); gear(.2f * u, 7, .09f, metal(.45f), P3); pop(); pop();
+                push(); tr(gx(-.45f * u, 0), 1.25f + bob, gz(-.45f * u, 0)); rY(face); push(); rX(-PI / 2); rY(t * 1.4f); gear(.15f * u, 6, .08f, metal(.7f), P1); pop(); pop();
+            }
+            case 17 -> bearerSym(0, 1.0f + bob, 0, 1.1f * u, t * .8f);
+            case 18 -> {   // Seer: an armillary sphere
+                push(); tr(0, 1.0f + bob, 0); armillary(.5f * u, metal(.6f), P1); pop();
+                for (int i = 0; i < 4; i++) { float a = t * .6f + i * TAU / 4; bb("star", gc(a) * .8f, 1.0f + gs(a * 2) * .2f, gs(a) * .8f, .16f, .16f, t + i, rgba(P3, 1f)); }
+            }
+            case 19 -> {   // Sleepless: a small night orb with stars and a crescent
+                sphere(0, 1.0f + bob, 0, .32f * u, .32f * u, .32f * u, 8, 12, 0x02030A, 255);
+                for (int i = 0; i < 9; i++) { float a = t * .5f + i * 2.4f, el = (h(i, 3) - .5f) * 2.2f; bb("star", gc(a) * gc(el) * .34f * u, 1.0f + bob + gs(el) * .34f * u, gs(a) * gc(el) * .34f * u, .07f, .07f, 0, rgba(0xFFFFFF, .5f + .5f * gs(t * 2 + i))); }
+                bb("glow", 0, 1.0f + bob, 0, 1.0f, 1.0f, 0, rgba(P1, .3f));
+                facing("crescent", gx(.55f, 0), 1.25f, gz(.55f, 0), .5f, .5f, .5f, rgba(mix(P1, 0xFFFFFF, .5f), 1f));
+            }
+            case 20 -> {   // Spectator: a crystal with thought rings
+                push(); tr(0, 1.0f + bob, 0); rY(t * .9f); frustum(0, .5f * u, .26f * u, 0, 4, 1, 1, gl, 235, false); frustum(-.5f * u, 0, 0, .26f * u, 4, 1, 1, mix(P3, 0xFFFFFF, .3f), 235, false); pop();
+                bb("glow", 0, 1.0f + bob, 0, 1.0f, 1.0f, 0, rgba(P3, .5f));
+                for (int i = 0; i < 3; i++) { float p = fract(t * .4f + i / 3f); bb("ring", 0, 1.0f + bob, 0, (.4f + 1.0f * p), (.4f + 1.0f * p), 0, rgba(P3, fd(p))); }
+            }
+            case 21 -> {   // Warrior: an upright sword with a dawn ring
+                push(); tr(0, .15f + bob, 0); rY(t * .8f); sword(1.5f * u, metal(.5f), mix(P2, 0x302010, .3f), P1); pop();
+                flat("ring_dash", 0, .08f, 0, 1.4f, -t * .6f, rgba(P1, .9f));
+                for (int i = 0; i < 4; i++) { float p = fract(t * .5f + i * .25f); bb("spark", gc(i * 1.6f) * .35f, .2f + p * 1.5f, gs(i * 1.6f) * .35f, .12f, .12f, t, rgba(P3, fd(p))); }
+            }
+            default -> { return false; }
+        }
+        for (int i = 0; i < 3; i++) { float p = fract(t * .3f + i * .33f); bb("mote", gc(i * 2.1f) * .6f, p * 1.6f, gs(i * 2.1f) * .6f, .1f, .1f, 0, rgba(P1, fd(p))); }
+        return true;
+    }
     private void rare(Cfg c, int seq) {
         float pulse = .8f + .2f * (float) Math.sin(t * 3);
         flat("ring", 0, .05f, 0, 1.0f, t * .5f, rgba(P2, .9f));
@@ -1083,6 +1173,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             sprites("petal", 8, FALLM, .6f, 0, 1.8f, .22f, P1, 1f, .3f, 3, true);
             return;
         }
+        if (rareModel(seq, bob)) return;
         stand(c.core, 0, 1.1f + bob, 0, seq == 4 ? .6f : .46f, seq == 4 ? .6f : .46f, t * 1.8f, rgba(mix(P1, 0xFFFFFF, .4f), pulse));
         int motes = seq == 4 ? 5 : 3;
         for (int i = 0; i < motes; i++) {
