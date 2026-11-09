@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.145
+- Lag fix for the Fool/LoM space: about half the background pillars (plain, no carving), fewer table details, a lighter dome and sky clouds, and 60% fewer Photon particles in the fog, stars and door. Untested in game.
+
 ## 0.2.144
 - Lord of Mysteries: the marble stair to the door of light is now solid, so you can walk up it (each step is one block high, so jump). Untested in game.
 

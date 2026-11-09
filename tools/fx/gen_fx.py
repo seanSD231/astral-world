@@ -39,9 +39,11 @@ def put(c, path, node):
             cur = cur[1][int(k)]
 def uid(o): o['data'][1]['transform'][1]['id'] = S(str(uuid.uuid4()))
 
+MPF = 0.4
 def emitter(name, tex, color, size, life, rate=0, maxp=200, shape='sphere', radius=1.0, thick=1.0, sscale=(1, 1, 1), speed=0, lin=(0, 0, 0),
             noise=(0.05, 0.3), alpha=(0, 0, .25, 1, .6, 1, 1, 0), grow=None, add=False, burst=0, hold=False, pos=(0, 0, 0), rot=None, mode=None):
     """color: (rgb, alpha) or ((rgb, alpha), (rgb, alpha)) for a random pick. size/life/speed: number or (min, max). rate is per tick."""
+    rate = rate * MPF; maxp = max(8, int(maxp * MPF))
     o = copy.deepcopy(FOG); uid(o)
     d = o['data'][1]; d['name'] = S(name); d['transform'][1]['localPosition'] = (9, (5, [float(x) for x in pos]))
     c = d['config'][1]

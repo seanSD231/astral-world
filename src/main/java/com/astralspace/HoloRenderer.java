@@ -1835,7 +1835,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             box(0, Hb - cr * .95f, 0, W / 2 + cr * .5f, .1f * tk, cr * .3f, dark, 255); pop();
         }
         solid(true);   // the shell, left open at the top
-        int lat = 10, lon = 48; float[] hint = v3(0, Hb - 5, zc); float top = PI / 2 * .9f;
+        int lat = 8, lon = 32; float[] hint = v3(0, Hb - 5, zc); float top = PI / 2 * .9f;
         for (int a = 0; a < lat; a++) {
             float l0 = top * a / lat, l1 = top * (a + 1) / lat;
             for (int g = 0; g < lon; g++) { float g0 = TAU * g / lon, g1 = TAU * (g + 1) / lon;
@@ -1867,22 +1867,22 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float Rc = 20f, Hb = 24f, Ry = 18f;
         pushThrone(); cur.scale(HK, HK, HK);
         push(); tr(0, 0, zc); frustum(-.12f, 0f, Rc + 1.2f, Rc + 1.2f, 56, 1, 1, mix(dark, 0x000000, .3f), 255, true); pop();   // the round dark floor
-        tube(ring(0, .04f, zc, Rc - .4f, 64), .09f, .09f, edge); tube(ring(0, .035f, zc, Rc - 2.2f, 64), .05f, .05f, mix(edge, dark, .5f)); tube(ring(0, .03f, zc, Rc * .55f, 56), .05f, .05f, mix(edge, dark, .55f));
+        tube(ring(0, .04f, zc, Rc - .4f, 40), .09f, .09f, edge); tube(ring(0, .035f, zc, Rc - 2.2f, 40), .05f, .05f, mix(edge, dark, .5f)); tube(ring(0, .03f, zc, Rc * .55f, 32), .05f, .05f, mix(edge, dark, .55f));
         for (int k = 0; k < 12; k++) { float a = k * TAU / 12; float[][] ln = {v3((float) Math.cos(a) * 4f, .03f, zc + (float) Math.sin(a) * 4f), v3((float) Math.cos(a) * (Rc - .4f), .03f, zc + (float) Math.sin(a) * (Rc - .4f))}; tube(ln, .03f, .03f, mix(edge, dark, .6f)); }
         canopy(Hb, zc, Rc, Ry, 12, .95f, 2f, stone, dark, edge);
-        for (int i = 0; i < 44; i++) {   // columns standing off in the fog, all round, far taller than the dome
+        for (int i = 0; i < 22; i++) {   // columns standing off in the fog, all round, far taller than the dome
             float a = h(i, 1) * TAU, rho = 24f + 30f * h(i, 2), H = i % 7 == 0 ? 14f + 10f * h(i, 3) : 36f + 44f * h(i, 4), r = .9f + .9f * h(i, 5);
             float x = rho * (float) Math.cos(a), z = zc + rho * (float) Math.sin(a);
             if (z > 6f && Math.abs(x) < 10f) continue;   // keep the way to the door clear
-            push(); tr(x, 0, z); column2(H, r, rho < 42f, stone, dark, edge); pop();
+            push(); tr(x, 0, z); column2(H, r, false, stone, dark, edge); pop();
         }
         // the table: aged bronze, mottled green
         box(0, .74f, zc, W, .06f, hl, bronze, 255);
         box(0, .806f, zc, W - .1f, .01f, hl - .15f, mix(bronze, patina, .3f), 255);
-        for (int k = 0; k < 60; k++) box((h(k, 61) - .5f) * 2f * (W - .25f), .818f, zc + (h(k, 62) - .5f) * 2f * (hl - .4f), .1f + .3f * h(k, 63), .004f, .2f + .8f * h(k, 64), mix(patina, bronze, h(k, 65) * .7f), 255);
+        for (int k = 0; k < 22; k++) box((h(k, 61) - .5f) * 2f * (W - .25f), .818f, zc + (h(k, 62) - .5f) * 2f * (hl - .4f), .1f + .3f * h(k, 63), .004f, .2f + .8f * h(k, 64), mix(patina, bronze, h(k, 65) * .7f), 255);
         for (int sd = -1; sd <= 1; sd += 2) { box(sd * (W - .02f), .79f, zc, .035f, .03f, hl + .02f, mix(bronze, 0xE8C070, .3f), 255); box(sd * (W - .12f), .82f, zc, .008f, .004f, hl - .3f, mix(bronze, 0xE8C070, .45f), 255); }
         box(0, .5f, zc, W - .1f, .19f, hl - .06f, bronzeD, 255);
-        for (int k = 0; k < 52; k++) { float z = zc + hl - .3f - k * (2 * hl - .6f) / 51f; for (int sd = -1; sd <= 1; sd += 2) box(sd * (W - .08f), .5f, z, .022f, .17f, .06f, mix(bronze, bronzeD, .4f), 255); }
+        for (int k = 0; k < 26; k++) { float z = zc + hl - .3f - k * (2 * hl - .6f) / 25f; for (int sd = -1; sd <= 1; sd += 2) box(sd * (W - .08f), .5f, z, .022f, .17f, .06f, mix(bronze, bronzeD, .4f), 255); }
         box(0, .2f, zc, W + .05f, .1f, hl + .1f, bronzeD, 255); box(0, .07f, zc, W + .16f, .07f, hl + .22f, stone, 255);
         for (int en = -1; en <= 1; en += 2) { float ez0 = en > 0 ? zc + hl : zc - hl; box(0, .76f, ez0 + en * .05f, W * .9f, .08f, .08f, mix(bronze, 0xE8C070, .25f), 255); }
         for (int sd = -1; sd <= 1; sd += 2) for (int k = 0; k < 10; k++) { push(); tr(sd * HoloCardEntity.HALL_SX, 0, HoloCardEntity.HALL_Z0 - k * HoloCardEntity.HALL_PITCH); rY(sd < 0 ? PI / 2 : -PI / 2); cur.scale(cs, cs, cs); hallChair(stone, dark, edge, false); pop(); }
@@ -1977,7 +1977,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         bb("glow", cx, by, cz, Wo * 2.6f * HK, HT * 1.5f * HK, 0, rgba(white, .5f)); bb("lotm:sunburst", cx, by, cz, HT * 1.6f * HK, HT * 1.6f * HK, 0, rgba(white, .35f));
         column("beam", cx, top0 * HK, top0 * HK + 160f, cz, 3f * HK, rgba(white, .28f));
         LotmFx.hold(curId, "astral_world:door_light", cx, by, cz, HT * .55f * HK);
-        for (int k = 0; k < 10; k++) { float p = fract(t * .25f + k / 10f), sx2 = (h(k, 31) - .5f) * Wo * .9f; bb("lotm:ember_hd", hxk(sx2, zd - .8f - p * 6f), (top0 + .6f + p * 5f) * HK, hzk(sx2, zd - .8f - p * 6f), .9f * HK, .9f * HK, 0, rgba(white, fd(p))); }
+        for (int k = 0; k < 5; k++) { float p = fract(t * .25f + k / 5f), sx2 = (h(k, 31) - .5f) * Wo * .9f; bb("lotm:ember_hd", hxk(sx2, zd - .8f - p * 6f), (top0 + .6f + p * 5f) * HK, hzk(sx2, zd - .8f - p * 6f), .9f * HK, .9f * HK, 0, rgba(white, fd(p))); }
     }
     private static int edge2() { return 0x78D0D4; }
     private void fool(int N, boolean m) {
@@ -1988,8 +1988,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 : LotmFx.hold(curId, "astral_world:seer_fog", ex, ey, ez, R * .95f);   // our own Photon fog: one filling the whole sphere, one thick around the hall
         if (m) { dome(SKY, 0x2C3A6C, 232);
             int[] nc = {0x3A6CFF, 0xC040C8, 0x30D0E8, 0x6A50FF};   // far nebula clouds, so the sky is bright even where the particles are thin
-            for (int i = 0; i < 22; i++) { float a = i * TAU / 22 + h(i, 8), el = .12f + .5f * h(i, 9), d = SKY * .8f; bb("cloud", (float) Math.cos(a) * d * (float) Math.cos(el), (float) Math.sin(el) * d, (float) Math.sin(a) * d * (float) Math.cos(el), SKY * (.4f + .35f * h(i, 10)), SKY * (.2f + .2f * h(i, 11)), 0, rgba(nc[i % 4], .55f)); }
-            for (int i = 0; i < 14; i++) { float a = t * .01f + i * TAU / 14, d = SKY * .5f; bb("cloud", (float) Math.cos(a) * d, SKY * (.3f + .3f * h(i, 12)), (float) Math.sin(a) * d, SKY * .5f, SKY * .25f, 0, rgba(mix(nc[i % 4], 0xFFFFFF, .25f), .3f)); } }
+            for (int i = 0; i < 12; i++) { float a = i * TAU / 12 + h(i, 8), el = .12f + .5f * h(i, 9), d = SKY * .8f; bb("cloud", (float) Math.cos(a) * d * (float) Math.cos(el), (float) Math.sin(el) * d, (float) Math.sin(a) * d * (float) Math.cos(el), SKY * (.4f + .35f * h(i, 10)), SKY * (.2f + .2f * h(i, 11)), 0, rgba(nc[i % 4], .55f)); }
+            for (int i = 0; i < 6; i++) { float a = t * .01f + i * TAU / 6, d = SKY * .5f; bb("cloud", (float) Math.cos(a) * d, SKY * (.3f + .3f * h(i, 12)), (float) Math.sin(a) * d, SKY * .5f, SKY * .25f, 0, rgba(mix(nc[i % 4], 0xFFFFFF, .25f), .3f)); } }
         int fn = m ? 2 : 1;
         if (!photonFog) for (int i = 0; i < 26 * fn; i++) { float a = t * .05f + i * TAU / (26 * fn), rr = R * (.15f + .95f * h(i, 6)); ebb("fog", (float) Math.cos(a) * rr, (.2f + 1.0f * h(i, 7)) * S, (float) Math.sin(a) * rr, 9 * S, 2.6f * S, h(i, 9) * 3f, rgba(fogc, .55f)); }
         for (int i = 0; i < 14 * fn; i++) { float a = t * (.06f + .05f * h(i, 11)) + h(i, 12) * TAU, rr = R * (.2f + .7f * h(i, 13)), y = (.6f + 4f * h(i, 14)) * S + (float) Math.sin(t * .8f + i) * .4f * S, tw = .6f + .4f * (float) Math.sin(t * 1.7f + i * 2f);
