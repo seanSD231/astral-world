@@ -1849,7 +1849,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             if (seat < 20) { int sd = seat < 10 ? -1 : 1, k = seat % 10; lx = sd * 2.3f; lz = -.9f - k * 1.1f; yaw = PI / 2 - q; }
             else { lx = 0; lz = L - 2.0f; yaw = -q; }
             int who = -1; double best = 1.6;
-            float cx = ex + hxk(seat < 20 ? (seat < 10 ? -1.3f : 1.3f) : 0, seat < 20 ? -.9f - (seat % 10) * 1.1f : L - 1.1f), cz = ez + hzk(seat < 20 ? (seat < 10 ? -1.3f : 1.3f) : 0, seat < 20 ? -.9f - (seat % 10) * 1.1f : L - 1.1f);
+            double cx = ex + hxk(seat < 20 ? (seat < 10 ? -1.3f : 1.3f) : 0, seat < 20 ? -.9f - (seat % 10) * 1.1f : L - 1.1f); double cz = ez + hzk(seat < 20 ? (seat < 10 ? -1.3f : 1.3f) : 0, seat < 20 ? -.9f - (seat % 10) * 1.1f : L - 1.1f);
             for (ThronePart p : seats) { double d = Math.abs(p.getX() - cx) + Math.abs(p.getZ() - cz); if (d < best) { best = d; who = p.occupant(); } }
             float gx = hxk(lx, lz), gz = hzk(lx, lz);
             bb("glow", gx, y * HK, gz, 2.8f * HK, 2.8f * HK, 0, rgba(0x78D0D4, who >= 0 ? .4f : .1f));
