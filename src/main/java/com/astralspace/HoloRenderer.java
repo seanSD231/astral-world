@@ -2047,7 +2047,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void plantedSwords(float L, float back, int blade, int guard, int gem) {
         float La = .85f * L, th = .7f, tipX = .2f * L;
         for (int sd = -1; sd <= 1; sd += 2) {
-            push(); tr(-sd * tipX + sd * (float) Math.sin(th) * La, .08f + (float) Math.cos(th) * La, -back); rY(face); rZ(PI - sd * th);
+            push(); rY(face); tr(-sd * tipX + sd * (float) Math.sin(th) * La, .08f + (float) Math.cos(th) * La, -back); rZ(PI - sd * th);   // turn to face first, so the offsets are in that frame too
             sword(La, blade, guard, gem); pop();
         }
         push(); tr(0, .08f + L, 0); rY(face); rZ(PI); sword(L, blade, guard, gem); pop();

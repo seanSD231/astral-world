@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.150
+- Warrior swords: the two crossed swords were positioned before the model was turned to face you, so they only crossed from one direction. They now turn with the hologram and always form the X behind the upright sword. Untested in game.
+
 ## 0.2.149
 - Lord of Mysteries: grey fog with colourful drifting lights, a ring of seven Lord of Mysteries doors in different colours, the glitching Fool symbol with the three pathways; doors and colours flicker when it glitches.
 - Eternal Darkness: a river of eternal darkness where the dead rest, with shrouded pale figures lying on the black water, souls rising, reeds and mist. Untested in game.
