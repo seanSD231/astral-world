@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.137
+- Warrior swords now match the icon: three swords of our own model, the big one upright with its point at the ground and its pommel up, and two behind it crossed in an X (rare and Twilight). They no longer use LOTM's blocky sword model.
+- Fool hall: the fog is much thinner and the hall (dome, pillars, table, seats) is lighter, so you can see the room.
+- Bard sun is about twice the size.
+- Untested in game.
+
 ## 0.2.136
 - Abyss rare redone to match the others: a glowing void with a bright rim and thin tendrils at the same size, instead of a large solid black ball with huge tendrils.
 - Corpse Collector's rising wisps were showing as white rectangles; they now use our own soft wisp texture.

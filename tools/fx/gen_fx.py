@@ -110,11 +110,11 @@ write('bearing_of_sins', [
 
 # ---- Fool hall: a low drifting fog the colour of the picture, thinner haze above it, motes and far-off lights (unit = the hall's radius)
 write('fool_fog', [
-    emitter('ground fog #area', PUFF, ((0x2A444E, .5), (0x365660, .4)), (.28, .5), (40, 70), rate=26, maxp=900, radius=1.0, sscale=(1, .07, 1), speed=(.001, .004), lin=(.004, .001, 0), noise=(.03, .25), pos=(0, .04, 0)),
-    emitter('low haze #area', PUFF, (0x41656E, .14), (.5, .9), (50, 80), rate=9, maxp=300, radius=1.0, sscale=(1, .22, 1), speed=(.001, .003), lin=(-.003, .002, 0), noise=(.04, .2), pos=(0, .14, 0)),
-    emitter('mist #area', PUFF, (0x1A2E36, .22), (.6, 1.1), (60, 90), rate=5, maxp=200, radius=1.35, sscale=(1, .5, 1), speed=(.001, .003), lin=(0, .002, 0), noise=(.04, .2), pos=(0, .3, 0)),
-    emitter('floating lights #detail', GLOW, ((0x70D8E0, .6), (0xD0B8FF, .5)), (.012, .03), (60, 120), rate=.5, maxp=90, radius=1.2, sscale=(1, .35, 1), pos=(0, .25, 0), lin=(0, .002, 0), noise=(.02, .3), add=True),
-    emitter('far lights #detail', GLOW, ((0xFFFFFF, .35), (0x90C0FF, .35)), (.01, .025), (80, 140), rate=.8, maxp=160, radius=2.2, thick=.3, sscale=(1, .45, 1), pos=(0, .35, 0), noise=(.01, .3), add=True),
+    emitter('ground fog #area', PUFF, ((0x3A5C66, .3), (0x4A7078, .24)), (.22, .4), (40, 70), rate=14, maxp=500, radius=1.0, sscale=(1, .05, 1), speed=(.001, .004), lin=(.004, .001, 0), noise=(.03, .25), pos=(0, .03, 0)),
+    emitter('low haze #area', PUFF, (0x5A8088, .06), (.3, .55), (50, 80), rate=3, maxp=120, radius=1.0, sscale=(1, .12, 1), speed=(.001, .003), lin=(-.003, .002, 0), noise=(.04, .2), pos=(0, .08, 0)),
+    emitter('mist #area', PUFF, (0x2A444E, .06), (.4, .7), (60, 90), rate=1.2, maxp=60, radius=1.35, sscale=(1, .4, 1), speed=(.001, .003), lin=(0, .002, 0), noise=(.04, .2), pos=(0, .25, 0)),
+    emitter('floating lights #detail', GLOW, ((0x70D8E0, .7), (0xD0B8FF, .6)), (.012, .03), (60, 120), rate=.5, maxp=90, radius=1.2, sscale=(1, .35, 1), pos=(0, .25, 0), lin=(0, .002, 0), noise=(.02, .3), add=True),
+    emitter('far lights #detail', GLOW, ((0xFFFFFF, .4), (0x90C0FF, .4)), (.01, .025), (80, 140), rate=.8, maxp=160, radius=2.2, thick=.3, sscale=(1, .45, 1), pos=(0, .35, 0), noise=(.01, .3), add=True),
     emitter('pale motes #detail', EMBER, ((0xFFFFFF, .8), (0xA8E8FF, .8)), (.004, .01), (60, 100), rate=.8, maxp=140, radius=1.1, sscale=(1, .3, 1), pos=(0, .2, 0), lin=(0, .002, 0), noise=(.02, .3), add=True),
 ])
 

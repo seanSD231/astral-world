@@ -1231,12 +1231,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 bb("glow", 0, 1.0f + bob, 0, 1.0f, 1.0f, 0, rgba(P3, .5f));
                 for (int i = 0; i < 3; i++) { float p = fract(t * .4f + i / 3f); bb("ring", 0, 1.0f + bob, 0, (.4f + 1.0f * p), (.4f + 1.0f * p), 0, rgba(P3, fd(p))); }
             }
-            case 21 -> {   // Warrior: three swords like its icon, tips up, the outer two crossed behind
-                float L = 1.5f * u;
-                for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * .42f * u, .08f, -.04f); rY(face); rZ(sd * .5f);
-                    if (!drawGeo("sword_of_dawn", "lotm", "textures/item/sword_of_dawn.png", L)) sword(L, metal(.45f), mix(P2, 0x302010, .3f), P1); pop(); }
-                push(); tr(0, .08f, .04f); rY(face);
-                if (!drawGeo("sword_of_dawn", "lotm", "textures/item/sword_of_dawn.png", L * 1.1f)) sword(L * 1.1f, metal(.55f), mix(P2, 0x302010, .3f), P1); pop();
+            case 21 -> {   // Warrior: three swords like its icon, points down, the outer two crossed behind
+                plantedSwords(1.5f * u, .04f, mix(P1, 0xFFFFFF, .45f), P2, P3);
                 for (int i = 0; i < 4; i++) { float p = fract(t * .5f + i * .25f); bb("spark", gc(i * 1.6f) * .35f, .2f + p * 1.5f, gs(i * 1.6f) * .35f, .12f, .12f, t, rgba(P3, fd(p))); }
             }
             default -> { return false; }
@@ -1518,7 +1514,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private boolean lotmSun(float lx, float ly, float lz, float scale) { return LotmFx.hold(curId, "bard/flaring_sun", ex + lx, ey + ly, ez + lz, scale); }
     private void sun(int N) {
         sigil(R); float sy = top * .9f;
-        if (!lotmSun(0, sy, 0, S * 1.2f)) flareSun(0, sy, 0, 1.7f * S, P1, P2);
+        if (!lotmSun(0, sy, 0, S * 2.5f)) flareSun(0, sy, 0, 3.4f * S, P1, P2);
         column("beam", 0, .05f, sy, 0, 2f * S, rgba(P1, .35f));
         sym(CY, 3.4f * S, 0);
         for (int i = 0; i < 10 * N; i++) { float a = t * .3f + i * TAU / (10 * N); column("line", (float) Math.cos(a) * R * .6f, 0, 5f * S, (float) Math.sin(a) * R * .6f, .3f * S, rgba(P1, .9f)); }
@@ -1795,7 +1791,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     /** The Sefirah hall at player scale, with the Fool's card lying on the head of the table. Local x is right and z points to whoever placed it; the
      *  table runs away from them with the Fool's high seat on their side. Twenty-two real seats, each with a pathway symbol behind it. */
     private void foolHall() {
-        int stone = 0x1B3036, dark = 0x0E1C20, edge = 0x4FA0A4, wood = 0x142A30;
+        int stone = 0x2C4852, dark = 0x1A3038, edge = 0x6CC4C8, wood = 0x203C44;
         pushThrone();
         for (int sx = -1; sx <= 1; sx += 2) for (int k = 0; k < 4; k++) {   // square pillars down both sides of the hall
             push(); tr(sx * 5f, 0, -1.5f - k * 3.4f); float H = 7f;
@@ -1827,7 +1823,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         int fogc = 0x2C4650;
         boolean photonFog = m ? LotmFx.hold(curId, "astral_world:fool_fog", ex + hx(0, -6f), ey, ez + hz(0, -6f), 9f)
                 : LotmFx.hold(curId, "astral_world:seer_fog", ex, ey, ez, R * .95f);   // our own Photon fog
-        if (m) { dome(R * 4f, 0x03090E, 240);
+        if (m) { dome(R * 4f, 0x0B1C24, 215);
             for (int i = 0; i < 14; i++) { float a = t * .02f + i * TAU / 14; ebb("fog", (float) Math.cos(a) * R * 1.6f, top * (.75f + .35f * h(i, 9)), (float) Math.sin(a) * R * 1.6f, 22 * S, 7 * S, 0, rgba(0x0C1C24, .85f)); }
             bb("glow", hx(0, 3.5f), 3f, hz(0, 3.5f), 12f, 12f, 0, rgba(0x4C9AA0, .35f)); }
         int fn = m ? 2 : 1;
@@ -1883,15 +1879,21 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int i = 0; i < 4; i++) { float pw = fract(t * .3f + i / 4f); flat("ring", 0, .12f, 0, pw * 2.2f * R, 0, rgba(P3, fd(pw))); }
         sprites("mote", 70 * N, SPIRALM, R, 0, top, .35f * S, P3, 1f, .18f, 37, false);
     }
+    /** Three swords like the Warrior icon: the big one upright with its point at the ground and its pommel up, and two behind it crossing in an X, pommels
+     *  out and high, points meeting low near the middle. sword() has its pommel at the origin and its point along +y, so each is turned over. */
+    private void plantedSwords(float L, float back, int blade, int guard, int gem) {
+        float La = .85f * L, th = .7f, tipX = .2f * L;
+        for (int sd = -1; sd <= 1; sd += 2) {
+            push(); tr(-sd * tipX + sd * (float) Math.sin(th) * La, .08f + (float) Math.cos(th) * La, -back); rY(face); rZ(PI - sd * th);
+            sword(La, blade, guard, gem); pop();
+        }
+        push(); tr(0, .08f + L, 0); rY(face); rZ(PI); sword(L, blade, guard, gem); pop();
+    }
     private void twilight(int N) {
         sigil(R); boolean m = N == 2;
         facing("rays", 0, 1f * S, 0, R * 2.6f, R * 2.6f, 0, rgba(P1, .3f));
         float L = (m ? 8.5f : 6.8f) * S;
-        for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * L * .3f, 0, -.3f * S); rY(face); rZ(sd * .5f);
-            if (!drawGeo("sword_of_dawn", "lotm", "textures/item/sword_of_dawn.png", L * .85f)) sword(L * .85f, metal(.35f), mix(P2, 0x302010, .3f), P1); pop(); }
-        push(); tr(0, 0, 0); rY(face);
-        if (!drawGeo("sword_of_dawn", "lotm", "textures/item/sword_of_dawn.png", L)) sword(L, metal(.35f), mix(P2, 0x302010, .3f), P1);
-        pop();
+        plantedSwords(L, .3f * S, mix(P1, 0xFFFFFF, .45f), P2, P3);
         symFront(CY + .8f * S, 3.4f * S, 3.6f * S);
         for (int i = 0; i < 12 * N; i++) { float a = i * TAU / (12 * N) + .1f; flat("crack", (float) Math.cos(a) * R * .55f, .1f, (float) Math.sin(a) * R * .55f, 3.2f * S, a, rgba(P1, .8f)); }
         for (int i = 0; i < 6 * N; i++) { float a = -t * .1f + i * TAU / (6 * N), r = R * .85f; flameAt((float) Math.cos(a) * r, 0, (float) Math.sin(a) * r, 2.2f * S, i, P2, P1, P3, .75f); }
