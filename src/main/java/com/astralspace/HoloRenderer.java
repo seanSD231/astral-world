@@ -1695,13 +1695,13 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         push(); tr(0, top + 2f, 0); chain(top + 2f - ly - 3.6f * S, .9f * S, metal(.3f)); pop();
         push(); tr(0, ly - 3.6f * S, 0); rY(t * .2f); lanternModel(4.4f * S, metal(.35f), mix(P3, 0xFFFFFF, .3f)); pop();
         flameAt(0, ly - 3.0f * S, 0, 2.0f * S, 4, P3, mix(P3, 0xFFFFFF, .4f), 0xFFFFFF, 1f);
-        bb("glow", 0, ly - 2.4f * S, 0, 7f * S, 7f * S, 0, rgba(P3, .85f));
+        bb("glow", 0, ly - 2.4f * S, 0, 3.4f * S, 3.4f * S, 0, rgba(P3, .4f));   // small, so it no longer washes out the symbol behind it
         symFront(CY + .6f * S, 3.4f * S, 4.5f * S);
         for (int i = 0; i < 7 * N; i++) { float a = t * .15f + i * TAU / (7 * N), r = R * .7f, y = 2f * S + 1.8f * S * (i % 3);
             push(); tr((float) Math.cos(a) * r, y + 2.4f * S, (float) Math.sin(a) * r); chain(2.2f * S, .45f * S, metal(.3f)); pop();
             push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(a); lanternModel(1.5f * S, metal(.35f), mix(P3, 0xFFFFFF, .3f)); pop();
             flameAt((float) Math.cos(a) * r, y + .3f * S, (float) Math.sin(a) * r, .7f * S, i, P3, mix(P3, 0xFFFFFF, .4f), 0xFFFFFF, 1f);
-            bb("glow", (float) Math.cos(a) * r, y + .6f * S, (float) Math.sin(a) * r, 3f * S, 3f * S, 0, rgba(P3, .8f)); }
+            bb("glow", (float) Math.cos(a) * r, y + .6f * S, (float) Math.sin(a) * r, 1.6f * S, 1.6f * S, 0, rgba(P3, .4f)); }
         for (int i = 0; i < 9 * N; i++) {   // eyes opening in the dark
             float a = t * .1f + i * TAU / (9 * N), r = R * (.55f + .35f * h(i, 2)), y = 1.5f * S + h(i, 3) * top * .75f, bl = Math.max(.12f, Math.abs((float) Math.cos(t * .5f + i * 1.9f)));
             bb("eye", (float) Math.cos(a) * r, y, (float) Math.sin(a) * r, 2.4f * S, 1.2f * S * bl, 0, rgba(P1, 1f)); }

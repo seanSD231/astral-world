@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.153
+- Hermit legendary: the lanterns had huge, nearly opaque purple glows (the biggest 7 wide) that formed a ball washing out the symbol. Glows are now about half the size and half the strength. Untested in game.
+
 ## 0.2.152
 - Epic cards: seq 2 was missing two of the circles seq 3 had. It now has all of them plus one extra outer ring. Untested in game.
 
