@@ -668,16 +668,43 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
         tube(pts, thick, thick * .2f, rgb);
     }
-    /** A sun that flares: solid glowing ball, soft halo and prominences that flare out and fall back. Looks the same from every side. */
+    /** The LOTM flaring sun, rebuilt as pure vfx (no model): orange body and bright heart, a ray halo, wisps of sacred flame,
+     *  prominences that shoot out, kindling streaks drawn inward and drifting embers. Same from every side. */
     private void flareSun(float x, float y, float z, float rad, int c1, int c2) {
-        sphere(x, y, z, rad, rad, rad, 10, 16, mix(c1, 0xFFFFFF, .5f), 255);
-        bb("disc", x, y, z, rad * 2.15f, rad * 2.15f, 0, rgba(mix(c1, 0xFFFFFF, .6f), 1f));
-        bb("corona", x, y, z, rad * 5f, rad * 5f, t * .2f, rgba(c1, .9f));
-        bb("rays", x, y, z, rad * 8f, rad * 8f, -t * .15f, rgba(c2, .7f));
-        for (int i = 0; i < 9; i++) {
-            float a = i * TAU / 9 + t * .1f, pul = .5f + .5f * (float) Math.sin(t * 1.9f + i * 2.3f), len = rad * (.8f + 1.5f * pul);
-            float ca = (float) Math.cos(a), sa = (float) Math.sin(a), d = rad * .95f + len * .5f;
-            bb("flame", x + (rx * ca + ux * sa) * d, y + (ry * ca + uy * sa) * d, z + (rz * ca + uz * sa) * d, len * .55f, len, a - PI / 2, rgba(mix(c1, c2, pul), .95f));
+        float U = rad * 2f, pulse = 1f + .05f * (float) Math.sin(t * 2.1f);
+        int GOLD = 0xFFC23A, YEL = 0xFFE16E, CREAM = 0xFFF0C8;
+        bb("glow", x, y, z, U * 3.6f, U * 3.6f, 0, rgba(0xFF961E, .35f));
+        bb("rays", x, y, z, U * 3.2f, U * 3.2f, t * .12f, rgba(0xFFE15A, .7f));
+        bb("rays", x, y, z, U * 2.3f, U * 2.3f, -t * .2f, rgba(0xFFE15A, .6f));
+        for (int i = 0; i < 24; i++) { // ray_fade particles around the rim
+            float a = i * TAU / 24 + t * .06f, ln = U * (.35f + .35f * h(i, 7)) * (.8f + .2f * (float) Math.sin(t * 1.7f + i)), d = U * .5f + ln * .5f;
+            float ca = (float) Math.cos(a), sa = (float) Math.sin(a);
+            bb("beam", x + (rx * ca + ux * sa) * d, y + (ry * ca + uy * sa) * d, z + (rz * ca + uz * sa) * d, U * .05f, ln, a - PI / 2, rgba(0xFFE15A, .7f));
+        }
+        bb("disc", x, y, z, U * pulse, U * pulse, 0, rgba(0xFF961E, .95f));
+        bb("glow", x, y, z, U * 1.15f * pulse, U * 1.15f * pulse, 0, rgba(GOLD, .9f));
+        bb("disc", x, y, z, U * .6f * pulse, U * .6f * pulse, 0, rgba(YEL, 1f));
+        bb("glow", x, y, z, U * .45f, U * .45f, 0, rgba(CREAM, 1f));
+        for (int i = 0; i < 18; i++) { // sacred flames: wisps that drift out of the body and fade
+            float k = fract(t / (10f + 6f * h(i, 21)) + h(i, 22)), a = h(i, 23) * TAU, el = (h(i, 24) - .5f) * PI;
+            float rr = U * (.4f + .35f * k), ca = (float) Math.cos(a), sa = (float) Math.sin(a), ce = (float) Math.cos(el), se = (float) Math.sin(el);
+            float px = x + (rx * ca + ux * sa) * rr * ce + (ry == 0 ? 0 : 0), py = y + (ry * ca + uy * sa) * rr * ce + se * rr * .6f, pz = z + (rz * ca + uz * sa) * rr * ce;
+            bb("smoke", px, py, pz, U * .32f, U * .32f, a, rgba(GOLD, .55f * fd(k)));
+        }
+        for (int i = 0; i < 12; i++) { // prominences: streaks that shoot out, then fall back
+            float per = 2.4f + 1.6f * h(i, 31), k = fract(t / per + h(i, 32)), a = h(i, 33) * TAU;
+            float out = (float) Math.sin(k * PI), d = U * (.5f + .55f * out), ca = (float) Math.cos(a), sa = (float) Math.sin(a), ln = U * (.12f + .22f * out);
+            bb("flame", x + (rx * ca + ux * sa) * d, y + (ry * ca + uy * sa) * d, z + (rz * ca + uz * sa) * d, ln * .5f, ln * 1.6f, a - PI / 2, rgba(h(i, 34) < .5f ? GOLD : CREAM, .95f * out));
+        }
+        for (int i = 0; i < 14; i++) { // kindling: tiny streaks pulled inward from a wide shell
+            float k = fract(t / (3f + 2f * h(i, 41)) + h(i, 42)), a = h(i, 43) * TAU, d = U * (1.4f - .9f * k);
+            float ca = (float) Math.cos(a), sa = (float) Math.sin(a);
+            bb("line", x + (rx * ca + ux * sa) * d, y + (ry * ca + uy * sa) * d, z + (rz * ca + uz * sa) * d, U * .03f, U * .14f, a - PI / 2, rgba(h(i, 44) < .5f ? YEL : CREAM, fd(k)));
+        }
+        for (int i = 0; i < 26; i++) { // embers drifting away
+            float k = fract(t / (14f + 10f * h(i, 51)) + h(i, 52)), a = h(i, 53) * TAU, el = (h(i, 54) - .5f) * PI, d = U * (.55f + 1.3f * k), ce = (float) Math.cos(el);
+            float ca = (float) Math.cos(a), sa = (float) Math.sin(a);
+            bb("mote", x + (rx * ca + ux * sa) * d * ce, y + (ry * ca + uy * sa) * d * ce + (float) Math.sin(el) * d, z + (rz * ca + uz * sa) * d * ce, U * .05f, U * .05f, 0, rgba(GOLD, fd(k)));
         }
     }
     /** Minecraft-style sky stars: tiny square points that twinkle. */
@@ -1289,11 +1316,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
     private void sun(int N) {
         sigil(R); float sy = top * .9f;
-        bb("corona", 0, sy, 0, 11f * S, 11f * S, t * .05f, rgba(P1, .55f)); bb("glow", 0, sy, 0, 8f * S, 8f * S, 0, rgba(P3, .6f));
-        push(); tr(0, sy - 3.2f * S, 0); rY((float) Math.atan2(-rz, rx)); rZ(t * .12f); tr(0, 0, 0);
-        boolean sunOk = drawGeo("sun_halo", "lotm", "textures/entity/sun_halo.png", 6.4f * S);
-        pop();
-        if (!sunOk) flareSun(0, sy, 0, 2.6f * S, P1, P2);
+        bb("corona", 0, sy, 0, 11f * S, 11f * S, t * .05f, rgba(P1, .35f));
+        flareSun(0, sy, 0, 2.8f * S, P1, P2);
         column("beam", 0, .05f, sy, 0, 2f * S, rgba(P1, .35f));
         sym(CY, 3.4f * S, 0);
         for (int i = 0; i < 10 * N; i++) { float a = t * .3f + i * TAU / (10 * N); column("line", (float) Math.cos(a) * R * .6f, 0, 5f * S, (float) Math.sin(a) * R * .6f, .3f * S, rgba(P1, .9f)); }

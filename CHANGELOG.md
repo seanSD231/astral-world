@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.126
+- Bard sun is now a pure-vfx flaring sun like LOTM's, not a model: orange body and bright heart, ray halo, drifting sacred-flame wisps, prominences that flare out and fall back, kindling streaks pulled inward and drifting embers. `sun_halo` model removed from the scene.
+
 ## 0.2.125
 - Fool 0 rebuilt from the books' Sefirah Castle: an ancient mottled bronze long table with ten high backed chairs a side and one at each end (the Fool's at the head, taller), crimson constellations glowing on the chair backs, tall stone pillars around it.
 - Thrones no longer float: the seat sits on a solid block and the arms are supported (Black Emperor, Death and the Lawyer thrones). The Corpse Collector throne is empty.
