@@ -29,6 +29,7 @@ public class ThronePart extends Entity {
     private static final EntityDataAccessor<Float> W = SynchedEntityData.defineId(ThronePart.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> H = SynchedEntityData.defineId(ThronePart.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Boolean> SEAT = SynchedEntityData.defineId(ThronePart.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> OCC = SynchedEntityData.defineId(ThronePart.class, EntityDataSerializers.INT);
     private UUID parent;
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, AstralMod.MOD_ID);
@@ -45,12 +46,16 @@ public class ThronePart extends Entity {
         refreshDimensions();
     }
 
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(W, 1f); b.define(H, 1f); b.define(SEAT, false); }
+    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(W, 1f); b.define(H, 1f); b.define(SEAT, false); b.define(OCC, -1); }
     @Override public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
         if (key == W || key == H) refreshDimensions();
         super.onSyncedDataUpdated(key);
     }
     @Override public EntityDimensions getDimensions(Pose pose) { return EntityDimensions.fixed(entityData.get(W), entityData.get(H)); }
+
+    public boolean isSeat() { return entityData.get(SEAT); }
+    /** Index in Tarot.PATHWAYS of the pathway of whoever sits here, or -1 (empty seat, or not a Beyonder). */
+    public int occupant() { return entityData.get(OCC); }
 
     @Override protected void readAdditionalSaveData(CompoundTag t) {}
     @Override protected void addAdditionalSaveData(CompoundTag t) {}
@@ -72,6 +77,11 @@ public class ThronePart extends Entity {
     @Override
     public void tick() {
         super.tick();
+        if (!level().isClientSide && entityData.get(SEAT) && tickCount % 5 == 0) {
+            int v = -1;
+            if (getFirstPassenger() instanceof net.minecraft.server.level.ServerPlayer sp) v = java.util.Arrays.asList(Tarot.PATHWAYS).indexOf(Lotm.pathwayId(sp));
+            if (v != entityData.get(OCC)) entityData.set(OCC, v);
+        }
         if (!level().isClientSide && (parent == null || tickCount % 20 == 0 && !(((net.minecraft.server.level.ServerLevel) level()).getEntity(parent) instanceof HoloCardEntity))) discard();
     }
 }

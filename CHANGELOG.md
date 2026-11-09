@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.140
+- Fool hall rebuilt bigger (1.9x a person) and in more detail to match the picture: a long ribbed stone table like a bridge with teal inlay, rails and lamps, tall carved chairs with gabled backs and teal edges, a tall high seat at the head, a dark stone floor with teal edging, and tall carved pillars with glowing slits. The real seats and table (sit and walk on them) are scaled to match.
+- The symbol behind each chair is now the pathway of whoever is sitting in it (read from LOTM on the server and synced). Empty chairs show only a faint glow. The head seat shows the Fool's symbol.
+- The last chair is now past the end of the table instead of inside it.
+- Fool fog is much greyer and darker but thin enough to see through. One fog and set of lights now fills the whole sphere, with a thicker grey fog around the table.
+- Bard sun is twice as big again.
+- Untested in game.
+
 ## 0.2.139
 - Removed the "click the Great Old One again" hint; it just waits for the second click.
 - Untested in game.

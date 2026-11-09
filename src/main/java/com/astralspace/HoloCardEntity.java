@@ -104,18 +104,21 @@ public class HoloCardEntity extends Entity {
 
     /** Real, solid boxes matching HoloRenderer.throneModel (s = .95 * scale): three steps, seat, armrests and the back. */
     /** The Fool's hall: twenty-two seats you can sit in and the long table under the card, matching HoloRenderer.foolHall (local x right, z toward you). */
+    /** How much bigger than a person the Fool's hall is; HoloRenderer.foolHall draws it with the same number. */
+    public static final float HALL_K = 1.9f;
     private void spawnHall() {
-        int k = throneQuarter();
+        int k = throneQuarter(); float K = HALL_K;
         double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));
-        java.util.List<float[]> parts = new java.util.ArrayList<>();
-        for (int i = 0; i < 9; i++) parts.add(new float[]{0, 0, -1.5f * i, 1.5f, .8f, 0});
-        for (int sd = -1; sd <= 1; sd += 2) for (int i = 0; i < 10; i++) parts.add(new float[]{sd * 1.25f, 0, -.9f - i * 1.1f, .8f, .5f, 1});
-        parts.add(new float[]{0, 0, 1.7f, .8f, .5f, 1}); parts.add(new float[]{0, 0, -12.3f, .8f, .5f, 1});
+        java.util.List<float[]> parts = new java.util.ArrayList<>();   // {local x, bottom y, local z, side, height, seat?}, in hall units
+        float zc = -5.9f, hl = 6.6f, side = 1.6f;
+        for (float z = zc + hl - side / 2; z > zc - hl - side / 2; z -= side) parts.add(new float[]{0, 0, z, 1.64f, .8f, 0});     // the table, solid
+        for (int sd = -1; sd <= 1; sd += 2) for (int i = 0; i < 10; i++) parts.add(new float[]{sd * 1.3f, 0, -.9f - i * 1.1f, .8f, .5f, 1});
+        parts.add(new float[]{0, 0, 2.0f, .8f, .5f, 1}); parts.add(new float[]{0, 0, zc - hl - 1.1f, .8f, .5f, 1});
         for (float[] q : parts) {
-            double wx = q[0] * c + q[2] * sn, wz = -q[0] * sn + q[2] * c;
+            double x = q[0] * K, z = q[2] * K, wx = x * c + z * sn, wz = -x * sn + z * c;
             ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
-            tp.setup(getUUID(), q[3], q[4], q[5] > 0);
-            tp.setPos(getX() + wx, getY() + q[1], getZ() + wz);
+            tp.setup(getUUID(), q[3] * K, q[4] * K, q[5] > 0);
+            tp.setPos(getX() + wx, getY() + q[1] * K, getZ() + wz);
             level().addFreshEntity(tp);
         }
     }

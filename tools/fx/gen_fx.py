@@ -108,14 +108,22 @@ write('bearing_of_sins', [
     emitter('red mist #area', PUFF, (0xC01020, .25), (.4, .7), (36, 54), rate=.5, maxp=60, radius=.5, speed=(.002, .006), lin=(0, .004, 0)),
 ])
 
-# ---- Fool hall: a low drifting fog the colour of the picture, thinner haze above it, motes and far-off lights (unit = the hall's radius)
+# ---- Fool hall, whole sphere (unit = the sphere's radius, so the effect is played at about 3.6 R): a grey, dark, thin fog at every height with
+# lights and motes spread all the way out, so it reads the same wherever you stand
 write('fool_fog', [
-    emitter('ground fog #area', PUFF, ((0x3A5C66, .3), (0x4A7078, .24)), (.22, .4), (40, 70), rate=14, maxp=500, radius=1.0, sscale=(1, .05, 1), speed=(.001, .004), lin=(.004, .001, 0), noise=(.03, .25), pos=(0, .03, 0)),
-    emitter('low haze #area', PUFF, (0x5A8088, .06), (.3, .55), (50, 80), rate=3, maxp=120, radius=1.0, sscale=(1, .12, 1), speed=(.001, .003), lin=(-.003, .002, 0), noise=(.04, .2), pos=(0, .08, 0)),
-    emitter('mist #area', PUFF, (0x2A444E, .06), (.4, .7), (60, 90), rate=1.2, maxp=60, radius=1.35, sscale=(1, .4, 1), speed=(.001, .003), lin=(0, .002, 0), noise=(.04, .2), pos=(0, .25, 0)),
-    emitter('floating lights #detail', GLOW, ((0x70D8E0, .7), (0xD0B8FF, .6)), (.012, .03), (60, 120), rate=.5, maxp=90, radius=1.2, sscale=(1, .35, 1), pos=(0, .25, 0), lin=(0, .002, 0), noise=(.02, .3), add=True),
-    emitter('far lights #detail', GLOW, ((0xFFFFFF, .4), (0x90C0FF, .4)), (.01, .025), (80, 140), rate=.8, maxp=160, radius=2.2, thick=.3, sscale=(1, .45, 1), pos=(0, .35, 0), noise=(.01, .3), add=True),
-    emitter('pale motes #detail', EMBER, ((0xFFFFFF, .8), (0xA8E8FF, .8)), (.004, .01), (60, 100), rate=.8, maxp=140, radius=1.1, sscale=(1, .3, 1), pos=(0, .2, 0), lin=(0, .002, 0), noise=(.02, .3), add=True),
+    emitter('low fog #area', PUFF, ((0x2C3236, .16), (0x394044, .13)), (.045, .09), (60, 100), rate=14, maxp=1300, radius=1.0, thick=1.0, sscale=(1, .12, 1), speed=(.0004, .0015), lin=(.002, .0004, 0), noise=(.01, .2), pos=(0, .02, 0)),
+    emitter('mid fog #area', PUFF, ((0x252B2F, .12), (0x30373B, .1)), (.07, .13), (70, 110), rate=8, maxp=900, radius=1.0, sscale=(1, .45, 1), speed=(.0004, .0012), lin=(-.0015, .0006, 0), noise=(.01, .2), pos=(0, .3, 0)),
+    emitter('high fog #area', PUFF, ((0x1C2124, .14), (0x262C30, .12)), (.09, .16), (80, 120), rate=6, maxp=700, radius=1.0, sscale=(1, .5, 1), speed=(.0004, .001), lin=(.001, 0, 0), noise=(.01, .2), pos=(0, .65, 0)),
+    emitter('lights #detail', GLOW, ((0x9AD8DC, .65), (0xD8E0FF, .55)), (.006, .016), (80, 160), rate=2.5, maxp=700, radius=1.0, sscale=(1, .6, 1), pos=(0, .35, 0), lin=(0, .0006, 0), noise=(.004, .3), add=True),
+    emitter('far lights #detail', GLOW, ((0xFFFFFF, .4), (0x90C0FF, .4)), (.005, .012), (100, 180), rate=3, maxp=900, radius=1.0, thick=.25, sscale=(1, .7, 1), pos=(0, .4, 0), noise=(.002, .3), add=True),
+    emitter('motes #detail', EMBER, ((0xFFFFFF, .8), (0xA8E8FF, .8)), (.002, .005), (80, 140), rate=3, maxp=900, radius=1.0, sscale=(1, .7, 1), pos=(0, .35, 0), lin=(0, .0006, 0), noise=(.003, .3), add=True),
+])
+
+# ---- Fool hall, thick around the table (unit = the hall's half length): the grey fog hanging low over the floor and between the pillars
+write('fool_hall_fog', [
+    emitter('floor fog #area', PUFF, ((0x30383C, .2), (0x3E474B, .17)), (.09, .17), (50, 90), rate=12, maxp=800, radius=1.0, sscale=(.6, .1, 1), speed=(.0005, .002), lin=(.0015, .0005, 0), noise=(.012, .25), pos=(0, .03, 0)),
+    emitter('table mist #area', PUFF, (0x394146, .09), (.14, .24), (60, 100), rate=3, maxp=250, radius=1.0, sscale=(.6, .3, 1), speed=(.0004, .0012), lin=(-.001, .0008, 0), noise=(.012, .2), pos=(0, .16, 0)),
+    emitter('hall lights #detail', GLOW, ((0x70D8E0, .7), (0xD0B8FF, .6)), (.01, .026), (60, 120), rate=.5, maxp=120, radius=1.0, sscale=(.6, .5, 1), pos=(0, .25, 0), lin=(0, .0008, 0), noise=(.006, .3), add=True),
 ])
 
 # ---- Seer: a smaller, paler mist with a few drifting lights (unit = the scene's radius)
