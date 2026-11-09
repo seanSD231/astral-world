@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.128
+- Epic Black Emperor and Abyss no longer carry miniature legendary set pieces (throne, void orb and tentacles); epic Sailor loses its mini ocean, epic Monster loses its dice, epic Mystery Pryer's eyeballs are now vfx eyes.
+- Bard sun reworked again to match the Photon flaring sun: compact, soft orange body with a bright heart, tiny ray flecks, wisps, embers. No big spikes.
+- Hanged Man: the model is replaced by the Bearing of Sins symbol (LOTM's red cross and flower, double sided and glowing), also used for the epic orbit.
+- All night domes (Moon, Abyss, Black Emperor, Hanged Man, Sleepless, Great Old Ones) are darker, and Black Emperor and Hanged Man now have stars.
+- Apothecary 0: many more potions in three rings, a blood cauldron, vampire bats, blood rain and a blood ring.
+- Monster wheel of fortune rebuilt: thick rim with chasing bulbs, spokes, hub, ticker that flicks, spins up and lands on a segment, coins, clovers and cards.
+- Error: far fewer binary digits.
+- Spectator 0: the big star on the floor is gone.
+- Fool 0 hall restyled after the reference: dark teal sky and storm clouds, grey-teal fog rolling along the floor, pale light round the Fool's seat.
+
 ## 0.2.127
 - Great Old One card fronts and backs: wedge colours fixed (Warrior orange, Corpse green, Door blue, Error grey, Bard yellow, Spectator light blue, Sailor dark blue, Hanged Man dark red, White Tower white) and every wedge is now centred on its symbol, with symbols spaced evenly in a triangle/pentagon.
 
