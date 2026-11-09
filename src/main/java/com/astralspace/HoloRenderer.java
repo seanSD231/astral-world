@@ -1289,7 +1289,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         column("beam", 0, 0.05f, tp2, 0, two ? .7f : .5f, rgba(P1, .6f));
         column("beam", 0, 0.05f, tp2, 0, .2f, rgba(P3, .6f));
         flat("ring_dash", 0, .05f, 0, 2.4f, -t * .4f, rgba(P1, .9f));
-        if (!two) { flat("ring", 0, .06f, 0, 1.3f, t * .6f, rgba(P2, .9f)); flat("ring_thick", 0, .07f, 0, 3f, t * .15f, rgba(P2, .6f)); }
+        flat("ring", 0, .06f, 0, 1.3f, t * .6f, rgba(P2, .9f)); flat("ring_thick", 0, .07f, 0, 3f, t * .15f, rgba(P2, .6f)); if (two) flat("ring_dash", 0, .08f, 0, 3.6f, t * .3f, rgba(P3, .8f));   // seq 2 has every ring seq 3 has, and one more
         float cy = 1.9f + (float) Math.sin(t * 1.6) * .08f;
         if (curPath == 9) glitchSym(0, cy, 0, 1.9f, -face); else symPlane(curPath, 0, cy, 0, 1.9f, -face, 1f);
         int med = two ? 8 : 6;
