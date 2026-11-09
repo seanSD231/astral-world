@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.146
+- GOO cards toned down to legendary-card scale (about 15-25% smaller scenes, smaller domes and spreads).
+- Lord of Mysteries is now a compact stage: the glitching Fool symbol over the three pathways, with a small door of light behind. The giant hall, stair and dome are gone from it (the Fool legendary keeps its hall). Untested in game.
+
 ## 0.2.145
 - Lag fix for the Fool/LoM space: about half the background pillars (plain, no carving), fewer table details, a lighter dome and sky clouds, and 60% fewer Photon particles in the fog, stars and door. Untested in game.
 

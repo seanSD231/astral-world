@@ -899,7 +899,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         curPath = Math.min(pi, PAL.length - 1); gold = shiny;
         int[] pal = PAL[curPath];
         P1 = gold ? 0xFFD040 : pal[0]; P2 = gold ? 0xB87810 : pal[1]; P3 = gold ? 0xFFF4B0 : pal[2];
-        if (e.goo() >= 0) { R = 13f; top = 22f; S = 2.6f; CY = 7.4f + (float) Math.sin(t * 1.2) * .3f; int[] gp = GOOPAL[e.goo()]; curPath = pidx(Tarot.GOO_PATHS[e.goo()][0]); P1 = gp[0]; P2 = gp[1]; P3 = gp[2]; if (!symOnly) { gooScene(e.goo()); return; } }
+        if (e.goo() >= 0) { R = 11f; top = 16f; S = 2.1f; CY = 7.4f + (float) Math.sin(t * 1.2) * .3f; int[] gp = GOOPAL[e.goo()]; curPath = pidx(Tarot.GOO_PATHS[e.goo()][0]); P1 = gp[0]; P2 = gp[1]; P3 = gp[2]; if (!symOnly) { gooScene(e.goo()); return; } }
         if (symOnly) { if (e.goo() >= 0) gooSymbolOnly(e.goo()); else symbolOnly(); return; }
         Cfg c = CFG[curPath];
         if (seq >= 4) rare(c, seq);
@@ -960,18 +960,24 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     /** Lord of Mysteries: the whole Sefirah hall (grey fog, bronze table, seated pathways), the Fool's symbol glitching through the others, and a door of light at the far end. */
     /** Lord of Mysteries: the Fool's hall, a white door of light up a stair behind the head seat, and now and then the whole space glitches. */
     private void gooLord() {
-        float sv = S; S = 1.7f; int cp = curPath; curPath = 18;
+        int cp = curPath; curPath = 18;
         float t0 = t, ph = t % 14f; boolean gl = ph < .35f || (ph > 6.5f && ph < 6.65f); int fb = (int) (t * 25);   // rarely: a short burst, then a shorter one
-        if (gl) { t = t0 - .3f * h(fb, 3); glX = (h(fb, 4) - .5f) * 1.2f; glZ = (h(fb, 5) - .5f) * 1.2f; }
-        lomHall = true; fool(2, true); lomHall = false;
-        float q0 = thQ * PI / 2, hzs = HoloCardEntity.HALL_HEAD + 1.4f;
-        glitchSym(hxk(0, hzs), 10.8f * HK, hzk(0, hzs), 3.4f * HK, -q0);   // the Fool's symbol glitching through every pathway, above the three
-        lightDoor();
-        if (gl) {   // torn slabs of colour across the whole sphere
+        if (gl) t = t0 - .3f * h(fb, 3);
+        LotmFx.hold(curId, "astral_world:seer_fog", ex, ey, ez, R * .95f);
+        // a compact stage like the legendary cards: the Fool's symbol glitching through the others, the three pathways below it, and a small door of light behind
+        float gy = CY + 1.2f * S;
+        glitchSym(gx(0, 0), gy + 2.2f * S, gz(0, 0), 3.4f * S, -face);
+        gooSymbols(0, 1.4f * S, R * .55f, 1.8f * S);
+        float dx = gx(0, -R * .75f), dz = gz(0, -R * .75f), dh = 5.5f * S;
+        eq(tex("solid"), dx, dh * .55f, dz, sx0 * 1.3f * S, 0, sz0 * 1.3f * S, 0, dh * .45f, 0, rgba(0xE8F0FF, .85f), 0, 0, 1, 1);
+        eq(tex("solid"), dx, dh * .55f, dz, -sx0 * 1.3f * S, 0, -sz0 * 1.3f * S, 0, dh * .45f, 0, rgba(0xE8F0FF, .85f), 0, 0, 1, 1);
+        bb("glow", dx, dh * .55f, dz, 5f * S, dh * 1.1f, 0, rgba(0xFFFFFF, .5f)); column("beam", dx, 0, top * 1.6f, dz, 1.4f * S, rgba(0xFFFFFF, .3f));
+        for (int k = 0; k < 8; k++) { float p = fract(t * .3f + k / 8f); bb("lotm:ember_hd", dx + (h(k, 31) - .5f) * 2f * S, p * dh, dz, .35f * S, .35f * S, 0, rgba(0xFFFFFF, fd(p))); }
+        if (gl) {   // torn slabs of colour
             int[] cols = {0x40FFFF, 0xFF40C0, 0xFFFFFF, 0x60FF80};
-            for (int i = 0; i < 16; i++) { float a = h(fb, 10 + i) * TAU, rr = R * (.3f + 1.4f * h(fb, 30 + i)); bb("solid", (float) Math.cos(a) * rr, (h(fb, 50 + i) * 16f) * S, (float) Math.sin(a) * rr, (6f + 40f * h(fb, 70 + i)) * S, (.05f + .4f * h(fb, 90 + i)) * S, 0, rgba(cols[i % 4], .25f + .3f * h(fb, 110 + i))); }
+            for (int i = 0; i < 10; i++) { float a = h(fb, 10 + i) * TAU, rr = R * (.3f + 1.0f * h(fb, 30 + i)); bb("solid", (float) Math.cos(a) * rr, h(fb, 50 + i) * 12f * S, (float) Math.sin(a) * rr, (4f + 24f * h(fb, 70 + i)) * S, (.05f + .3f * h(fb, 90 + i)) * S, 0, rgba(cols[i % 4], .25f + .3f * h(fb, 110 + i))); }
         }
-        t = t0; glX = 0; glZ = 0; S = sv; curPath = cp;
+        t = t0; curPath = cp;
     }
     /** God Almighty: a round golden dais under a great gold armillary around a seed of light, the five symbols on tall stelae facing it, and a pillar of light. */
     private void gooAlmighty() {

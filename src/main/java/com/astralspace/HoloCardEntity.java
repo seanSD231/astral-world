@@ -100,7 +100,7 @@ public class HoloCardEntity extends Entity {
 
     /** Throne holograms (Death and Black Emperor, Seq 1 and 0) turn in quarter turns so their solid parts line up with the model. */
     public int throneQuarter() { return (int) Math.round((Math.PI - Math.toRadians(getYRot())) / (Math.PI / 2)); }
-    public boolean hasThrone() { return goo() == 0 && !symbolOnly() || goo() < 0 && !symbolOnly() && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8 || pathIndex() == 18 && seq() == 0); }
+    public boolean hasThrone() { return goo() < 0 && !symbolOnly() && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8 || pathIndex() == 18 && seq() == 0); }
 
     /** Real, solid boxes matching HoloRenderer.throneModel (s = .95 * scale): three steps, seat, armrests and the back. */
     /** The Fool's hall: twenty-two seats you can sit in and the long table under the card, matching HoloRenderer.foolHall (local x right, z toward you). */
@@ -141,7 +141,6 @@ public class HoloCardEntity extends Entity {
     }
 
     private void spawnThrone() {
-        if (goo() == 0) { spawnStairs(); return; }
         if (pathIndex() == 18) { spawnHall(); return; }
         float s = .95f * (seq() == 0 ? 2.1f : 1.15f);
         int k = throneQuarter();
