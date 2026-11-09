@@ -848,8 +848,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         switch (curPath) {
             case 2 -> { for (int i = 0; i < props; i++) { float a = t * .7f + i * TAU / props; push(); tr((float) Math.cos(a) * 1.05f, cy - .55f + (float) Math.sin(t * 1.5f + i) * .15f, (float) Math.sin(a) * 1.05f); rY(-a + PI / 2); scalesModel(.62f, metal(.75f), P1); pop(); } }
             case 7 -> { for (int i = 0; i < props + 1; i++) { float a = t * .6f + i * TAU / (props + 1); flameAt((float) Math.cos(a) * 1.05f, two ? cy - .6f : .1f, (float) Math.sin(a) * 1.05f, .9f, i, P2, P1, P3, .95f); } }
-            case 10 -> {
-                push(); tr(fx * 1.2f, .95f, fz * 1.2f); rY(face); rZ(t * .5f); wheelModel(.62f, metal(.7f), metal(.5f), P1); pop();
+            case 10 -> {   // Monster: dice tumbling round the symbol (the wheel was clipping through it)
+                for (int i = 0; i < props + 1; i++) { float a = t * .6f + i * TAU / (props + 1); push(); tr((float) Math.cos(a) * 1.05f, cy - .55f + (float) Math.sin(t * 1.5f + i) * .15f, (float) Math.sin(a) * 1.05f); rY(t * 1.1f + i); rX(t * 1.5f + i * 2f); die(.1f); pop(); }
             }
             case 11 -> { for (int i = 0; i < props + 1; i++) { float a = t * .6f + i * TAU / (props + 1); float bl = Math.max(.15f, Math.abs((float) Math.cos(t * .6f + i * 1.7f))), ex2 = (float) Math.cos(a) * 1.1f, ey2 = cy - .3f + (float) Math.sin(t * 1.4f + i) * .2f, ez2 = (float) Math.sin(a) * 1.1f;
                 bb("glow", ex2, ey2, ez2, .7f, .7f, 0, rgba(P1, .3f)); bb("eye", ex2, ey2, ez2, .55f, .55f * .5f * bl, 0, rgba(mix(P1, 0xFFFFFF, .3f), 1f)); } }

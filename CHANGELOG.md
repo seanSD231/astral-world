@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.151
+- Monster epic: removed the little wheel that clipped through the symbol; dice now tumble round it instead. Untested in game.
+
 ## 0.2.150
 - Warrior swords: the two crossed swords were positioned before the model was turned to face you, so they only crossed from one direction. They now turn with the hologram and always form the X behind the upright sword. Untested in game.
 
