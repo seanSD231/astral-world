@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.143
+- Fool and Lord of Mysteries space rebuilt much bigger (hall scale 2.4): a round dome on a ring of twelve columns, far taller darker pillars standing off in the fog (none tiny), a round dark floor.
+- New very long bronze table (mottled green), wider, with chairs 10% smaller and spaced well apart. The table now works like an item frame: right click with an item to set it down, empty hand or sneak to take it back (Fool only; untested).
+- Brighter sky: lighter indigo dome, far nebula clouds and stronger Photon nebula. All sky stars are now round, many-coloured Photon dots instead of squares.
+- Spell circle removed under Fool and Lord of Mysteries only.
+- Pathway symbols now sit to the left of each chair; Lord of Mysteries shows all three (Door, Fool, Error) over the head chair, with the glitching Fool above them.
+- Door of light remade from the tarot art: big dark gothic arch on carved columns, white whorls of light, black tentacles, grey marble stair; placed higher and further back.
+- Bard: seq 1 sun 20% smaller, seq 0 sun higher.
+Untested in game (CI build only).
+
 ## 0.2.142
 - Fool hall, from your new references: a ribbed stone dome with an open eye now covers the table, on ten fluted columns joined by pointed arches. Looking up you see the eye: a bright white-teal rosette inside a blue ring of ticks and arrowheads.
 - Better columns (plinth, ringed and grooved shaft, carved collar, flared capital with horned corners, a red glint) standing in the fog all around, tall and broken.

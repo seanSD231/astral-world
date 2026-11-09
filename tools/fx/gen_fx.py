@@ -116,9 +116,9 @@ write('fool_fog', [
     emitter('high fog #area', PUFF, ((0x1C2124, .14), (0x262C30, .12)), (.09, .16), (80, 120), rate=6, maxp=700, radius=1.0, sscale=(1, .5, 1), speed=(.0004, .001), lin=(.001, 0, 0), noise=(.01, .2), pos=(0, .65, 0)),
     emitter('lights #detail', GLOW, ((0x9AD8DC, .65), (0xD8E0FF, .55)), (.006, .016), (80, 160), rate=2.5, maxp=700, radius=1.0, sscale=(1, .6, 1), pos=(0, .35, 0), lin=(0, .0006, 0), noise=(.004, .3), add=True),
     emitter('red lights #detail', GLOW, ((0xFF2030, .9), (0xFF4458, .8)), (.004, .01), (80, 170), rate=1.4, maxp=450, radius=1.0, sscale=(1, .7, 1), pos=(0, .35, 0), lin=(0, .0005, 0), noise=(.004, .3), add=True),
-    emitter('nebula blue #area', PUFF, ((0x2A5CFF, .14), (0x3A8CFF, .12)), (.12, .24), (90, 140), rate=2.2, maxp=260, radius=1.0, thick=.4, sscale=(1, .3, 1), speed=(.0002, .0006), pos=(0, .8, 0), noise=(.006, .15), add=True),
-    emitter('nebula pink #area', PUFF, ((0xC040C8, .12), (0xFF60B0, .1)), (.12, .22), (90, 140), rate=1.8, maxp=220, radius=1.0, thick=.4, sscale=(1, .3, 1), speed=(.0002, .0006), pos=(0, .85, 0), noise=(.006, .15), add=True),
-    emitter('nebula cyan #area', PUFF, ((0x30D0E8, .1), (0x60F0E0, .08)), (.1, .2), (90, 140), rate=1.4, maxp=180, radius=1.0, thick=.4, sscale=(1, .3, 1), speed=(.0002, .0006), pos=(0, .8, 0), noise=(.006, .15), add=True),
+    emitter('nebula blue #area', PUFF, ((0x2A5CFF, .36), (0x3A8CFF, .32)), (.16, .3), (90, 140), rate=3.2, maxp=380, radius=1.0, thick=.4, sscale=(1, .3, 1), speed=(.0002, .0006), pos=(0, .8, 0), noise=(.006, .15), add=True),
+    emitter('nebula pink #area', PUFF, ((0xC040C8, .32), (0xFF60B0, .28)), (.16, .28), (90, 140), rate=2.6, maxp=320, radius=1.0, thick=.4, sscale=(1, .3, 1), speed=(.0002, .0006), pos=(0, .85, 0), noise=(.006, .15), add=True),
+    emitter('nebula cyan #area', PUFF, ((0x30D0E8, .28), (0x60F0E0, .24)), (.14, .26), (90, 140), rate=2.0, maxp=260, radius=1.0, thick=.4, sscale=(1, .3, 1), speed=(.0002, .0006), pos=(0, .8, 0), noise=(.006, .15), add=True),
     emitter('ribbons #detail', LT + 'streak.png', ((0xFFFFFF, .8), (0xD8F4FF, .7)), (.004, .01), (70, 130), rate=.3, maxp=60, radius=1.0, sscale=(1, .7, 1), speed=(.003, .01), pos=(0, .4, 0), noise=(.02, .4), add=True, mode='StretchedBillboard'),
     emitter('far lights #detail', GLOW, ((0xFFFFFF, .4), (0x90C0FF, .4)), (.005, .012), (100, 180), rate=3, maxp=900, radius=1.0, thick=.25, sscale=(1, .7, 1), pos=(0, .4, 0), noise=(.002, .3), add=True),
     emitter('motes #detail', EMBER, ((0xFFFFFF, .8), (0xA8E8FF, .8)), (.002, .005), (80, 140), rate=3, maxp=900, radius=1.0, sscale=(1, .7, 1), pos=(0, .35, 0), lin=(0, .0006, 0), noise=(.003, .3), add=True),
@@ -126,8 +126,8 @@ write('fool_fog', [
 
 # ---- Fool hall, thick around the table (unit = the hall's half length): the grey fog hanging low over the floor and between the pillars
 write('fool_hall_fog', [
-    emitter('floor fog #area', PUFF, ((0x30383C, .2), (0x3E474B, .17)), (.09, .17), (50, 90), rate=12, maxp=800, radius=1.0, sscale=(.6, .1, 1), speed=(.0005, .002), lin=(.0015, .0005, 0), noise=(.012, .25), pos=(0, .03, 0)),
-    emitter('table mist #area', PUFF, (0x394146, .09), (.14, .24), (60, 100), rate=3, maxp=250, radius=1.0, sscale=(.6, .3, 1), speed=(.0004, .0012), lin=(-.001, .0008, 0), noise=(.012, .2), pos=(0, .16, 0)),
+    emitter('floor fog #area', PUFF, ((0x30383C, .2), (0x3E474B, .17)), (.09, .17), (50, 90), rate=28, maxp=1800, radius=1.0, sscale=(.6, .1, 1), speed=(.0005, .002), lin=(.0015, .0005, 0), noise=(.012, .25), pos=(0, .03, 0)),
+    emitter('table mist #area', PUFF, (0x394146, .09), (.14, .24), (60, 100), rate=6, maxp=500, radius=1.0, sscale=(.6, .3, 1), speed=(.0004, .0012), lin=(-.001, .0008, 0), noise=(.012, .2), pos=(0, .16, 0)),
     emitter('hall lights #detail', GLOW, ((0x70D8E0, .7), (0xD0B8FF, .6)), (.01, .026), (60, 120), rate=.5, maxp=120, radius=1.0, sscale=(.6, .5, 1), pos=(0, .25, 0), lin=(0, .0008, 0), noise=(.006, .3), add=True),
 ])
 
@@ -173,4 +173,20 @@ write('anarchy_sparks', [
     light('spark light', 0xFFD060, 4.0, 3),
     emitter('sparks #area', LT + 'streak.png', ((0xFFE070, .95), (0xFFFFFF, .95)), (.02, .05), (8, 18), rate=3, maxp=240, radius=.5, speed=(.04, .12), noise=(0, 0), add=True, mode='StretchedBillboard'),
     emitter('dust #area', PUFF, (0x3A3A44, .25), (.3, .6), (50, 90), rate=2.5, maxp=150, radius=1.0, sscale=(1, .1, 1), speed=(.001, .004), lin=(.004, .002, 0)),
+])
+
+# ---- Sky stars (unit = the sky's radius): round, many-coloured dots that twinkle, on a shell over the whole sphere
+TW = (0, 0, .12, 1, .35, .45, .6, 1, .85, .5, 1, 0)
+write('star_dots', [
+    emitter('stars white', EMBER, ((0xFFFFFF, 1.0), (0xA8D8FF, 1.0)), (.004, .011), (200, 400), rate=.9, maxp=340, radius=1.0, thick=0.0, sscale=(1, .75, 1), pos=(0, .12, 0), noise=(0, 0), alpha=TW, add=True),
+    emitter('stars pink', EMBER, ((0xFF70C0, 1.0), (0xB070FF, 1.0)), (.004, .01), (200, 400), rate=.5, maxp=200, radius=1.0, thick=0.0, sscale=(1, .75, 1), pos=(0, .12, 0), noise=(0, 0), alpha=TW, add=True),
+    emitter('stars gold', EMBER, ((0xFFD060, 1.0), (0x60F0D0, 1.0)), (.004, .01), (200, 400), rate=.5, maxp=200, radius=1.0, thick=0.0, sscale=(1, .75, 1), pos=(0, .12, 0), noise=(0, 0), alpha=TW, add=True),
+])
+
+# ---- The door of light (unit = about half the door's height): white mist and motes inside it, and a low white fog spilling out
+write('door_light', [
+    light('door light', 0xFFFFFF, 2.2, 8, vol=1.4),
+    emitter('white mist #area', PUFF, ((0xFFFFFF, .2), (0xDCE8FF, .18)), (.12, .26), (40, 80), rate=4, maxp=300, radius=.5, sscale=(1, 1.3, 1), speed=(.001, .004), noise=(.01, .3), add=True),
+    emitter('light motes #detail', EMBER, ((0xFFFFFF, .9), (0xCFE4FF, .9)), (.006, .016), (60, 120), rate=2, maxp=250, radius=.7, sscale=(1, 1.2, 1), lin=(0, .002, 0), noise=(.004, .3), add=True),
+    emitter('spill fog #area', PUFF, ((0xE8F0FF, .16), (0xFFFFFF, .14)), (.15, .3), (50, 90), rate=3, maxp=200, radius=.8, sscale=(1, .12, 1), pos=(0, -.9, 0), speed=(.001, .003), noise=(.01, .25), add=True),
 ])

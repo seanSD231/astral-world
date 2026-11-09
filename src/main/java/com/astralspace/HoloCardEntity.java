@@ -81,8 +81,8 @@ public class HoloCardEntity extends Entity {
     @Override public boolean canBeCollidedWith() { return false; }
     @Override public boolean hurt(DamageSource source, float amount) { return false; }
     /** The hologram reaches several blocks above the card, so the renderer must not be culled with the thin card box. */
-    @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(goo() >= 0 ? 80 : 48, goo() >= 0 ? 50 : 30, goo() >= 0 ? 80 : 48); }
-    @Override public boolean shouldRenderAtSqrDistance(double d) { return d < 200.0 * 200.0; }
+    @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 300 : 48, goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 220 : 30, goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 300 : 48); }
+    @Override public boolean shouldRenderAtSqrDistance(double d) { return d < 420.0 * 420.0; }
 
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
@@ -105,19 +105,22 @@ public class HoloCardEntity extends Entity {
     /** Real, solid boxes matching HoloRenderer.throneModel (s = .95 * scale): three steps, seat, armrests and the back. */
     /** The Fool's hall: twenty-two seats you can sit in and the long table under the card, matching HoloRenderer.foolHall (local x right, z toward you). */
     /** How much bigger than a person the Fool's hall is; HoloRenderer.foolHall draws it with the same number. */
-    public static final float HALL_K = 1.9f;
+    public static final float HALL_K = 2.4f;
+    /** The hall's layout in hall units (times HALL_K for blocks): table centre z and half length, half width, the side chairs' x and pitch. The renderer draws from the same numbers. */
+    public static final float HALL_ZC = -12.4f, HALL_HL = 13.0f, HALL_W = 1.2f, HALL_SX = 2.0f, HALL_PITCH = 2.4f, HALL_Z0 = -1.9f, HALL_CHAIR = .9f, HALL_HEAD = 2.0f;
     private void spawnHall() {
         int k = throneQuarter(); float K = HALL_K;
         double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));
-        java.util.List<float[]> parts = new java.util.ArrayList<>();   // {local x, bottom y, local z, side, height, seat?}, in hall units
-        float zc = -5.9f, hl = 6.6f, side = 1.6f;
-        for (float z = zc + hl - side / 2; z > zc - hl - side / 2; z -= side) parts.add(new float[]{0, 0, z, 1.64f, .8f, 0});     // the table, solid
-        for (int sd = -1; sd <= 1; sd += 2) for (int i = 0; i < 10; i++) parts.add(new float[]{sd * 1.3f, 0, -.9f - i * 1.1f, .8f, .5f, 1});
-        parts.add(new float[]{0, 0, 2.0f, .8f, .5f, 1}); parts.add(new float[]{0, 0, zc - hl - 1.1f, .8f, .5f, 1});
+        java.util.List<float[]> parts = new java.util.ArrayList<>();   // {local x, bottom y, local z, side, height, kind (0 solid, 1 seat, 2 table)}, in hall units
+        float zc = HALL_ZC, hl = HALL_HL, side = HALL_W * 2 + .04f;
+        for (float z = zc + hl - side / 2; z > zc - hl - side / 2; z -= side) parts.add(new float[]{0, 0, z, side, .8f, 2});     // the table, solid, and a surface for items
+        for (int sd = -1; sd <= 1; sd += 2) for (int i = 0; i < 10; i++) parts.add(new float[]{sd * HALL_SX, 0, HALL_Z0 - i * HALL_PITCH, .8f * HALL_CHAIR, .5f * HALL_CHAIR, 1});
+        parts.add(new float[]{0, 0, HALL_HEAD, .8f * HALL_CHAIR, .5f * HALL_CHAIR, 1}); parts.add(new float[]{0, 0, zc - hl - 1.3f, .8f * HALL_CHAIR, .5f * HALL_CHAIR, 1});
         for (float[] q : parts) {
             double x = q[0] * K, z = q[2] * K, wx = x * c + z * sn, wz = -x * sn + z * c;
             ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
-            tp.setup(getUUID(), q[3] * K, q[4] * K, q[5] > 0);
+            tp.setup(getUUID(), q[3] * K, q[4] * K, q[5] == 1);
+            if (q[5] == 2) tp.setTable();
             tp.setPos(getX() + wx, getY() + q[1] * K, getZ() + wz);
             level().addFreshEntity(tp);
         }
