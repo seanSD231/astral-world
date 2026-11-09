@@ -683,6 +683,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     /** The Bearing of Sins as LOTM shows it: a thick translucent red cross with a bright small cross burning at its heart, the Hanged Man's
      *  flower symbol faint behind it, red glow and drifting petals. Centre (x,y,z), height size, swaying by yaw. */
     private void bearerSym(float x, float y, float z, float size, float yaw) {
+        if (LotmFx.hold(curId, "astral_world:bearing_of_sins", ex + x, ey + y, ez + z, size)) return;   // our own Photon effect: cross, flower, light, petals
         float pulse = .85f + .15f * (float) Math.sin(t * 2.2f), w = .1f * size, th = .05f * size;
         boolean fxGlow = LotmFx.hold(curId, "secrets_supplicant/sin_bearing_glow", ex + x, ey + y, ez + z, size * .6f);
         boolean fxFlare = LotmFx.hold(curId, "secrets_supplicant/sin_bearing_flare", ex + x, ey + y, ez + z, size * .6f);
@@ -1012,7 +1013,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
         for (int k = 0; k < 26; k++) { float u = h(k, 11), x = (u - .5f) * len, side = h(k, 12) < .5f ? -1f : 1f, z = riverZ(x) + side * (riverW(x) * .5f + .5f * S + h(k, 13) * 2.4f * S);   // black reeds on the banks
             push(); tr(gx(x, z), 0, gz(x, z)); taper(0, (1.4f + 2.2f * h(k, 14)) * S, .1f * S, .1f * S, 0, 0, 0x050507, 255); pop(); }
-        for (int k = 0; k < 14; k++) { float u = fract(t * .02f + h(k, 15)), x = (u - .5f) * len, z = riverZ(x) + (h(k, 16) - .5f) * riverW(x); ebb("fog", gx(x, z), (.4f + .8f * h(k, 17)) * S, gz(x, z), 7 * S, 2.2f * S, 0, rgba(0x2A2A34, .5f * fd(u))); }
+        if (!LotmFx.hold(curId, "astral_world:dark_mist", ex, ey, ez, R * 1.7f)) for (int k = 0; k < 14; k++) { float u = fract(t * .02f + h(k, 15)), x = (u - .5f) * len, z = riverZ(x) + (h(k, 16) - .5f) * riverW(x); ebb("fog", gx(x, z), (.4f + .8f * h(k, 17)) * S, gz(x, z), 7 * S, 2.2f * S, 0, rgba(0x2A2A34, .5f * fd(u))); }
         sprites("mote", 60, SPIRALM, R * 1.2f, 0, top, .5f * S, 0xB0B070, .8f, .2f, 56, false);
         gooSymbols(2, CY + 1.5f * S, R * .5f, 3.8f * S);
     }
@@ -1030,7 +1031,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
         for (int i = 0; i < 3; i++) { float pw = fract(t * .25f + i / 3f); flat("ring_thick", 0, .1f, 0, pw * R * 2.4f, 0, rgba(P1, fd(pw))); }
         for (int i = 0; i < 10; i++) flat("crack", 0, .12f, 0, R * 1.8f, i * TAU / 10 + .3f, rgba(P1, .85f));
-        strikes(4, R, top, P1); sprites("spark", 120, RISEM, R, 0, top * 1.2f, .45f * S, P3, 1f, .5f, 58, true); sprites("smoke", 20, RISEM, R, 0, top, 3f * S, 0x301010, .6f, .1f, 59, true);
+        strikes(4, R, top, P1);
+        if (!LotmFx.hold(curId, "astral_world:calamity_embers", ex, ey + .3f, ez, R * 1.1f)) { sprites("spark", 120, RISEM, R, 0, top * 1.2f, .45f * S, P3, 1f, .5f, 58, true); sprites("smoke", 20, RISEM, R, 0, top, 3f * S, 0x301010, .6f, .1f, 59, true); }
         gooSymbols(3, CY + 7f * S, R * .9f, 4f * S);
     }
     private static final int[] BOOKS = {0x8A2A2A, 0x2A4A8A, 0x2A6A3A, 0x7A5A1A, 0x5A2A7A, 0x2A6A6A};
@@ -1093,7 +1095,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             tube(pts, .45f * S, .1f * S, mix(P2, 0x2A1808, .5f));
         }
         for (int i = 0; i < 4; i++) { float pw = fract(t * .2f + i / 4f); flat("ring", 0, .12f, 0, pw * 3f * R, 0, rgba(P1, fd(pw))); }
-        sprites("petal", 220, SPIRALM, R, 0, top, 1.2f * S, P1, 1f, .14f, 62, true); sprites("mote", 150, RISEM, R, 0, top, .5f * S, 0xFFF0A0, 1f, .25f, 64, false);
+        sprites("petal", 220, SPIRALM, R, 0, top, 1.2f * S, P1, 1f, .14f, 62, true); if (!LotmFx.hold(curId, "astral_world:light_motes", ex, ey + .5f, ez, R * 1.05f)) sprites("mote", 150, RISEM, R, 0, top, .5f * S, 0xFFF0A0, 1f, .25f, 64, false);
         gooSymbols(6, CY + 9f * S, R * .9f, 5.4f * S);
     }
     /** Father of Devils: two vast curved horns rising out of a whirling pit, a ring of pink hellfire braziers and eyes opening in the sky. */
@@ -1127,7 +1129,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * .12f * S * sp, 0, 0); rZ(sd * .08f); box(0, 0, 0, .55f * S, 1.2f * S, .08f * S, mix(P1, 0xFFFFFF, .2f), 255); pop(); } pop();
         }
         for (int i = 0; i < 3; i++) { float pw = fract(t * .3f + i / 3f); flat("crack", 0, .12f, 0, pw * R * 2.2f, i * 2f, rgba(P1, fd(pw))); }
-        strikes(5, R, top, P1); sprites("spark", 90, RISEM, R, 0, top, .4f * S, P3, 1f, .3f, 67, true);
+        strikes(5, R, top, P1);
+        if (!LotmFx.hold(curId, "astral_world:anarchy_sparks", ex, ey + CY, ez, R * .9f)) sprites("spark", 90, RISEM, R, 0, top, .4f * S, P3, 1f, .3f, 67, true);
         gooSymbols(8, CY + 10f * S, R * .9f, 4f * S);
     }
 
@@ -1819,7 +1822,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void fool(int N, boolean m) {
         sigil(R);
         int fogc = 0x2C4650;
-        boolean photonFog = m && LotmFx.hold(curId, "spectator/nightmare_fog", ex + hx(0, -5.5f), ey, ez + hz(0, -5.5f), 7f);   // LOTM's own fog fx
+        boolean photonFog = m ? LotmFx.hold(curId, "astral_world:fool_fog", ex + hx(0, -6f), ey, ez + hz(0, -6f), 9f)
+                : LotmFx.hold(curId, "astral_world:seer_fog", ex, ey, ez, R * .95f);   // our own Photon fog
         if (m) { dome(R * 4f, 0x03090E, 240);
             for (int i = 0; i < 14; i++) { float a = t * .02f + i * TAU / 14; ebb("fog", (float) Math.cos(a) * R * 1.6f, top * (.75f + .35f * h(i, 9)), (float) Math.sin(a) * R * 1.6f, 22 * S, 7 * S, 0, rgba(0x0C1C24, .85f)); }
             bb("glow", hx(0, 3.5f), 3f, hz(0, 3.5f), 12f, 12f, 0, rgba(0x4C9AA0, .35f)); }
@@ -1845,7 +1849,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         facing("crescent", sideX(R * 1.2f), top * .9f, sideZ(R * 1.2f), 9 * S, 9 * S, -.4f, rgba(mix(P1, 0xFFFFFF, .5f), .85f));
         sym(CY, 3.6f * S, 0);
         clouds(12 * N, R * 2.8f, top * .35f, P2, .3f, R * 1.8f);
-        for (int k = 0; k < 3; k++) fogRing(14, R * (.8f + 1.1f * k), P2, .35f);
+        if (!LotmFx.hold(curId, "astral_world:sleepless_fog", ex, ey, ez, R * 2.4f)) for (int k = 0; k < 3; k++) fogRing(14, R * (.8f + 1.1f * k), P2, .35f);
         sprites("mote", 50 * N, DRIFTM, R * 1.2f, .5f, top, .45f * S, P1, .8f, .2f, 35, false);
     }
     /** Spectator (Visionary): a mind palace. A few vision frames showing other pathways, thought beads, brain waves. */

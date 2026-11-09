@@ -38,7 +38,7 @@ final class LotmFx {
         return ok;
     }
 
-    /** Keeps the effect (for example "bard/flaring_sun") alive at the given world spot for this hologram. Returns false if it could not be played. */
+    /** Keeps the effect (for example "bard/flaring_sun", or our own "astral_world:fool_fog") alive at the given world spot for this hologram. Returns false if it could not be played. */
     static boolean hold(int id, String fx, double x, double y, double z, float scale) {
         if (!prepare()) return false;
         Level lv = Minecraft.getInstance().level;
@@ -52,7 +52,12 @@ final class LotmFx {
             stop(e[0]); LIVE.remove(key);
         }
         Object h = null;
-        try { h = hold.invoke(null, ResourceLocation.fromNamespaceAndPath("lotm", fx), new Vec3(x, y, z), new Vec3(0, 1, 0), scale, 1f, 1f); } catch (Throwable t) { h = null; }
+        try {
+            // "astral_world:fool_fog" is one of this mod's own effects; a bare name is one of LOTM's. For ours the area scales with the effect (LOTM's #area
+            // emitters take their size from the radius argument), for LOTM's own it stays 1 as they were authored.
+            boolean own = fx.indexOf(':') >= 0;
+            h = hold.invoke(null, own ? ResourceLocation.parse(fx) : ResourceLocation.fromNamespaceAndPath("lotm", fx), new Vec3(x, y, z), new Vec3(0, 1, 0), scale, own ? scale : 1f, 1f);
+        } catch (Throwable t) { h = null; }
         LIVE.put(key, new Object[] {h, now, x, y, z, scale});
         return h != null;
     }
