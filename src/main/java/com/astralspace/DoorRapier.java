@@ -141,9 +141,16 @@ public final class DoorRapier extends Uniqueness {
                 }
                 if (age % 6 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.6f, 0.8f + (age - OPEN) * .02f);
             }
+            if (age >= FILL - 8 && age < FILL) {   // everything is pulled in just before the bang
+                for (int i = 0; i < 14; i++) {
+                    double y = lv.random.nextDouble() * 2 - 1, rr = Math.sqrt(1 - y * y), th = lv.random.nextDouble() * 6.2832;
+                    Vec3 d = new Vec3(Math.cos(th) * rr, y, Math.sin(th) * rr);
+                    lv.sendParticles(PartyItems.STAR.get(), c.x + d.x * 3.2, c.y + d.y * 3.2, c.z + d.z * 3.2, 0, -d.x, -d.y, -d.z, .3);
+                }
+            }
             if (age == FILL) { explode(); clearDoors(); }
             if (age > FILL) aftershock();
-            return age > FILL + 7;
+            return age > FILL + 8;
         }
         void door(Vec3 pos, Vec3 r, double u, double v) {
             lv.sendParticles(PartyItems.STAR.get(), pos.x + r.x * u, pos.y + v, pos.z + r.z * u, 1, 0, 0, 0, 0);
@@ -162,14 +169,13 @@ public final class DoorRapier extends Uniqueness {
         }
         void explode() {
             ServerPlayer sp = lv.getServer().getPlayerList().getPlayer(owner);
-            lv.playSound(null, c.x, c.y, c.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.2f, 1.1f);
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 1.5f, 0.6f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, SoundSource.PLAYERS, 1.2f, 0.8f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1f, 1.6f);
-            lv.sendParticles(ParticleTypes.FLASH, c.x, c.y, c.z, 1, 0, 0, 0, 0);
-            lv.sendParticles(ParticleTypes.EXPLOSION_EMITTER, c.x, c.y, c.z, 1, 0, 0, 0, 0);
-            sphere(90, .4, 0.2);
-            sphere(40, .22, 0.2);
-            lv.sendParticles(ParticleTypes.FIREWORK, c.x, c.y, c.z, 60, .2, .2, .2, .3);
+            lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, 60, .15, .15, .15, .03);   // dense bright core
+            sphere(110, .5, 0.2);
+            sphere(60, .3, 0.2);
+            sphere(30, .14, 0.2);
             inLunge = true;
             try {
                 for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(AREA), x -> x.isAlive() && (sp == null || x != sp))) {
@@ -184,6 +190,13 @@ public final class DoorRapier extends Uniqueness {
         /** Shockwave rings that keep rolling out for a few ticks after the bang. */
         void aftershock() {
             int k = age - FILL;
+            if (k >= 1 && k <= 7) {   // pinwheel arms spinning out of the middle
+                for (int a = 0; a < 5; a++) {
+                    double th = a * 1.2566 + k * .55;
+                    lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, 0, Math.cos(th), .12 * Math.sin(k + a), Math.sin(th), .33 + .04 * k);
+                }
+            }
+            if (k == 3) for (int i = 0; i < 24; i++) lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, 0, (lv.random.nextDouble() - .5) * .5, 1, (lv.random.nextDouble() - .5) * .5, .25 + lv.random.nextDouble() * .25);
             if (k == 2) ring(48, .45, 0);
             if (k == 4) { ring(40, .36, .5); sphere(50, .15, 0.2); lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1f, 1.9f); }
             if (k == 6) ring(32, .28, -.5);

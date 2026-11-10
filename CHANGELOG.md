@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.176
+- Rapier of the Door: the burst is now a photon explosion with no vanilla explosion, flash or fireworks. Stars are pulled inward for a moment, then a dense bright core and three coloured star shells blast out, followed by a spinning pinwheel of star arms, an upward fountain and three shockwave rings. Untested in game.
+
 ## 0.2.175
 - Rapier of the Door: held like a normal sword now (vanilla sword display and first-person position, no crossbow arm pose). Right click no longer teleports you (the LOTM doors are told not to teleport anyone). Star particles are now multicoloured (gold, magenta, cyan, violet, mint, coral, white), travel properly out of the doors, and the swing releases a single puff instead of a stream. The explosion is a big bang: flash, explosion, two spherical star shells, fireworks and three shockwave rings. Untested in game.
 
