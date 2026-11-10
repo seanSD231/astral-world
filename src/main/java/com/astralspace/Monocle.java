@@ -38,7 +38,7 @@ public class Monocle extends Item implements Equipable {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        if (player.isShiftKeyDown()) return Equipable.swapWithEquipmentSlot(this, level, player, hand);
+        if (player.isShiftKeyDown()) return this.swapWithEquipmentSlot(this, level, player, hand);
         player.startUsingItem(hand);
         return InteractionResultHolder.consume(player.getItemInHand(hand));
     }
