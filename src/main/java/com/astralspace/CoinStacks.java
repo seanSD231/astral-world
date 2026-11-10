@@ -20,4 +20,28 @@ public final class CoinStacks {
             event.modify(item, b -> b.set(DataComponents.MAX_STACK_SIZE, MAX));
         }
     }
+
+    /**
+     * Where the 99 came from: the inventory, slots and saving all cap at 99, and LOTM lifts that cap (its own mixins, saving the extra count in NBT)
+     * only for the items on a private list in {@code LOTM.MAX_STACK_ITEM_IDS}. That list is an immutable Set.of(...), so Numismatics coins were never on it.
+     * This swaps in a bigger set that also holds the six Numismatics coins, so they get the same 9999 handling as the LOTM coins.
+     */
+    public static void patchLotmList() {
+        try {
+            Class<?> lotm = Class.forName("net.swimmingtuna.lotm.LOTM");
+            java.lang.reflect.Field f = lotm.getDeclaredField("MAX_STACK_ITEM_IDS");
+            f.setAccessible(true);
+            java.util.Set<ResourceLocation> now = new java.util.HashSet<>();
+            Object cur = f.get(null);
+            if (cur instanceof java.util.Collection<?> c) for (Object o : c) if (o instanceof ResourceLocation r) now.add(r);
+            for (String id : COINS) now.add(ResourceLocation.fromNamespaceAndPath("numismatics", id));
+            java.lang.reflect.Field uf = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+            uf.setAccessible(true);
+            sun.misc.Unsafe u = (sun.misc.Unsafe) uf.get(null);
+            u.putObjectVolatile(u.staticFieldBase(f), u.staticFieldOffset(f), java.util.Set.copyOf(now));
+            com.mojang.logging.LogUtils.getLogger().info("[astral] LOTM 9999-stack list now holds {} items (Numismatics coins added)", now.size());
+        } catch (Throwable t) {
+            com.mojang.logging.LogUtils.getLogger().warn("[astral] could not add Numismatics coins to LOTM's 9999-stack list: {}", t.toString());
+        }
+    }
 }

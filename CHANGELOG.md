@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.190
+- Numismatics coins stacked to 99 because LOTM only lifts the 99 cap for a private list of its own items. The six Numismatics coins are now added to that list at startup, so they get the same 9999 stacks (and saving) as the LOTM coins. Untested in game.
+
 ## 0.2.189
 - Selling bin: a bronze coin is now worth the same as an emerald (100 bin units), silver 1000, gold 10000, keeping the 1/10/100 coin ratios. Untested in game.
 
