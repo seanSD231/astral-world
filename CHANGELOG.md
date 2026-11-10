@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.185
+- Hologram fixes, batch 3: Father of Devils is now an Abyss-style black maw over a whirling pit wrapped in tentacles, no skull or horns; Key of Light spreads all seven colours everywhere (bands round the sky, coloured rings, spires, sparks and motes); Calamity of Destruction is a big meteor with a fire trail high above, no more orb, and its symbols moved clear; Demon of Knowledge redone as a brass armillary with turning gears and bookcases, in the Paragon style; God Almighty gets a second layer of wings and a spiked crown; the Sailor trident is rebuilt (wrapped shaft, crescent bowl, barbed prongs) and the rain is less than half as dense. Untested in game.
+
 ## 0.2.184
 - Hologram fixes, batch 2: Hanged Man 0 now uses the look of Sacrifice Authority: Last Hope (a mercury-silver cross-bodied figure with circling crosses) instead of the black pillar; the Warrior's side swords fan out much wider; chained padlocks rebuilt as proper padlocks (boxy body, U shackle, keyhole) with the chain meeting the shackle; the Eternal Darkness river is redone as a continuous winding river with foam banks, current streaks, rocks and a stone arch bridge. Untested in game.
 
