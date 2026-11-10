@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.184
+- Hologram fixes, batch 2: Hanged Man 0 now uses the look of Sacrifice Authority: Last Hope (a mercury-silver cross-bodied figure with circling crosses) instead of the black pillar; the Warrior's side swords fan out much wider; chained padlocks rebuilt as proper padlocks (boxy body, U shackle, keyhole) with the chain meeting the shackle; the Eternal Darkness river is redone as a continuous winding river with foam banks, current streaks, rocks and a stone arch bridge. Untested in game.
+
 ## 0.2.183
 - Hologram fixes, batch 1: Wheel of Fortune and God Almighty lose the white square; Twilight Giant lights are now fixed in the world, not on your camera, and its sky is more twilight; Sleepless fog is thinner and lower; Hanged Man 2 symbol raised; models no longer show through pathway symbols; Warrior 0 uses dawn swords; the Scales' chains now end exactly on the pans; Abyss sky spirals no longer follow the camera and its floor has far less clutter; Eternal Darkness mist is paler, the river is wider and continuous with bank/flow streaks; Goddess of Origin is bigger, in world-tree greens and gold, its sun is real geometry and its symbols sit clear of the canopy; God Almighty symbols always face outward while orbiting; apothecary potions spread across the sphere. Untested in game.
 
