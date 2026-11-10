@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.181
+- Eyes of the Door redrawn to match the reference: two round, overlapping silver metal eyeballs with sphere shading and a travelling glint, bright blue irises with a dark limbal ring, a small keyhole pupil and twinkling stars in the iris. Untested in game.
+
 ## 0.2.180
 - The Door Uniqueness is now the Eyes of the Door, a pair of animated pixel eyes (void sclera, nebula irises with keyhole pupils, brass lids, twinkling stars) instead of a sword. There is a new Curios slot, Uniqueness, that every Uniqueness item fits in (tag curios:uniqueness; needs Curios). Wearing the eyes puts glowing eyes on your face. A new keybind, Door (default G, rebindable), replaces right click: it picks the creature in your crosshair (48 blocks) and starts the supernova; cooldown 15s. Holding the eyes in a hand works too. The sword, its combo, thrust and swing effects are gone.
 - The supernova is much bigger: 11 doors on a 9-block ring, a 16-block field of 170 big swelling stars, star-sized nova flashes and shock shells (up to 180 blocks across), 280 huge nebula clouds, white screen flash for everyone within 96 blocks, 80 damage in a 12-block radius. Untested in game; needs Curios installed for the slot.
