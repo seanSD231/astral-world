@@ -97,15 +97,17 @@ public final class PartyParticles {
 
     /** A tiny glowing photon dot: the Door rapier's stars. Short lived, fades out, a little shimmer. */
     static final class StarDot extends TextureSheetParticle {
+        private static final float[][] PALETTE = {{1f, .82f, .3f}, {1f, .35f, .8f}, {.3f, .92f, 1f}, {.68f, .45f, 1f}, {.4f, 1f, .62f}, {1f, .52f, .4f}, {1f, 1f, 1f}};
         private final float base, phase;
         StarDot(ClientLevel lv, double x, double y, double z, double vx, double vy, double vz, SpriteSet set) {
             super(lv, x, y, z, vx, vy, vz);
-            this.xd = vx * .2 + (random.nextFloat() - .5f) * .01; this.yd = vy * .2 + (random.nextFloat() - .5f) * .01; this.zd = vz * .2 + (random.nextFloat() - .5f) * .01;
+            this.xd = vx + (random.nextFloat() - .5f) * .01; this.yd = vy + (random.nextFloat() - .5f) * .01; this.zd = vz + (random.nextFloat() - .5f) * .01;
             pickSprite(set);
-            float k = random.nextFloat();
-            rCol = .72f + .28f * k; gCol = .85f + .15f * k; bCol = 1f;
-            lifetime = 9 + random.nextInt(8); gravity = 0f; friction = .88f; hasPhysics = false;
-            base = 0.035f + random.nextFloat() * 0.035f; quadSize = base; phase = random.nextFloat() * 6.28f;
+            float[] c = PALETTE[random.nextInt(PALETTE.length)];
+            rCol = c[0]; gCol = c[1]; bCol = c[2];
+            boolean fast = vx * vx + vy * vy + vz * vz > .01;
+            lifetime = fast ? 16 + random.nextInt(8) : 9 + random.nextInt(8); gravity = 0f; friction = .9f; hasPhysics = false;
+            base = 0.05f + random.nextFloat() * 0.05f; quadSize = base; phase = random.nextFloat() * 6.28f;
         }
         @Override public void tick() { super.tick(); alpha = Math.max(0f, 1f - (float) age / lifetime); }
         @Override public float getQuadSize(float pt) { return base * (0.7f + 0.3f * (float) Math.sin((age + pt) * 1.4 + phase)); }

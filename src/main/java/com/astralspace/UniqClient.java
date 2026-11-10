@@ -38,7 +38,7 @@ public final class UniqClient extends BlockEntityWithoutLevelRenderer {
     public static final IClientItemExtensions EXT = new IClientItemExtensions() {
         @Override public HumanoidModel.ArmPose getArmPose(LivingEntity e, InteractionHand h, ItemStack s) {
             String p = BuiltInRegistries.ITEM.getKey(s.getItem()).getPath();
-            if (p.equals("starry_sniper") || p.equals("snake_rifle")) return HumanoidModel.ArmPose.CROSSBOW_HOLD;
+            if (p.equals("snake_rifle")) return HumanoidModel.ArmPose.CROSSBOW_HOLD;
             if (p.equals("chained_bow")) return HumanoidModel.ArmPose.BOW_AND_ARROW;
             return null;
         }

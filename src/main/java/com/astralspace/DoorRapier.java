@@ -129,7 +129,7 @@ public final class DoorRapier extends Uniqueness {
                     for (int k = 0; k < 2; k++) {
                         double u = (lv.random.nextDouble() - .5) * .8, v = .2 + lv.random.nextDouble() * 1.6;
                         Vec3 q = pos.add(r.scale(u)).add(0, v, 0).add(n.scale(.15));
-                        lv.sendParticles(PartyItems.STAR.get(), q.x, q.y, q.z, 0, d.x, d.y, d.z, .22 + lv.random.nextDouble() * .1);
+                        lv.sendParticles(PartyItems.STAR.get(), q.x, q.y, q.z, 0, d.x, d.y, d.z, .26 + lv.random.nextDouble() * .08);
                     }
                 }
             }
@@ -137,23 +137,39 @@ public final class DoorRapier extends Uniqueness {
                 int n = 3 + (age - OPEN) / 4;
                 for (int k = 0; k < n; k++) {
                     double dx, dy, dz; do { dx = lv.random.nextDouble() * 2 - 1; dy = lv.random.nextDouble() * 2 - 1; dz = lv.random.nextDouble() * 2 - 1; } while (dx * dx + dy * dy + dz * dz > 1);
-                    lv.sendParticles(PartyItems.STAR.get(), c.x + dx * AREA, c.y + dy * AREA * .6, c.z + dz * AREA, 1, 0, 0, 0, 0.01);
+                    lv.sendParticles(PartyItems.STAR.get(), c.x + dx * AREA, c.y + dy * AREA * .6, c.z + dz * AREA, 1, 0, 0, 0, 0.004);
                 }
                 if (age % 6 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.6f, 0.8f + (age - OPEN) * .02f);
             }
-            if (age == FILL) { explode(); clearDoors(); return true; }
-            return age > FILL;
+            if (age == FILL) { explode(); clearDoors(); }
+            if (age > FILL) aftershock();
+            return age > FILL + 7;
         }
         void door(Vec3 pos, Vec3 r, double u, double v) {
             lv.sendParticles(PartyItems.STAR.get(), pos.x + r.x * u, pos.y + v, pos.z + r.z * u, 1, 0, 0, 0, 0);
         }
+        void sphere(int n, double speed, double r0) {   // evenly spread directions, so it reads as a clean shell
+            for (int i = 0; i < n; i++) {
+                double y = 1 - 2 * (i + .5) / n, rr = Math.sqrt(1 - y * y), th = i * 2.399963;
+                lv.sendParticles(PartyItems.STAR.get(), c.x + Math.cos(th) * rr * r0, c.y + y * r0, c.z + Math.sin(th) * rr * r0, 0, Math.cos(th) * rr, y, Math.sin(th) * rr, speed);
+            }
+        }
+        void ring(int n, double speed, double tilt) {
+            for (int i = 0; i < n; i++) {
+                double th = i * 6.2832 / n, dx = Math.cos(th), dz = Math.sin(th);
+                lv.sendParticles(PartyItems.STAR.get(), c.x, c.y + .1, c.z, 0, dx * Math.cos(tilt), Math.sin(tilt) * (i % 2 == 0 ? 1 : -1), dz * Math.cos(tilt), speed);
+            }
+        }
         void explode() {
             ServerPlayer sp = lv.getServer().getPlayerList().getPlayer(owner);
-            lv.playSound(null, c.x, c.y, c.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.9f, 1.4f);
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.2f, 1.1f);
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, SoundSource.PLAYERS, 1.2f, 0.8f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1f, 1.6f);
-            lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, 70, 0.4, 0.4, 0.4, 0.9);
             lv.sendParticles(ParticleTypes.FLASH, c.x, c.y, c.z, 1, 0, 0, 0, 0);
-            lv.sendParticles(ParticleTypes.END_ROD, c.x, c.y, c.z, 25, 0.3, 0.3, 0.3, 0.45);
+            lv.sendParticles(ParticleTypes.EXPLOSION_EMITTER, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+            sphere(90, .4, 0.2);
+            sphere(40, .22, 0.2);
+            lv.sendParticles(ParticleTypes.FIREWORK, c.x, c.y, c.z, 60, .2, .2, .2, .3);
             inLunge = true;
             try {
                 for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(AREA), x -> x.isAlive() && (sp == null || x != sp))) {
@@ -164,6 +180,13 @@ public final class DoorRapier extends Uniqueness {
                     }
                 }
             } finally { inLunge = false; }
+        }
+        /** Shockwave rings that keep rolling out for a few ticks after the bang. */
+        void aftershock() {
+            int k = age - FILL;
+            if (k == 2) ring(48, .45, 0);
+            if (k == 4) { ring(40, .36, .5); sphere(50, .15, 0.2); lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1f, 1.9f); }
+            if (k == 6) ring(32, .28, -.5);
         }
     }
 
@@ -182,6 +205,12 @@ public final class DoorRapier extends Uniqueness {
             // (Level, LivingEntity creator, int sequence, float yaw, float destX, destY, destZ): destination is the door itself
             var e = (net.minecraft.world.entity.Entity) doorCls.getConstructor(Level.class, LivingEntity.class, int.class, float.class, float.class, float.class, float.class)
                 .newInstance(lv, owner, 9, yaw, (float) x, (float) y, (float) z);
+            try {   // the door must not teleport anyone: clear its "free to use" flag
+                var f = doorCls.getDeclaredField("FREE_TO_USE"); f.setAccessible(true);
+                @SuppressWarnings("unchecked") var acc = (net.minecraft.network.syncher.EntityDataAccessor<Boolean>) f.get(null);
+                e.getEntityData().set(acc, false);
+            } catch (Throwable ignored) { }
+            try { doorCls.getMethod("keepBack", UUID.class).invoke(e, owner.getUUID()); } catch (Throwable ignored) { }
             e.moveTo(x, y, z, yaw, 0);
             lv.addFreshEntity(e);
             return e;
@@ -205,7 +234,7 @@ public final class DoorRapier extends Uniqueness {
         e.setAmount(e.getAmount() * mult);
         LivingEntity t = e.getEntity(); Vec3 c = t.position().add(0, t.getBbHeight() * .6, 0);
         lv.playSound(null, c.x, c.y, c.z, hit == 3 ? COMBO : HIT, SoundSource.PLAYERS, hit == 3 ? 1f : 0.7f, hit == 3 ? 1.8f : 1.2f + 0.2f * hit);
-        lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, hit == 3 ? 16 : 6, .3, .3, .3, hit == 3 ? .5 : .25);
+        lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, hit == 3 ? 16 : 6, .3, .3, .3, hit == 3 ? .07 : .04);
         sp.displayClientMessage(Component.literal("✦".repeat(hit)).withStyle(hit == 3 ? ChatFormatting.AQUA : ChatFormatting.BLUE), true);
         if (hit == 3) st[1] = 0;
     }
