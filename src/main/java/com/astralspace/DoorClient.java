@@ -42,8 +42,8 @@ public final class DoorClient {
             Vec3 hand = p.getEyePosition().add(look.scale(0.9)).add(right.scale(0.35)).add(0, -0.3, 0);
             if (p.swinging && p.swingTime == 0) mc.level.playLocalSound(p.getX(), p.getY(), p.getZ(), DoorRapier.THRUST, SoundSource.PLAYERS, 0.5f, 1.7f + (mc.level.random.nextFloat() - .5f) * .2f, false);
             if (p.swinging && p.swingTime == 0) {   // one puff of coloured stars along the blade per attack
-                for (int i = 0; i < 9; i++) {
-                    Vec3 q = hand.add(look.scale(0.1 + i * 0.12)).add(0, (mc.level.random.nextFloat() - .5f) * .1, 0);
+                for (int i = 0; i < 26; i++) {
+                    Vec3 q = hand.add(look.scale(0.1 + i * 0.05)).add((mc.level.random.nextFloat() - .5f) * .12, (mc.level.random.nextFloat() - .5f) * .12, (mc.level.random.nextFloat() - .5f) * .12);
                     mc.level.addParticle(PartyItems.STAR.get(), q.x, q.y, q.z, look.x * .05, look.y * .05 + .01, look.z * .05);
                 }
             }

@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.177
+- Rapier of the Door, late-game scale: right click no longer teleports you (the real cause was the LOTM door's default mirage mode pulling its creator in; the doors are now set to a mode that does nothing unless someone sneaks into them). Nine doors on a wider ring, a much denser star stream and a thick fill that builds for 3 seconds, a 12-tick implosion with a rising hum, then a huge blast: blinding core, thick cloud, four star shells, five crossed shockwave rings, a pillar of stars through sky and ground, eight spinning pinwheel arms, and two more shells (the last with a second sonic boom). Radius 7 blocks, 60 damage, strong knockback and lift, 10s cooldown. Star particles now live 3-5 seconds and the swing puff is 26 stars. Untested in game; numbers are guesses and it may lag.
+
 ## 0.2.176
 - Rapier of the Door: the burst is now a photon explosion with no vanilla explosion, flash or fireworks. Stars are pulled inward for a moment, then a dense bright core and three coloured star shells blast out, followed by a spinning pinwheel of star arms, an upward fountain and three shockwave rings. Untested in game.
 

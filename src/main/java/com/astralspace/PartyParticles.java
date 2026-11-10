@@ -106,10 +106,10 @@ public final class PartyParticles {
             float[] c = PALETTE[random.nextInt(PALETTE.length)];
             rCol = c[0]; gCol = c[1]; bCol = c[2];
             boolean fast = vx * vx + vy * vy + vz * vz > .01;
-            lifetime = fast ? 16 + random.nextInt(8) : 9 + random.nextInt(8); gravity = 0f; friction = .9f; hasPhysics = false;
+            lifetime = fast ? 40 + random.nextInt(25) : 32 + random.nextInt(20); gravity = 0f; friction = .9f; hasPhysics = false;
             base = 0.05f + random.nextFloat() * 0.05f; quadSize = base; phase = random.nextFloat() * 6.28f;
         }
-        @Override public void tick() { super.tick(); alpha = Math.max(0f, 1f - (float) age / lifetime); }
+        @Override public void tick() { super.tick(); alpha = Math.min(1f, Math.max(0f, 2.2f * (1f - (float) age / lifetime))); }
         @Override public float getQuadSize(float pt) { return base * (0.7f + 0.3f * (float) Math.sin((age + pt) * 1.4 + phase)); }
         @Override protected int getLightColor(float pt) { return 0xF000F0; }
         @Override public ParticleRenderType getRenderType() { return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT; }

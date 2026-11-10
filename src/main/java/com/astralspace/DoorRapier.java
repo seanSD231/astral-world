@@ -83,9 +83,9 @@ public final class DoorRapier extends Uniqueness {
         return net.minecraft.world.InteractionResult.sidedSuccess(p.level().isClientSide);
     }
 
-    private static final int BURST_COOLDOWN = 160, OPEN = 12, FILL = 42, DOORS = 7;
-    private static final double RING = 3.0, AREA = 3.6;
-    private static final float BURST_DAMAGE = 14f;
+    private static final int BURST_COOLDOWN = 200, OPEN = 14, FILL = 60, DOORS = 9, AFTER = 24;
+    private static final double RING = 4.5, AREA = 7.0;
+    private static final float BURST_DAMAGE = 60f;
     private static final List<Burst> BURSTS = new java.util.ArrayList<>();
 
     private static final class Burst {
@@ -94,8 +94,9 @@ public final class DoorRapier extends Uniqueness {
         Burst(ServerLevel lv, UUID owner, LivingEntity t) {
             this.lv = lv; this.owner = owner; this.target = t; c = t.position().add(0, t.getBbHeight() * .5, 0);
             double off = lv.random.nextDouble() * 6.28;
-            for (int i = 0; i < DOORS; i++) { ang[i] = off + i * 6.2832 / DOORS; lift[i] = (i % 3 == 0 ? -0.3 : i % 3 == 1 ? 0.0 : 0.6) + lv.random.nextDouble() * .3; }
-            lv.playSound(null, c.x, c.y, c.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.7f, 0.6f);
+            for (int i = 0; i < DOORS; i++) { ang[i] = off + i * 6.2832 / DOORS; lift[i] = (i % 3 == 0 ? -0.3 : i % 3 == 1 ? 0.0 : 0.8) + lv.random.nextDouble() * .3; }
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.9f, 0.5f);
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.END_PORTAL_SPAWN, SoundSource.PLAYERS, 0.6f, 1.4f);
             ServerPlayer sp = lv.getServer().getPlayerList().getPlayer(owner);
             if (sp != null) for (int i = 0; i < DOORS; i++) {   // real LOTM doors, if LOTM is installed
                 double x = c.x + Math.cos(ang[i]) * RING, y = t.getY() + lift[i], z = c.z + Math.sin(ang[i]) * RING;
@@ -104,102 +105,104 @@ public final class DoorRapier extends Uniqueness {
             }
         }
         void clearDoors() { for (var d : doors) d.discard(); doors.clear(); }
+        void star(double x, double y, double z, double dx, double dy, double dz, double speed) { lv.sendParticles(PartyItems.STAR.get(), x, y, z, 0, dx, dy, dz, speed); }
+        void blob(int n, double spread, double speed) { lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, n, spread, spread, spread, speed); }
+
         /** returns true when finished */
         boolean tick() {
-            if (target.isAlive() && target.level() == lv) c = target.position().add(0, target.getBbHeight() * .5, 0);
+            if (age < FILL && target.isAlive() && target.level() == lv) c = target.position().add(0, target.getBbHeight() * .5, 0);
             age++;
             double grow = Math.min(1.0, age / (double) OPEN);
-            boolean redraw = age % 3 == 1;
-            for (int i = 0; i < DOORS; i++) {
+            for (int i = 0; i < DOORS && age < FILL; i++) {
                 double a = ang[i];
-                Vec3 pos = c.add(Math.cos(a) * RING, -c.y + target.getY() + lift[i], Math.sin(a) * RING).add(0, 0, 0);
-                pos = new Vec3(c.x + Math.cos(a) * RING, target.getY() + lift[i], c.z + Math.sin(a) * RING);
+                Vec3 pos = new Vec3(c.x + Math.cos(a) * RING, target.getY() + lift[i], c.z + Math.sin(a) * RING);
                 Vec3 n = new Vec3(-Math.cos(a), 0, -Math.sin(a)), r = new Vec3(-n.z, 0, n.x);
-                if (redraw && doors.isEmpty()) {
-                    int pts = 18;
-                    for (int k = 0; k <= pts; k++) {   // arched doorway outline, drawn in as it grows
-                        double t = Math.PI * k / pts, u = .5 * Math.cos(t) * grow, v = (1.5 + .5 * Math.sin(t)) * grow;
-                        door(pos, r, u, v);
-                    }
-                    for (int k = 0; k <= 8; k++) { double v = 1.5 * grow * k / 8; door(pos, r, -.5 * grow, v); door(pos, r, .5 * grow, v); }
-                    lv.sendParticles(ParticleTypes.REVERSE_PORTAL, pos.x, pos.y + grow, pos.z, 2, .25, .6, .25, .02);
+                if (age % 3 == 1 && doors.isEmpty()) {   // fallback doorway outline when LOTM is missing
+                    for (int k = 0; k <= 18; k++) { double t = Math.PI * k / 18; fb(pos, r, .5 * Math.cos(t) * grow, (1.5 + .5 * Math.sin(t)) * grow); }
+                    for (int k = 0; k <= 8; k++) { double v = 1.5 * grow * k / 8; fb(pos, r, -.5 * grow, v); fb(pos, r, .5 * grow, v); }
                 }
-                if (age > OPEN - 4 && age < FILL) {   // stars pour out of the door towards the middle
+                if (age > OPEN - 4) {   // a heavy stream of stars out of every door, towards the middle
                     Vec3 d = c.subtract(pos.add(0, 1, 0)).normalize();
-                    for (int k = 0; k < 2; k++) {
-                        double u = (lv.random.nextDouble() - .5) * .8, v = .2 + lv.random.nextDouble() * 1.6;
+                    for (int k = 0; k < 6; k++) {
+                        double u = (lv.random.nextDouble() - .5) * .9, v = .1 + lv.random.nextDouble() * 1.9;
                         Vec3 q = pos.add(r.scale(u)).add(0, v, 0).add(n.scale(.15));
-                        lv.sendParticles(PartyItems.STAR.get(), q.x, q.y, q.z, 0, d.x, d.y, d.z, .26 + lv.random.nextDouble() * .08);
+                        star(q.x, q.y, q.z, d.x, d.y, d.z, .24 + lv.random.nextDouble() * .12);
                     }
                 }
             }
-            if (age > OPEN && age < FILL) {   // the space fills with stars
-                int n = 3 + (age - OPEN) / 4;
-                for (int k = 0; k < n; k++) {
-                    double dx, dy, dz; do { dx = lv.random.nextDouble() * 2 - 1; dy = lv.random.nextDouble() * 2 - 1; dz = lv.random.nextDouble() * 2 - 1; } while (dx * dx + dy * dy + dz * dz > 1);
-                    lv.sendParticles(PartyItems.STAR.get(), c.x + dx * AREA, c.y + dy * AREA * .6, c.z + dz * AREA, 1, 0, 0, 0, 0.004);
-                }
-                if (age % 6 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.6f, 0.8f + (age - OPEN) * .02f);
+            if (age > OPEN && age < FILL) {   // the whole area fills up and thickens
+                int cnt = 12 + (age - OPEN) * 2;
+                lv.sendParticles(PartyItems.STAR.get(), c.x, c.y + 1, c.z, cnt, AREA * .55, AREA * .35, AREA * .55, 0.004);
+                if (age % 5 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.8f, 0.7f + (age - OPEN) * .012f);
             }
-            if (age >= FILL - 8 && age < FILL) {   // everything is pulled in just before the bang
-                for (int i = 0; i < 14; i++) {
+            if (age >= FILL - 12 && age < FILL) {   // everything is dragged in just before the bang, tighter and tighter
+                float prog = (age - (FILL - 12)) / 12f;
+                lv.playSound(null, c.x, c.y, c.z, SoundEvents.BEACON_AMBIENT, SoundSource.PLAYERS, 0.5f, 0.5f + prog * 1.5f);
+                for (int i = 0; i < 40; i++) {
                     double y = lv.random.nextDouble() * 2 - 1, rr = Math.sqrt(1 - y * y), th = lv.random.nextDouble() * 6.2832;
                     Vec3 d = new Vec3(Math.cos(th) * rr, y, Math.sin(th) * rr);
-                    lv.sendParticles(PartyItems.STAR.get(), c.x + d.x * 3.2, c.y + d.y * 3.2, c.z + d.z * 3.2, 0, -d.x, -d.y, -d.z, .3);
+                    double rad = AREA * (.9 - .5 * prog);
+                    star(c.x + d.x * rad, c.y + d.y * rad, c.z + d.z * rad, -d.x, -d.y, -d.z, rad * .12);
                 }
             }
             if (age == FILL) { explode(); clearDoors(); }
             if (age > FILL) aftershock();
-            return age > FILL + 8;
+            return age > FILL + AFTER;
         }
-        void door(Vec3 pos, Vec3 r, double u, double v) {
-            lv.sendParticles(PartyItems.STAR.get(), pos.x + r.x * u, pos.y + v, pos.z + r.z * u, 1, 0, 0, 0, 0);
-        }
-        void sphere(int n, double speed, double r0) {   // evenly spread directions, so it reads as a clean shell
+        void fb(Vec3 pos, Vec3 r, double u, double v) { lv.sendParticles(PartyItems.STAR.get(), pos.x + r.x * u, pos.y + v, pos.z + r.z * u, 1, 0, 0, 0, 0); }
+
+        void sphere(int n, double speed) {   // evenly spread directions: a clean shell
             for (int i = 0; i < n; i++) {
                 double y = 1 - 2 * (i + .5) / n, rr = Math.sqrt(1 - y * y), th = i * 2.399963;
-                lv.sendParticles(PartyItems.STAR.get(), c.x + Math.cos(th) * rr * r0, c.y + y * r0, c.z + Math.sin(th) * rr * r0, 0, Math.cos(th) * rr, y, Math.sin(th) * rr, speed);
+                star(c.x, c.y, c.z, Math.cos(th) * rr, y, Math.sin(th) * rr, speed);
             }
         }
-        void ring(int n, double speed, double tilt) {
+        void ring(int n, double speed, double tilt, double spin) {   // a flat ring of stars, tilted and turned
             for (int i = 0; i < n; i++) {
-                double th = i * 6.2832 / n, dx = Math.cos(th), dz = Math.sin(th);
-                lv.sendParticles(PartyItems.STAR.get(), c.x, c.y + .1, c.z, 0, dx * Math.cos(tilt), Math.sin(tilt) * (i % 2 == 0 ? 1 : -1), dz * Math.cos(tilt), speed);
+                double th = i * 6.2832 / n + spin, dx = Math.cos(th), dz = Math.sin(th);
+                star(c.x, c.y, c.z, dx, -dz * Math.sin(tilt), dz * Math.cos(tilt), speed);
             }
         }
         void explode() {
             ServerPlayer sp = lv.getServer().getPlayerList().getPlayer(owner);
-            lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 1.5f, 0.6f);
-            lv.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, SoundSource.PLAYERS, 1.2f, 0.8f);
-            lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1f, 1.6f);
-            lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, 60, .15, .15, .15, .03);   // dense bright core
-            sphere(110, .5, 0.2);
-            sphere(60, .3, 0.2);
-            sphere(30, .14, 0.2);
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 2f, 0.7f);
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 2f, 1.5f);
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 2f, 0.5f);
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, SoundSource.PLAYERS, 2f, 0.6f);
+            blob(260, .2, .05);          // blinding core
+            blob(500, .3, .55);          // thick cloud of stars
+            sphere(160, .9); sphere(110, .6); sphere(70, .35); sphere(40, .16);
+            for (int i = 0; i < 5; i++) ring(70, .5 + i * .12, (i - 2) * .55, i * 1.3);   // five crossed shockwaves
             inLunge = true;
             try {
                 for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(AREA), x -> x.isAlive() && (sp == null || x != sp))) {
                     if (e.position().add(0, e.getBbHeight() * .5, 0).distanceTo(c) > AREA) continue;
                     if (e.hurt(sp != null ? lv.damageSources().playerAttack(sp) : lv.damageSources().magic(), BURST_DAMAGE)) {
                         Vec3 away = e.position().subtract(c.x, e.getY(), c.z); if (away.lengthSqr() < 1e-4) away = new Vec3(0, 0, 1);
-                        away = away.normalize(); e.knockback(0.9, -away.x, -away.z);
+                        away = away.normalize(); e.knockback(1.8, -away.x, -away.z); e.setDeltaMovement(e.getDeltaMovement().add(0, .5, 0)); e.hurtMarked = true;
                     }
                 }
             } finally { inLunge = false; }
         }
-        /** Shockwave rings that keep rolling out for a few ticks after the bang. */
+        /** The explosion keeps going: a pillar of stars, pinwheels, rolling shockwaves and a second, bigger blast. */
         void aftershock() {
             int k = age - FILL;
-            if (k >= 1 && k <= 7) {   // pinwheel arms spinning out of the middle
-                for (int a = 0; a < 5; a++) {
-                    double th = a * 1.2566 + k * .55;
-                    lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, 0, Math.cos(th), .12 * Math.sin(k + a), Math.sin(th), .33 + .04 * k);
+            if (k <= 14) {   // pillar through the sky and the ground
+                for (int i = 0; i < 10; i++) {
+                    double sx = (lv.random.nextDouble() - .5) * .8, sz = (lv.random.nextDouble() - .5) * .8;
+                    star(c.x, c.y, c.z, sx * .25, 1, sz * .25, .5 + lv.random.nextDouble() * .5);
+                    star(c.x, c.y, c.z, sx * .25, -1, sz * .25, .3 + lv.random.nextDouble() * .3);
                 }
             }
-            if (k == 3) for (int i = 0; i < 24; i++) lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, 0, (lv.random.nextDouble() - .5) * .5, 1, (lv.random.nextDouble() - .5) * .5, .25 + lv.random.nextDouble() * .25);
-            if (k == 2) ring(48, .45, 0);
-            if (k == 4) { ring(40, .36, .5); sphere(50, .15, 0.2); lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1f, 1.9f); }
-            if (k == 6) ring(32, .28, -.5);
+            if (k >= 1 && k <= 16) {   // eight spinning pinwheel arms
+                for (int a = 0; a < 8; a++) {
+                    double th = a * .7854 + k * .4;
+                    star(c.x, c.y, c.z, Math.cos(th), .15 * Math.sin(k + a), Math.sin(th), .4 + .03 * k);
+                }
+            }
+            if (k % 3 == 2 && k <= 20) { ring(80, .4 + k * .03, ((k / 3) % 3 - 1) * .5, k); blob(150, .3, .3); }
+            if (k == 8) { lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 2f, 1.9f); sphere(120, .7); blob(300, .3, .45); }
+            if (k == 14) { lv.playSound(null, c.x, c.y, c.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.5f, 1.2f); sphere(140, 1.0); blob(400, .4, .65); }
         }
     }
 
@@ -218,6 +221,11 @@ public final class DoorRapier extends Uniqueness {
             // (Level, LivingEntity creator, int sequence, float yaw, float destX, destY, destZ): destination is the door itself
             var e = (net.minecraft.world.entity.Entity) doorCls.getConstructor(Level.class, LivingEntity.class, int.class, float.class, float.class, float.class, float.class)
                 .newInstance(lv, owner, 9, yaw, (float) x, (float) y, (float) z);
+            try {   // TELEPORT_ONLY does nothing unless someone sneaks into it (the default mirage mode teleports its creator)
+                for (var m : doorCls.getMethods()) if (m.getName().equals("setDoorMode") && m.getParameterCount() == 1) {
+                    for (Object k : m.getParameterTypes()[0].getEnumConstants()) if (k.toString().equals("TELEPORT_ONLY")) { m.invoke(e, k); break; }
+                }
+            } catch (Throwable ignored) { }
             try {   // the door must not teleport anyone: clear its "free to use" flag
                 var f = doorCls.getDeclaredField("FREE_TO_USE"); f.setAccessible(true);
                 @SuppressWarnings("unchecked") var acc = (net.minecraft.network.syncher.EntityDataAccessor<Boolean>) f.get(null);
