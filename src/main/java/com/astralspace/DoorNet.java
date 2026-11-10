@@ -17,7 +17,17 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server to client: a supernova went off at this spot (drawn by {@link NovaRender}). */
+    public record Nova(double x, double y, double z, float scale) implements CustomPacketPayload {
+        public static final Type<Nova> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "door_nova"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, Nova> CODEC = StreamCodec.composite(
+            net.minecraft.network.codec.ByteBufCodecs.DOUBLE, Nova::x, net.minecraft.network.codec.ByteBufCodecs.DOUBLE, Nova::y,
+            net.minecraft.network.codec.ByteBufCodecs.DOUBLE, Nova::z, net.minecraft.network.codec.ByteBufCodecs.FLOAT, Nova::scale, Nova::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static void register(PayloadRegistrar r) {
+        r.playToClient(Nova.TYPE, Nova.CODEC, (p, ctx) -> ctx.enqueueWork(() -> NovaRender.add(p.x(), p.y(), p.z(), p.scale())));
         r.playToServer(Key.TYPE, Key.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) DoorEyes.trigger(sp); }));
     }
 }

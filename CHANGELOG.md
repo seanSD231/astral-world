@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.182
+- The supernova finale is now a real rendered effect instead of particles, modelled on the Sun manifestation: a dome of light about 30-45 blocks across that bursts open in half a second (white core, cream and gold halo), four coloured shock spheres (orange, magenta, blue, teal) racing out to over 100 blocks, and 52 long rays of light 90-260 blocks long shooting into the sky and along the ground. Additive and depth tested, so the ground cuts it off. Sent to everyone within 400 blocks. The old huge sprite flash is removed. Untested in game; size and brightness are guesses against your screenshot.
+
 ## 0.2.181
 - Eyes of the Door redrawn to match the reference: two round, overlapping silver metal eyeballs with sphere shading and a travelling glint, bright blue irises with a dark limbal ring, a small keyhole pupil and twinkling stars in the iris. Untested in game.
 

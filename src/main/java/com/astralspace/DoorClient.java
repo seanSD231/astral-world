@@ -39,6 +39,7 @@ public final class DoorClient {
         modBus.addListener((RegisterKeyMappingsEvent e) -> e.register(KEY));
         modBus.addListener(DoorClient::addLayers);
         NeoForge.EVENT_BUS.addListener(DoorClient::tick);
+        NeoForge.EVENT_BUS.addListener(NovaRender::render);
     }
 
     private static void tick(ClientTickEvent.Post e) {

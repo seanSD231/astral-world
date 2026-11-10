@@ -196,12 +196,11 @@ public final class DoorEyes extends Uniqueness {
         void explode() {
             ServerPlayer sp = lv.getServer().getPlayerList().getPlayer(owner);
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayersNear(lv, null, c.x, c.y, c.z, 96.0, new Net.FlashPayload(255, 3500));
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayersNear(lv, null, c.x, c.y, c.z, 400.0, new DoorNet.Nova(c.x, c.y - 1.0, c.z, 1f));
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 2f, 0.7f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 2f, 1.5f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 2f, 0.5f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, SoundSource.PLAYERS, 2f, 0.6f);
-            lv.sendParticles(PartyItems.STAR_CORE.get(), c.x, c.y, c.z, 0, 170, 4, -24, 1);    // the central star goes nova: a screen-filling spiked flash
-            lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 90, 6, 18, 1);
             lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 70, 4, 24, 1);           // shock shells: blue-white, orange, magenta, teal, bigger and slower
             lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 105, 2, 32, 1);
             lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 140, 1, 40, 1);
