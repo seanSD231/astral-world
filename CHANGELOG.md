@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.186
+- Hologram fixes, batch 4: Paragon 0 gets a lake in the middle with a paddle steamship cruising it, a bigger outer track run the other way by an armoured gun train with long cannon, a more detailed airship (fins, propeller, rigging, windows, flag) and locomotive (cowcatcher, headlamp, dome, bell); Demon of Knowledge now has a train on a track and two airships circling its brass armillary; Spectator 0 writes with the real Quill of Alzuhod item art and its finished cards, plus nine more standing ones, are real tarot cards from the packs floating round the area (display only, not pickable); Fool 0 loses the dome, the ring of tall columns and the eye rosette, leaving just the hall floor, table and chairs; the hall chairs are rebuilt (turned legs, cushion, arched slatted back, scrolled arms, finials); Fool 1's eight chairs are now real seats you can sit in; Lord of Mysteries gets the same chairs as real seats, a table open in the middle so the card is easy to pick up, symbols lifted out of the table, the white blob removed, and four stone-arch doors pushed out to the edge. Untested in game.
+
 ## 0.2.185
 - Hologram fixes, batch 3: Father of Devils is now an Abyss-style black maw over a whirling pit wrapped in tentacles, no skull or horns; Key of Light spreads all seven colours everywhere (bands round the sky, coloured rings, spires, sparks and motes); Calamity of Destruction is a big meteor with a fire trail high above, no more orb, and its symbols moved clear; Demon of Knowledge redone as a brass armillary with turning gears and bookcases, in the Paragon style; God Almighty gets a second layer of wings and a spiked crown; the Sailor trident is rebuilt (wrapped shaft, crescent bowl, barbed prongs) and the rain is less than half as dense. Untested in game.
 

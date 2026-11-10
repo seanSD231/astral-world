@@ -100,12 +100,15 @@ public class HoloCardEntity extends Entity {
 
     /** Throne holograms (Death and Black Emperor, Seq 1 and 0) turn in quarter turns so their solid parts line up with the model. */
     public int throneQuarter() { return (int) Math.round((Math.PI - Math.toRadians(getYRot())) / (Math.PI / 2)); }
-    public boolean hasThrone() { return goo() < 0 && !symbolOnly() && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8 || pathIndex() == 18 && seq() == 0); }
+    public boolean hasThrone() { return !symbolOnly() && (goo() == 0 || goo() < 0 && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8 || pathIndex() == 18)); }
 
     /** Real, solid boxes matching HoloRenderer.throneModel (s = .95 * scale): three steps, seat, armrests and the back. */
     /** The Fool's hall: twenty-two seats you can sit in and the long table under the card, matching HoloRenderer.foolHall (local x right, z toward you). */
     /** How much bigger than a person the Fool's hall is; HoloRenderer.foolHall draws it with the same number. */
     public static final float HALL_K = 2.4f;
+    /** Lord of Mysteries: seven real seats round the table (scale of one chair in S units, ring radius in S units, first angle) and the Fool at Seq 1: eight chairs round a round table. HoloRenderer draws from the same numbers. */
+    public static final float LOM_CHAIR = .9f, LOM_RING = 4.35f, LOM_PHASE = .2f, LOM_S = 2.35f;
+    public static final float F1_R = 9f, F1_S = 1.7f;
     /** The hall's layout in hall units (times HALL_K for blocks): table centre z and half length, half width, the side chairs' x and pitch. The renderer draws from the same numbers. */
     public static final float HALL_ZC = -12.4f, HALL_HL = 13.0f, HALL_W = 1.2f, HALL_SX = 2.0f, HALL_PITCH = 2.4f, HALL_Z0 = -1.9f, HALL_CHAIR = .9f, HALL_HEAD = 2.0f;
     private void spawnHall() {
@@ -140,7 +143,18 @@ public class HoloCardEntity extends Entity {
         }
     }
 
+    private void spawnRing(int n, float ring, float phase, float scale) {   // n seats on a circle, each a real seat box the size of the drawn chair
+        for (int i = 0; i < n; i++) {
+            double a = i * Math.PI * 2 / n + phase;
+            ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
+            tp.setup(getUUID(), .8f * scale, .5f * scale, true);
+            tp.setPos(getX() + Math.cos(a) * ring, getY(), getZ() + Math.sin(a) * ring);
+            level().addFreshEntity(tp);
+        }
+    }
     private void spawnThrone() {
+        if (goo() == 0) { spawnRing(7, LOM_RING * LOM_S, LOM_PHASE, LOM_CHAIR * LOM_S); return; }
+        if (pathIndex() == 18 && seq() == 1) { float k = F1_S * .55f; spawnRing(8, F1_R * .34f + 1.7f * k, (float) Math.PI / 8, k); return; }
         if (pathIndex() == 18) { spawnHall(); return; }
         float s = .95f * (seq() == 0 ? 2.1f : 1.15f);
         int k = throneQuarter();
