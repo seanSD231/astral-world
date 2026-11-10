@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.167
+- First-person weapons are about 40% smaller (they filled the screen); removed the checkered glow pattern on the longsword and other blades (glow now pulses in a smooth wave along the weapon).
+- Untested in game.
+
 ## 0.2.166
 - The nine Uniqueness weapons are now smooth meshes (marching cubes from the same shapes as the artwork) with smooth shading instead of blocks; glow, twinkle, flames and the moving parts are animated by code.
 - Longsword of Twilight remodelled to match its icon (short, broad orange blade, gold guard).
