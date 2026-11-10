@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.169
+- Wheel of Fortune Rifle rebuilt as a detailed steampunk rifle: perforated brass shroud with the barrel and rods visible inside, steel receiver with rivets and a window onto working gears and a glowing tube, leather stock and grip, copper pipes, ring sight, brass-shell magazine, the wheel and the coiled snake. Untested in game.
+
 ## 0.2.168
 - The weapon meshes now carry the same lighting, reflections, bump detail and ambient shadowing as the artwork renders (baked into the vertex colours), and are slightly slimmer, so they look like the pictures instead of flat blobs.
 - Untested in game.

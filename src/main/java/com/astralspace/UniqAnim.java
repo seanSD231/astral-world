@@ -13,7 +13,7 @@ final class UniqAnim {
         Map.entry("spear_of_sun", new Part[]{new Part("sun","spin",new float[]{0.74453f,0.74453f,0.5f},-0.9f)}),
         Map.entry("storm_katana", new Part[]{}),
         Map.entry("bone_greatsword", new Part[]{}),
-        Map.entry("snake_rifle", new Part[]{new Part("wheel","spin",new float[]{0.42604f,0.49637f,0.5f},1.2f)}),
+        Map.entry("snake_rifle", new Part[]{new Part("wheel","spin",new float[]{0.43518f,0.49316f,0.5f},1.2f)}),
         Map.entry("chained_bow", new Part[]{new Part("string","pull",new float[]{-0.16019f,-0.05847f,0.0f},0f)}),
         Map.entry("twilight_longsword", new Part[]{})
     );
