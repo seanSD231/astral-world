@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.158
+- Black Emperor (and Anarchy) crown rebuilt from the Ace of Swords: a floating band of dark silver diamond plates with pale gems, points above and below and small spikes between.
+- Dark domes: the ground shade now reaches the wall, no more ring of grass at the edge.
+- Arbiter scale: the pan rims lie flat round the pans (they were standing up and down); small lugs where the chains meet the rim.
+Untested in game.
+
 ## 0.2.157
 Great Old One redesigns (batch 3, untested in game):
 - God Almighty: five-tier golden dais with four pillars, a huge five-ring armillary round a blazing sun, wings and rays of light, five symbols circling.
