@@ -48,8 +48,19 @@ public final class AstralFloor {
                 @Override public boolean isFoil(net.minecraft.world.item.ItemStack stack) { return true; }
             });
 
-    /** Testing: a monocle you wear on your head; hold right click 5s to accommodate the Marauder Uniqueness. */
-    public static final DeferredItem<Item> MONOCLE = ITEMS.register("monocle", Monocle::new);
+    /** Uniquenesses: hold right click for 5 seconds to take one in (through LOTM's own accommodation). {item id, LOTM pathway id, name, pathway title} */
+    public static final String[][] UNIQ = {
+        {"star_cane", "apprentice", "Cane Inlaid with Star Speckles", "Door"},
+        {"quill_of_alzuhod", "spectator", "Quill of Alzuhod", "Visionary"},
+        {"cloak_of_shadows", "secrets_supplicant", "Cloak of Shadows", "Hanged Man"},
+        {"golden_sun", "bard", "Radiant Miniature Golden Sun", "Sun"},
+        {"ball_of_storms", "sailor", "Ball of Storms", "Tyrant"},
+        {"feathered_serpent_book", "corpse_collector", "Illusory Book of Coiled Feathered Serpents", "Death"},
+        {"twilight_longsword", "warrior", "Longsword of Twilight", "Warrior"},
+        {"red_pip_die", "monster", "Six-Sided White Die", "Monster"},
+        {"bandaged_figure", "prisoner", "Tiny Illusory Bandaged Figure", "Chained"}};
+    public static final java.util.List<DeferredItem<Item>> UNIQUENESSES = new java.util.ArrayList<>();
+    static { for (String[] u : UNIQ) UNIQUENESSES.add(ITEMS.register(u[0], () -> new Uniqueness(u[1], u[3]))); }
 
     /** Invisible, like the barrier block. */
     private static final class FloorBlock extends Block {
@@ -65,7 +76,7 @@ public final class AstralFloor {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
-            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); e.accept(MONOCLE.get()); }
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); }
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) e.accept(CABINET_ITEM.get());
         });
     }

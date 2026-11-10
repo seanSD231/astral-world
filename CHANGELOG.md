@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.161
+- Monocle removed. Nine Uniqueness items in its place (creative, Tools tab; hold right click 5s to take one in through LOTM): Cane Inlaid with Star Speckles (Door), Quill of Alzuhod (Visionary), Cloak of Shadows (Hanged Man), Radiant Miniature Golden Sun (Sun), Ball of Storms (Tyrant), Illusory Book of Coiled Feathered Serpents (Death), Longsword of Twilight (Warrior), Six-Sided White Die (Monster), Tiny Illusory Bandaged Figure (Chained). Untested in game.
+
 ## 0.2.160
 - The Monocle now renders over your eye while worn. A worn monocle can't be used; hold right click from your hand to accommodate. Untested in game.
 

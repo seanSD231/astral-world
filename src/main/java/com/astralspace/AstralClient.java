@@ -80,12 +80,6 @@ public final class AstralClient {
         modBus.addListener(PartyParticles::register);
         modBus.addListener(AstralClient::registerLayers);
         modBus.addListener(AstralClient::registerSky);
-        modBus.addListener((net.neoforged.neoforge.client.event.EntityRenderersEvent.AddLayers ev) -> {
-            for (var skin : ev.getSkins()) {
-                var r = ev.getSkin(skin);
-                if (r instanceof net.minecraft.client.renderer.entity.player.PlayerRenderer pr) pr.addLayer(new MonocleLayer(pr));
-            }
-        });
         NeoForge.EVENT_BUS.addListener(AstralClient::onPlaySound);
         NeoForge.EVENT_BUS.addListener(AstralClient::onClientTick);
         NeoForge.EVENT_BUS.addListener(AstralClient::onLoggingOut);
