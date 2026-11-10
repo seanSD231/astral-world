@@ -70,7 +70,9 @@ public class WornUniq extends Uniqueness {
         if (st.getItem() instanceof DoorEyes) { DoorEyes.trigger(sp); return; }
         WornUniq w = (WornUniq) st.getItem();
         if (sp.getCooldowns().isOnCooldown(w)) { sp.displayClientMessage(Component.literal("Still recovering...").withStyle(ChatFormatting.GRAY), true); return; }
+        UniqAbilities.refund = false;
         try { w.ability.use(sp, st); } catch (Throwable t) { com.mojang.logging.LogUtils.getLogger().warn("[astral] uniqueness ability failed: {}", t.toString()); return; }
+        if (UniqAbilities.refund) return;
         if (w.cooldown > 0) sp.getCooldowns().addCooldown(w, w.cooldown);
     }
 }

@@ -70,7 +70,9 @@ public final class AstralFloor {
             new net.minecraft.world.item.Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)
                 .attributes(net.minecraft.world.item.SwordItem.createAttributes(net.minecraft.world.item.Tiers.NETHERITE, 6, -2.4f))
                 .component(net.minecraft.core.component.DataComponents.TOOL, net.minecraft.world.item.SwordItem.createToolProperties()));
-        case "shadow_sword", "storm_katana", "chained_bow" -> new WornUniq(u[1], u[3], 100, "(coming next update)", (sp, st) -> sp.displayClientMessage(net.minecraft.network.chat.Component.literal("Its power is not awake yet."), true));
+        case "shadow_sword" -> new WornUniq(u[1], u[3], 600, "the shadow spreads 20 blocks and cages everyone in it", UniqAbilities::cage);
+        case "storm_katana" -> new WornUniq(u[1], u[3], 500, "throw a ball of lightning that swells into a storm (no shields while carried)", UniqAbilities::storm);
+        case "chained_bow" -> new WornUniq(u[1], u[3], 400, "the doll walks to the nearest foe and binds them", UniqAbilities::doll);
         default -> new Uniqueness(u[1], u[3], false);
     })); }
     /** The Sword of Shadow's own entry, and the shield that appears in the off hand while it is held. */

@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.192
+- Uniqueness items stage 2. Writhing Shadows (G): the shadow under your feet floods out to 20 blocks and every foe in it is caged (held still 8s, 6 damage). Bandaged Doll (G): the doll leaves your shoulder, a trail walks to the nearest foe within 24 blocks and binds them in place for 10s (no cooldown if nobody is near). Ball of Lightning (G): throws a ball that swells into a 14-block sphere of storm for 4s, striking and flinging everything inside; while it is carried, shields block nothing. Allies and tamed pets are skipped by the cage and the doll; the serpent still hits everyone. The doll and storm are particle effects, not entities. Untested in game.
+
 ## 0.2.191
 - Uniquenesses are now worn items, not weapons. Put one in the Uniqueness curio slot and press G. Stage 1: Eyes of the Door burst damage 80 to 320; Quill of Alzuhod opens the Seq 1 Storytelling screen; Feathered Serpent (Death) shows coiled at your feet and G deals 25 to everything within 8 blocks, you and allies included; Wheel of Fortune (Monster) is a wheel at your back that spins on G and lands on a random boon or bane; Mini Sun (Sun) floats over your right shoulder and G spawns three flaring suns (ahead and either side); Sword of Twilight is a real sword (netherite damage) with a new sprite. Writhing Shadows, Ball of Lightning and the Bandaged Doll are visible when worn but their abilities (shadow cage, lightning storm, doll binding, no shield) come next. The Shadow Shield no longer appears. Old 3D weapon models replaced by icons for now. Untested in game.
 

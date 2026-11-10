@@ -28,6 +28,13 @@ public final class WornClient {
     private static final Map<UUID, String> WORN = new HashMap<>();
     private static final Map<UUID, Long> SPIN = new HashMap<>();
     private static final Map<UUID, Long> STRIKE = new HashMap<>();
+    private static final Map<UUID, Long> SHADOW = new HashMap<>();
+    private static final Map<UUID, Long> DOLL = new HashMap<>();
+
+    private static float since(UUID id, Map<UUID, Long> m, float pt) {
+        Long t = m.get(id); Minecraft mc = Minecraft.getInstance();
+        return t == null || mc.level == null ? 1e9f : mc.level.getGameTime() - t + pt;
+    }
 
     /** Refresh who is wearing what (every 10 ticks; Curios is looked up by reflection). */
     public static void tick(Minecraft mc) {
@@ -43,7 +50,7 @@ public final class WornClient {
         if (mc.level == null) return;
         Entity e = mc.level.getEntity(entityId);
         if (e == null) return;
-        (kind == 2 ? SPIN : STRIKE).put(e.getUUID(), mc.level.getGameTime());
+        (kind == 2 ? SPIN : kind == 3 ? SHADOW : kind == 4 ? DOLL : STRIKE).put(e.getUUID(), mc.level.getGameTime());
     }
 
     public static final class Layer extends RenderLayer<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> {
@@ -58,9 +65,9 @@ public final class WornClient {
                 case "spear_of_sun" -> sun(pose, buf, t);
                 case "bone_greatsword" -> serpent(pose, buf, p, t);
                 case "snake_rifle" -> wheel(pose, buf, p, t, pt);
-                case "chained_bow" -> doll(pose, buf, t);
+                case "chained_bow" -> { if (since(p.getUUID(), DOLL, pt) > 50) doll(pose, buf, t); }
                 case "storm_katana" -> lightning(pose, buf, t);
-                case "shadow_sword" -> shadows(pose, buf, t);
+                case "shadow_sword" -> shadows(pose, buf, t, since(p.getUUID(), SHADOW, pt));
                 default -> { }
             }
         }
@@ -103,7 +110,7 @@ public final class WornClient {
             pose.popPose();
         }
 
-        private void shadows(PoseStack pose, MultiBufferSource buf, float t) {
+        private void shadows(PoseStack pose, MultiBufferSource buf, float t, float spread) {
             pose.pushPose(); body(pose);
             pose.translate(0, 24f / 16 - 0.01f, 0);   // ground, under the feet
             VertexConsumer s = solid(buf);
@@ -120,6 +127,13 @@ public final class WornClient {
                     box(pose, s, new float[]{1.6f - k * 0.3f, h / 4 + 0.3f, 1.6f - k * 0.3f}, 0xE0120418, 0xF000F0);
                 }
                 pose.popPose();
+            }
+            if (spread < 50) {   // the shadow floods out to 20 blocks, then draws back in
+                float k = spread < 25 ? spread / 25f : 1 - (spread - 25) / 25f;
+                float side = 20f * 2 * 16 * k;
+                box(pose, s, new float[]{side, 0.1f, side}, 0x90050008, 0xF000F0);
+                pose.mulPose(Axis.YP.rotationDegrees(45));
+                box(pose, s, new float[]{side * 0.9f, 0.15f, side * 0.9f}, 0x70050008, 0xF000F0);
             }
             pose.mulPose(Axis.YP.rotationDegrees(t));
             box(pose, s, new float[]{15, 0.15f, 15}, 0xC0090210, 0xF000F0);
