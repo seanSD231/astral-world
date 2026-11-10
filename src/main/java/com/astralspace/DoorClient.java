@@ -22,7 +22,7 @@ public final class DoorClient {
         public boolean applyForgeHandTransform(PoseStack pose, LocalPlayer player, HumanoidArm arm, ItemStack stack, float pt, float equip, float swing) {
             int side = arm == HumanoidArm.RIGHT ? 1 : -1;
             float t = Mth.sin(swing * (float) Math.PI);                         // 0 -> 1 -> 0 over the swing
-            pose.translate(side * 0.22f, -0.5f - 0.6f * equip, -0.85f);        // held more in front and toward the middle so the blade is seen
+            pose.translate(side * 0.3f, -0.55f - 0.6f * equip, -0.85f);        // held more in front and toward the middle so the blade is seen
             pose.translate(-side * 0.18f * t, 0.06f * t, -1.1f * t);            // punch the blade forward
             pose.mulPose(Axis.XP.rotationDegrees(-62f * t));                    // lay the blade flat toward the target
             pose.mulPose(Axis.ZP.rotationDegrees(side * 6f * t));

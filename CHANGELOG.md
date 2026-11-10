@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.172
+- Rapier of the Door: texture animation made cheaper (no interpolation, slower frames) to fix lag; star particles redrawn as bright blue-white dots with a glow so they are no longer grey; sword smaller in hand. Untested in game.
+
 ## 0.2.171
 - Rapier of the Door: drawn as a flat two-sided plane (the old extruded 128px model was thousands of faces, thick and slow); bigger in hand; held further in front and toward the middle in first person. Replaced all its particles with tiny glowing star dots (far fewer of them) and its custom sounds with vanilla chimes and sweeps. Untested in game.
 
