@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.193
+- Fixed a crash when a worn Uniqueness was held or worn (the worn visuals fetched two render buffers at once; each box now fetches its own). The Uniqueness items now have their own icons (sun, lightning ball, feathered serpent, wheel, doll, shadows) instead of the old weapon art. Untested in game.
+
 ## 0.2.192
 - Uniqueness items stage 2. Writhing Shadows (G): the shadow under your feet floods out to 20 blocks and every foe in it is caged (held still 8s, 6 damage). Bandaged Doll (G): the doll leaves your shoulder, a trail walks to the nearest foe within 24 blocks and binds them in place for 10s (no cooldown if nobody is near). Ball of Lightning (G): throws a ball that swells into a 14-block sphere of storm for 4s, striking and flinging everything inside; while it is carried, shields block nothing. Allies and tamed pets are skipped by the cage and the doll; the serpent still hits everyone. The doll and storm are particle effects, not entities. Untested in game.
 

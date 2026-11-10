@@ -72,8 +72,8 @@ public final class WornClient {
             }
         }
 
-        private VertexConsumer glow(MultiBufferSource b) { return b.getBuffer(RenderType.eyes(WHITE)); }
-        private VertexConsumer solid(MultiBufferSource b) { return b.getBuffer(RenderType.entityTranslucent(WHITE)); }
+        private B glow(MultiBufferSource b) { return new B(b, RenderType.eyes(WHITE)); }
+        private B solid(MultiBufferSource b) { return new B(b, RenderType.entityTranslucent(WHITE)); }
 
         /** The body-space frame (y down, feet at +24/16, back is +z, left is +x). */
         private void body(PoseStack pose) { getParentModel().body.translateAndRotate(pose); }
@@ -82,7 +82,7 @@ public final class WornClient {
             pose.pushPose(); body(pose);
             pose.translate(-7f / 16, -9f / 16 + Math.sin(t * 0.1) * 0.03, 0);
             pose.mulPose(Axis.YP.rotationDegrees(t * 3));
-            VertexConsumer g = glow(buf);
+            B g = glow(buf);
             box(pose, g, 3, 0xFFFFA020, 0xF000F0);
             pose.mulPose(Axis.YP.rotationDegrees(45)); pose.mulPose(Axis.XP.rotationDegrees(45));
             box(pose, g, 3, 0xFFFFD860, 0xF000F0);
@@ -94,7 +94,7 @@ public final class WornClient {
         private void lightning(PoseStack pose, MultiBufferSource buf, float t) {
             pose.pushPose(); getParentModel().leftArm.translateAndRotate(pose);
             pose.translate(1f / 16, 11f / 16, 0);
-            VertexConsumer g = glow(buf);
+            B g = glow(buf);
             float f = 1 + (float) Math.sin(t * 1.7) * 0.12f;
             pose.mulPose(Axis.YP.rotationDegrees(t * 9)); pose.mulPose(Axis.XP.rotationDegrees(t * 6));
             box(pose, g, 3.2f * f, 0xFFB8D8FF, 0xF000F0);
@@ -113,7 +113,7 @@ public final class WornClient {
         private void shadows(PoseStack pose, MultiBufferSource buf, float t, float spread) {
             pose.pushPose(); body(pose);
             pose.translate(0, 24f / 16 - 0.01f, 0);   // ground, under the feet
-            VertexConsumer s = solid(buf);
+            B s = solid(buf);
             for (int i = 0; i < 9; i++) {
                 float a = i * 40f + t * 4;
                 float r = (5 + 2.5f * (float) Math.sin(t * 0.13 + i * 1.9)) / 16;
@@ -148,7 +148,7 @@ public final class WornClient {
             Long st = STRIKE.get(p.getUUID());
             float strike = 0;
             if (st != null && Minecraft.getInstance().level != null) strike = Math.max(0, 1 - (Minecraft.getInstance().level.getGameTime() - st) / 12f);
-            VertexConsumer s = solid(buf), g = glow(buf);
+            B s = solid(buf), g = glow(buf);
             int n = 26;
             for (int i = 0; i < n; i++) {
                 float u = i / (float) n;
@@ -179,7 +179,7 @@ public final class WornClient {
                 if (d < 60) ang += (60 - d) * (60 - d) * 0.25f;   // spins fast, then slows to a stop
             }
             pose.mulPose(Axis.ZP.rotationDegrees(ang));
-            VertexConsumer s = solid(buf), g = glow(buf);
+            B s = solid(buf), g = glow(buf);
             int[] cols = {0xFFE8C040, 0xFFB02020, 0xFFE8C040, 0xFF2040B0};
             for (int i = 0; i < 12; i++) {
                 pose.pushPose();
@@ -201,7 +201,7 @@ public final class WornClient {
             pose.pushPose(); body(pose);
             pose.translate(6.5f / 16, -4.2f / 16, 0);   // sitting on the left shoulder
             pose.mulPose(Axis.ZP.rotationDegrees(-6 + (float) Math.sin(t * 0.08) * 3));
-            VertexConsumer s = solid(buf);
+            B s = solid(buf);
             box(pose, s, new float[]{3.2f, 4f, 2.2f}, 0xFFD8CBA4, 0xF000F0);                 // wrapped body
             pose.pushPose(); pose.translate(0, -3.6f / 16, 0);
             box(pose, s, new float[]{3.2f, 3.2f, 3.2f}, 0xFFE6DCB8, 0xF000F0);                // head
@@ -220,10 +220,14 @@ public final class WornClient {
         }
     }
 
-    private static void box(PoseStack pose, VertexConsumer vc, float size, int argb, int light) { box(pose, vc, new float[]{size, size, size}, argb, light); }
+    /** A render type to draw with; the buffer is fetched at each draw so interleaving two types never reuses a finished builder. */
+    private record B(MultiBufferSource src, RenderType type) { VertexConsumer get() { return src.getBuffer(type); } }
+
+    private static void box(PoseStack pose, B b, float size, int argb, int light) { box(pose, b, new float[]{size, size, size}, argb, light); }
 
     /** A cuboid centred on the origin; size in pixels (1/16 block). */
-    private static void box(PoseStack pose, VertexConsumer vc, float[] sz, int argb, int light) {
+    private static void box(PoseStack pose, B b, float[] sz, int argb, int light) {
+        VertexConsumer vc = b.get();   // fetched fresh for every box, so two render types can interleave
         PoseStack.Pose m = pose.last();
         float x = sz[0] / 32, y = sz[1] / 32, z = sz[2] / 32;
         int a = argb >>> 24, r = argb >> 16 & 255, g = argb >> 8 & 255, b = argb & 255;
