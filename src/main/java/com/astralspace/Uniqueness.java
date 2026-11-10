@@ -33,8 +33,10 @@ public class Uniqueness extends Item {
 
     public Uniqueness(String pathId, String title) { this(pathId, title, false); }
 
-    public Uniqueness(String pathId, String title, boolean model3d) {
-        super(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC));
+    public Uniqueness(String pathId, String title, boolean model3d) { this(pathId, title, model3d, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)); }
+
+    protected Uniqueness(String pathId, String title, boolean model3d, Item.Properties props) {
+        super(props);
         this.pathId = pathId; this.title = title; this.model3d = model3d;
     }
 

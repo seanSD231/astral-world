@@ -46,5 +46,33 @@
     "stream": true
    }
   ]
+ },
+ "door.thrust": {
+  "sounds": [
+   {
+    "name": "astral_world:door/thrust"
+   }
+  ]
+ },
+ "door.lunge": {
+  "sounds": [
+   {
+    "name": "astral_world:door/lunge"
+   }
+  ]
+ },
+ "door.hit": {
+  "sounds": [
+   {
+    "name": "astral_world:door/hit"
+   }
+  ]
+ },
+ "door.combo": {
+  "sounds": [
+   {
+    "name": "astral_world:door/combo"
+   }
+  ]
  }
 }

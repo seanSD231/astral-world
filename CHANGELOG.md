@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.170
+- Test: the Door Uniqueness is now the Rapier of the Door, a 128px animated pixel sword (twinkling stars, drifting nebula, pulsing light). It attacks fast with long reach and light damage, builds a 3-hit combo (x1.0, x1.25, x1.7) with a chime on the finisher, has a first-person thrust instead of the swing, star trails, and its own sounds. Right click (not sneaking) is a short door-dash lunge that damages everything in its path (2.5s cooldown). Sneak + hold right click still takes the Uniqueness in. Untested in game; numbers are guesses.
+
 ## 0.2.169
 - Wheel of Fortune Rifle rebuilt as a detailed steampunk rifle: perforated brass shroud with the barrel and rods visible inside, steel receiver with rivets and a window onto working gears and a glowing tube, leather stock and grip, copper pipes, ring sight, brass-shell magazine, the wheel and the coiled snake. Untested in game.
 
