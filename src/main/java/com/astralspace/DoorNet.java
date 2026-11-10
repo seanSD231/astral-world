@@ -26,8 +26,17 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server to client: a worn Uniqueness did its thing (1 serpent strike, 2 wheel spin). */
+    public record Fx(int entity, int kind) implements CustomPacketPayload {
+        public static final Type<Fx> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "uniq_fx"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, Fx> CODEC = StreamCodec.composite(
+            net.minecraft.network.codec.ByteBufCodecs.VAR_INT, Fx::entity, net.minecraft.network.codec.ByteBufCodecs.VAR_INT, Fx::kind, Fx::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static void register(PayloadRegistrar r) {
+        r.playToClient(Fx.TYPE, Fx.CODEC, (p, ctx) -> ctx.enqueueWork(() -> WornClient.fx(p.entity(), p.kind())));
         r.playToClient(Nova.TYPE, Nova.CODEC, (p, ctx) -> ctx.enqueueWork(() -> NovaRender.add(p.x(), p.y(), p.z(), p.scale())));
-        r.playToServer(Key.TYPE, Key.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) DoorEyes.trigger(sp); }));
+        r.playToServer(Key.TYPE, Key.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) WornUniq.press(sp); }));
     }
 }

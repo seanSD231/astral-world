@@ -46,13 +46,14 @@ public final class DoorClient {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
         while (KEY.consumeClick()) if (mc.screen == null) PacketDistributor.sendToServer(new DoorNet.Key());
+        WornClient.tick(mc);
         if (mc.player.tickCount % 10 == 0) for (AbstractClientPlayer p : mc.level.players()) WORN.put(p.getUUID(), !DoorEyes.findEyes(p).isEmpty());
     }
 
     private static void addLayers(EntityRenderersEvent.AddLayers e) {
         for (var skin : e.getSkins()) {
             EntityRenderer<?> r = e.getSkin(skin);
-            if (r instanceof PlayerRenderer pr) pr.addLayer(new EyesLayer(pr));
+            if (r instanceof PlayerRenderer pr) { pr.addLayer(new EyesLayer(pr)); pr.addLayer(new WornClient.Layer(pr)); }
         }
     }
 

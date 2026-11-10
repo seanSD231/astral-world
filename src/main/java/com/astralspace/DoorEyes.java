@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * The Door Uniqueness as a pair of eyes. It goes in the Uniqueness curios slot (or can simply be held); a keybind picks the
  * creature you are looking at and opens doors around it, fills the space with stars that swell into real stars, and they go supernova.
  */
-public final class DoorEyes extends Uniqueness {
+public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it has its own trigger, but WornUniq.press knows it)
     private static boolean inLunge;
 
     public DoorEyes() { super("apprentice", "Door", false, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)); }
@@ -85,7 +85,7 @@ public final class DoorEyes extends Uniqueness {
 
     private static final int BURST_COOLDOWN = 300, OPEN = 16, FILL = 80, CHAIN = 24, FINAL = FILL + CHAIN + 2, DOORS = 11, AFTER = 34, NODES = 170;
     private static final double RING = 9.0, AREA = 16.0, DMG_RADIUS = 12.0;
-    private static final float BURST_DAMAGE = 80f;
+    private static final float BURST_DAMAGE = 320f;
     private static final List<Burst> BURSTS = new java.util.ArrayList<>();
 
     private static final class Burst {

@@ -33,9 +33,7 @@ public class AstralMod {
         HoloCardEntity.register(modBus);
         Tarot.register(modBus);
         AstralTab.register(modBus);
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ShadowGear::tick);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(DoorEyes::tickBursts);
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ShadowGear::drop);
         AstralBarrier.onBreak(Stage::onBarrierBroken);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             AstralClient.init(modBus);

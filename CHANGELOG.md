@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.191
+- Uniquenesses are now worn items, not weapons. Put one in the Uniqueness curio slot and press G. Stage 1: Eyes of the Door burst damage 80 to 320; Quill of Alzuhod opens the Seq 1 Storytelling screen; Feathered Serpent (Death) shows coiled at your feet and G deals 25 to everything within 8 blocks, you and allies included; Wheel of Fortune (Monster) is a wheel at your back that spins on G and lands on a random boon or bane; Mini Sun (Sun) floats over your right shoulder and G spawns three flaring suns (ahead and either side); Sword of Twilight is a real sword (netherite damage) with a new sprite. Writhing Shadows, Ball of Lightning and the Bandaged Doll are visible when worn but their abilities (shadow cage, lightning storm, doll binding, no shield) come next. The Shadow Shield no longer appears. Old 3D weapon models replaced by icons for now. Untested in game.
+
 ## 0.2.190
 - Numismatics coins stacked to 99 because LOTM only lifts the 99 cap for a private list of its own items. The six Numismatics coins are now added to that list at startup, so they get the same 9999 stacks (and saving) as the LOTM coins. Untested in game.
 

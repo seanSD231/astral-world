@@ -60,7 +60,19 @@ public final class AstralFloor {
         {"snake_rifle", "monster", "Wheel of Fortune Rifle", "Monster", "3d"},
         {"chained_bow", "prisoner", "Chained Bow", "Chained", "3d"}};
     public static final java.util.List<DeferredItem<Item>> UNIQUENESSES = new java.util.ArrayList<>();
-    static { for (String[] u : UNIQ) UNIQUENESSES.add(ITEMS.register(u[0], () -> u[0].equals("starry_sniper") ? new DoorEyes() : new Uniqueness(u[1], u[3], u[4].equals("3d")))); }
+    static { for (String[] u : UNIQ) UNIQUENESSES.add(ITEMS.register(u[0], () -> switch (u[0]) {
+        case "starry_sniper" -> new DoorEyes();
+        case "quill_of_alzuhod" -> new WornUniq(u[1], u[3], 100, "open the Storytelling screen (the Seq 1 Spectator prophecy)", UniqAbilities::quill);
+        case "spear_of_sun" -> new WornUniq(u[1], u[3], 400, "three flaring suns, one ahead and one to either side", UniqAbilities::suns);
+        case "bone_greatsword" -> new WornUniq(u[1], u[3], 300, "the serpent strikes everything near for 25, you and your allies too", UniqAbilities::serpent);
+        case "snake_rifle" -> new WornUniq(u[1], u[3], 400, "spin the wheel for a boon or a bane", UniqAbilities::wheel);
+        case "twilight_longsword" -> new WornUniq(u[1], u[3], 0, "a real sword", (sp, st) -> { },
+            new net.minecraft.world.item.Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)
+                .attributes(net.minecraft.world.item.SwordItem.createAttributes(net.minecraft.world.item.Tiers.NETHERITE, 6, -2.4f))
+                .component(net.minecraft.core.component.DataComponents.TOOL, net.minecraft.world.item.SwordItem.createToolProperties()));
+        case "shadow_sword", "storm_katana", "chained_bow" -> new WornUniq(u[1], u[3], 100, "(coming next update)", (sp, st) -> sp.displayClientMessage(net.minecraft.network.chat.Component.literal("Its power is not awake yet."), true));
+        default -> new Uniqueness(u[1], u[3], false);
+    })); }
     /** The Sword of Shadow's own entry, and the shield that appears in the off hand while it is held. */
     public static final DeferredItem<Item> SHADOW_SWORD_ITEM = DeferredItem.createItem(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("astral_world", "shadow_sword"));
     public static final DeferredItem<Item> SHADOW_SHIELD = ITEMS.register("shadow_shield", ShadowShield::new);
@@ -79,7 +91,7 @@ public final class AstralFloor {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
-            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); e.accept(SHADOW_SHIELD.get()); }
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); }
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) e.accept(CABINET_ITEM.get());
         });
     }
