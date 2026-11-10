@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.168
+- The weapon meshes now carry the same lighting, reflections, bump detail and ambient shadowing as the artwork renders (baked into the vertex colours), and are slightly slimmer, so they look like the pictures instead of flat blobs.
+- Untested in game.
+
 ## 0.2.167
 - First-person weapons are about 40% smaller (they filled the screen); removed the checkered glow pattern on the longsword and other blades (glow now pulses in a smooth wave along the weapon).
 - Untested in game.

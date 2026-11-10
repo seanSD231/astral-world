@@ -126,7 +126,7 @@ public final class UniqClient extends BlockEntityWithoutLevelRenderer {
             for (int c = 0; c < 4; c++) {
                 int i = m.tri[f + (c == 3 ? 2 : c)];
                 vc.addVertex(pose, m.pos[i * 3], m.pos[i * 3 + 1], m.pos[i * 3 + 2]).setColor(r[i], g[i], b[i], 255).setUv(.5f, .5f)
-                  .setOverlay(overlay).setLight(lt[i]).setNormal(pose, m.nrm[i * 3], m.nrm[i * 3 + 1], m.nrm[i * 3 + 2]);
+                  .setOverlay(overlay).setLight(lt[i]).setNormal(pose, 0f, 1f, 0f);
             }
         }
     }
