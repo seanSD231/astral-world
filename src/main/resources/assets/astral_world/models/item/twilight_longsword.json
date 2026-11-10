@@ -1,1 +1,128 @@
-{ "parent": "minecraft:item/generated", "textures": { "layer0": "astral_world:item/twilight_longsword" } }
+{
+ "parent": "minecraft:builtin/entity",
+ "gui_light": "front",
+ "textures": {
+  "particle": "astral_world:item/twilight_longsword_vox"
+ },
+ "display": {
+  "thirdperson_righthand": {
+   "rotation": [
+    80.0,
+    90.0,
+    0.0
+   ],
+   "translation": [
+    -0.0,
+    6.28,
+    4.37
+   ],
+   "scale": [
+    1.275,
+    1.275,
+    1.275
+   ]
+  },
+  "thirdperson_lefthand": {
+   "rotation": [
+    80.0,
+    -90.0,
+    -0.0
+   ],
+   "translation": [
+    0.0,
+    6.28,
+    4.37
+   ],
+   "scale": [
+    1.275,
+    1.275,
+    1.275
+   ]
+  },
+  "firstperson_righthand": {
+   "rotation": [
+    10.3,
+    83.62,
+    -18.58
+   ],
+   "translation": [
+    0.25,
+    1.51,
+    -2.01
+   ],
+   "scale": [
+    0.422,
+    0.422,
+    0.422
+   ]
+  },
+  "firstperson_lefthand": {
+   "rotation": [
+    10.3,
+    -83.62,
+    18.58
+   ],
+   "translation": [
+    -0.25,
+    1.51,
+    -2.01
+   ],
+   "scale": [
+    0.422,
+    0.422,
+    0.422
+   ]
+  },
+  "gui": {
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "translation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  "ground": {
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "translation": [
+    0,
+    2,
+    0
+   ],
+   "scale": [
+    0.5,
+    0.5,
+    0.5
+   ]
+  },
+  "fixed": {
+   "rotation": [
+    0,
+    180,
+    0
+   ],
+   "translation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  }
+ }
+}

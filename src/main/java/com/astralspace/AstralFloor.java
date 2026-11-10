@@ -56,7 +56,7 @@ public final class AstralFloor {
         {"spear_of_sun", "bard", "Spear of Sun and Justice", "Sun", "3d"},
         {"storm_katana", "sailor", "Storm Katana", "Tyrant", "3d"},
         {"bone_greatsword", "corpse_collector", "Great Bone Sword", "Death", "3d"},
-        {"twilight_longsword", "warrior", "Longsword of Twilight", "Warrior", ""},
+        {"twilight_longsword", "warrior", "Longsword of Twilight", "Warrior", "3d"},
         {"snake_rifle", "monster", "Wheel of Fortune Rifle", "Monster", "3d"},
         {"chained_bow", "prisoner", "Chained Bow", "Chained", "3d"}};
     public static final java.util.List<DeferredItem<Item>> UNIQUENESSES = new java.util.ArrayList<>();

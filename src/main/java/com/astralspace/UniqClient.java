@@ -5,6 +5,9 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
@@ -28,6 +31,12 @@ public final class UniqClient extends BlockEntityWithoutLevelRenderer {
     private static UniqClient instance;
 
     public static final IClientItemExtensions EXT = new IClientItemExtensions() {
+        @Override public HumanoidModel.ArmPose getArmPose(LivingEntity e, InteractionHand h, ItemStack s) {
+            String p = BuiltInRegistries.ITEM.getKey(s.getItem()).getPath();
+            if (p.equals("starry_sniper") || p.equals("snake_rifle")) return HumanoidModel.ArmPose.CROSSBOW_HOLD;
+            if (p.equals("chained_bow")) return HumanoidModel.ArmPose.BOW_AND_ARROW;
+            return null;
+        }
         @Override public BlockEntityWithoutLevelRenderer getCustomRenderer() {
             if (instance == null) { Minecraft mc = Minecraft.getInstance(); instance = new UniqClient(mc); }
             return instance;

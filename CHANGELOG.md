@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.165
+- Models rebuilt at double the resolution so edges are much smoother, and the Longsword of Twilight is now a 3D model too.
+- Sniper and Wheel of Fortune rifle are held out in front with both arms raised (crossbow pose); the bow is held up in the bow pose.
+- All weapons are larger in third person and smaller in first person; blades and the spear now point forward instead of straight up; the Shield of Shadow is bigger.
+- Untested in game.
+
 ## 0.2.164
 - Recomputed how the Uniqueness weapons and the Shield of Shadow are held (third and first person) from each model's grip point and axes: guns point forward with the grip in the hand, blades and the spear point forward and up, the bow stands upright, the shield faces forward on the forearm. Untested in game.
 
