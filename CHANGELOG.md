@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.173
+- Rapier of the Door: right click is now an entity ability instead of the dash. Right click an enemy and seven doorways (arched star outlines with a void inside) open in a ring around it, stars pour out of them and fill the space, then burst for 14 damage and knockback in a small radius (8s cooldown). The doors are drawn with particles, not the LOTM door entity, so it works without LOTM. Untested in game; numbers are guesses.
+
 ## 0.2.172
 - Rapier of the Door: texture animation made cheaper (no interpolation, slower frames) to fix lag; star particles redrawn as bright blue-white dots with a glow so they are no longer grey; sword smaller in hand. Untested in game.
 

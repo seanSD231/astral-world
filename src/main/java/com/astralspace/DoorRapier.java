@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The Door Uniqueness as a rapier: quick, long reach, light hits. Three hits in a row inside 1.5s build a combo
- * (x1.0, x1.25, x1.7). Right click (not sneaking) is a door-dash lunge with a cooldown. Sneak + hold right click still
+ * (x1.0, x1.25, x1.7). Right click on an entity opens doors around it, fills the space with stars, then bursts (8s cooldown). Sneak + hold right click still
  * takes the Uniqueness in. Test build: numbers are guesses and need playing with.
  */
 public final class DoorRapier extends Uniqueness {
@@ -61,42 +61,108 @@ public final class DoorRapier extends Uniqueness {
     public void appendHoverText(ItemStack stack, Item.TooltipContext ctx, List<Component> tip, net.minecraft.world.item.TooltipFlag flag) {
         super.appendHoverText(stack, ctx, tip, flag);
         tip.add(Component.literal("Fast, long reach, light hits. Three quick hits build a combo.").withStyle(ChatFormatting.AQUA));
-        tip.add(Component.literal("Right click: door dash lunge (short cooldown).").withStyle(ChatFormatting.AQUA));
+        tip.add(Component.literal("Right click an enemy: doors open around it, stars flood in, then burst.").withStyle(ChatFormatting.AQUA));
     }
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player p, InteractionHand hand) {
-        ItemStack st = p.getItemInHand(hand);
         if (p.isShiftKeyDown()) return super.use(level, p, hand);
-        if (p.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(st);
-        p.swing(hand);
-        if (!level.isClientSide && p instanceof ServerPlayer sp) { lunge(sp); sp.getCooldowns().addCooldown(this, LUNGE_COOLDOWN); }
-        return InteractionResultHolder.sidedSuccess(st, level.isClientSide);
+        return InteractionResultHolder.pass(p.getItemInHand(hand));
     }
 
-    private static void lunge(ServerPlayer sp) {
-        ServerLevel lv = sp.serverLevel();
-        Vec3 look = sp.getLookAngle(), start = sp.position().add(0, sp.getBbHeight() * .5, 0), end = start.add(look.scale(5.0));
-        lv.playSound(null, sp.getX(), sp.getY(), sp.getZ(), LUNGE, SoundSource.PLAYERS, 0.5f, 1.8f);
-        // damage everything along the path
-        AABB box = new AABB(start, end).inflate(1.2);
-        inLunge = true;
-        try {
-            for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, box, x -> x != sp && x.isAlive())) {
-                Vec3 c = e.position().add(0, e.getBbHeight() * .5, 0); Vec3 ab = end.subtract(start);
-                double t = Math.max(0, Math.min(1, c.subtract(start).dot(ab) / ab.lengthSqr()));
-                if (c.distanceTo(start.add(ab.scale(t))) > 1.3) continue;
-                if (e.hurt(lv.damageSources().playerAttack(sp), 5.0f)) {
-                    e.knockback(0.5, -look.x, -look.z);
-                    lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, 8, .3, .3, .3, .35);
-                    lv.playSound(null, c.x, c.y, c.z, HIT, SoundSource.PLAYERS, 0.8f, 1.5f);
+    /** Right click an entity: doors open around it, stars pour out and fill the space, then burst. */
+    @Override
+    public net.minecraft.world.InteractionResult interactLivingEntity(ItemStack st, Player p, LivingEntity target, InteractionHand hand) {
+        if (p.isShiftKeyDown() || target == p) return net.minecraft.world.InteractionResult.PASS;
+        if (p.getCooldowns().isOnCooldown(this)) return net.minecraft.world.InteractionResult.FAIL;
+        p.swing(hand);
+        if (!p.level().isClientSide && p instanceof ServerPlayer sp) {
+            BURSTS.add(new Burst(sp.serverLevel(), sp.getUUID(), target));
+            sp.getCooldowns().addCooldown(this, BURST_COOLDOWN);
+        }
+        return net.minecraft.world.InteractionResult.sidedSuccess(p.level().isClientSide);
+    }
+
+    private static final int BURST_COOLDOWN = 160, OPEN = 12, FILL = 42, DOORS = 7;
+    private static final double RING = 3.0, AREA = 3.6;
+    private static final float BURST_DAMAGE = 14f;
+    private static final List<Burst> BURSTS = new java.util.ArrayList<>();
+
+    private static final class Burst {
+        final ServerLevel lv; final UUID owner; final LivingEntity target; final double[] ang = new double[DOORS], lift = new double[DOORS];
+        Vec3 c; int age;
+        Burst(ServerLevel lv, UUID owner, LivingEntity t) {
+            this.lv = lv; this.owner = owner; this.target = t; c = t.position().add(0, t.getBbHeight() * .5, 0);
+            double off = lv.random.nextDouble() * 6.28;
+            for (int i = 0; i < DOORS; i++) { ang[i] = off + i * 6.2832 / DOORS; lift[i] = (i % 3 == 0 ? -0.3 : i % 3 == 1 ? 0.0 : 0.6) + lv.random.nextDouble() * .3; }
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.7f, 0.6f);
+        }
+        /** returns true when finished */
+        boolean tick() {
+            if (target.isAlive() && target.level() == lv) c = target.position().add(0, target.getBbHeight() * .5, 0);
+            age++;
+            double grow = Math.min(1.0, age / (double) OPEN);
+            boolean redraw = age % 3 == 1;
+            for (int i = 0; i < DOORS; i++) {
+                double a = ang[i];
+                Vec3 pos = c.add(Math.cos(a) * RING, -c.y + target.getY() + lift[i], Math.sin(a) * RING).add(0, 0, 0);
+                pos = new Vec3(c.x + Math.cos(a) * RING, target.getY() + lift[i], c.z + Math.sin(a) * RING);
+                Vec3 n = new Vec3(-Math.cos(a), 0, -Math.sin(a)), r = new Vec3(-n.z, 0, n.x);
+                if (redraw) {
+                    int pts = 18;
+                    for (int k = 0; k <= pts; k++) {   // arched doorway outline, drawn in as it grows
+                        double t = Math.PI * k / pts, u = .5 * Math.cos(t) * grow, v = (1.5 + .5 * Math.sin(t)) * grow;
+                        door(pos, r, u, v);
+                    }
+                    for (int k = 0; k <= 8; k++) { double v = 1.5 * grow * k / 8; door(pos, r, -.5 * grow, v); door(pos, r, .5 * grow, v); }
+                    lv.sendParticles(ParticleTypes.REVERSE_PORTAL, pos.x, pos.y + grow, pos.z, 2, .25, .6, .25, .02);
+                }
+                if (age > OPEN - 4 && age < FILL) {   // stars pour out of the door towards the middle
+                    Vec3 d = c.subtract(pos.add(0, 1, 0)).normalize();
+                    for (int k = 0; k < 2; k++) {
+                        double u = (lv.random.nextDouble() - .5) * .8, v = .2 + lv.random.nextDouble() * 1.6;
+                        Vec3 q = pos.add(r.scale(u)).add(0, v, 0).add(n.scale(.15));
+                        lv.sendParticles(PartyItems.STAR.get(), q.x, q.y, q.z, 0, d.x, d.y, d.z, .22 + lv.random.nextDouble() * .1);
+                    }
                 }
             }
-        } finally { inLunge = false; }
-        // the dash itself, with a trail of stars along the path
-        sp.setDeltaMovement(look.x * 1.7, look.y * 0.9 + 0.1, look.z * 1.7);
-        sp.hurtMarked = true; sp.resetFallDistance();
-        for (int i = 0; i < 14; i++) { Vec3 q = start.add(look.scale(i * .36)); lv.sendParticles(PartyItems.STAR.get(), q.x, q.y, q.z, 2, .12, .12, .12, .05); }
+            if (age > OPEN && age < FILL) {   // the space fills with stars
+                int n = 3 + (age - OPEN) / 4;
+                for (int k = 0; k < n; k++) {
+                    double dx, dy, dz; do { dx = lv.random.nextDouble() * 2 - 1; dy = lv.random.nextDouble() * 2 - 1; dz = lv.random.nextDouble() * 2 - 1; } while (dx * dx + dy * dy + dz * dz > 1);
+                    lv.sendParticles(PartyItems.STAR.get(), c.x + dx * AREA, c.y + dy * AREA * .6, c.z + dz * AREA, 1, 0, 0, 0, 0.01);
+                }
+                if (age % 6 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.6f, 0.8f + (age - OPEN) * .02f);
+            }
+            if (age == FILL) { explode(); return true; }
+            return age > FILL;
+        }
+        void door(Vec3 pos, Vec3 r, double u, double v) {
+            lv.sendParticles(PartyItems.STAR.get(), pos.x + r.x * u, pos.y + v, pos.z + r.z * u, 1, 0, 0, 0, 0);
+        }
+        void explode() {
+            ServerPlayer sp = lv.getServer().getPlayerList().getPlayer(owner);
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.9f, 1.4f);
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1f, 1.6f);
+            lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, 70, 0.4, 0.4, 0.4, 0.9);
+            lv.sendParticles(ParticleTypes.FLASH, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+            lv.sendParticles(ParticleTypes.END_ROD, c.x, c.y, c.z, 25, 0.3, 0.3, 0.3, 0.45);
+            inLunge = true;
+            try {
+                for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(AREA), x -> x.isAlive() && (sp == null || x != sp))) {
+                    if (e.position().add(0, e.getBbHeight() * .5, 0).distanceTo(c) > AREA) continue;
+                    if (e.hurt(sp != null ? lv.damageSources().playerAttack(sp) : lv.damageSources().magic(), BURST_DAMAGE)) {
+                        Vec3 away = e.position().subtract(c.x, e.getY(), c.z); if (away.lengthSqr() < 1e-4) away = new Vec3(0, 0, 1);
+                        away = away.normalize(); e.knockback(0.9, -away.x, -away.z);
+                    }
+                }
+            } finally { inLunge = false; }
+        }
+    }
+
+    public static void tickBursts(net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) {
+        if (BURSTS.isEmpty()) return;
+        BURSTS.removeIf(Burst::tick);
     }
 
     /** Combo: three hits inside the window each hit harder; the third finishes with a chime and a burst. */
