@@ -32,6 +32,7 @@ public final class PartyItems {
     public static final DeferredRegister<ParticleType<?>> PARTICLES = DeferredRegister.create(Registries.PARTICLE_TYPE, AstralMod.MOD_ID);
     public static final Supplier<SimpleParticleType> CONFETTI = PARTICLES.register("confetti", () -> new SimpleParticleType(false));
     public static final Supplier<SimpleParticleType> BUBBLE = PARTICLES.register("bubble", () -> new SimpleParticleType(false));
+    public static final Supplier<SimpleParticleType> STAR = PARTICLES.register("star_dot", () -> new SimpleParticleType(false));
 
     public static void register(IEventBus modBus) { ITEMS.register(modBus); PARTICLES.register(modBus); }
 

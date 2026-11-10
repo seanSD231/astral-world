@@ -16,6 +16,7 @@ public final class PartyParticles {
     public static void register(RegisterParticleProvidersEvent e) {
         e.registerSpriteSet(PartyItems.CONFETTI.get(), Confetti.Provider::new);
         e.registerSpriteSet(PartyItems.BUBBLE.get(), Bubble.Provider::new);
+        e.registerSpriteSet(PartyItems.STAR.get(), StarDot.Provider::new);
     }
 
     /** A piece of paper that tumbles and flutters down. The colour is picked per piece. */
@@ -91,6 +92,27 @@ public final class PartyParticles {
 
         record Provider(SpriteSet set) implements ParticleProvider<SimpleParticleType> {
             @Override public Particle createParticle(SimpleParticleType t, ClientLevel lv, double x, double y, double z, double vx, double vy, double vz) { return new Bubble(lv, x, y, z, vx, vy, vz, set); }
+        }
+    }
+
+    /** A tiny glowing photon dot: the Door rapier's stars. Short lived, fades out, a little shimmer. */
+    static final class StarDot extends TextureSheetParticle {
+        private final float base, phase;
+        StarDot(ClientLevel lv, double x, double y, double z, double vx, double vy, double vz, SpriteSet set) {
+            super(lv, x, y, z, vx, vy, vz);
+            this.xd = vx * .2 + (random.nextFloat() - .5f) * .01; this.yd = vy * .2 + (random.nextFloat() - .5f) * .01; this.zd = vz * .2 + (random.nextFloat() - .5f) * .01;
+            pickSprite(set);
+            float k = random.nextFloat();
+            rCol = .72f + .28f * k; gCol = .85f + .15f * k; bCol = 1f;
+            lifetime = 9 + random.nextInt(8); gravity = 0f; friction = .88f; hasPhysics = false;
+            base = 0.035f + random.nextFloat() * 0.035f; quadSize = base; phase = random.nextFloat() * 6.28f;
+        }
+        @Override public void tick() { super.tick(); alpha = Math.max(0f, 1f - (float) age / lifetime); }
+        @Override public float getQuadSize(float pt) { return base * (0.7f + 0.3f * (float) Math.sin((age + pt) * 1.4 + phase)); }
+        @Override protected int getLightColor(float pt) { return 0xF000F0; }
+        @Override public ParticleRenderType getRenderType() { return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT; }
+        record Provider(SpriteSet set) implements ParticleProvider<SimpleParticleType> {
+            @Override public Particle createParticle(SimpleParticleType t, ClientLevel lv, double x, double y, double z, double vx, double vy, double vz) { return new StarDot(lv, x, y, z, vx, vy, vz, set); }
         }
     }
 }

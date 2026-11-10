@@ -5,7 +5,6 @@ import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
@@ -23,7 +22,7 @@ public final class DoorClient {
         public boolean applyForgeHandTransform(PoseStack pose, LocalPlayer player, HumanoidArm arm, ItemStack stack, float pt, float equip, float swing) {
             int side = arm == HumanoidArm.RIGHT ? 1 : -1;
             float t = Mth.sin(swing * (float) Math.PI);                         // 0 -> 1 -> 0 over the swing
-            pose.translate(side * 0.56f, -0.52f - 0.6f * equip, -0.72f);        // resting place (same as vanilla)
+            pose.translate(side * 0.22f, -0.5f - 0.6f * equip, -0.85f);        // held more in front and toward the middle so the blade is seen
             pose.translate(-side * 0.18f * t, 0.06f * t, -1.1f * t);            // punch the blade forward
             pose.mulPose(Axis.XP.rotationDegrees(-62f * t));                    // lay the blade flat toward the target
             pose.mulPose(Axis.ZP.rotationDegrees(side * 6f * t));
@@ -41,15 +40,15 @@ public final class DoorClient {
             if (!held(p)) continue;
             Vec3 look = p.getLookAngle(), right = look.cross(new Vec3(0, 1, 0)).normalize();
             Vec3 hand = p.getEyePosition().add(look.scale(0.9)).add(right.scale(0.35)).add(0, -0.3, 0);
-            if (p.swinging && p.swingTime == 0) mc.level.playLocalSound(p.getX(), p.getY(), p.getZ(), DoorRapier.THRUST, SoundSource.PLAYERS, 0.8f, 1.0f + (mc.level.random.nextFloat() - .5f) * .2f, false);
+            if (p.swinging && p.swingTime == 0) mc.level.playLocalSound(p.getX(), p.getY(), p.getZ(), DoorRapier.THRUST, SoundSource.PLAYERS, 0.5f, 1.7f + (mc.level.random.nextFloat() - .5f) * .2f, false);
             if (p.swinging) {
-                for (int i = 0; i < 4; i++) {
-                    Vec3 q = hand.add(look.scale(i * 0.35));
-                    mc.level.addParticle(ParticleTypes.END_ROD, q.x, q.y, q.z, 0, 0, 0);
+                for (int i = 0; i < 2; i++) {
+                    Vec3 q = hand.add(look.scale(0.2 + mc.level.random.nextFloat() * 0.9));
+                    mc.level.addParticle(PartyItems.STAR.get(), q.x, q.y, q.z, 0, 0.02, 0);
                 }
-            } else if (mc.level.random.nextFloat() < 0.06f) {
-                Vec3 q = hand.add(look.scale(mc.level.random.nextFloat() * 1.2));
-                mc.level.addParticle(ParticleTypes.END_ROD, q.x, q.y, q.z, 0, 0.01, 0);
+            } else if (mc.level.random.nextFloat() < 0.04f) {
+                Vec3 q = hand.add(look.scale(mc.level.random.nextFloat() * 1.0));
+                mc.level.addParticle(PartyItems.STAR.get(), q.x, q.y, q.z, 0, 0.02, 0);
             }
         }
     }

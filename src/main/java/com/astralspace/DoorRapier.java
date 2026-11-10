@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -36,12 +37,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class DoorRapier extends Uniqueness {
     private static final ResourceLocation REACH_ID = ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "door_rapier_reach");
-    public static final SoundEvent THRUST = snd("door.thrust"), LUNGE = snd("door.lunge"), HIT = snd("door.hit"), COMBO = snd("door.combo");
+    public static final SoundEvent THRUST = SoundEvents.PLAYER_ATTACK_SWEEP, LUNGE = SoundEvents.ENDERMAN_TELEPORT, HIT = SoundEvents.AMETHYST_BLOCK_CHIME, COMBO = SoundEvents.AMETHYST_BLOCK_RESONATE;
     private static final int COMBO_WINDOW = 30, LUNGE_COOLDOWN = 50;
     private static final Map<UUID, long[]> COMBOS = new ConcurrentHashMap<>();   // uuid -> {last hit tick, hits so far}
     private static boolean inLunge;
-
-    private static SoundEvent snd(String id) { return SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, id)); }
 
     private static Item.Properties props() {
         return new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).attributes(ItemAttributeModifiers.builder()
@@ -78,7 +77,7 @@ public final class DoorRapier extends Uniqueness {
     private static void lunge(ServerPlayer sp) {
         ServerLevel lv = sp.serverLevel();
         Vec3 look = sp.getLookAngle(), start = sp.position().add(0, sp.getBbHeight() * .5, 0), end = start.add(look.scale(5.0));
-        lv.playSound(null, sp.getX(), sp.getY(), sp.getZ(), LUNGE, SoundSource.PLAYERS, 1f, 1f);
+        lv.playSound(null, sp.getX(), sp.getY(), sp.getZ(), LUNGE, SoundSource.PLAYERS, 0.5f, 1.8f);
         // damage everything along the path
         AABB box = new AABB(start, end).inflate(1.2);
         inLunge = true;
@@ -89,15 +88,15 @@ public final class DoorRapier extends Uniqueness {
                 if (c.distanceTo(start.add(ab.scale(t))) > 1.3) continue;
                 if (e.hurt(lv.damageSources().playerAttack(sp), 5.0f)) {
                     e.knockback(0.5, -look.x, -look.z);
-                    lv.sendParticles(ParticleTypes.ENCHANTED_HIT, c.x, c.y, c.z, 10, .3, .3, .3, .2);
-                    lv.playSound(null, c.x, c.y, c.z, HIT, SoundSource.PLAYERS, 1f, 1.1f);
+                    lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, 8, .3, .3, .3, .35);
+                    lv.playSound(null, c.x, c.y, c.z, HIT, SoundSource.PLAYERS, 0.8f, 1.5f);
                 }
             }
         } finally { inLunge = false; }
         // the dash itself, with a trail of stars along the path
         sp.setDeltaMovement(look.x * 1.7, look.y * 0.9 + 0.1, look.z * 1.7);
         sp.hurtMarked = true; sp.resetFallDistance();
-        for (int i = 0; i < 22; i++) { Vec3 q = start.add(look.scale(i * .23)); lv.sendParticles(ParticleTypes.END_ROD, q.x, q.y, q.z, 1, .08, .08, .08, .0); }
+        for (int i = 0; i < 14; i++) { Vec3 q = start.add(look.scale(i * .36)); lv.sendParticles(PartyItems.STAR.get(), q.x, q.y, q.z, 2, .12, .12, .12, .05); }
     }
 
     /** Combo: three hits inside the window each hit harder; the third finishes with a chime and a burst. */
@@ -111,8 +110,8 @@ public final class DoorRapier extends Uniqueness {
         float mult = hit == 1 ? 1.0f : hit == 2 ? 1.25f : 1.7f;
         e.setAmount(e.getAmount() * mult);
         LivingEntity t = e.getEntity(); Vec3 c = t.position().add(0, t.getBbHeight() * .6, 0);
-        lv.playSound(null, c.x, c.y, c.z, hit == 3 ? COMBO : HIT, SoundSource.PLAYERS, 1f, hit == 3 ? 1f : 0.95f + 0.1f * hit);
-        lv.sendParticles(hit == 3 ? ParticleTypes.END_ROD : ParticleTypes.ENCHANTED_HIT, c.x, c.y, c.z, hit == 3 ? 24 : 6, .3, .3, .3, hit == 3 ? .25 : .1);
+        lv.playSound(null, c.x, c.y, c.z, hit == 3 ? COMBO : HIT, SoundSource.PLAYERS, hit == 3 ? 1f : 0.7f, hit == 3 ? 1.8f : 1.2f + 0.2f * hit);
+        lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, hit == 3 ? 16 : 6, .3, .3, .3, hit == 3 ? .5 : .25);
         sp.displayClientMessage(Component.literal("✦".repeat(hit)).withStyle(hit == 3 ? ChatFormatting.AQUA : ChatFormatting.BLUE), true);
         if (hit == 3) st[1] = 0;
     }

@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.171
+- Rapier of the Door: drawn as a flat two-sided plane (the old extruded 128px model was thousands of faces, thick and slow); bigger in hand; held further in front and toward the middle in first person. Replaced all its particles with tiny glowing star dots (far fewer of them) and its custom sounds with vanilla chimes and sweeps. Untested in game.
+
 ## 0.2.170
 - Test: the Door Uniqueness is now the Rapier of the Door, a 128px animated pixel sword (twinkling stars, drifting nebula, pulsing light). It attacks fast with long reach and light damage, builds a 3-hit combo (x1.0, x1.25, x1.7) with a chime on the finisher, has a first-person thrust instead of the swing, star trails, and its own sounds. Right click (not sneaking) is a short door-dash lunge that damages everything in its path (2.5s cooldown). Sneak + hold right click still takes the Uniqueness in. Untested in game; numbers are guesses.
 
