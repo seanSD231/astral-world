@@ -226,8 +226,8 @@ public final class WornClient {
     private static void box(PoseStack pose, B b, float size, int argb, int light) { box(pose, b, new float[]{size, size, size}, argb, light); }
 
     /** A cuboid centred on the origin; size in pixels (1/16 block). */
-    private static void box(PoseStack pose, B b, float[] sz, int argb, int light) {
-        VertexConsumer vc = b.get();   // fetched fresh for every box, so two render types can interleave
+    private static void box(PoseStack pose, B buf, float[] sz, int argb, int light) {
+        VertexConsumer vc = buf.get();   // fetched fresh for every box, so two render types can interleave
         PoseStack.Pose m = pose.last();
         float x = sz[0] / 32, y = sz[1] / 32, z = sz[2] / 32;
         int a = argb >>> 24, r = argb >> 16 & 255, g = argb >> 8 & 255, b = argb & 255;
