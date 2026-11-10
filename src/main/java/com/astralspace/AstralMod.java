@@ -25,6 +25,7 @@ public class AstralMod {
     public AstralMod(IEventBus modBus) {
         liftHealthCap();
         modBus.addListener(Net::register);
+        modBus.addListener(CoinStacks::modify);
         modBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent e) -> e.enqueueWork(CoinBridge::patchValues));
         AstralFloor.register(modBus);
         Cosmos.register(modBus);

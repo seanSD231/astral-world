@@ -194,7 +194,7 @@ public final class CoinBridge {
     }
 
     /**
-     * LOTM coins -> Numismatics coins. LOTM coins stack to 9999 but Numismatics coins only to 64, so a big purse would not fit.
+     * LOTM coins -> Numismatics coins. Both kinds of coin stack to 9999 (see CoinStacks), so a big purse fits.
      * Only as many coins are swapped as the inventory has room for; the rest stay LOTM coins and nothing is dropped or lost.
      * (Use the shop or bank again to bring in more.)
      */
@@ -205,7 +205,7 @@ public final class CoinBridge {
             long total = 0;
             for (int i = 0; i < 36; i++) { ItemStack s = p.getInventory().getItem(i); int k = indexOf(lotm, s.getItem()); if (k >= 0 && s.getComponentsPatch().isEmpty()) total += (long) LOTM_VALUE[k] * s.getCount(); }
             long stacks = 0; long rest = total;
-            for (int k = 0; k < swapItems.length; k++) { long n = rest / swapValues[k]; rest -= n * swapValues[k]; stacks += (n + 63) / 64; }
+            for (int k = 0; k < swapItems.length; k++) { long n = rest / swapValues[k]; rest -= n * swapValues[k]; int mx = Math.max(1, new ItemStack(swapItems[k]).getMaxStackSize()); stacks += (n + mx - 1) / mx; }
             if (stacks > emptySlots(p) + countLotmSlots(p)) return;
             give(p, swapItems, swapValues, take(p, lotm, LOTM_VALUE));
             return;

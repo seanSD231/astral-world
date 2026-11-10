@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.188
+- Starcatcher selling bin can pay out in LOTM coins: added a selling_bin_currencies data map (bronze 1, silver 10, gold 100, the same ratios as the coins). Create: Numismatics coins (spur, bevel, sprocket, cog, crown, sun) now stack to 9999 instead of 64, so converting a big purse no longer fills the inventory. Untested in game.
+
 ## 0.2.187
 - Hologram fixes from your screenshots: found the real cause of the Spectator cards "stuck in the ground" (flat sprites and cards ignore the model position, so they all drew at the centre) and fixed the same bug that put a glow blob at the middle (on every chair, the airship and the steamship); Spectator 0 has no paper any more, the real quill writes in the air in glowing ink and each finished card is a real floating card; Secret Supplicant 0 is rebuilt after the real Sacrifice Authority: Last Hope (a great cross on a mound, a mercury likeness nailed to it, chained and bleeding, inside grey curtain walls with eyes); Savant 0 is much smaller and more spread out with a solid blue lake, a tiny steamship and a smaller airship; train cars no longer clip together; the trident has a big broad middle spoke; chair backs are shorter to match the seat and Fool 1 shows the sitter's pathway over each chair again; the chained locks no longer bob; Hanged Man 2's symbol is higher; Sleepless and Eternal Darkness fog are thin and cover the whole ground. Untested in game.
 
