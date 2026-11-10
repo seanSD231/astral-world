@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.160
+- The Monocle now renders over your eye while worn. A worn monocle can't be used; hold right click from your hand to accommodate. Untested in game.
+
 ## 0.2.159
 - New testing item: the Monocle (creative, Tools tab). Sneak + right click wears it on your head; hold right click for 5 seconds to accommodate it as the Marauder Uniqueness (a sequence 0 characteristic) through LOTM's own accommodation. Untested in game.
 

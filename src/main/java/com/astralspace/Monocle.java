@@ -52,7 +52,7 @@ public class Monocle extends Item implements Equipable {
 
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity who) {
-        if (!level.isClientSide && who instanceof ServerPlayer sp) accommodate(sp);
+        if (!level.isClientSide && who instanceof ServerPlayer sp && sp.getItemBySlot(EquipmentSlot.HEAD) != stack) accommodate(sp);   // a worn monocle can't be used
         return stack;
     }
 
