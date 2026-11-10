@@ -36,6 +36,8 @@ public final class PartyItems {
     public static final Supplier<SimpleParticleType> STAR_BLUE = PARTICLES.register("star_blue", () -> new SimpleParticleType(false));
     public static final Supplier<SimpleParticleType> SLIT = PARTICLES.register("door_slit", () -> new SimpleParticleType(false));
     public static final Supplier<SimpleParticleType> FLASH = PARTICLES.register("photon_flash", () -> new SimpleParticleType(false));
+    public static final Supplier<SimpleParticleType> STAR_CORE = PARTICLES.register("star_core", () -> new SimpleParticleType(false));
+    public static final Supplier<SimpleParticleType> NEBULA = PARTICLES.register("nebula_gas", () -> new SimpleParticleType(false));
     public static final Supplier<SimpleParticleType> RING = PARTICLES.register("photon_ring", () -> new SimpleParticleType(false));
 
     public static void register(IEventBus modBus) { ITEMS.register(modBus); PARTICLES.register(modBus); }

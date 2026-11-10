@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.179
+- Rapier of the Door: the explosion is now literally stars going supernova. Spiky glowing stars (blue-white, yellow, orange, red) bloom across the whole area and swell and flicker; a big one forms in the middle. They collapse and go supernova one after another, rippling out: a spiky nova flash, an expanding shock shell, hot ejecta and drifting gas clouds. Then the central star goes nova: a screen-filling flash, four huge shock shells, a nebula of coloured gas thrown across the area that lingers for seconds, two jets of stars from the poles, pinwheels and shells. New particles: spiky star, nebula gas. Untested in game; likely heavy on particles.
+
 ## 0.2.178
 - Rapier of the Door: sword sits a little higher in the hand and is 15% bigger. Doors are upright and face the target (before, every door got the same rotation, so they showed edge-on or odd) and now last the whole ability (they close at the finale). The burst is now a chain reaction: after the fill, 110 star clusters detonate one after another rippling out from the middle (each a flash, a shockwave ring and a pop of stars, with the target slowed so it stays put), then the finale: a white-out, six shockwave rings and the big shells, pillar and pinwheels. New particle types: big photon flash and shockwave ring. Sword swings leave a black door-seam line packed with blue stars instead of the coloured puff. Untested in game; door facing may still need a nudge.
 

@@ -19,8 +19,10 @@ public final class PartyParticles {
         e.registerSpriteSet(PartyItems.STAR.get(), set -> new StarDot.Provider(set, StarDot.PALETTE));
         e.registerSpriteSet(PartyItems.STAR_BLUE.get(), set -> new StarDot.Provider(set, StarDot.BLUE));
         e.registerSpriteSet(PartyItems.SLIT.get(), Slit.Provider::new);
-        e.registerSpriteSet(PartyItems.FLASH.get(), set -> new Blast.Provider(set, false));
-        e.registerSpriteSet(PartyItems.RING.get(), set -> new Blast.Provider(set, true));
+        e.registerSpriteSet(PartyItems.FLASH.get(), set -> new Blast.Provider(set, 0));
+        e.registerSpriteSet(PartyItems.RING.get(), set -> new Blast.Provider(set, 1));
+        e.registerSpriteSet(PartyItems.STAR_CORE.get(), set -> new Blast.Provider(set, 2));
+        e.registerSpriteSet(PartyItems.NEBULA.get(), set -> new Blast.Provider(set, 3));
     }
 
     /** A piece of paper that tumbles and flutters down. The colour is picked per piece. */
@@ -137,22 +139,52 @@ public final class PartyParticles {
         }
     }
 
-    /** A big photon flash or an expanding shockwave ring. vx = final size, vy = colour index (negative = random), vz = life in ticks (0 = default). */
+    /**
+     * Big sky effects. kind 0 flash, 1 shockwave ring, 2 star (vz &gt; 0 swells, flickers and collapses over vz ticks; vz &lt; 0 goes nova
+     * for -vz ticks), 3 drifting nebula gas (velocity = vx,vy,vz). For 0-2: vx = size, vy = colour index (negative = random), vz = life.
+     */
     static final class Blast extends TextureSheetParticle {
-        private final float size; private final boolean ring;
-        Blast(ClientLevel lv, double x, double y, double z, double vx, double vy, double vz, SpriteSet set, boolean ring) {
+        static final float[][] STARS = {{.7f, .85f, 1f}, {1f, .95f, .7f}, {1f, .75f, .4f}, {1f, .45f, .35f}, {1f, 1f, 1f}};
+        static final float[][] GAS = {{1f, .3f, .7f}, {.25f, .85f, .95f}, {1f, .55f, .25f}, {.6f, .35f, 1f}, {.4f, .5f, 1f}, {1f, .4f, .45f}};
+        private final float size, br, bg, bb; private final int kind; private final boolean swell;
+        Blast(ClientLevel lv, double x, double y, double z, double vx, double vy, double vz, SpriteSet set, int kind) {
             super(lv, x, y, z, 0, 0, 0);
-            pickSprite(set); this.ring = ring; size = (float) vx;
-            float[] c = vy < 0 ? StarDot.PALETTE[random.nextInt(StarDot.PALETTE.length)] : StarDot.PALETTE[(int) vy % StarDot.PALETTE.length];
-            rCol = c[0]; gCol = c[1]; bCol = c[2];
-            lifetime = vz > 0 ? (int) vz : ring ? 18 : 11; hasPhysics = false; gravity = 0f; quadSize = 0.1f;
+            pickSprite(set); this.kind = kind; hasPhysics = false; gravity = 0f; quadSize = 0.1f;
+            float[] c;
+            if (kind == 3) {
+                c = GAS[random.nextInt(GAS.length)]; size = 2.5f + random.nextFloat() * 3.5f; swell = false;
+                xd = vx; yd = vy; zd = vz; friction = .96f; lifetime = 70 + random.nextInt(70);
+            } else {
+                size = (float) vx; swell = kind == 2 && vz > 0;
+                c = vy < 0 ? (kind == 2 ? STARS[random.nextInt(STARS.length)] : StarDot.PALETTE[random.nextInt(StarDot.PALETTE.length)])
+                           : (kind == 2 ? STARS[(int) vy % STARS.length] : StarDot.PALETTE[(int) vy % StarDot.PALETTE.length]);
+                lifetime = vz != 0 ? (int) Math.abs(vz) : kind == 1 ? 18 : 11;
+            }
+            br = c[0]; bg = c[1]; bb = c[2]; rCol = br; gCol = bg; bCol = bb;
+            if (kind == 2) roll = random.nextFloat() * 6.28f;
         }
-        @Override public void tick() { super.tick(); float p = (float) age / lifetime; alpha = Math.max(0f, (float) Math.pow(1f - p, ring ? 1.2 : 1.8)); }
-        @Override public float getQuadSize(float pt) { float p = Math.min(1f, (age + pt) / lifetime); return size * (1f - (float) Math.pow(1f - p, ring ? 2.0 : 3.0)) * .5f + .05f; }
+        @Override public void tick() {
+            super.tick();
+            float p = (float) age / lifetime;
+            oRoll = roll;
+            if (kind == 2) roll += swell ? .05f : .12f;
+            if (kind == 3) alpha = Math.min(.42f, 1.2f * Math.min(p * 5f, 1f) * (1f - p));
+            else if (swell) { alpha = 1f; float w = Math.min(1f, p * 1.3f); rCol = br + (1f - br) * w; gCol = bg + (1f - bg) * w; bCol = bb + (1f - bb) * w; }
+            else alpha = Math.max(0f, (float) Math.pow(1f - p, kind == 1 ? 1.2 : 1.8));
+        }
+        @Override public float getQuadSize(float pt) {
+            float p = Math.min(1f, (age + pt) / lifetime);
+            if (kind == 3) return size * (.6f + .6f * p);
+            if (swell) {   // swells and flickers, then collapses just before it goes
+                if (p < .75f) return size * .5f * (.35f + .65f * p / .75f) * (1f + .07f * (float) Math.sin((age + pt) * 1.9f));
+                float q = (p - .75f) / .25f; return size * .5f * (1f - .85f * q * q);
+            }
+            return size * (1f - (float) Math.pow(1f - p, kind == 1 ? 2.0 : 3.0)) * .5f + .05f;
+        }
         @Override protected int getLightColor(float pt) { return 0xF000F0; }
         @Override public ParticleRenderType getRenderType() { return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT; }
-        record Provider(SpriteSet set, boolean ring) implements ParticleProvider<SimpleParticleType> {
-            @Override public Particle createParticle(SimpleParticleType t, ClientLevel lv, double x, double y, double z, double vx, double vy, double vz) { return new Blast(lv, x, y, z, vx, vy, vz, set, ring); }
+        record Provider(SpriteSet set, int kind) implements ParticleProvider<SimpleParticleType> {
+            @Override public Particle createParticle(SimpleParticleType t, ClientLevel lv, double x, double y, double z, double vx, double vy, double vz) { return new Blast(lv, x, y, z, vx, vy, vz, set, kind); }
         }
     }
 }

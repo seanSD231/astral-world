@@ -106,34 +106,39 @@ public final class DoorRapier extends Uniqueness {
         }
         void closeDoors() { for (var d : doors) try { d.getClass().getMethod("setClosing").invoke(d); } catch (Throwable ignored) { } }
         void clearDoors() { for (var d : doors) d.discard(); doors.clear(); }
-        final List<Vec3> nodes = new java.util.ArrayList<>(); boolean[] boomed;
-        /** Chain reaction: every star cluster in the field detonates in turn, rippling out from the middle. */
-        void chain(int k) {
-            if (nodes.isEmpty()) {
-                for (int i = 0; i < NODES; i++) {
-                    double dx, dy, dz; do { dx = lv.random.nextDouble() * 2 - 1; dy = lv.random.nextDouble() * 2 - 1; dz = lv.random.nextDouble() * 2 - 1; } while (dx * dx + dy * dy + dz * dz > 1);
-                    nodes.add(c.add(dx * AREA * .9, dy * AREA * .55 + .5, dz * AREA * .9));
-                }
-                boomed = new boolean[NODES];
-                if (target.isAlive()) target.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 60, 6, false, false));
-            }
-            double reach = AREA * 1.05 * k / CHAIN;
-            int pops = 0;
+        final List<Vec3> nodes = new java.util.ArrayList<>(); int[] fuse;
+        static final int SEED = FILL - 28;
+        /** Real stars bloom across the whole area and swell; each then goes supernova, one after another, rippling out from the middle. */
+        void seedStars() {
+            fuse = new int[NODES];
             for (int i = 0; i < NODES; i++) {
-                if (boomed[i]) continue;
-                Vec3 q = nodes.get(i);
-                if (q.distanceTo(c) + lv.random.nextDouble() * 1.8 > reach) continue;
-                boomed[i] = true; pop(q, 1.0 + lv.random.nextDouble() * .8); pops++;
+                double dx, dy, dz; do { dx = lv.random.nextDouble() * 2 - 1; dy = lv.random.nextDouble() * 2 - 1; dz = lv.random.nextDouble() * 2 - 1; } while (dx * dx + dy * dy + dz * dz > 1);
+                Vec3 q = c.add(dx * AREA * .9, dy * AREA * .55 + .5, dz * AREA * .9); nodes.add(q);
+                fuse[i] = Math.max(1, Math.min(CHAIN, (int) Math.round(q.distanceTo(c) / (AREA * 1.05) * CHAIN + lv.random.nextDouble() * 3)));
+                double sz = 1.4 + lv.random.nextDouble() * 1.8;
+                lv.sendParticles(PartyItems.STAR_CORE.get(), q.x, q.y, q.z, 0, sz, -1, (FILL - SEED) + fuse[i], 1);   // swells for exactly as long as its fuse
             }
-            if (pops > 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_BLAST, SoundSource.PLAYERS, 1.4f, .7f + k * .04f);
-            if (k % 3 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_BREAK, SoundSource.PLAYERS, 1.6f, .6f + k * .05f);
+            lv.sendParticles(PartyItems.STAR_CORE.get(), c.x, c.y, c.z, 0, 7, 0, (FINAL - SEED) - 1, 1);   // the big one in the middle
+            if (target.isAlive()) target.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 120, 6, false, false));
+            lv.playSound(null, c.x, c.y, c.z, SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.5f, .6f);
         }
-        /** One detonation: a flash, a ring, and a pop of stars. */
-        void pop(Vec3 q, double size) {
-            lv.sendParticles(PartyItems.FLASH.get(), q.x, q.y, q.z, 0, 3.6 * size, -1, 0, 1);
-            if (lv.random.nextInt(3) == 0) lv.sendParticles(PartyItems.RING.get(), q.x, q.y, q.z, 0, 4.5 * size, -1, 0, 1);
-            lv.sendParticles(PartyItems.STAR.get(), q.x, q.y, q.z, 28, .15, .15, .15, .22);
-            lv.sendParticles(PartyItems.STAR_BLUE.get(), q.x, q.y, q.z, 8, .1, .1, .1, .14);
+        void chain(int k) {
+            int pops = 0;
+            for (int i = 0; i < NODES; i++) if (fuse[i] == k) { supernova(nodes.get(i), .8 + lv.random.nextDouble() * .7); pops++; }
+            if (pops > 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_BLAST, SoundSource.PLAYERS, 1.6f, .6f + k * .03f);
+            if (pops > 2) lv.playSound(null, c.x, c.y, c.z, SoundEvents.GENERIC_EXTINGUISH_FIRE, SoundSource.PLAYERS, 1.2f, .5f);
+        }
+        /** One star going supernova: a spiky flash, the expanding shock shell, hot ejecta, and gas clouds left drifting behind. */
+        void supernova(Vec3 q, double size) {
+            lv.sendParticles(PartyItems.STAR_CORE.get(), q.x, q.y, q.z, 0, 7 * size, 4, -9, 1);                    // the nova flash, spikes and all
+            lv.sendParticles(PartyItems.FLASH.get(), q.x, q.y, q.z, 0, 5 * size, 4, 7, 1);
+            lv.sendParticles(PartyItems.RING.get(), q.x, q.y, q.z, 0, 8 * size, 2, 24, 1);                         // shock shell, hot orange
+            lv.sendParticles(PartyItems.RING.get(), q.x, q.y, q.z, 0, 5.5 * size, 1, 17, 1);                       // inner shell, magenta
+            lv.sendParticles(PartyItems.STAR.get(), q.x, q.y, q.z, 30, .1, .1, .1, .2);
+            lv.sendParticles(PartyItems.STAR_BLUE.get(), q.x, q.y, q.z, 10, .1, .1, .1, .12);
+            for (int i = 0; i < 2; i++) {   // the nebula it leaves
+                lv.sendParticles(PartyItems.NEBULA.get(), q.x, q.y, q.z, 0, (lv.random.nextDouble() - .5) * .12, (lv.random.nextDouble() - .5) * .08, (lv.random.nextDouble() - .5) * .12, 1);
+            }
         }
         void star(double x, double y, double z, double dx, double dy, double dz, double speed) { lv.sendParticles(PartyItems.STAR.get(), x, y, z, 0, dx, dy, dz, speed); }
         void blob(int n, double spread, double speed) { lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, n, spread, spread, spread, speed); }
@@ -165,6 +170,7 @@ public final class DoorRapier extends Uniqueness {
                 lv.sendParticles(PartyItems.STAR.get(), c.x, c.y + 1, c.z, cnt, AREA * .55, AREA * .35, AREA * .55, 0.004);
                 if (age % 5 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.8f, 0.7f + (age - OPEN) * .012f);
             }
+            if (age == SEED) seedStars();
             if (age > FILL && age <= FILL + CHAIN) chain(age - FILL);
             if (age == FINAL) { explode(); closeDoors(); }
             if (age > FINAL) aftershock();
@@ -191,10 +197,16 @@ public final class DoorRapier extends Uniqueness {
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 2f, 1.5f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 2f, 0.5f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, SoundSource.PLAYERS, 2f, 0.6f);
-            lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 26, 6, 16, 1);      // white-out
-            lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 16, 2, 14, 1);
-            lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 10, 1, 12, 1);
-            for (int i = 0; i < 6; i++) lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 10 + i * 5, i, 14 + i * 4, 1);   // shockwave rings, each bigger and slower
+            lv.sendParticles(PartyItems.STAR_CORE.get(), c.x, c.y, c.z, 0, 46, 4, -16, 1);    // the central star goes nova: a screen-filling spiked flash
+            lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 30, 6, 14, 1);
+            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 22, 4, 18, 1);           // shock shells: blue-white, orange, magenta, teal, bigger and slower
+            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 34, 2, 26, 1);
+            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 46, 1, 34, 1);
+            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 58, 5, 42, 1);
+            for (int i = 0; i < 150; i++) {   // the remnant: a nebula of coloured gas thrown across the whole area
+                double y = lv.random.nextDouble() * 2 - 1, rr = Math.sqrt(1 - y * y), th = lv.random.nextDouble() * 6.2832, sp2 = .05 + lv.random.nextDouble() * .2;
+                lv.sendParticles(PartyItems.NEBULA.get(), c.x, c.y, c.z, 0, Math.cos(th) * rr * sp2, y * sp2 * .8, Math.sin(th) * rr * sp2, 1);
+            }
             blob(260, .2, .05);          // blinding core
             blob(500, .3, .55);          // thick cloud of stars
             sphere(160, .9); sphere(110, .6); sphere(70, .35); sphere(40, .16);
@@ -213,11 +225,12 @@ public final class DoorRapier extends Uniqueness {
         /** The explosion keeps going: a pillar of stars, pinwheels, rolling shockwaves and a second, bigger blast. */
         void aftershock() {
             int k = age - FINAL;
-            if (k <= 14) {   // pillar through the sky and the ground
-                for (int i = 0; i < 10; i++) {
-                    double sx = (lv.random.nextDouble() - .5) * .8, sz = (lv.random.nextDouble() - .5) * .8;
-                    star(c.x, c.y, c.z, sx * .25, 1, sz * .25, .5 + lv.random.nextDouble() * .5);
-                    star(c.x, c.y, c.z, sx * .25, -1, sz * .25, .3 + lv.random.nextDouble() * .3);
+            if (k <= 16) {   // two jets of stars blasting out of the poles, like a real supernova
+                Vec3 ax = new Vec3(.25, 1, .15).normalize();
+                for (int i = 0; i < 14; i++) {
+                    double sp3 = .6 + lv.random.nextDouble() * .7, j = (lv.random.nextDouble() - .5) * .08;
+                    star(c.x, c.y, c.z, ax.x + j, ax.y, ax.z + j, sp3);
+                    star(c.x, c.y, c.z, -ax.x + j, -ax.y, -ax.z + j, sp3);
                 }
             }
             if (k >= 1 && k <= 16) {   // eight spinning pinwheel arms
