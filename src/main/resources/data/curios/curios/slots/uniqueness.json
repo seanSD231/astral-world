@@ -1,0 +1,8 @@
+{
+ "order": 5,
+ "size": 1,
+ "icon": "astral_world:slot/uniqueness",
+ "validators": [
+  "curios:tag"
+ ]
+}

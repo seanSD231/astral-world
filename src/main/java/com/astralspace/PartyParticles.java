@@ -152,7 +152,7 @@ public final class PartyParticles {
             pickSprite(set); this.kind = kind; hasPhysics = false; gravity = 0f; quadSize = 0.1f;
             float[] c;
             if (kind == 3) {
-                c = GAS[random.nextInt(GAS.length)]; size = 2.5f + random.nextFloat() * 3.5f; swell = false;
+                c = GAS[random.nextInt(GAS.length)]; size = 6f + random.nextFloat() * 8f; swell = false;
                 xd = vx; yd = vy; zd = vz; friction = .96f; lifetime = 70 + random.nextInt(70);
             } else {
                 size = (float) vx; swell = kind == 2 && vz > 0;

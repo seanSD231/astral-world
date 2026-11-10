@@ -31,37 +31,19 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The Door Uniqueness as a rapier: quick, long reach, light hits. Three hits in a row inside 1.5s build a combo
- * (x1.0, x1.25, x1.7). Right click on an entity opens doors around it, fills the space with stars, then bursts (8s cooldown). Sneak + hold right click still
- * takes the Uniqueness in. Test build: numbers are guesses and need playing with.
+ * The Door Uniqueness as a pair of eyes. It goes in the Uniqueness curios slot (or can simply be held); a keybind picks the
+ * creature you are looking at and opens doors around it, fills the space with stars that swell into real stars, and they go supernova.
  */
-public final class DoorRapier extends Uniqueness {
-    private static final ResourceLocation REACH_ID = ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "door_rapier_reach");
-    public static final SoundEvent THRUST = SoundEvents.PLAYER_ATTACK_SWEEP, LUNGE = SoundEvents.ENDERMAN_TELEPORT, HIT = SoundEvents.AMETHYST_BLOCK_CHIME, COMBO = SoundEvents.AMETHYST_BLOCK_RESONATE;
-    private static final int COMBO_WINDOW = 30, LUNGE_COOLDOWN = 50;
-    private static final Map<UUID, long[]> COMBOS = new ConcurrentHashMap<>();   // uuid -> {last hit tick, hits so far}
+public final class DoorEyes extends Uniqueness {
     private static boolean inLunge;
 
-    private static Item.Properties props() {
-        return new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).attributes(ItemAttributeModifiers.builder()
-            .add(Attributes.ATTACK_DAMAGE, new AttributeModifier(Item.BASE_ATTACK_DAMAGE_ID, 2.5, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
-            .add(Attributes.ATTACK_SPEED, new AttributeModifier(Item.BASE_ATTACK_SPEED_ID, -0.8, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
-            .add(Attributes.ENTITY_INTERACTION_RANGE, new AttributeModifier(REACH_ID, 0.9, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
-            .build());
-    }
-
-    public DoorRapier() { super("apprentice", "Door", false, props()); }
-
-    @Override
-    public void initializeClient(java.util.function.Consumer<net.neoforged.neoforge.client.extensions.common.IClientItemExtensions> consumer) {
-        consumer.accept(DoorClient.EXT);
-    }
+    public DoorEyes() { super("apprentice", "Door", false, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)); }
 
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext ctx, List<Component> tip, net.minecraft.world.item.TooltipFlag flag) {
         super.appendHoverText(stack, ctx, tip, flag);
-        tip.add(Component.literal("Fast, long reach, light hits. Three quick hits build a combo.").withStyle(ChatFormatting.AQUA));
-        tip.add(Component.literal("Right click an enemy: doors open around it, stars flood in, then burst.").withStyle(ChatFormatting.AQUA));
+        tip.add(Component.literal("Wear it in the Uniqueness curio slot.").withStyle(ChatFormatting.AQUA));
+        tip.add(Component.literal("Press the Door key while looking at a creature: doors open around it, stars flood in, swell, and go supernova.").withStyle(ChatFormatting.AQUA));
     }
 
     @Override
@@ -70,22 +52,40 @@ public final class DoorRapier extends Uniqueness {
         return InteractionResultHolder.pass(p.getItemInHand(hand));
     }
 
-    /** Right click an entity: doors open around it, stars pour out and fill the space, then burst. */
-    @Override
-    public net.minecraft.world.InteractionResult interactLivingEntity(ItemStack st, Player p, LivingEntity target, InteractionHand hand) {
-        if (p.isShiftKeyDown() || target == p) return net.minecraft.world.InteractionResult.PASS;
-        if (p.getCooldowns().isOnCooldown(this)) return net.minecraft.world.InteractionResult.FAIL;
-        p.swing(hand);
-        if (!p.level().isClientSide && p instanceof ServerPlayer sp) {
-            BURSTS.add(new Burst(sp.serverLevel(), sp.getUUID(), target));
-            sp.getCooldowns().addCooldown(this, BURST_COOLDOWN);
-        }
-        return net.minecraft.world.InteractionResult.sidedSuccess(p.level().isClientSide);
+    // ------------------------------------------------------------------ equipped, aim, trigger
+
+    /** The eyes if the player has them in a hand or in the Curios Uniqueness slot (Curios by reflection, so it stays optional). */
+    public static ItemStack findEyes(LivingEntity p) {
+        if (p.getMainHandItem().getItem() instanceof DoorEyes) return p.getMainHandItem();
+        if (p.getOffhandItem().getItem() instanceof DoorEyes) return p.getOffhandItem();
+        try {
+            Class<?> api = Class.forName("top.theillusivec4.curios.api.CuriosApi");
+            Object opt = api.getMethod("getCuriosInventory", LivingEntity.class).invoke(null, p);
+            if (!(opt instanceof java.util.Optional<?> o) || o.isEmpty()) return ItemStack.EMPTY;
+            Object h = o.get();
+            Object eq = h.getClass().getMethod("getEquippedCurios").invoke(h);
+            if (eq instanceof net.neoforged.neoforge.items.IItemHandlerModifiable m)
+                for (int i = 0; i < m.getSlots(); i++) if (m.getStackInSlot(i).getItem() instanceof DoorEyes) return m.getStackInSlot(i);
+        } catch (Throwable ignored) { }
+        return ItemStack.EMPTY;
     }
 
-    private static final int BURST_COOLDOWN = 200, OPEN = 14, FILL = 70, CHAIN = 20, FINAL = FILL + CHAIN + 2, DOORS = 9, AFTER = 26, NODES = 110;
-    private static final double RING = 4.5, AREA = 7.0;
-    private static final float BURST_DAMAGE = 60f;
+    /** Keybind pressed: the creature in the crosshair gets the supernova. */
+    public static void trigger(ServerPlayer sp) {
+        ItemStack st = findEyes(sp);
+        if (st.isEmpty()) return;
+        if (sp.getCooldowns().isOnCooldown(st.getItem())) { sp.displayClientMessage(Component.literal("The Door is still closing...").withStyle(ChatFormatting.GRAY), true); return; }
+        Vec3 eye = sp.getEyePosition(), end = eye.add(sp.getLookAngle().scale(48));
+        var hit = net.minecraft.world.entity.projectile.ProjectileUtil.getEntityHitResult(sp, eye, end, new net.minecraft.world.phys.AABB(eye, end).inflate(1.5),
+            x -> x instanceof LivingEntity && x.isAlive() && !x.isSpectator() && x != sp, 48 * 48);
+        if (hit == null || !(hit.getEntity() instanceof LivingEntity target)) { sp.displayClientMessage(Component.literal("No one in sight.").withStyle(ChatFormatting.GRAY), true); return; }
+        BURSTS.add(new Burst(sp.serverLevel(), sp.getUUID(), target));
+        sp.getCooldowns().addCooldown(st.getItem(), BURST_COOLDOWN);
+    }
+
+    private static final int BURST_COOLDOWN = 300, OPEN = 16, FILL = 80, CHAIN = 24, FINAL = FILL + CHAIN + 2, DOORS = 11, AFTER = 34, NODES = 170;
+    private static final double RING = 9.0, AREA = 16.0, DMG_RADIUS = 12.0;
+    private static final float BURST_DAMAGE = 80f;
     private static final List<Burst> BURSTS = new java.util.ArrayList<>();
 
     private static final class Burst {
@@ -115,10 +115,10 @@ public final class DoorRapier extends Uniqueness {
                 double dx, dy, dz; do { dx = lv.random.nextDouble() * 2 - 1; dy = lv.random.nextDouble() * 2 - 1; dz = lv.random.nextDouble() * 2 - 1; } while (dx * dx + dy * dy + dz * dz > 1);
                 Vec3 q = c.add(dx * AREA * .9, dy * AREA * .55 + .5, dz * AREA * .9); nodes.add(q);
                 fuse[i] = Math.max(1, Math.min(CHAIN, (int) Math.round(q.distanceTo(c) / (AREA * 1.05) * CHAIN + lv.random.nextDouble() * 3)));
-                double sz = 1.4 + lv.random.nextDouble() * 1.8;
+                double sz = 4 + lv.random.nextDouble() * 4;
                 lv.sendParticles(PartyItems.STAR_CORE.get(), q.x, q.y, q.z, 0, sz, -1, (FILL - SEED) + fuse[i], 1);   // swells for exactly as long as its fuse
             }
-            lv.sendParticles(PartyItems.STAR_CORE.get(), c.x, c.y, c.z, 0, 7, 0, (FINAL - SEED) - 1, 1);   // the big one in the middle
+            lv.sendParticles(PartyItems.STAR_CORE.get(), c.x, c.y, c.z, 0, 24, 0, (FINAL - SEED) - 1, 1);   // the big one in the middle
             if (target.isAlive()) target.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 120, 6, false, false));
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.5f, .6f);
         }
@@ -130,18 +130,19 @@ public final class DoorRapier extends Uniqueness {
         }
         /** One star going supernova: a spiky flash, the expanding shock shell, hot ejecta, and gas clouds left drifting behind. */
         void supernova(Vec3 q, double size) {
-            lv.sendParticles(PartyItems.STAR_CORE.get(), q.x, q.y, q.z, 0, 7 * size, 4, -9, 1);                    // the nova flash, spikes and all
-            lv.sendParticles(PartyItems.FLASH.get(), q.x, q.y, q.z, 0, 5 * size, 4, 7, 1);
-            lv.sendParticles(PartyItems.RING.get(), q.x, q.y, q.z, 0, 8 * size, 2, 24, 1);                         // shock shell, hot orange
-            lv.sendParticles(PartyItems.RING.get(), q.x, q.y, q.z, 0, 5.5 * size, 1, 17, 1);                       // inner shell, magenta
-            lv.sendParticles(PartyItems.STAR.get(), q.x, q.y, q.z, 30, .1, .1, .1, .2);
-            lv.sendParticles(PartyItems.STAR_BLUE.get(), q.x, q.y, q.z, 10, .1, .1, .1, .12);
+            lv.sendParticles(PartyItems.STAR_CORE.get(), q.x, q.y, q.z, 0, 18 * size, 4, -12, 1);                    // the nova flash, spikes and all
+            lv.sendParticles(PartyItems.FLASH.get(), q.x, q.y, q.z, 0, 12 * size, 4, 9, 1);
+            lv.sendParticles(PartyItems.RING.get(), q.x, q.y, q.z, 0, 24 * size, 2, 30, 1);                         // shock shell, hot orange
+            lv.sendParticles(PartyItems.RING.get(), q.x, q.y, q.z, 0, 16 * size, 1, 22, 1);                       // inner shell, magenta
+            lv.sendParticles(PartyItems.STAR.get(), q.x, q.y, q.z, 60, .2, .2, .2, .35);
+            lv.sendParticles(PartyItems.STAR_BLUE.get(), q.x, q.y, q.z, 20, .15, .15, .15, .2);
             for (int i = 0; i < 2; i++) {   // the nebula it leaves
                 lv.sendParticles(PartyItems.NEBULA.get(), q.x, q.y, q.z, 0, (lv.random.nextDouble() - .5) * .12, (lv.random.nextDouble() - .5) * .08, (lv.random.nextDouble() - .5) * .12, 1);
             }
         }
-        void star(double x, double y, double z, double dx, double dy, double dz, double speed) { lv.sendParticles(PartyItems.STAR.get(), x, y, z, 0, dx, dy, dz, speed); }
-        void blob(int n, double spread, double speed) { lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, n, spread, spread, spread, speed); }
+        double sc = 1;
+        void star(double x, double y, double z, double dx, double dy, double dz, double speed) { lv.sendParticles(PartyItems.STAR.get(), x, y, z, 0, dx, dy, dz, speed * sc); }
+        void blob(int n, double spread, double speed) { lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, n, spread * sc, spread * sc, spread * sc, speed * sc); }
 
         /** returns true when finished */
         boolean tick() {
@@ -161,7 +162,7 @@ public final class DoorRapier extends Uniqueness {
                     for (int k = 0; k < 6; k++) {
                         double u = (lv.random.nextDouble() - .5) * .9, v = .1 + lv.random.nextDouble() * 1.9;
                         Vec3 q = pos.add(r.scale(u)).add(0, v, 0).add(n.scale(.15));
-                        star(q.x, q.y, q.z, d.x, d.y, d.z, .24 + lv.random.nextDouble() * .12);
+                        star(q.x, q.y, q.z, d.x, d.y, d.z, RING * .085 + lv.random.nextDouble() * RING * .02);
                     }
                 }
             }
@@ -172,6 +173,7 @@ public final class DoorRapier extends Uniqueness {
             }
             if (age == SEED) seedStars();
             if (age > FILL && age <= FILL + CHAIN) chain(age - FILL);
+            if (age >= FINAL) sc = 2.2;
             if (age == FINAL) { explode(); closeDoors(); }
             if (age > FINAL) aftershock();
             if (age == FINAL + 10) clearDoors();
@@ -193,18 +195,19 @@ public final class DoorRapier extends Uniqueness {
         }
         void explode() {
             ServerPlayer sp = lv.getServer().getPlayerList().getPlayer(owner);
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayersNear(lv, null, c.x, c.y, c.z, 96.0, new Net.FlashPayload(255, 3500));
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 2f, 0.7f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 2f, 1.5f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 2f, 0.5f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, SoundSource.PLAYERS, 2f, 0.6f);
-            lv.sendParticles(PartyItems.STAR_CORE.get(), c.x, c.y, c.z, 0, 46, 4, -16, 1);    // the central star goes nova: a screen-filling spiked flash
-            lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 30, 6, 14, 1);
-            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 22, 4, 18, 1);           // shock shells: blue-white, orange, magenta, teal, bigger and slower
-            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 34, 2, 26, 1);
-            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 46, 1, 34, 1);
-            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 58, 5, 42, 1);
-            for (int i = 0; i < 150; i++) {   // the remnant: a nebula of coloured gas thrown across the whole area
-                double y = lv.random.nextDouble() * 2 - 1, rr = Math.sqrt(1 - y * y), th = lv.random.nextDouble() * 6.2832, sp2 = .05 + lv.random.nextDouble() * .2;
+            lv.sendParticles(PartyItems.STAR_CORE.get(), c.x, c.y, c.z, 0, 170, 4, -24, 1);    // the central star goes nova: a screen-filling spiked flash
+            lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 90, 6, 18, 1);
+            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 70, 4, 24, 1);           // shock shells: blue-white, orange, magenta, teal, bigger and slower
+            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 105, 2, 32, 1);
+            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 140, 1, 40, 1);
+            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 180, 5, 48, 1);
+            for (int i = 0; i < 280; i++) {   // the remnant: a nebula of coloured gas thrown across the whole area
+                double y = lv.random.nextDouble() * 2 - 1, rr = Math.sqrt(1 - y * y), th = lv.random.nextDouble() * 6.2832, sp2 = .15 + lv.random.nextDouble() * .5;
                 lv.sendParticles(PartyItems.NEBULA.get(), c.x, c.y, c.z, 0, Math.cos(th) * rr * sp2, y * sp2 * .8, Math.sin(th) * rr * sp2, 1);
             }
             blob(260, .2, .05);          // blinding core
@@ -213,8 +216,8 @@ public final class DoorRapier extends Uniqueness {
             for (int i = 0; i < 5; i++) ring(70, .5 + i * .12, (i - 2) * .55, i * 1.3);   // five crossed shockwaves
             inLunge = true;
             try {
-                for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(AREA), x -> x.isAlive() && (sp == null || x != sp))) {
-                    if (e.position().add(0, e.getBbHeight() * .5, 0).distanceTo(c) > AREA) continue;
+                for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(DMG_RADIUS), x -> x.isAlive() && (sp == null || x != sp))) {
+                    if (e.position().add(0, e.getBbHeight() * .5, 0).distanceTo(c) > DMG_RADIUS) continue;
                     if (e.hurt(sp != null ? lv.damageSources().playerAttack(sp) : lv.damageSources().magic(), BURST_DAMAGE)) {
                         Vec3 away = e.position().subtract(c.x, e.getY(), c.z); if (away.lengthSqr() < 1e-4) away = new Vec3(0, 0, 1);
                         away = away.normalize(); e.knockback(1.8, -away.x, -away.z); e.setDeltaMovement(e.getDeltaMovement().add(0, .5, 0)); e.hurtMarked = true;
@@ -240,8 +243,8 @@ public final class DoorRapier extends Uniqueness {
                 }
             }
             if (k % 3 == 2 && k <= 20) { ring(80, .4 + k * .03, ((k / 3) % 3 - 1) * .5, k); blob(150, .3, .3); }
-            if (k == 8) { lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 18, -1, 12, 1); lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 24, 3, 20, 1); lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 2f, 1.9f); sphere(120, .7); blob(300, .3, .45); }
-            if (k == 14) { lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 22, 6, 14, 1); lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 34, 0, 24, 1); lv.playSound(null, c.x, c.y, c.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.5f, 1.2f); sphere(140, 1.0); blob(400, .4, .65); }
+            if (k == 8) { lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 60, -1, 16, 1); lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 90, 3, 28, 1); lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 2f, 1.9f); sphere(120, .7); blob(300, .3, .45); }
+            if (k == 14) { lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 80, 6, 18, 1); lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 130, 0, 36, 1); lv.playSound(null, c.x, c.y, c.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.5f, 1.2f); sphere(140, 1.0); blob(400, .4, .65); }
         }
     }
 
@@ -289,22 +292,5 @@ public final class DoorRapier extends Uniqueness {
     public static void tickBursts(net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) {
         if (BURSTS.isEmpty()) return;
         BURSTS.removeIf(Burst::tick);
-    }
-
-    /** Combo: three hits inside the window each hit harder; the third finishes with a chime and a burst. */
-    public static void onHurt(LivingIncomingDamageEvent e) {
-        if (inLunge || !(e.getSource().getEntity() instanceof ServerPlayer sp) || e.getSource().getDirectEntity() != sp) return;
-        if (!(sp.getMainHandItem().getItem() instanceof DoorRapier)) return;
-        ServerLevel lv = sp.serverLevel(); long now = lv.getGameTime();
-        long[] st = COMBOS.computeIfAbsent(sp.getUUID(), k -> new long[]{-999, 0});
-        st[1] = (now - st[0] <= COMBO_WINDOW) ? st[1] + 1 : 1; st[0] = now;
-        int hit = (int) Math.min(3, st[1]);
-        float mult = hit == 1 ? 1.0f : hit == 2 ? 1.25f : 1.7f;
-        e.setAmount(e.getAmount() * mult);
-        LivingEntity t = e.getEntity(); Vec3 c = t.position().add(0, t.getBbHeight() * .6, 0);
-        lv.playSound(null, c.x, c.y, c.z, hit == 3 ? COMBO : HIT, SoundSource.PLAYERS, hit == 3 ? 1f : 0.7f, hit == 3 ? 1.8f : 1.2f + 0.2f * hit);
-        lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, hit == 3 ? 16 : 6, .3, .3, .3, hit == 3 ? .07 : .04);
-        sp.displayClientMessage(Component.literal("✦".repeat(hit)).withStyle(hit == 3 ? ChatFormatting.AQUA : ChatFormatting.BLUE), true);
-        if (hit == 3) st[1] = 0;
     }
 }

@@ -1,62 +1,78 @@
 package com.astralspace;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.HumanoidArm;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.RenderLayerParent;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.network.PacketDistributor;
+import org.lwjgl.glfw.GLFW;
 
-/** Client side of the Door rapier: a forward thrust in first person instead of the usual swing, star trails and a whoosh. */
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+/** Client side of the Eyes of the Door: the Door key, and glowing eyes on the face of anyone wearing them. */
 public final class DoorClient {
     private DoorClient() {}
 
-    public static final IClientItemExtensions EXT = new IClientItemExtensions() {
-        @Override
-        public boolean applyForgeHandTransform(PoseStack pose, LocalPlayer player, HumanoidArm arm, ItemStack stack, float pt, float equip, float swing) {
-            int side = arm == HumanoidArm.RIGHT ? 1 : -1;
-            float t = Mth.sin(swing * (float) Math.PI);                         // 0 -> 1 -> 0 over the swing
-            pose.translate(side * 0.56f, -0.52f - 0.6f * equip, -0.72f);       // vanilla sword position, same as the silver sword
-            pose.translate(-side * 0.18f * t, 0.06f * t, -1.1f * t);            // punch the blade forward
-            pose.mulPose(Axis.XP.rotationDegrees(-62f * t));                    // lay the blade flat toward the target
-            pose.mulPose(Axis.ZP.rotationDegrees(side * 6f * t));
-            return true;
-        }
-    };
+    public static final KeyMapping KEY = new KeyMapping("key.astral_world.door_eyes", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.astral_world");
+    private static final ResourceLocation FACE = ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "textures/entity/door_eyes.png");
+    private static final Map<UUID, Boolean> WORN = new HashMap<>();
 
-    private static boolean held(AbstractClientPlayer p) { return p.getMainHandItem().getItem() instanceof DoorRapier; }
+    public static void init(IEventBus modBus) {
+        modBus.addListener((RegisterKeyMappingsEvent e) -> e.register(KEY));
+        modBus.addListener(DoorClient::addLayers);
+        NeoForge.EVENT_BUS.addListener(DoorClient::tick);
+    }
 
-    /** Every client tick: a whoosh when a swing starts, and star trails off the blade while swinging (a faint shimmer otherwise). */
-    public static void tick(ClientTickEvent.Post e) {
+    private static void tick(ClientTickEvent.Post e) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.isPaused()) return;
-        for (AbstractClientPlayer p : mc.level.players()) {
-            if (!held(p)) continue;
-            Vec3 look = p.getLookAngle(), right = look.cross(new Vec3(0, 1, 0)).normalize();
-            Vec3 hand = p.getEyePosition().add(look.scale(0.9)).add(right.scale(0.35)).add(0, -0.3, 0);
-            if (p.swinging && p.swingTime == 0) mc.level.playLocalSound(p.getX(), p.getY(), p.getZ(), DoorRapier.THRUST, SoundSource.PLAYERS, 0.5f, 1.7f + (mc.level.random.nextFloat() - .5f) * .2f, false);
-            if (p.swinging && p.swingTime == 0) {   // one door-seam per attack: a black line packed with blue stars
-                Vec3 up = right.cross(look).normalize();
-                Vec3 mid = p.getEyePosition().add(look.scale(1.7)).add(right.scale(0.1)).add(up.scale(-0.15));
-                double ang = ((p.tickCount / 4) % 2 == 0 ? 1 : -1) * 0.8;                       // alternate the slant each swing
-                Vec3 dir = right.scale(Math.cos(ang)).add(up.scale(Math.sin(ang))).normalize();
-                for (int i = -22; i <= 22; i++) {
-                    double t = i * 0.055, taper = 1.0 - Math.abs(i) / 26.0;
-                    Vec3 q = mid.add(dir.scale(t));
-                    mc.level.addParticle(PartyItems.SLIT.get(), q.x, q.y, q.z, 0, 0, 0);
-                    if (i % 2 == 0) {
-                        Vec3 o = right.cross(dir).normalize().scale((mc.level.random.nextFloat() - .5f) * .1 * taper);
-                        mc.level.addParticle(PartyItems.STAR_BLUE.get(), q.x + o.x, q.y + o.y, q.z + o.z, 0, 0.004, 0);
-                        mc.level.addParticle(PartyItems.STAR_BLUE.get(), q.x + o.x * 1.5, q.y + o.y * 1.5, q.z + o.z * 1.5, look.x * .02, look.y * .02, look.z * .02);
-                    }
-                }
-            }
+        if (mc.level == null || mc.player == null) return;
+        while (KEY.consumeClick()) if (mc.screen == null) PacketDistributor.sendToServer(new DoorNet.Key());
+        if (mc.player.tickCount % 10 == 0) for (AbstractClientPlayer p : mc.level.players()) WORN.put(p.getUUID(), !DoorEyes.findEyes(p).isEmpty());
+    }
+
+    private static void addLayers(EntityRenderersEvent.AddLayers e) {
+        for (var skin : e.getSkins()) {
+            EntityRenderer<?> r = e.getSkin(skin);
+            if (r instanceof PlayerRenderer pr) pr.addLayer(new EyesLayer(pr));
+        }
+    }
+
+    /** Two glowing eyes over the face, drawn bright (like a spider's) so they shine in the dark. */
+    private static final class EyesLayer extends RenderLayer<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> {
+        EyesLayer(RenderLayerParent<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> parent) { super(parent); }
+
+        @Override
+        public void render(PoseStack pose, MultiBufferSource buf, int light, AbstractClientPlayer p, float limb, float limbAmt, float pt, float age, float headYaw, float headPitch) {
+            if (p.isInvisible() || !WORN.getOrDefault(p.getUUID(), false)) return;
+            pose.pushPose();
+            getParentModel().getHead().translateAndRotate(pose);
+            VertexConsumer vc = buf.getBuffer(RenderType.eyes(FACE));
+            PoseStack.Pose m = pose.last();
+            float x0 = -4f / 16, x1 = 4f / 16, y0 = -6.2f / 16, y1 = -2.2f / 16, z = -4.03f / 16;
+            v(vc, m, x0, y1, z, 0, 0); v(vc, m, x1, y1, z, 1, 0); v(vc, m, x1, y0, z, 1, 1); v(vc, m, x0, y0, z, 0, 1);
+            pose.popPose();
+        }
+
+        private static void v(VertexConsumer vc, PoseStack.Pose m, float x, float y, float z, float u, float w) {
+            vc.addVertex(m, x, y, z).setColor(255, 255, 255, 255).setUv(u, w).setOverlay(OverlayTexture.NO_OVERLAY).setLight(0xF000F0).setNormal(m, 0, 0, -1);
         }
     }
 }

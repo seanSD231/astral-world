@@ -79,12 +79,15 @@
   "item.astral_world.warrior_shiny_pack": "Warrior Shiny Tarot Pack",
   "itemGroup.astral_world.main": "Astral World",
   "itemGroup.astral_world.cards": "Astral Cards",
-  "item.astral_world.starry_sniper": "Rapier of the Door",
+  "item.astral_world.starry_sniper": "Eyes of the Door",
   "item.astral_world.shadow_sword": "Sword of Shadow",
   "item.astral_world.shadow_shield": "Shield of Shadow",
   "item.astral_world.spear_of_sun": "Spear of Sun and Justice",
   "item.astral_world.storm_katana": "Storm Katana",
   "item.astral_world.bone_greatsword": "Great Bone Sword",
   "item.astral_world.snake_rifle": "Wheel of Fortune Rifle",
-  "item.astral_world.chained_bow": "Chained Bow"
+  "item.astral_world.chained_bow": "Chained Bow",
+  "key.astral_world.door_eyes": "Door: supernova (Eyes of the Door)",
+  "key.categories.astral_world": "Astral World",
+  "curios.identifier.uniqueness": "Uniqueness"
 }

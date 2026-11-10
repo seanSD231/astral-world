@@ -50,7 +50,7 @@ public final class AstralFloor {
 
     /** Uniquenesses: hold right click for 5 seconds to take one in (through LOTM's own accommodation). {item id, LOTM pathway id, name, pathway title} */
     public static final String[][] UNIQ = {
-        {"starry_sniper", "apprentice", "Rapier of the Door", "Door", ""},
+        {"starry_sniper", "apprentice", "Eyes of the Door", "Door", ""},
         {"quill_of_alzuhod", "spectator", "Quill of Alzuhod", "Visionary", ""},
         {"shadow_sword", "secrets_supplicant", "Sword of Shadow", "Hanged Man", "3d"},
         {"spear_of_sun", "bard", "Spear of Sun and Justice", "Sun", "3d"},
@@ -60,7 +60,7 @@ public final class AstralFloor {
         {"snake_rifle", "monster", "Wheel of Fortune Rifle", "Monster", "3d"},
         {"chained_bow", "prisoner", "Chained Bow", "Chained", "3d"}};
     public static final java.util.List<DeferredItem<Item>> UNIQUENESSES = new java.util.ArrayList<>();
-    static { for (String[] u : UNIQ) UNIQUENESSES.add(ITEMS.register(u[0], () -> u[0].equals("starry_sniper") ? new DoorRapier() : new Uniqueness(u[1], u[3], u[4].equals("3d")))); }
+    static { for (String[] u : UNIQ) UNIQUENESSES.add(ITEMS.register(u[0], () -> u[0].equals("starry_sniper") ? new DoorEyes() : new Uniqueness(u[1], u[3], u[4].equals("3d")))); }
     /** The Sword of Shadow's own entry, and the shield that appears in the off hand while it is held. */
     public static final DeferredItem<Item> SHADOW_SWORD_ITEM = DeferredItem.createItem(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("astral_world", "shadow_sword"));
     public static final DeferredItem<Item> SHADOW_SHIELD = ITEMS.register("shadow_shield", ShadowShield::new);
