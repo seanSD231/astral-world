@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.159
+- New testing item: the Monocle (creative, Tools tab). Sneak + right click wears it on your head; hold right click for 5 seconds to accommodate it as the Marauder Uniqueness (a sequence 0 characteristic) through LOTM's own accommodation. Untested in game.
+
 ## 0.2.158
 - Black Emperor (and Anarchy) crown rebuilt from the Ace of Swords: a floating band of dark silver diamond plates with pale gems, points above and below and small spikes between.
 - Dark domes: the ground shade now reaches the wall, no more ring of grass at the edge.

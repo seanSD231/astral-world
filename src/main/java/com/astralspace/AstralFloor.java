@@ -48,6 +48,9 @@ public final class AstralFloor {
                 @Override public boolean isFoil(net.minecraft.world.item.ItemStack stack) { return true; }
             });
 
+    /** Testing: a monocle you wear on your head; hold right click 5s to accommodate the Marauder Uniqueness. */
+    public static final DeferredItem<Item> MONOCLE = ITEMS.register("monocle", Monocle::new);
+
     /** Invisible, like the barrier block. */
     private static final class FloorBlock extends Block {
         FloorBlock(Properties p) { super(p); }
@@ -62,7 +65,7 @@ public final class AstralFloor {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
-            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) e.accept(SMITER.get());
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); e.accept(MONOCLE.get()); }
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) e.accept(CABINET_ITEM.get());
         });
     }
