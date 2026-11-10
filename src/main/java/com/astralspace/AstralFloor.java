@@ -66,7 +66,7 @@ public final class AstralFloor {
         case "spear_of_sun" -> new WornUniq(u[1], u[3], 400, "three flaring suns, one ahead and one to either side", UniqAbilities::suns);
         case "bone_greatsword" -> new WornUniq(u[1], u[3], 300, "the serpent strikes everything near for 25, you and your allies too", UniqAbilities::serpent);
         case "snake_rifle" -> new WornUniq(u[1], u[3], 400, "spin the wheel for a boon or a bane", UniqAbilities::wheel);
-        case "twilight_longsword" -> new WornUniq(u[1], u[3], 0, "a real sword", (sp, st) -> { },
+        case "twilight_longsword" -> new TwilightSword(u[1], u[3],
             new net.minecraft.world.item.Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)
                 .attributes(net.minecraft.world.item.SwordItem.createAttributes(net.minecraft.world.item.Tiers.NETHERITE, 6, -2.4f))
                 .component(net.minecraft.core.component.DataComponents.TOOL, net.minecraft.world.item.SwordItem.createToolProperties()));
@@ -78,6 +78,12 @@ public final class AstralFloor {
     /** The Sword of Shadow's own entry, and the shield that appears in the off hand while it is held. */
     public static final DeferredItem<Item> SHADOW_SWORD_ITEM = DeferredItem.createItem(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("astral_world", "shadow_sword"));
     public static final DeferredItem<Item> SHADOW_SHIELD = ITEMS.register("shadow_shield", ShadowShield::new);
+    /** Fills the off hand while the Ball of Lightning is worn, so no shield fits there. */
+    public static final DeferredItem<Item> LIGHTNING_HOLD = ITEMS.register("lightning_hold", () -> new Item(new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)) {
+        @Override public void appendHoverText(net.minecraft.world.item.ItemStack st, Item.TooltipContext c, java.util.List<net.minecraft.network.chat.Component> tip, net.minecraft.world.item.TooltipFlag f) {
+            tip.add(net.minecraft.network.chat.Component.literal("The Ball of Lightning fills this hand.").withStyle(net.minecraft.ChatFormatting.GRAY));
+        }
+    });
 
     /** Invisible, like the barrier block. */
     private static final class FloorBlock extends Block {

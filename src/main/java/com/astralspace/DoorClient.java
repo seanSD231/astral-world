@@ -40,6 +40,7 @@ public final class DoorClient {
         modBus.addListener(DoorClient::addLayers);
         NeoForge.EVENT_BUS.addListener(DoorClient::tick);
         NeoForge.EVENT_BUS.addListener(NovaRender::render);
+        NeoForge.EVENT_BUS.addListener(UniqWorld::render);
     }
 
     private static void tick(ClientTickEvent.Post e) {

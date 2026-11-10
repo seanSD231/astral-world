@@ -797,11 +797,12 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         dotStars(n, rad, c1, c2, size);
     }
     /** Round dots drawn by hand. */
+    private float starTint = .55f;
     private void dotStars(int n, float rad, int c1, int c2, float size) {
         for (int i = 0; i < n; i++) {
             float a = h(i, 101) * TAU, el = .12f + h(i, 102) * 1.35f, ce = (float) Math.cos(el);
             float tw = .4f + .6f * Math.abs((float) Math.sin(t * (.5f + h(i, 104)) + i * 1.7f)), s2 = size * .9f * (.6f + h(i, 103) * .9f);
-            int col = mix(h(i, 105) < .5f ? c1 : c2, hsv(h(i, 106), .6f), .55f);
+            int col = mix(h(i, 105) < .5f ? c1 : c2, hsv(h(i, 106), .6f), starTint);
             float x = (float) Math.cos(a) * rad * ce, y = (float) Math.sin(el) * rad + 1f, z = (float) Math.sin(a) * rad * ce;
             bb("glow", x, y, z, s2 * 2.2f, s2 * 2.2f, 0, rgba(col, tw * .5f)); bb("mote", x, y, z, s2, s2, 0, rgba(0xFFFFFF, tw));
         }
@@ -1567,12 +1568,13 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         bb("glow", x, y + size * .15f, z, size * .8f, size * .35f, 0, rgba(outer, .35f * alpha));
     }
     /** A dark sky dome plus a shaded ground disc. Seen from outside it is nearly clear so you can see what is inside. */
+    private boolean concealDome;   // the Darkness dome stays a solid shell from outside too, hiding whatever stands in it
     private void dome(float rad, int rgb, int alpha) {
-        boolean inside = camDist < rad * .97f;
-        int a1 = inside ? alpha : Math.max(0, (int) (alpha * .10f)), a2 = inside ? (int) (alpha * .92f) : (int) (alpha * .06f);
+        boolean inside = camDist < rad * .97f, draw = inside || concealDome;
+        int a1 = draw ? alpha : 0, a2 = inside ? (int) (alpha * .92f) : (int) (alpha * .8f);
         solid(true);
         int lat = 10, lon = 28; float[] hint = v3(0, 0, 0);
-        for (int i = 0; i < lat && inside; i++) {   // from outside the shell is not drawn at all: its depth hid entities placed after the card
+        for (int i = 0; i < lat && draw; i++) {   // from outside only a concealing dome is drawn: its depth hides entities placed after the card
             float l0 = PI / 2 * i / lat, l1 = PI / 2 * (i + 1) / lat;
             for (int j = 0; j < lon; j++) {
                 float g0 = TAU * j / lon, g1 = TAU * (j + 1) / lon;
@@ -1931,8 +1933,12 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float ly = top * .75f;
         column("beam", 0, 0, ly, 0, 2f * S, rgba(P3, .28f));
         push(); tr(0, top + 2f, 0); chain(top + 2f - ly - 3.6f * S, .9f * S, metal(.3f)); pop();
-        push(); tr(0, ly - 3.6f * S, 0); rY(t * .2f); lanternModel(4.4f * S, metal(.35f), mix(P3, 0xFFFFFF, .3f)); pop();
-        flameAt(0, ly - 3.0f * S, 0, 2.0f * S, 4, P3, mix(P3, 0xFFFFFF, .4f), 0xFFFFFF, 1f);
+        // a great scrying sphere in a gimbal of three turning rings, mist stirring inside it
+        float cy0 = ly - 3.0f * S, rr0 = 2.3f * S;
+        sphere(0, cy0, 0, rr0, rr0, rr0, 14, 24, mix(P3, 0x101830, .55f), 150);
+        sphere(0, cy0, 0, rr0 * .55f, rr0 * .55f, rr0 * .55f, 10, 16, mix(P3, 0xFFFFFF, .5f), 210);
+        for (int i = 0; i < 3; i++) { push(); tr(0, cy0, 0); rY(i * PI / 3 + t * .25f); rX(i * .6f + t * .1f); torus(0, 0, 0, rr0 * 1.25f, rr0 * 1.25f, .14f * S, 32, 4, 0, TAU, metal(.4f), 255); pop(); }
+        for (int i = 0; i < 6; i++) { float a = t * .6f + i * TAU / 6; bb("mote", (float) Math.cos(a) * rr0 * .35f, cy0 + (float) Math.sin(a * 1.7f) * rr0 * .5f, (float) Math.sin(a) * rr0 * .35f, .5f * S, .5f * S, 0, rgba(0xFFFFFF, .9f)); }
         bb("glow", 0, ly - 2.4f * S, 0, 3.4f * S, 3.4f * S, 0, rgba(P3, .4f));   // small, so it no longer washes out the symbol behind it
         symFront(CY + .6f * S, 3.4f * S, 4.5f * S);
         for (int i = 0; i < 7 * N; i++) { float a = t * .15f + i * TAU / (7 * N), r = R * .7f, y = 2f * S + 1.8f * S * (i % 3);
@@ -2099,35 +2105,65 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         symFront(CY + 1.6f * S, 3.4f * S, 0f);
         sprites("spark", 50 * N, SPIRALM, R, 0, top, .4f * S, P1, 1f, .2f, 32, true);
     }
+    /** One box of a player's skin (64x64 layout), as textured quads in the card's frame. The figure is built upright (origin at the neck, +y up) and may be rolled upside down. */
+    private void skinPart(ResourceLocation rl, int u, int v, int w, int h, int d, float cx, float cy, float theta, boolean inv, float P, float yB, float zf) {
+        float a = w / 2f, b = h / 2f, c = d / 2f;
+        float[][] F = {
+            {0, 0, c, a, 0, 0, 0, b, 0, u + d, v + d, w, h}, {0, 0, -c, -a, 0, 0, 0, b, 0, u + 2 * d + w, v + d, w, h},
+            {-a, 0, 0, 0, 0, c, 0, b, 0, u, v + d, d, h}, {a, 0, 0, 0, 0, -c, 0, b, 0, u + d + w, v + d, d, h},
+            {0, b, 0, a, 0, 0, 0, 0, -c, u + d, v, w, d}, {0, -b, 0, a, 0, 0, 0, 0, c, u + d + w, v, w, d}};
+        float ct = (float) Math.cos(theta), st = (float) Math.sin(theta);
+        eqSolid = true;
+        for (float[] f : F) {
+            float[] o = rollV(f[0], f[1], f[2], ct, st), r = rollV(f[3], f[4], f[5], ct, st), up = rollV(f[6], f[7], f[8], ct, st);
+            float px = cx + o[0], py = cy + o[1], pz = o[2];
+            if (inv) { px = -px; py = -py; r[0] = -r[0]; r[1] = -r[1]; up[0] = -up[0]; up[1] = -up[1]; }
+            eq(rl, gx(px * P, pz * P + zf), yB + py * P, gz(px * P, pz * P + zf),
+               gx(r[0] * P, r[2] * P), r[1] * P, gz(r[0] * P, r[2] * P), gx(up[0] * P, up[2] * P), up[1] * P, gz(up[0] * P, up[2] * P),
+               0xFFFFFFFF, f[9] / 64f, f[10] / 64f, (f[9] + f[11]) / 64f, (f[10] + f[12]) / 64f);
+        }
+        eqSolid = false;
+    }
+    private static float[] rollV(float x, float y, float z, float ct, float st) { return new float[]{x * ct - y * st, x * st + y * ct, z}; }
     private void hangedMan(boolean m) {
         dome(R * 4f, 0x000000, m ? 252 : 246);
         mcStars(100, R * 3.2f, 0xFFFFFF, P1, .5f * S);
         flat("whirl", 0, .06f, 0, 2f * R, t * .3f, rgba(P2, .9f));
         sigil(R);
         float ey = top * 1.25f, er = 3.2f * S, bh = 4.2f * S, headY = 1.5f * S, feetY = headY + bh;
-        bb("glow", 0, ey, 0, 11 * S, 11 * S, 0, rgba(P1, .6f));
-        sphere(0, ey, 0, er, er, er, 12, 20, 0x000000, 255);
-        for (int i = 0; i < 3; i++) { push(); tr(0, ey, 0); rY(i * PI / 3 + t * .1f); rX(i * .5f); torus(0, 0, 0, er * 1.5f, er * 1.5f, .1f * S, 28, 4, 0, TAU, mix(P1, 0xFFFFFF, .2f), 255); pop(); }
+        if (!m) {
+            bb("glow", 0, ey, 0, 11 * S, 11 * S, 0, rgba(P1, .6f));
+            sphere(0, ey, 0, er, er, er, 12, 20, 0x000000, 255);
+            for (int i = 0; i < 3; i++) { push(); tr(0, ey, 0); rY(i * PI / 3 + t * .1f); rX(i * .5f); torus(0, 0, 0, er * 1.5f, er * 1.5f, .1f * S, 28, 4, 0, TAU, mix(P1, 0xFFFFFF, .2f), 255); pop(); }
+        }
         int iron = mix(0x707078, P1, .15f);
         if (!m) { push(); tr(0, ey - er, 0); chain(ey - er - feetY, .8f * S, iron); pop(); }
         if (!m) bearerSym(0, feetY - bh * .5f, 0, bh * 1.5f, -face);
         if (m) {   // Sacrifice Authority: Last Hope. A great cross standing on a mound, a mercury likeness nailed to it, chained and bleeding, inside walls of grey curtain that watch with eyes
-            float U = S * .55f; int wood = 0x4A3020, aged = 0x6A5A48, merc = 0xC4CEE0, nail = 0x30303C;
-            frustum(0, .8f * U, 4.2f * U, 1.6f * U, 16, 1, 1, 0x2A2018, 255, true); frustum(.8f * U, .86f * U, 1.7f * U, 1.7f * U, 16, 1, 1, 0xAEB8CC, 255, true);
+            float P = .2f * S; int wood = 0x4A3020, aged = 0x6A5A48, nail = 0x30303C, stone = 0x2A2018;
+            // the mound, then an upside-down cross of squared timber banded in iron, as in Last Hope
+            frustum(0, 4f * P, 17f * P, 7f * P, 18, 1, 1, stone, 255, true); frustum(4f * P, 4.3f * P, 7f * P, 7f * P, 18, 1, 1, 0xAEB8CC, 255, true);
             pushFace();
-            box(0, .8f * U + 4.9f * U, 0, .45f * U, 4.9f * U, .32f * U, wood, 255); box(0, 8.6f * U, 0, 3.5f * U, .4f * U, .32f * U, wood, 255);
-            for (int k = 0; k < 5; k++) box(0, (2.0f + k * 1.9f) * U, .0f, .5f * U, .08f * U, .36f * U, aged, 255);
-            for (int sd = -1; sd <= 1; sd += 2) box(sd * 2.6f * U, 8.6f * U, 0, .1f * U, .44f * U, .36f * U, aged, 255);
-            // the likeness, in mercury, hanging by its hands
-            box(0, 6.9f * U, .36f * U, .55f * U, 1.1f * U, .2f * U, merc, 255); sphere(0, 8.3f * U, .42f * U, .42f * U, .46f * U, .42f * U, 8, 12, mix(merc, 0xFFFFFF, .2f), 255);
-            for (int sd = -1; sd <= 1; sd += 2) { box(sd * 1.9f * U, 8.1f * U, .36f * U, 1.4f * U, .17f * U, .17f * U, merc, 255); box(sd * .22f * U, 5.3f * U, .36f * U, .2f * U, .95f * U, .2f * U, merc, 255);
-                box(sd * 3.3f * U, 8.1f * U, .52f * U, .06f * U, .06f * U, .3f * U, nail, 255); }
-            box(0, 4.3f * U, .5f * U, .08f * U, .08f * U, .3f * U, nail, 255);
-            for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * 3.5f * U, 8.6f * U, .1f * U); rZ(sd * .4f); chain(8.9f * U, .5f * U, iron); pop(); }   // chains running from the arms to the ground
+            box(0, 28f * P, 0, 2f * P, 24f * P, 2f * P, wood, 255);               // the long beam, 4 to 52
+            box(0, 18f * P, 0, 20f * P, 2f * P, 2f * P, wood, 255);               // the crossbar, low down
+            for (int k = 0; k < 6; k++) box(0, (8f + k * 7.4f) * P, 0, 2.15f * P, .5f * P, 2.15f * P, iron, 255);
+            for (int sd = -1; sd <= 1; sd += 2) box(sd * 19f * P, 18f * P, 0, .5f * P, 2.15f * P, 2.15f * P, iron, 255);
+            for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * 16f * P, 18f * P, 4.5f * P); rZ(sd * .12f); chain(13f * P, .6f * P, iron); pop(); }   // chains from the wrists to the ground
             pop();
-            float[][] nails = {{-3.3f, 8.1f}, {3.3f, 8.1f}, {0f, 4.3f}};
-            for (int n2 = 0; n2 < 3; n2++) { float nx = gx(nails[n2][0] * U, .5f * U), nz = gz(nails[n2][0] * U, .5f * U); bb("glow", nx, nails[n2][1] * U, nz, .8f * U, .8f * U, 0, rgba(0xC01020, .6f));
-                for (int d = 0; d < 4; d++) { float p = fract(t * .45f + d * .25f + n2 * .13f); bb("drop", nx, nails[n2][1] * U * (1f - p), nz, .22f * U, .34f * U, 0, rgba(0xB01018, 1f - p * .4f)); } }
+            // the hanged man himself: the player's own skin, upside down, arms nailed out along the bar
+            ResourceLocation sk = Minecraft.getInstance().player != null ? Minecraft.getInstance().player.getSkin().texture() : ResourceLocation.withDefaultNamespace("textures/entity/player/wide/steve.png");
+            float yB = 16f * P, zf = 4.5f * P;
+            skinPart(sk, 0, 0, 8, 8, 8, 0, 4, 0, true, P, yB, zf);              // head
+            skinPart(sk, 16, 16, 8, 12, 4, 0, -6, 0, true, P, yB, zf);          // body
+            skinPart(sk, 40, 16, 4, 12, 4, -10, -2, -PI / 2, true, P, yB, zf);  // right arm, out along the bar
+            skinPart(sk, 32, 48, 4, 12, 4, 10, -2, PI / 2, true, P, yB, zf);    // left arm
+            skinPart(sk, 0, 16, 4, 12, 4, -2, -18, 0, true, P, yB, zf);         // right leg
+            skinPart(sk, 16, 48, 4, 12, 4, 2, -18, 0, true, P, yB, zf);         // left leg
+            for (int sd = -1; sd <= 1; sd += 2) {   // a nail through each wrist, bleeding
+                float nx = gx(sd * 16f * P, zf + 2.5f * P), nz = gz(sd * 16f * P, zf + 2.5f * P);
+                bb("glow", nx, 18f * P, nz, 2.5f * P, 2.5f * P, 0, rgba(0xC01020, .6f));
+                for (int d = 0; d < 4; d++) { float pp = fract(t * .45f + d * .25f + (sd + 1) * .13f); bb("drop", nx, 18f * P * (1f - pp) + 4f * P * pp, nz, .8f * P, 1.2f * P, 0, rgba(0xB01018, 1f - pp * .4f)); }
+            }
             for (int w2 = 0; w2 < 4; w2++) {   // curtains of grey light round the field, each watching with eyes
                 float a = w2 * TAU / 4 + PI / 4, wr = R * .95f, wxp = (float) Math.cos(a) * wr, wzp = (float) Math.sin(a) * wr, yaw = a + PI / 2;
                 stand("solid", wxp, top * .5f, wzp, R * 1.35f, top, yaw, rgba(0xB0BCD0, .16f));
@@ -2378,9 +2414,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         sprites("mote", 50 * N, SPIRALM, R, 0, top, .35f * S, P3, .8f, .18f, 37, false);
     }
     private void darkness(int N, boolean m) {
-        dome(R * 4f, 0x000002, m ? 253 : 250);
+        concealDome = true; dome(R * 4f, 0x000002, m ? 253 : 250); concealDome = false;
         sigil(R);
-        mcStars(90 * N, R * 3.2f, 0xFFFFFF, P1, .6f * S); dotStars(220 * N, R * 3.0f, 0xFFFFFF, 0xB0C8FF, .7f * S);   // many more stars
+        starTint = .15f; dotStars(80 * N, R * 3.0f, 0xFFFFFF, 0xB0C8FF, .7f * S); starTint = .55f;   // fewer stars, fewer colours
         facing("crescent", sideX(R * 1.2f), top * .9f, sideZ(R * 1.2f), 9 * S, 9 * S, -.4f, rgba(mix(P1, 0xFFFFFF, .5f), .85f));
         sym(CY, 3.6f * S, 0);
         for (int k = 0; k < 7; k++) fogRing(9, R * (.4f + .45f * k), mix(P2, 0x8090B0, .4f), .09f);   // a thin low fog right across the ground, the sky stays clear
@@ -2482,7 +2518,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         stand(tx, x, y, z, w, hh, (float) Math.atan2(x, -z), argb);
     }
     private void twilight(int N) {
-        sigil(R); boolean m = N == 2; dawnSword = m;   // the mythic has the Swords of Dawn, the legendary the Swords of Twilight
+        sigil(R); boolean m = N == 2; dawnSword = !m;   // Seq 1 has the Swords of Dawn, Seq 0 the Swords of Twilight
         dome(R * 4f, m ? 0x331A50 : 0x2A1240, 225);   // the whole area is a dusk
         // the horizon burns in bands, orange at the rim, rose above it, violet higher, all fixed in the world
         for (int i = 0; i < 24; i++) {

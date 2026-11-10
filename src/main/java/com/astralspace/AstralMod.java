@@ -35,6 +35,8 @@ public class AstralMod {
         AstralTab.register(modBus);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(DoorEyes::tickBursts);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqAbilities::tick);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ShadowGear::tick);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ShadowGear::drop);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqAbilities::shield);
         AstralBarrier.onBreak(Stage::onBarrierBroken);
         if (FMLEnvironment.dist == Dist.CLIENT) {

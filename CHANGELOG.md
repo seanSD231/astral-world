@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.194
+- Holograms: Warrior Seq 1 and Seq 0 swap swords (Seq 1 now has the Swords of Dawn, Seq 0 the Swords of Twilight). Darkness: far fewer stars, fewer star colours, and the dome is a solid shell from outside again so it hides whatever stands in it. All dark domes shade the ground from outside again. Mystery Pryer's big lantern is replaced by a great scrying sphere in a gimbal of turning rings. Secret Supplicant 0: the big black sphere and its rings are gone; the Last Hope scene is now an upside-down cross of squared timber on a mound with the hanged figure drawn from your own skin, arms nailed out along the bar, chains and bleeding nails.
+- Uniqueness items, rework: new worn models (shadow tentacles that fade with your shadow, a feathered serpent with long plumes, a proper wheel of fortune, a bandaged thorn doll, a ball of storms in the hand) drawn depth-tested so they no longer show through blocks; the Mini Sun is a Photon flaring sun on your shoulder. Sword of Twilight: hit particles and a right-click crescent wave. Shadows: spikes of shadow impale caged foes, the cage lasts 12 s and the shadow lasts longer. Suns: spawned farther out, farther apart and bigger. Ball of Lightning: it is thrown, then swells into a 14-block storm sphere; carrying it fills your off hand so no shield fits. Feathered Serpent: a serpent strikes everything near you (you too). Wheel of Fortune: the boon or bane lands only when the spin stops. Doll: a doll model climbs down and walks to the nearest foe before binding them. New icons are still the earlier ones. Untested in game.
+
 ## 0.2.193
 - Fixed a crash when a worn Uniqueness was held or worn (the worn visuals fetched two render buffers at once; each box now fetches its own). The Uniqueness items now have their own icons (sun, lightning ball, feathered serpent, wheel, doll, shadows) instead of the old weapon art. Untested in game.
 

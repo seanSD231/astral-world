@@ -34,7 +34,17 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server to client: an ability out in the world (1 serpent strike, 2 shadow spikes, 3 walking doll, 4 ball of storms), drawn by {@link UniqWorld}. */
+    public record World(int kind, int id, int id2, double x, double y, double z, double x2, double y2, double z2, int dur) implements CustomPacketPayload {
+        public static final Type<World> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "uniq_world"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, World> CODEC = StreamCodec.of(
+            (b, w) -> { b.writeVarInt(w.kind); b.writeVarInt(w.id); b.writeVarInt(w.id2); b.writeDouble(w.x); b.writeDouble(w.y); b.writeDouble(w.z); b.writeDouble(w.x2); b.writeDouble(w.y2); b.writeDouble(w.z2); b.writeVarInt(w.dur); },
+            b -> new World(b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readDouble(), b.readDouble(), b.readDouble(), b.readDouble(), b.readDouble(), b.readDouble(), b.readVarInt()));
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static void register(PayloadRegistrar r) {
+        r.playToClient(World.TYPE, World.CODEC, (p, ctx) -> ctx.enqueueWork(() -> UniqWorld.add(p.kind(), p.id(), p.id2(), p.x(), p.y(), p.z(), p.x2(), p.y2(), p.z2(), p.dur())));
         r.playToClient(Fx.TYPE, Fx.CODEC, (p, ctx) -> ctx.enqueueWork(() -> WornClient.fx(p.entity(), p.kind())));
         r.playToClient(Nova.TYPE, Nova.CODEC, (p, ctx) -> ctx.enqueueWork(() -> NovaRender.add(p.x(), p.y(), p.z(), p.scale())));
         r.playToServer(Key.TYPE, Key.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) WornUniq.press(sp); }));

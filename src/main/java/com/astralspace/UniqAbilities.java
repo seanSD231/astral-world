@@ -26,11 +26,21 @@ public final class UniqAbilities {
     public static void serpent(ServerPlayer sp, ItemStack st) {
         ServerLevel lv = sp.serverLevel();
         List<LivingEntity> hit = lv.getEntitiesOfClass(LivingEntity.class, sp.getBoundingBox().inflate(8), e -> e.isAlive());
-        for (LivingEntity e : hit) e.hurt(lv.damageSources().magic(), 25f);
-        lv.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, sp.getX(), sp.getY() + 0.2, sp.getZ(), 120, 3.5, 0.2, 3.5, 0.05);
-        lv.sendParticles(ParticleTypes.SCULK_SOUL, sp.getX(), sp.getY() + 1, sp.getZ(), 40, 3, 0.8, 3, 0.04);
-        lv.playSound(null, sp.blockPosition(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.2f, 0.6f);
+        lv.playSound(null, sp.blockPosition(), SoundEvents.WARDEN_SONIC_CHARGE, SoundSource.PLAYERS, 1.2f, 1.4f);
+        for (LivingEntity e : hit) {
+            world(lv, new DoorNet.World(1, sp.getId(), e.getId(), sp.getX(), sp.getY(), sp.getZ(), e.getX(), e.getY(), e.getZ(), 18));
+            later(8, () -> {
+                if (!e.isAlive()) return;
+                e.hurt(lv.damageSources().magic(), 25f);
+                lv.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, e.getX(), e.getY() + e.getBbHeight() * .5, e.getZ(), 14, .3, .4, .3, .05);
+                lv.playSound(null, e.blockPosition(), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.PLAYERS, 1f, .6f);
+            });
+        }
         fx(sp, 1);
+    }
+
+    private static void world(ServerLevel lv, DoorNet.World w) {
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayersNear(lv, null, w.x(), w.y(), w.z(), 192.0, w);
     }
 
     private static final List<Holder<MobEffect>> GOOD = List.of(MobEffects.DAMAGE_BOOST, MobEffects.REGENERATION, MobEffects.MOVEMENT_SPEED,
@@ -38,17 +48,19 @@ public final class UniqAbilities {
     private static final List<Holder<MobEffect>> BAD = List.of(MobEffects.WEAKNESS, MobEffects.MOVEMENT_SLOWDOWN, MobEffects.POISON,
         MobEffects.DIG_SLOWDOWN, MobEffects.UNLUCK, MobEffects.CONFUSION, MobEffects.BLINDNESS, MobEffects.HUNGER);
 
-    /** Monster: the wheel spins and lands on a boon or a bane. */
+    /** Monster: the wheel spins (3 seconds) and only then lands on a boon or a bane. */
     public static void wheel(ServerPlayer sp, ItemStack st) {
         fx(sp, 2);
+        sp.level().playSound(null, sp.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.5f, .8f);
         int roll = sp.getRandom().nextInt(GOOD.size() + BAD.size());
         boolean good = roll < GOOD.size();
         Holder<MobEffect> eff = good ? GOOD.get(roll) : BAD.get(roll - GOOD.size());
-        int amp = good ? 1 : 0;
-        int dur = good ? 20 * 45 : 20 * 20;
-        sp.addEffect(new MobEffectInstance(eff, dur, amp));
-        sp.level().playSound(null, sp.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.5f, good ? 1.4f : 0.5f);
-        sp.displayClientMessage(Component.literal("The wheel lands on " + eff.value().getDisplayName().getString()).withStyle(good ? ChatFormatting.GOLD : ChatFormatting.DARK_RED), true);
+        later(60, () -> {
+            if (!sp.isAlive()) return;
+            sp.addEffect(new MobEffectInstance(eff, good ? 20 * 45 : 20 * 20, good ? 1 : 0));
+            sp.level().playSound(null, sp.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.5f, good ? 1.4f : 0.5f);
+            sp.displayClientMessage(Component.literal("The wheel lands on " + eff.value().getDisplayName().getString()).withStyle(good ? ChatFormatting.GOLD : ChatFormatting.DARK_RED), true);
+        });
     }
 
     /** Sun: three flaring suns, one ahead and one to either side of it. */
@@ -56,12 +68,12 @@ public final class UniqAbilities {
         Vec3 look = sp.getLookAngle(); Vec3 flat = new Vec3(look.x, 0, look.z);
         flat = flat.lengthSqr() < 1e-4 ? new Vec3(0, 0, 1) : flat.normalize();
         Vec3 side = new Vec3(-flat.z, 0, flat.x);
-        Vec3 mid = sp.position().add(0, 1.8, 0).add(flat.scale(7));
-        Vec3[] at = { mid, mid.add(side.scale(6)), mid.subtract(side.scale(6)) };
+        Vec3 mid = sp.position().add(0, 3.0, 0).add(flat.scale(15));
+        Vec3[] at = { mid, mid.add(side.scale(10)).subtract(flat.scale(1)), mid.subtract(side.scale(10)).subtract(flat.scale(1)) };
         try {
             Class<?> c = Class.forName("net.swimmingtuna.lotm.pathway.bard.abilities.FlaringSun");
             var m = c.getMethod("spawnMiniatureSun", net.minecraft.world.level.Level.class, Vec3.class, LivingEntity.class, float.class, float.class);
-            for (Vec3 p : at) m.invoke(null, sp.level(), p, sp, 40f, 5f);
+            for (Vec3 p : at) m.invoke(null, sp.level(), p, sp, 40f, 9f);
         } catch (Throwable t) {
             com.mojang.logging.LogUtils.getLogger().warn("[astral] flaring sun failed: {}", t.toString());
             sp.displayClientMessage(Component.literal("The suns will not rise.").withStyle(ChatFormatting.GRAY), true);
@@ -118,42 +130,33 @@ public final class UniqAbilities {
         return !(e instanceof net.minecraft.world.entity.TamableAnimal t && t.isOwnedBy(sp));
     }
 
-    /** Hanged Man: the shadow spreads 20 blocks and a cage of shadow closes on everyone in it. */
+    /** Hanged Man: the shadow spreads 20 blocks and a cage of shadow closes on everyone in it, spikes of shadow impaling them. */
     public static void cage(ServerPlayer sp, ItemStack st) {
         ServerLevel lv = sp.serverLevel();
         fx(sp, 3);
         lv.playSound(null, sp.blockPosition(), SoundEvents.WARDEN_EMERGE, SoundSource.PLAYERS, 1.5f, 0.5f);
-        for (int i = 0; i < 30; i++) {   // the shadow creeping out
-            final int k = i;
-            later(i / 2, () -> { if (k % 2 == 0) { double r = 20.0 * k / 30; lv.sendParticles(ParticleTypes.SQUID_INK, sp.getX(), sp.getY() + 0.1, sp.getZ(), 60, r / 2, 0.05, r / 2, 0.01); } });
-        }
         for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, sp.getBoundingBox().inflate(20, 8, 20), x -> foe(sp, x) && x.distanceToSqr(sp) <= 400)) {
-            later(10, () -> {
-                pin(e, 20 * 8);
-                e.hurt(lv.damageSources().magic(), 6f);
-                for (int j = 0; j < 12; j++) {   // bars of the cage
-                    double a = j * Math.PI / 6;
-                    for (int h = 0; h < 5; h++) lv.sendParticles(ParticleTypes.LARGE_SMOKE, e.getX() + Math.cos(a) * 1.1, e.getY() + h * 0.5, e.getZ() + Math.sin(a) * 1.1, 1, 0, 0, 0, 0);
-                }
+            int delay = 8 + (int) (e.distanceTo(sp) * .6);   // the shadow reaches the near ones first
+            later(delay, () -> {
+                if (!e.isAlive()) return;
+                pin(e, 20 * 12);
+                world(lv, new DoorNet.World(2, e.getId(), 0, e.getX(), e.getY(), e.getZ(), 0, 0, 0, 60));
+                lv.playSound(null, e.blockPosition(), SoundEvents.WITHER_BREAK_BLOCK, SoundSource.PLAYERS, .6f, 1.6f);
+                e.hurt(lv.damageSources().magic(), 14f);
             });
         }
     }
 
-    /** Chained: the doll walks to the nearest opponent and binds them where they stand. */
+    /** Chained: the doll climbs down, walks to the nearest opponent and binds them where they stand. */
     public static void doll(ServerPlayer sp, ItemStack st) {
         ServerLevel lv = sp.serverLevel();
         LivingEntity tgt = lv.getEntitiesOfClass(LivingEntity.class, sp.getBoundingBox().inflate(24), e -> foe(sp, e))
             .stream().min(java.util.Comparator.comparingDouble(e -> e.distanceToSqr(sp))).orElse(null);
         if (tgt == null) { sp.displayClientMessage(Component.literal("The doll finds nobody.").withStyle(ChatFormatting.GRAY), true); refund = true; return; }
-        fx(sp, 4);
-        Vec3 from = sp.position().add(0, 1.5, 0);
-        int steps = Math.max(10, (int) (from.distanceTo(tgt.position()) * 2));   // it walks, about 10 blocks a second
-        for (int i = 0; i < steps; i++) {
-            final double f = i / (double) steps;
-            later(i, () -> { Vec3 p = from.lerp(tgt.position().add(0, 0.2, 0), f).add(0, -1.3 * (1 - Math.sin(f * Math.PI) * 0), 0);
-                lv.sendParticles(ParticleTypes.CRIT, p.x, p.y, p.z, 2, 0.05, 0.05, 0.05, 0); lv.sendParticles(ParticleTypes.ASH, p.x, p.y, p.z, 3, 0.1, 0.1, 0.1, 0); });
-        }
-        later(steps, () -> {
+        int walk = Math.max(14, (int) (sp.distanceTo(tgt) / .35));
+        int total = walk + 16;
+        world(lv, new DoorNet.World(3, sp.getId(), tgt.getId(), sp.getX(), sp.getY(), sp.getZ(), tgt.getX(), tgt.getY(), tgt.getZ(), total));
+        later(walk, () -> {
             if (!tgt.isAlive()) return;
             pin(tgt, 20 * 10);
             lv.playSound(null, tgt.blockPosition(), SoundEvents.CHAIN_PLACE, SoundSource.PLAYERS, 1.5f, 0.7f);
@@ -171,24 +174,18 @@ public final class UniqAbilities {
         net.minecraft.world.phys.BlockHitResult hit = lv.clip(new net.minecraft.world.level.ClipContext(eye, eye.add(dir.scale(40)),
             net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, sp));
         Vec3 end = hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS ? eye.add(dir.scale(40)) : hit.getLocation().subtract(dir.scale(1.2));
+        Vec3 start = eye.add(dir.scale(.8)).subtract(0, .4, 0);
         int fly = Math.max(4, (int) (eye.distanceTo(end) / 2.5));
-        lv.playSound(null, sp.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1f, 1.6f);
-        for (int i = 0; i <= fly; i++) {
-            final Vec3 p = eye.lerp(end, i / (double) fly);
-            later(i, () -> lv.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 14, 0.25, 0.25, 0.25, 0.1));
-        }
         final double R = 14;
+        world(lv, new DoorNet.World(4, fly, (int) (R * 10), start.x, start.y, start.z, end.x, end.y, end.z, fly + 22 + 70 + 16));
+        lv.playSound(null, sp.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1f, 1.6f);
         later(fly, () -> {
             lv.playSound(null, net.minecraft.core.BlockPos.containing(end), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 6f, 0.5f);
-            for (int t = 0; t < 80; t += 2) {
+            for (int t = 6; t < 90; t += 2) {
                 final int tt = t;
                 later(t, () -> {
-                    double r = Math.min(R, 2 + R * tt / 30.0);
-                    for (int k = 0; k < 70; k++) {   // the shell of the sphere
-                        double u = lv.random.nextDouble() * 2 - 1, a = lv.random.nextDouble() * Math.PI * 2, q = Math.sqrt(1 - u * u);
-                        lv.sendParticles(k % 3 == 0 ? ParticleTypes.ELECTRIC_SPARK : ParticleTypes.CLOUD, end.x + q * Math.cos(a) * r, end.y + u * r, end.z + q * Math.sin(a) * r, 1, 0.1, 0.1, 0.1, 0.02);
-                    }
-                    if (tt % 10 == 0) {
+                    double r = Math.min(R, 2 + R * tt / 22.0);
+                    if (tt % 10 == 6) {
                         for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(end, end).inflate(r), x -> x != sp && x.isAlive() && x.position().add(0, x.getBbHeight() / 2, 0).distanceTo(end) <= r)) {
                             e.hurt(lv.damageSources().lightningBolt(), 14f);
                             e.setDeltaMovement(e.getDeltaMovement().add((lv.random.nextDouble() - .5) * 1.2, 0.35, (lv.random.nextDouble() - .5) * 1.2));

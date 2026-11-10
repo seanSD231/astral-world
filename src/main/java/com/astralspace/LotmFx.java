@@ -62,6 +62,18 @@ final class LotmFx {
         return h != null;
     }
 
+    /** An effect that follows something: the position is asked for every frame. Returns the handle, or null if it could not be played. */
+    static Object carry(String fx, java.util.function.Function<Float, Vec3> pos, float scale) {
+        if (!prepare()) return null;
+        try {
+            Method m = Class.forName("net.swimmingtuna.lotm.client.ClientFX").getMethod("carryFX", ResourceLocation.class, java.util.function.Function.class, java.util.function.Function.class, float.class);
+            java.util.function.Function<Float, org.joml.Quaternionf> rot = f -> new org.joml.Quaternionf();
+            return m.invoke(null, ResourceLocation.fromNamespaceAndPath("lotm", fx), pos, rot, scale);
+        } catch (Throwable t) { return null; }
+    }
+
+    static void kill(Object h) { stop(h); }
+
     private static void stop(Object h) { if (h != null) try { kill.invoke(h); } catch (Throwable ignored) {} }
 
     private static void onTick(ClientTickEvent.Post ev) {
