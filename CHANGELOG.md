@@ -1,3 +1,9 @@
+## 0.2.162
+- Uniqueness items reworked into 3D models (untested in game, built by CI only): Starry Sniper Rifle (Door), Sword of Shadow (Hanged Man), Spear of Sun and Justice (Sun), Storm Katana (Tyrant), Great Bone Sword with green fire (Death), Wheel of Fortune Rifle with a snake (Monster), Chained Bow (Chained). The Quill of Alzuhod and Longsword of Twilight stay as they were.
+- The 3D models use animated colours (twinkling stars, flickering fire, lightning, glow) and moving parts (spinning wheel and sun, bow string pulls back while you hold, sniper bolt cycles).
+- Holding the Sword of Shadow puts the Shield of Shadow in your off hand; putting the sword away removes it.
+- Removed the old cane, cloak, sun, ball of storms, book, die and bandaged figure items.
+
 # Astral World — Changelog
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.

@@ -77,6 +77,7 @@ public final class AstralClient {
             net.minecraft.client.renderer.item.ItemProperties.register(Tarot.CARD.get(), net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "card"),
                 (stack, level, entity, seed) -> Tarot.cardIndex(stack));
         }));
+        modBus.addListener(UniqClient::registerModels);
         modBus.addListener(PartyParticles::register);
         modBus.addListener(AstralClient::registerLayers);
         modBus.addListener(AstralClient::registerSky);

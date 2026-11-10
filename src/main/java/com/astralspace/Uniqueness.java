@@ -29,10 +29,18 @@ public class Uniqueness extends Item {
     private static final Logger LOGGER = LogUtils.getLogger();
     public static final int HOLD_TICKS = 100;
     private final String pathId, title;
+    private final boolean model3d;
 
-    public Uniqueness(String pathId, String title) {
+    public Uniqueness(String pathId, String title) { this(pathId, title, false); }
+
+    public Uniqueness(String pathId, String title, boolean model3d) {
         super(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC));
-        this.pathId = pathId; this.title = title;
+        this.pathId = pathId; this.title = title; this.model3d = model3d;
+    }
+
+    @Override
+    public void initializeClient(java.util.function.Consumer<net.neoforged.neoforge.client.extensions.common.IClientItemExtensions> consumer) {
+        if (model3d) consumer.accept(UniqClient.EXT);
     }
 
     @Override public UseAnim getUseAnimation(ItemStack stack) { return UseAnim.BOW; }

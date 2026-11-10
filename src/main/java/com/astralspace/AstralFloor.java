@@ -50,17 +50,20 @@ public final class AstralFloor {
 
     /** Uniquenesses: hold right click for 5 seconds to take one in (through LOTM's own accommodation). {item id, LOTM pathway id, name, pathway title} */
     public static final String[][] UNIQ = {
-        {"star_cane", "apprentice", "Cane Inlaid with Star Speckles", "Door"},
-        {"quill_of_alzuhod", "spectator", "Quill of Alzuhod", "Visionary"},
-        {"cloak_of_shadows", "secrets_supplicant", "Cloak of Shadows", "Hanged Man"},
-        {"golden_sun", "bard", "Radiant Miniature Golden Sun", "Sun"},
-        {"ball_of_storms", "sailor", "Ball of Storms", "Tyrant"},
-        {"feathered_serpent_book", "corpse_collector", "Illusory Book of Coiled Feathered Serpents", "Death"},
-        {"twilight_longsword", "warrior", "Longsword of Twilight", "Warrior"},
-        {"red_pip_die", "monster", "Six-Sided White Die", "Monster"},
-        {"bandaged_figure", "prisoner", "Tiny Illusory Bandaged Figure", "Chained"}};
+        {"starry_sniper", "apprentice", "Starry Sniper Rifle", "Door", "3d"},
+        {"quill_of_alzuhod", "spectator", "Quill of Alzuhod", "Visionary", ""},
+        {"shadow_sword", "secrets_supplicant", "Sword of Shadow", "Hanged Man", "3d"},
+        {"spear_of_sun", "bard", "Spear of Sun and Justice", "Sun", "3d"},
+        {"storm_katana", "sailor", "Storm Katana", "Tyrant", "3d"},
+        {"bone_greatsword", "corpse_collector", "Great Bone Sword", "Death", "3d"},
+        {"twilight_longsword", "warrior", "Longsword of Twilight", "Warrior", ""},
+        {"snake_rifle", "monster", "Wheel of Fortune Rifle", "Monster", "3d"},
+        {"chained_bow", "prisoner", "Chained Bow", "Chained", "3d"}};
     public static final java.util.List<DeferredItem<Item>> UNIQUENESSES = new java.util.ArrayList<>();
-    static { for (String[] u : UNIQ) UNIQUENESSES.add(ITEMS.register(u[0], () -> new Uniqueness(u[1], u[3]))); }
+    static { for (String[] u : UNIQ) UNIQUENESSES.add(ITEMS.register(u[0], () -> new Uniqueness(u[1], u[3], u[4].equals("3d")))); }
+    /** The Sword of Shadow's own entry, and the shield that appears in the off hand while it is held. */
+    public static final DeferredItem<Item> SHADOW_SWORD_ITEM = DeferredItem.createItem(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("astral_world", "shadow_sword"));
+    public static final DeferredItem<Item> SHADOW_SHIELD = ITEMS.register("shadow_shield", ShadowShield::new);
 
     /** Invisible, like the barrier block. */
     private static final class FloorBlock extends Block {
@@ -76,7 +79,7 @@ public final class AstralFloor {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
-            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); }
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); e.accept(SHADOW_SHIELD.get()); }
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) e.accept(CABINET_ITEM.get());
         });
     }

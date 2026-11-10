@@ -1,14 +1,7 @@
 {
   "block.astral_world.astral_floor": "Astral Floor",
-  "item.astral_world.star_cane": "Cane Inlaid with Star Speckles",
   "item.astral_world.quill_of_alzuhod": "Quill of Alzuhod",
-  "item.astral_world.cloak_of_shadows": "Cloak of Shadows",
-  "item.astral_world.golden_sun": "Radiant Miniature Golden Sun",
-  "item.astral_world.ball_of_storms": "Ball of Storms",
-  "item.astral_world.feathered_serpent_book": "Illusory Book of Coiled Feathered Serpents",
   "item.astral_world.twilight_longsword": "Longsword of Twilight",
-  "item.astral_world.red_pip_die": "Six-Sided White Die",
-  "item.astral_world.bandaged_figure": "Tiny Illusory Bandaged Figure",
   "item.astral_world.tree_smiter": "Tree Smiter (testing)",
   "block.astral_world.osu_cabinet": "Osu Cabinet",
   "entity.astral_world.holo_card": "Tarot Card",
@@ -85,5 +78,13 @@
   "item.astral_world.warrior_rainbow_pack": "Warrior Rainbow Tarot Pack",
   "item.astral_world.warrior_shiny_pack": "Warrior Shiny Tarot Pack",
   "itemGroup.astral_world.main": "Astral World",
-  "itemGroup.astral_world.cards": "Astral Cards"
+  "itemGroup.astral_world.cards": "Astral Cards",
+  "item.astral_world.starry_sniper": "Starry Sniper Rifle",
+  "item.astral_world.shadow_sword": "Sword of Shadow",
+  "item.astral_world.shadow_shield": "Shield of Shadow",
+  "item.astral_world.spear_of_sun": "Spear of Sun and Justice",
+  "item.astral_world.storm_katana": "Storm Katana",
+  "item.astral_world.bone_greatsword": "Great Bone Sword",
+  "item.astral_world.snake_rifle": "Wheel of Fortune Rifle",
+  "item.astral_world.chained_bow": "Chained Bow"
 }
