@@ -90,13 +90,20 @@ public final class DoorRapier extends Uniqueness {
 
     private static final class Burst {
         final ServerLevel lv; final UUID owner; final LivingEntity target; final double[] ang = new double[DOORS], lift = new double[DOORS];
-        Vec3 c; int age;
+        Vec3 c; int age; final List<net.minecraft.world.entity.Entity> doors = new java.util.ArrayList<>();
         Burst(ServerLevel lv, UUID owner, LivingEntity t) {
             this.lv = lv; this.owner = owner; this.target = t; c = t.position().add(0, t.getBbHeight() * .5, 0);
             double off = lv.random.nextDouble() * 6.28;
             for (int i = 0; i < DOORS; i++) { ang[i] = off + i * 6.2832 / DOORS; lift[i] = (i % 3 == 0 ? -0.3 : i % 3 == 1 ? 0.0 : 0.6) + lv.random.nextDouble() * .3; }
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.7f, 0.6f);
+            ServerPlayer sp = lv.getServer().getPlayerList().getPlayer(owner);
+            if (sp != null) for (int i = 0; i < DOORS; i++) {   // real LOTM doors, if LOTM is installed
+                double x = c.x + Math.cos(ang[i]) * RING, y = t.getY() + lift[i], z = c.z + Math.sin(ang[i]) * RING;
+                net.minecraft.world.entity.Entity d = spawnDoor(lv, sp, x, y, z, (float) Math.toDegrees(Math.atan2(Math.cos(ang[i]), -Math.sin(ang[i]))));
+                if (d != null) doors.add(d);
+            }
         }
+        void clearDoors() { for (var d : doors) d.discard(); doors.clear(); }
         /** returns true when finished */
         boolean tick() {
             if (target.isAlive() && target.level() == lv) c = target.position().add(0, target.getBbHeight() * .5, 0);
@@ -108,7 +115,7 @@ public final class DoorRapier extends Uniqueness {
                 Vec3 pos = c.add(Math.cos(a) * RING, -c.y + target.getY() + lift[i], Math.sin(a) * RING).add(0, 0, 0);
                 pos = new Vec3(c.x + Math.cos(a) * RING, target.getY() + lift[i], c.z + Math.sin(a) * RING);
                 Vec3 n = new Vec3(-Math.cos(a), 0, -Math.sin(a)), r = new Vec3(-n.z, 0, n.x);
-                if (redraw) {
+                if (redraw && doors.isEmpty()) {
                     int pts = 18;
                     for (int k = 0; k <= pts; k++) {   // arched doorway outline, drawn in as it grows
                         double t = Math.PI * k / pts, u = .5 * Math.cos(t) * grow, v = (1.5 + .5 * Math.sin(t)) * grow;
@@ -134,7 +141,7 @@ public final class DoorRapier extends Uniqueness {
                 }
                 if (age % 6 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.6f, 0.8f + (age - OPEN) * .02f);
             }
-            if (age == FILL) { explode(); return true; }
+            if (age == FILL) { explode(); clearDoors(); return true; }
             return age > FILL;
         }
         void door(Vec3 pos, Vec3 r, double u, double v) {
@@ -158,6 +165,27 @@ public final class DoorRapier extends Uniqueness {
                 }
             } finally { inLunge = false; }
         }
+    }
+
+    private static Class<?> doorCls;
+    private static boolean doorTried;
+    /** Spawns LOTM's own ApprenticeDoorEntity by reflection (same 7-arg constructor in every LOTM build I have); null if LOTM is missing. */
+    private static net.minecraft.world.entity.Entity spawnDoor(ServerLevel lv, ServerPlayer owner, double x, double y, double z, float yaw) {
+        try {
+            if (!doorTried) {
+                doorTried = true;
+                for (String n : new String[]{"net.swimmingtuna.lotm.pathway.apprentice.entities.ApprenticeDoorEntity", "net.swimmingtuna.lotm.entity.ApprenticeDoorEntity"}) {
+                    try { doorCls = Class.forName(n); break; } catch (Throwable ignored) { }
+                }
+            }
+            if (doorCls == null) return null;
+            // (Level, LivingEntity creator, int sequence, float yaw, float destX, destY, destZ): destination is the door itself
+            var e = (net.minecraft.world.entity.Entity) doorCls.getConstructor(Level.class, LivingEntity.class, int.class, float.class, float.class, float.class, float.class)
+                .newInstance(lv, owner, 9, yaw, (float) x, (float) y, (float) z);
+            e.moveTo(x, y, z, yaw, 0);
+            lv.addFreshEntity(e);
+            return e;
+        } catch (Throwable t) { doorCls = null; return null; }
     }
 
     public static void tickBursts(net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) {

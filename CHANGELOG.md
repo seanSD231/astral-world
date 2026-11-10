@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.174
+- Rapier of the Door: the seven doors around the target are now LOTM's own door entities (spawned by reflection, removed at the burst); the particle doors only show if LOTM is missing. Door facing, size and what the doors do on their own are unverified. Untested in game.
+
 ## 0.2.173
 - Rapier of the Door: right click is now an entity ability instead of the dash. Right click an enemy and seven doorways (arched star outlines with a void inside) open in a ring around it, stars pour out of them and fill the space, then burst for 14 damage and knockback in a small radius (8s cooldown). The doors are drawn with particles, not the LOTM door entity, so it works without LOTM. Untested in game; numbers are guesses.
 
