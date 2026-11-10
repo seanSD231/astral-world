@@ -41,10 +41,20 @@ public final class DoorClient {
             Vec3 look = p.getLookAngle(), right = look.cross(new Vec3(0, 1, 0)).normalize();
             Vec3 hand = p.getEyePosition().add(look.scale(0.9)).add(right.scale(0.35)).add(0, -0.3, 0);
             if (p.swinging && p.swingTime == 0) mc.level.playLocalSound(p.getX(), p.getY(), p.getZ(), DoorRapier.THRUST, SoundSource.PLAYERS, 0.5f, 1.7f + (mc.level.random.nextFloat() - .5f) * .2f, false);
-            if (p.swinging && p.swingTime == 0) {   // one puff of coloured stars along the blade per attack
-                for (int i = 0; i < 26; i++) {
-                    Vec3 q = hand.add(look.scale(0.1 + i * 0.05)).add((mc.level.random.nextFloat() - .5f) * .12, (mc.level.random.nextFloat() - .5f) * .12, (mc.level.random.nextFloat() - .5f) * .12);
-                    mc.level.addParticle(PartyItems.STAR.get(), q.x, q.y, q.z, look.x * .05, look.y * .05 + .01, look.z * .05);
+            if (p.swinging && p.swingTime == 0) {   // one door-seam per attack: a black line packed with blue stars
+                Vec3 up = right.cross(look).normalize();
+                Vec3 mid = p.getEyePosition().add(look.scale(1.7)).add(right.scale(0.1)).add(up.scale(-0.15));
+                double ang = ((p.tickCount / 4) % 2 == 0 ? 1 : -1) * 0.8;                       // alternate the slant each swing
+                Vec3 dir = right.scale(Math.cos(ang)).add(up.scale(Math.sin(ang))).normalize();
+                for (int i = -22; i <= 22; i++) {
+                    double t = i * 0.055, taper = 1.0 - Math.abs(i) / 26.0;
+                    Vec3 q = mid.add(dir.scale(t));
+                    mc.level.addParticle(PartyItems.SLIT.get(), q.x, q.y, q.z, 0, 0, 0);
+                    if (i % 2 == 0) {
+                        Vec3 o = right.cross(dir).normalize().scale((mc.level.random.nextFloat() - .5f) * .1 * taper);
+                        mc.level.addParticle(PartyItems.STAR_BLUE.get(), q.x + o.x, q.y + o.y, q.z + o.z, 0, 0.004, 0);
+                        mc.level.addParticle(PartyItems.STAR_BLUE.get(), q.x + o.x * 1.5, q.y + o.y * 1.5, q.z + o.z * 1.5, look.x * .02, look.y * .02, look.z * .02);
+                    }
                 }
             }
         }

@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.178
+- Rapier of the Door: sword sits a little higher in the hand and is 15% bigger. Doors are upright and face the target (before, every door got the same rotation, so they showed edge-on or odd) and now last the whole ability (they close at the finale). The burst is now a chain reaction: after the fill, 110 star clusters detonate one after another rippling out from the middle (each a flash, a shockwave ring and a pop of stars, with the target slowed so it stays put), then the finale: a white-out, six shockwave rings and the big shells, pillar and pinwheels. New particle types: big photon flash and shockwave ring. Sword swings leave a black door-seam line packed with blue stars instead of the coloured puff. Untested in game; door facing may still need a nudge.
+
 ## 0.2.177
 - Rapier of the Door, late-game scale: right click no longer teleports you (the real cause was the LOTM door's default mirage mode pulling its creator in; the doors are now set to a mode that does nothing unless someone sneaks into them). Nine doors on a wider ring, a much denser star stream and a thick fill that builds for 3 seconds, a 12-tick implosion with a rising hum, then a huge blast: blinding core, thick cloud, four star shells, five crossed shockwave rings, a pillar of stars through sky and ground, eight spinning pinwheel arms, and two more shells (the last with a second sonic boom). Radius 7 blocks, 60 damage, strong knockback and lift, 10s cooldown. Star particles now live 3-5 seconds and the swing puff is 26 stars. Untested in game; numbers are guesses and it may lag.
 

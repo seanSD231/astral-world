@@ -33,6 +33,10 @@ public final class PartyItems {
     public static final Supplier<SimpleParticleType> CONFETTI = PARTICLES.register("confetti", () -> new SimpleParticleType(false));
     public static final Supplier<SimpleParticleType> BUBBLE = PARTICLES.register("bubble", () -> new SimpleParticleType(false));
     public static final Supplier<SimpleParticleType> STAR = PARTICLES.register("star_dot", () -> new SimpleParticleType(false));
+    public static final Supplier<SimpleParticleType> STAR_BLUE = PARTICLES.register("star_blue", () -> new SimpleParticleType(false));
+    public static final Supplier<SimpleParticleType> SLIT = PARTICLES.register("door_slit", () -> new SimpleParticleType(false));
+    public static final Supplier<SimpleParticleType> FLASH = PARTICLES.register("photon_flash", () -> new SimpleParticleType(false));
+    public static final Supplier<SimpleParticleType> RING = PARTICLES.register("photon_ring", () -> new SimpleParticleType(false));
 
     public static void register(IEventBus modBus) { ITEMS.register(modBus); PARTICLES.register(modBus); }
 

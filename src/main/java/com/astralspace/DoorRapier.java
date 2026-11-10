@@ -83,7 +83,7 @@ public final class DoorRapier extends Uniqueness {
         return net.minecraft.world.InteractionResult.sidedSuccess(p.level().isClientSide);
     }
 
-    private static final int BURST_COOLDOWN = 200, OPEN = 14, FILL = 60, DOORS = 9, AFTER = 24;
+    private static final int BURST_COOLDOWN = 200, OPEN = 14, FILL = 70, CHAIN = 20, FINAL = FILL + CHAIN + 2, DOORS = 9, AFTER = 26, NODES = 110;
     private static final double RING = 4.5, AREA = 7.0;
     private static final float BURST_DAMAGE = 60f;
     private static final List<Burst> BURSTS = new java.util.ArrayList<>();
@@ -100,11 +100,41 @@ public final class DoorRapier extends Uniqueness {
             ServerPlayer sp = lv.getServer().getPlayerList().getPlayer(owner);
             if (sp != null) for (int i = 0; i < DOORS; i++) {   // real LOTM doors, if LOTM is installed
                 double x = c.x + Math.cos(ang[i]) * RING, y = t.getY() + lift[i], z = c.z + Math.sin(ang[i]) * RING;
-                net.minecraft.world.entity.Entity d = spawnDoor(lv, sp, x, y, z, (float) Math.toDegrees(Math.atan2(Math.cos(ang[i]), -Math.sin(ang[i]))));
+                net.minecraft.world.entity.Entity d = spawnDoor(lv, sp, x, y, z, (float) (Math.toDegrees(Math.atan2(Math.cos(ang[i]), Math.sin(ang[i]))) - 180.0));
                 if (d != null) doors.add(d);
             }
         }
+        void closeDoors() { for (var d : doors) try { d.getClass().getMethod("setClosing").invoke(d); } catch (Throwable ignored) { } }
         void clearDoors() { for (var d : doors) d.discard(); doors.clear(); }
+        final List<Vec3> nodes = new java.util.ArrayList<>(); boolean[] boomed;
+        /** Chain reaction: every star cluster in the field detonates in turn, rippling out from the middle. */
+        void chain(int k) {
+            if (nodes.isEmpty()) {
+                for (int i = 0; i < NODES; i++) {
+                    double dx, dy, dz; do { dx = lv.random.nextDouble() * 2 - 1; dy = lv.random.nextDouble() * 2 - 1; dz = lv.random.nextDouble() * 2 - 1; } while (dx * dx + dy * dy + dz * dz > 1);
+                    nodes.add(c.add(dx * AREA * .9, dy * AREA * .55 + .5, dz * AREA * .9));
+                }
+                boomed = new boolean[NODES];
+                if (target.isAlive()) target.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 60, 6, false, false));
+            }
+            double reach = AREA * 1.05 * k / CHAIN;
+            int pops = 0;
+            for (int i = 0; i < NODES; i++) {
+                if (boomed[i]) continue;
+                Vec3 q = nodes.get(i);
+                if (q.distanceTo(c) + lv.random.nextDouble() * 1.8 > reach) continue;
+                boomed[i] = true; pop(q, 1.0 + lv.random.nextDouble() * .8); pops++;
+            }
+            if (pops > 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_BLAST, SoundSource.PLAYERS, 1.4f, .7f + k * .04f);
+            if (k % 3 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_BREAK, SoundSource.PLAYERS, 1.6f, .6f + k * .05f);
+        }
+        /** One detonation: a flash, a ring, and a pop of stars. */
+        void pop(Vec3 q, double size) {
+            lv.sendParticles(PartyItems.FLASH.get(), q.x, q.y, q.z, 0, 3.6 * size, -1, 0, 1);
+            if (lv.random.nextInt(3) == 0) lv.sendParticles(PartyItems.RING.get(), q.x, q.y, q.z, 0, 4.5 * size, -1, 0, 1);
+            lv.sendParticles(PartyItems.STAR.get(), q.x, q.y, q.z, 28, .15, .15, .15, .22);
+            lv.sendParticles(PartyItems.STAR_BLUE.get(), q.x, q.y, q.z, 8, .1, .1, .1, .14);
+        }
         void star(double x, double y, double z, double dx, double dy, double dz, double speed) { lv.sendParticles(PartyItems.STAR.get(), x, y, z, 0, dx, dy, dz, speed); }
         void blob(int n, double spread, double speed) { lv.sendParticles(PartyItems.STAR.get(), c.x, c.y, c.z, n, spread, spread, spread, speed); }
 
@@ -135,19 +165,11 @@ public final class DoorRapier extends Uniqueness {
                 lv.sendParticles(PartyItems.STAR.get(), c.x, c.y + 1, c.z, cnt, AREA * .55, AREA * .35, AREA * .55, 0.004);
                 if (age % 5 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.8f, 0.7f + (age - OPEN) * .012f);
             }
-            if (age >= FILL - 12 && age < FILL) {   // everything is dragged in just before the bang, tighter and tighter
-                float prog = (age - (FILL - 12)) / 12f;
-                lv.playSound(null, c.x, c.y, c.z, SoundEvents.BEACON_AMBIENT, SoundSource.PLAYERS, 0.5f, 0.5f + prog * 1.5f);
-                for (int i = 0; i < 40; i++) {
-                    double y = lv.random.nextDouble() * 2 - 1, rr = Math.sqrt(1 - y * y), th = lv.random.nextDouble() * 6.2832;
-                    Vec3 d = new Vec3(Math.cos(th) * rr, y, Math.sin(th) * rr);
-                    double rad = AREA * (.9 - .5 * prog);
-                    star(c.x + d.x * rad, c.y + d.y * rad, c.z + d.z * rad, -d.x, -d.y, -d.z, rad * .12);
-                }
-            }
-            if (age == FILL) { explode(); clearDoors(); }
-            if (age > FILL) aftershock();
-            return age > FILL + AFTER;
+            if (age > FILL && age <= FILL + CHAIN) chain(age - FILL);
+            if (age == FINAL) { explode(); closeDoors(); }
+            if (age > FINAL) aftershock();
+            if (age == FINAL + 10) clearDoors();
+            return age > FINAL + AFTER;
         }
         void fb(Vec3 pos, Vec3 r, double u, double v) { lv.sendParticles(PartyItems.STAR.get(), pos.x + r.x * u, pos.y + v, pos.z + r.z * u, 1, 0, 0, 0, 0); }
 
@@ -169,6 +191,10 @@ public final class DoorRapier extends Uniqueness {
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 2f, 1.5f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 2f, 0.5f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, SoundSource.PLAYERS, 2f, 0.6f);
+            lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 26, 6, 16, 1);      // white-out
+            lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 16, 2, 14, 1);
+            lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 10, 1, 12, 1);
+            for (int i = 0; i < 6; i++) lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 10 + i * 5, i, 14 + i * 4, 1);   // shockwave rings, each bigger and slower
             blob(260, .2, .05);          // blinding core
             blob(500, .3, .55);          // thick cloud of stars
             sphere(160, .9); sphere(110, .6); sphere(70, .35); sphere(40, .16);
@@ -186,7 +212,7 @@ public final class DoorRapier extends Uniqueness {
         }
         /** The explosion keeps going: a pillar of stars, pinwheels, rolling shockwaves and a second, bigger blast. */
         void aftershock() {
-            int k = age - FILL;
+            int k = age - FINAL;
             if (k <= 14) {   // pillar through the sky and the ground
                 for (int i = 0; i < 10; i++) {
                     double sx = (lv.random.nextDouble() - .5) * .8, sz = (lv.random.nextDouble() - .5) * .8;
@@ -201,8 +227,8 @@ public final class DoorRapier extends Uniqueness {
                 }
             }
             if (k % 3 == 2 && k <= 20) { ring(80, .4 + k * .03, ((k / 3) % 3 - 1) * .5, k); blob(150, .3, .3); }
-            if (k == 8) { lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 2f, 1.9f); sphere(120, .7); blob(300, .3, .45); }
-            if (k == 14) { lv.playSound(null, c.x, c.y, c.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.5f, 1.2f); sphere(140, 1.0); blob(400, .4, .65); }
+            if (k == 8) { lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 18, -1, 12, 1); lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 24, 3, 20, 1); lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 2f, 1.9f); sphere(120, .7); blob(300, .3, .45); }
+            if (k == 14) { lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 22, 6, 14, 1); lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 34, 0, 24, 1); lv.playSound(null, c.x, c.y, c.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.5f, 1.2f); sphere(140, 1.0); blob(400, .4, .65); }
         }
     }
 
@@ -232,7 +258,16 @@ public final class DoorRapier extends Uniqueness {
                 e.getEntityData().set(acc, false);
             } catch (Throwable ignored) { }
             try { doorCls.getMethod("keepBack", UUID.class).invoke(e, owner.getUUID()); } catch (Throwable ignored) { }
-            e.moveTo(x, y, z, yaw, 0);
+            try {   // long life, upright
+                for (String f : new String[]{"LIFE", "FULL_LIFE"}) {
+                    var fl = doorCls.getDeclaredField(f); fl.setAccessible(true);
+                    @SuppressWarnings("unchecked") var ac = (net.minecraft.network.syncher.EntityDataAccessor<Integer>) fl.get(null);
+                    e.getEntityData().set(ac, 600);
+                }
+                doorCls.getMethod("setPitch", float.class).invoke(e, 0f);
+                doorCls.getMethod("setYaw", float.class).invoke(e, yaw);
+            } catch (Throwable ignored) { }
+            e.moveTo(x, y, z, 0, 0);
             lv.addFreshEntity(e);
             return e;
         } catch (Throwable t) { doorCls = null; return null; }

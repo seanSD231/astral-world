@@ -16,7 +16,11 @@ public final class PartyParticles {
     public static void register(RegisterParticleProvidersEvent e) {
         e.registerSpriteSet(PartyItems.CONFETTI.get(), Confetti.Provider::new);
         e.registerSpriteSet(PartyItems.BUBBLE.get(), Bubble.Provider::new);
-        e.registerSpriteSet(PartyItems.STAR.get(), StarDot.Provider::new);
+        e.registerSpriteSet(PartyItems.STAR.get(), set -> new StarDot.Provider(set, StarDot.PALETTE));
+        e.registerSpriteSet(PartyItems.STAR_BLUE.get(), set -> new StarDot.Provider(set, StarDot.BLUE));
+        e.registerSpriteSet(PartyItems.SLIT.get(), Slit.Provider::new);
+        e.registerSpriteSet(PartyItems.FLASH.get(), set -> new Blast.Provider(set, false));
+        e.registerSpriteSet(PartyItems.RING.get(), set -> new Blast.Provider(set, true));
     }
 
     /** A piece of paper that tumbles and flutters down. The colour is picked per piece. */
@@ -97,13 +101,14 @@ public final class PartyParticles {
 
     /** A tiny glowing photon dot: the Door rapier's stars. Short lived, fades out, a little shimmer. */
     static final class StarDot extends TextureSheetParticle {
-        private static final float[][] PALETTE = {{1f, .82f, .3f}, {1f, .35f, .8f}, {.3f, .92f, 1f}, {.68f, .45f, 1f}, {.4f, 1f, .62f}, {1f, .52f, .4f}, {1f, 1f, 1f}};
+        static final float[][] BLUE = {{.35f, .6f, 1f}, {.5f, .78f, 1f}, {.25f, .45f, 1f}, {.7f, .9f, 1f}};
+        static final float[][] PALETTE = {{1f, .82f, .3f}, {1f, .35f, .8f}, {.3f, .92f, 1f}, {.68f, .45f, 1f}, {.4f, 1f, .62f}, {1f, .52f, .4f}, {1f, 1f, 1f}};
         private final float base, phase;
-        StarDot(ClientLevel lv, double x, double y, double z, double vx, double vy, double vz, SpriteSet set) {
+        StarDot(ClientLevel lv, double x, double y, double z, double vx, double vy, double vz, SpriteSet set, float[][] pal) {
             super(lv, x, y, z, vx, vy, vz);
             this.xd = vx + (random.nextFloat() - .5f) * .01; this.yd = vy + (random.nextFloat() - .5f) * .01; this.zd = vz + (random.nextFloat() - .5f) * .01;
             pickSprite(set);
-            float[] c = PALETTE[random.nextInt(PALETTE.length)];
+            float[] c = pal[random.nextInt(pal.length)];
             rCol = c[0]; gCol = c[1]; bCol = c[2];
             boolean fast = vx * vx + vy * vy + vz * vz > .01;
             lifetime = fast ? 40 + random.nextInt(25) : 32 + random.nextInt(20); gravity = 0f; friction = .9f; hasPhysics = false;
@@ -113,8 +118,41 @@ public final class PartyParticles {
         @Override public float getQuadSize(float pt) { return base * (0.7f + 0.3f * (float) Math.sin((age + pt) * 1.4 + phase)); }
         @Override protected int getLightColor(float pt) { return 0xF000F0; }
         @Override public ParticleRenderType getRenderType() { return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT; }
+        record Provider(SpriteSet set, float[][] pal) implements ParticleProvider<SimpleParticleType> {
+            @Override public Particle createParticle(SimpleParticleType t, ClientLevel lv, double x, double y, double z, double vx, double vy, double vz) { return new StarDot(lv, x, y, z, vx, vy, vz, set, pal); }
+        }
+    }
+
+    /** A dot of the black seam of a door: solid dark, lingers, fades late. */
+    static final class Slit extends TextureSheetParticle {
+        Slit(ClientLevel lv, double x, double y, double z, SpriteSet set) {
+            super(lv, x, y, z, 0, 0, 0);
+            pickSprite(set); rCol = .02f; gCol = .02f; bCol = .05f; lifetime = 26 + random.nextInt(8); quadSize = 0.1f; hasPhysics = false; gravity = 0f;
+        }
+        @Override public void tick() { super.tick(); alpha = Math.min(1f, Math.max(0f, 2f * (1f - (float) age / lifetime))); }
+        @Override protected int getLightColor(float pt) { return 0xF000F0; }
+        @Override public ParticleRenderType getRenderType() { return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT; }
         record Provider(SpriteSet set) implements ParticleProvider<SimpleParticleType> {
-            @Override public Particle createParticle(SimpleParticleType t, ClientLevel lv, double x, double y, double z, double vx, double vy, double vz) { return new StarDot(lv, x, y, z, vx, vy, vz, set); }
+            @Override public Particle createParticle(SimpleParticleType t, ClientLevel lv, double x, double y, double z, double vx, double vy, double vz) { return new Slit(lv, x, y, z, set); }
+        }
+    }
+
+    /** A big photon flash or an expanding shockwave ring. vx = final size, vy = colour index (negative = random), vz = life in ticks (0 = default). */
+    static final class Blast extends TextureSheetParticle {
+        private final float size; private final boolean ring;
+        Blast(ClientLevel lv, double x, double y, double z, double vx, double vy, double vz, SpriteSet set, boolean ring) {
+            super(lv, x, y, z, 0, 0, 0);
+            pickSprite(set); this.ring = ring; size = (float) vx;
+            float[] c = vy < 0 ? StarDot.PALETTE[random.nextInt(StarDot.PALETTE.length)] : StarDot.PALETTE[(int) vy % StarDot.PALETTE.length];
+            rCol = c[0]; gCol = c[1]; bCol = c[2];
+            lifetime = vz > 0 ? (int) vz : ring ? 18 : 11; hasPhysics = false; gravity = 0f; quadSize = 0.1f;
+        }
+        @Override public void tick() { super.tick(); float p = (float) age / lifetime; alpha = Math.max(0f, (float) Math.pow(1f - p, ring ? 1.2 : 1.8)); }
+        @Override public float getQuadSize(float pt) { float p = Math.min(1f, (age + pt) / lifetime); return size * (1f - (float) Math.pow(1f - p, ring ? 2.0 : 3.0)) * .5f + .05f; }
+        @Override protected int getLightColor(float pt) { return 0xF000F0; }
+        @Override public ParticleRenderType getRenderType() { return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT; }
+        record Provider(SpriteSet set, boolean ring) implements ParticleProvider<SimpleParticleType> {
+            @Override public Particle createParticle(SimpleParticleType t, ClientLevel lv, double x, double y, double z, double vx, double vy, double vz) { return new Blast(lv, x, y, z, vx, vy, vz, set, ring); }
         }
     }
 }
