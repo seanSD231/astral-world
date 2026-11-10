@@ -2,7 +2,7 @@
  "parent": "minecraft:builtin/entity",
  "gui_light": "front",
  "textures": {
-  "particle": "astral_world:item/bone_greatsword_vox"
+  "particle": "astral_world:item/bone_greatsword"
  },
  "display": {
   "thirdperson_righthand": {
@@ -13,13 +13,13 @@
    ],
    "translation": [
     -0.0,
-    6.03,
-    4.19
+    9.61,
+    6.68
    ],
    "scale": [
-    1.275,
-    1.275,
-    1.275
+    2.033,
+    2.033,
+    2.033
    ]
   },
   "thirdperson_lefthand": {
@@ -30,47 +30,47 @@
    ],
    "translation": [
     0.0,
-    6.03,
-    4.19
+    9.61,
+    6.68
    ],
    "scale": [
-    1.275,
-    1.275,
-    1.275
+    2.033,
+    2.033,
+    2.033
    ]
   },
   "firstperson_righthand": {
    "rotation": [
-    10.3,
-    83.62,
-    -18.58
+    -101.92,
+    83.6,
+    108.58
    ],
    "translation": [
-    0.24,
-    1.45,
-    -1.93
+    -0.78,
+    6.08,
+    -4.83
    ],
    "scale": [
-    0.422,
-    0.422,
-    0.422
+    1.355,
+    1.355,
+    1.355
    ]
   },
   "firstperson_lefthand": {
    "rotation": [
-    10.3,
-    -83.62,
-    18.58
+    -101.92,
+    -83.6,
+    -108.58
    ],
    "translation": [
-    -0.24,
-    1.45,
-    -1.93
+    0.78,
+    6.08,
+    -4.83
    ],
    "scale": [
-    0.422,
-    0.422,
-    0.422
+    1.355,
+    1.355,
+    1.355
    ]
   },
   "gui": {

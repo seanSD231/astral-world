@@ -2,7 +2,7 @@
  "parent": "minecraft:builtin/entity",
  "gui_light": "front",
  "textures": {
-  "particle": "astral_world:item/starry_sniper_vox"
+  "particle": "astral_world:item/starry_sniper"
  },
  "display": {
   "thirdperson_righthand": {
@@ -13,13 +13,13 @@
    ],
    "translation": [
     -0.0,
-    1.67,
-    -6.18
+    2.02,
+    -7.49
    ],
    "scale": [
-    1.615,
-    1.615,
-    1.615
+    1.958,
+    1.958,
+    1.958
    ]
   },
   "thirdperson_lefthand": {
@@ -30,13 +30,13 @@
    ],
    "translation": [
     0.0,
-    1.67,
-    -6.18
+    2.02,
+    -7.49
    ],
    "scale": [
-    1.615,
-    1.615,
-    1.615
+    1.958,
+    1.958,
+    1.958
    ]
   },
   "firstperson_righthand": {
@@ -46,14 +46,14 @@
     168.54
    ],
    "translation": [
-    -0.09,
-    0.71,
-    -1.75
+    -0.23,
+    1.74,
+    -4.31
    ],
    "scale": [
-    0.476,
-    0.476,
-    0.476
+    1.175,
+    1.175,
+    1.175
    ]
   },
   "firstperson_lefthand": {
@@ -63,14 +63,14 @@
     -168.54
    ],
    "translation": [
-    0.09,
-    0.71,
-    -1.75
+    0.23,
+    1.74,
+    -4.31
    ],
    "scale": [
-    0.476,
-    0.476,
-    0.476
+    1.175,
+    1.175,
+    1.175
    ]
   },
   "gui": {

@@ -2,7 +2,7 @@
  "parent": "minecraft:builtin/entity",
  "gui_light": "front",
  "textures": {
-  "particle": "astral_world:item/snake_rifle_vox"
+  "particle": "astral_world:item/snake_rifle"
  },
  "display": {
   "thirdperson_righthand": {
@@ -13,13 +13,13 @@
    ],
    "translation": [
     -0.0,
-    2.08,
-    -5.49
+    2.46,
+    -6.47
    ],
    "scale": [
-    1.615,
-    1.615,
-    1.615
+    1.904,
+    1.904,
+    1.904
    ]
   },
   "thirdperson_lefthand": {
@@ -30,13 +30,13 @@
    ],
    "translation": [
     0.0,
-    2.08,
-    -5.49
+    2.46,
+    -6.47
    ],
    "scale": [
-    1.615,
-    1.615,
-    1.615
+    1.904,
+    1.904,
+    1.904
    ]
   },
   "firstperson_righthand": {
@@ -46,14 +46,14 @@
     165.68
    ],
    "translation": [
-    -0.08,
-    0.8,
-    -1.53
+    -0.19,
+    1.93,
+    -3.67
    ],
    "scale": [
-    0.476,
-    0.476,
-    0.476
+    1.143,
+    1.143,
+    1.143
    ]
   },
   "firstperson_lefthand": {
@@ -63,14 +63,14 @@
     -165.68
    ],
    "translation": [
-    0.08,
-    0.8,
-    -1.53
+    0.19,
+    1.93,
+    -3.67
    ],
    "scale": [
-    0.476,
-    0.476,
-    0.476
+    1.143,
+    1.143,
+    1.143
    ]
   },
   "gui": {

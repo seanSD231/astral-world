@@ -2,7 +2,7 @@
  "parent": "minecraft:builtin/entity",
  "gui_light": "front",
  "textures": {
-  "particle": "astral_world:item/chained_bow_vox"
+  "particle": "astral_world:item/chained_bow"
  },
  "display": {
   "thirdperson_righthand": {
@@ -14,12 +14,12 @@
    "translation": [
     -0.0,
     -0.0,
-    -1.31
+    -1.65
    ],
    "scale": [
-    1.445,
-    1.445,
-    1.445
+    1.81,
+    1.81,
+    1.81
    ]
   },
   "thirdperson_lefthand": {
@@ -31,12 +31,12 @@
    "translation": [
     0.0,
     -0.0,
-    -1.31
+    -1.65
    ],
    "scale": [
-    1.445,
-    1.445,
-    1.445
+    1.81,
+    1.81,
+    1.81
    ]
   },
   "firstperson_righthand": {
@@ -48,12 +48,12 @@
    "translation": [
     -0.0,
     -0.0,
-    -0.49
+    -1.1
    ],
    "scale": [
-    0.544,
-    0.544,
-    0.544
+    1.207,
+    1.207,
+    1.207
    ]
   },
   "firstperson_lefthand": {
@@ -65,12 +65,12 @@
    "translation": [
     0.0,
     -0.0,
-    -0.49
+    -1.1
    ],
    "scale": [
-    0.544,
-    0.544,
-    0.544
+    1.207,
+    1.207,
+    1.207
    ]
   },
   "gui": {

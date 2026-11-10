@@ -2,7 +2,7 @@
  "parent": "minecraft:builtin/entity",
  "gui_light": "front",
  "textures": {
-  "particle": "astral_world:item/shadow_sword_vox"
+  "particle": "astral_world:item/shadow_sword"
  },
  "display": {
   "thirdperson_righthand": {
@@ -13,13 +13,13 @@
    ],
    "translation": [
     -0.0,
-    10.47,
-    7.28
+    11.75,
+    8.17
    ],
    "scale": [
-    1.275,
-    1.275,
-    1.275
+    1.431,
+    1.431,
+    1.431
    ]
   },
   "thirdperson_lefthand": {
@@ -30,47 +30,47 @@
    ],
    "translation": [
     0.0,
-    10.47,
-    7.28
+    11.75,
+    8.17
    ],
    "scale": [
-    1.275,
-    1.275,
-    1.275
+    1.431,
+    1.431,
+    1.431
    ]
   },
   "firstperson_righthand": {
    "rotation": [
-    10.3,
-    83.62,
-    -18.58
+    -101.92,
+    83.6,
+    108.58
    ],
    "translation": [
-    0.42,
-    2.52,
-    -3.36
+    -0.86,
+    6.69,
+    -5.32
    ],
    "scale": [
-    0.422,
-    0.422,
-    0.422
+    0.859,
+    0.859,
+    0.859
    ]
   },
   "firstperson_lefthand": {
    "rotation": [
-    10.3,
-    -83.62,
-    18.58
+    -101.92,
+    -83.6,
+    -108.58
    ],
    "translation": [
-    -0.42,
-    2.52,
-    -3.36
+    0.86,
+    6.69,
+    -5.32
    ],
    "scale": [
-    0.422,
-    0.422,
-    0.422
+    0.859,
+    0.859,
+    0.859
    ]
   },
   "gui": {

@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.166
+- The nine Uniqueness weapons are now smooth meshes (marching cubes from the same shapes as the artwork) with smooth shading instead of blocks; glow, twinkle, flames and the moving parts are animated by code.
+- Longsword of Twilight remodelled to match its icon (short, broad orange blade, gold guard).
+- Sizes set from real lengths (about 2 blocks for guns and swords in third person, smaller in first person); blades and the spear are held pointing forward and up.
+- Untested in game.
+
 ## 0.2.165
 - Models rebuilt at double the resolution so edges are much smoother, and the Longsword of Twilight is now a 3D model too.
 - Sniper and Wheel of Fortune rifle are held out in front with both arms raised (crossbow pose); the bow is held up in the bow pose.

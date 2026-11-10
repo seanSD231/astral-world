@@ -2,7 +2,7 @@
  "parent": "minecraft:builtin/entity",
  "gui_light": "front",
  "textures": {
-  "particle": "astral_world:item/twilight_longsword_vox"
+  "particle": "astral_world:item/twilight_longsword"
  },
  "display": {
   "thirdperson_righthand": {
@@ -13,13 +13,13 @@
    ],
    "translation": [
     -0.0,
-    6.28,
-    4.37
+    7.38,
+    5.13
    ],
    "scale": [
-    1.275,
-    1.275,
-    1.275
+    2.079,
+    2.079,
+    2.079
    ]
   },
   "thirdperson_lefthand": {
@@ -30,47 +30,47 @@
    ],
    "translation": [
     0.0,
-    6.28,
-    4.37
+    7.38,
+    5.13
    ],
    "scale": [
-    1.275,
-    1.275,
-    1.275
+    2.079,
+    2.079,
+    2.079
    ]
   },
   "firstperson_righthand": {
    "rotation": [
-    10.3,
-    83.62,
-    -18.58
+    -101.92,
+    83.6,
+    108.58
    ],
    "translation": [
-    0.25,
-    1.51,
-    -2.01
+    -0.67,
+    5.25,
+    -4.17
    ],
    "scale": [
-    0.422,
-    0.422,
-    0.422
+    1.559,
+    1.559,
+    1.559
    ]
   },
   "firstperson_lefthand": {
    "rotation": [
-    10.3,
-    -83.62,
-    18.58
+    -101.92,
+    -83.6,
+    -108.58
    ],
    "translation": [
-    -0.25,
-    1.51,
-    -2.01
+    0.67,
+    5.25,
+    -4.17
    ],
    "scale": [
-    0.422,
-    0.422,
-    0.422
+    1.559,
+    1.559,
+    1.559
    ]
   },
   "gui": {

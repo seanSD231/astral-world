@@ -2,7 +2,7 @@
  "parent": "minecraft:builtin/entity",
  "gui_light": "front",
  "textures": {
-  "particle": "astral_world:item/storm_katana_vox"
+  "particle": "astral_world:item/storm_katana"
  },
  "display": {
   "thirdperson_righthand": {
@@ -13,13 +13,13 @@
    ],
    "translation": [
     -0.0,
-    7.78,
-    5.41
+    9.66,
+    6.71
    ],
    "scale": [
-    1.275,
-    1.275,
-    1.275
+    1.582,
+    1.582,
+    1.582
    ]
   },
   "thirdperson_lefthand": {
@@ -30,47 +30,47 @@
    ],
    "translation": [
     0.0,
-    7.78,
-    5.41
+    9.66,
+    6.71
    ],
    "scale": [
-    1.275,
-    1.275,
-    1.275
+    1.582,
+    1.582,
+    1.582
    ]
   },
   "firstperson_righthand": {
    "rotation": [
-    10.3,
-    83.62,
-    -18.58
+    -101.92,
+    83.6,
+    108.58
    ],
    "translation": [
-    0.31,
-    1.87,
-    -2.5
+    -0.7,
+    5.5,
+    -4.37
    ],
    "scale": [
-    0.422,
-    0.422,
-    0.422
+    0.949,
+    0.949,
+    0.949
    ]
   },
   "firstperson_lefthand": {
    "rotation": [
-    10.3,
-    -83.62,
-    18.58
+    -101.92,
+    -83.6,
+    -108.58
    ],
    "translation": [
-    -0.31,
-    1.87,
-    -2.5
+    0.7,
+    5.5,
+    -4.37
    ],
    "scale": [
-    0.422,
-    0.422,
-    0.422
+    0.949,
+    0.949,
+    0.949
    ]
   },
   "gui": {
