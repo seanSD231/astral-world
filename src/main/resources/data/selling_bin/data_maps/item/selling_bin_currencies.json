@@ -1,7 +1,7 @@
 {
   "values": {
-    "lotm:bronze_coin": 1,
-    "lotm:silver_coin": 10,
-    "lotm:coin": 100
+    "lotm:bronze_coin": 100,
+    "lotm:silver_coin": 1000,
+    "lotm:coin": 10000
   }
 }

@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.189
+- Selling bin: a bronze coin is now worth the same as an emerald (100 bin units), silver 1000, gold 10000, keeping the 1/10/100 coin ratios. Untested in game.
+
 ## 0.2.188
 - Starcatcher selling bin can pay out in LOTM coins: added a selling_bin_currencies data map (bronze 1, silver 10, gold 100, the same ratios as the coins). Create: Numismatics coins (spur, bevel, sprocket, cog, crown, sun) now stack to 9999 instead of 64, so converting a big purse no longer fills the inventory. Untested in game.
 
