@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.164
+- Recomputed how the Uniqueness weapons and the Shield of Shadow are held (third and first person) from each model's grip point and axes: guns point forward with the grip in the hand, blades and the spear point forward and up, the bow stands upright, the shield faces forward on the forearm. Untested in game.
+
 ## 0.2.163
 - Uniqueness items: sneak + hold right click to take one in; normal right click now uses the item normally. Enchant glint removed. Held 3D weapons are scaled up (guns, spear, bow, greatsword), and the Shield of Shadow is much smaller. Hold positions are still guesses. Untested in game.
 
