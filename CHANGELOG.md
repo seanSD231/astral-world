@@ -2,6 +2,9 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.163
+- Uniqueness items: sneak + hold right click to take one in; normal right click now uses the item normally. Enchant glint removed. Held 3D weapons are scaled up (guns, spear, bow, greatsword), and the Shield of Shadow is much smaller. Hold positions are still guesses. Untested in game.
+
 ## 0.2.162
 - Uniqueness items reworked into 3D models (untested in game, built by CI only): Starry Sniper Rifle (Door), Sword of Shadow (Hanged Man), Spear of Sun and Justice (Sun), Storm Katana (Tyrant), Great Bone Sword with green fire (Death), Wheel of Fortune Rifle with a snake (Monster), Chained Bow (Chained). The Quill of Alzuhod and Longsword of Twilight stay as they were.
 - The 3D models use animated colours (twinkling stars, flickering fire, lightning, glow) and moving parts (spinning wheel and sun, bow string pulls back while you hold, sniper bolt cycles).

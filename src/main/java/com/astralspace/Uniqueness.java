@@ -45,16 +45,17 @@ public class Uniqueness extends Item {
 
     @Override public UseAnim getUseAnimation(ItemStack stack) { return UseAnim.BOW; }
     @Override public int getUseDuration(ItemStack stack, LivingEntity entity) { return HOLD_TICKS; }
-    @Override public boolean isFoil(ItemStack stack) { return true; }
+    @Override public boolean isFoil(ItemStack stack) { return false; }
 
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext ctx, List<Component> tip, net.minecraft.world.item.TooltipFlag flag) {
         tip.add(Component.literal(title + " Uniqueness").withStyle(ChatFormatting.GOLD));
-        tip.add(Component.literal("Hold right click for 5 seconds to take it in.").withStyle(ChatFormatting.GRAY));
+        tip.add(Component.literal("Sneak and hold right click for 5 seconds to take it in.").withStyle(ChatFormatting.GRAY));
     }
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        if (!player.isShiftKeyDown()) return InteractionResultHolder.pass(player.getItemInHand(hand));   // normal use stays normal
         player.startUsingItem(hand);
         return InteractionResultHolder.consume(player.getItemInHand(hand));
     }
