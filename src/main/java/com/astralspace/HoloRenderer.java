@@ -1800,7 +1800,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             sprites("drop", 40, FALLM, R, 0, top, .5f * S, 0xB01020, 1f, .35f, 77, false);
         }
         for (int i = 0; i < (m ? 9 : 7); i++) {   // apothecary cabinets round the edge, shelves of glowing bottles
-            int n2 = m ? 9 : 7; float a = i * TAU / n2 + .2f, r = R * .8f, wood = 0x4A3220; push(); tr(gc(a) * r, 0, gs(a) * r); rY(-a);
+            int n2 = m ? 9 : 7; float a = i * TAU / n2 + .2f, r = R * .8f; int wood = 0x4A3220; push(); tr(gc(a) * r, 0, gs(a) * r); rY(-a);
             box(.3f * S, 2.0f * S, 0, .1f * S, 2.0f * S, 1.5f * S, wood, 255);
             for (int sd = -1; sd <= 1; sd += 2) box(0, 2.0f * S, sd * 1.5f * S, .3f * S, 2.0f * S, .08f * S, wood, 255);
             box(0, 4.05f * S, 0, .34f * S, .06f * S, 1.6f * S, 0x2A1C10, 255);
