@@ -1752,6 +1752,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int k = 0; k < rings; k++) { float rad = R * (r0 + dr * k); for (int i = 0; i < 10; i++) { float ang = t * .06f + i * TAU / 10; bb("fog", (float) Math.cos(ang) * rad, .8f * S, (float) Math.sin(ang) * rad, 5 * S, 2f * S, 0, rgba(rgb, a)); } }
         return false;
     }
+    private void fogRing(int n, float rad, int rgb, float a) {
         if (LotmFx.hold(curId + 7919 * Math.round(rad * 4), "astral_world:sp/" + (curGoo >= 0 ? "g" + curGoo : "p" + curPath) + "_fog" + (gold && curGoo < 0 ? "_g" : ""), ex + offX, ey, ez + offZ, rad)) return;
         for (int i = 0; i < n; i++) { float ang = t * .06f + i * TAU / n; bb("fog", (float) Math.cos(ang) * rad, .8f * S, (float) Math.sin(ang) * rad, 5 * S, 2f * S, 0, rgba(rgb, a)); }
     }
