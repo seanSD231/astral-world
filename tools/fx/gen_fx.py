@@ -193,35 +193,65 @@ write('door_light', [
     emitter('spill fog #area', PUFF, ((0xE8F0FF, .16), (0xFFFFFF, .14)), (.15, .3), (50, 90), rate=3, maxp=200, radius=.8, sscale=(1, .12, 1), pos=(0, -.9, 0), speed=(.001, .003), noise=(.01, .25), add=True),
 ])
 
-# ---- A ball of storms (unit = its radius): a white-blue core in dark rolling thunderheads, lightning bolts and streaks flickering all through it
+# ---- The ball of lightning in the hand and in flight (unit = its radius): pure ball lightning, no cloud. A white-hot core in blue and violet light,
+#      arcs crawling over its skin, tendrils snapping out, plasma swirling in it and sparks thrown off.
 BT = HT + 'bolt.png'; BT2 = HT + 'bolt2.png'
+FLICK = (0, 1, .35, 1, .5, .3, .7, 1, 1, 0)
 write('storm_ball', [
-    light('storm light', 0x9AB8FF, 1.6, 9, vol=1.2),
-    emitter('core #hold', GLOW, ((0xFFFFFF, 1.0)), .8, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, 1, 1), hold=True, mode='Billboard'),
-    emitter('core halo #hold', GLOW, ((0x7A9CFF, .8)), 1.9, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, 1, 1), hold=True, mode='Billboard'),
-    emitter('thunderheads #area', PUFF, ((0x303A5C, .6), (0x46527A, .55)), (.3, .55), (30, 60), rate=10, maxp=240, radius=.8, thick=1.0, speed=(.001, .006), noise=(.05, .3)),
-    emitter('pale cloud #area', PUFF, ((0x9AA8D8, .4), (0xB8C4F0, .35)), (.25, .45), (24, 44), rate=6, maxp=120, radius=.85, thick=.4, speed=(.001, .004), noise=(.05, .3)),
-    emitter('bolts #area', BT, ((0xE8F2FF, 1.0), (0xB8D0FF, 1.0)), (.22, .45), (4, 9), rate=3.2, maxp=60, radius=.7, thick=.7, noise=(0, 0), add=True, rot=0, alpha=(0, 1, .4, 1, .4, 0, 1, 0), mode='Billboard'),
-    emitter('bolts 2 #area', BT2, ((0xFFFFFF, 1.0), (0xA8C0FF, 1.0)), (.18, .4), (4, 8), rate=2.6, maxp=50, radius=.8, thick=.6, noise=(0, 0), add=True, rot=0, alpha=(0, 1, .4, 1, .4, 0, 1, 0), mode='Billboard'),
-    emitter('streaks #area', LT + 'streak.png', ((0xFFFFFF, 1.0), (0x9AB8FF, 1.0)), (.03, .07), (6, 14), rate=6, maxp=140, radius=.35, thick=.5, speed=(.05, .14), noise=(0, 0), add=True, mode='StretchedBillboard'),
-    emitter('sparks #detail', EMBER, ((0xFFFFFF, .95), (0xB0CCFF, .95)), (.01, .03), (12, 30), rate=4, maxp=200, radius=.9, thick=.5, speed=(.004, .02), noise=(.02, .4), add=True),
+    light('ball light', 0x9AB8FF, 1.6, 9, vol=1.2),
+    emitter('core #hold', GLOW, ((0xFFFFFF, 1.0)), .75, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, 1, 1), hold=True, mode='Billboard'),
+    emitter('halo #hold', GLOW, ((0x6A9CFF, .85)), 1.7, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, 1, 1), hold=True, mode='Billboard'),
+    emitter('outer halo #hold', GLOW, ((0x8A60FF, .4)), 2.9, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, 1, 1), hold=True, mode='Billboard'),
+    emitter('pulse #area', GLOW, ((0xCFE0FF, .5)), (1.1, 1.5), (5, 9), rate=.5, maxp=12, shape='dot', add=True, noise=(0, 0), alpha=(0, 0, .3, 1, 1, 0), mode='Billboard'),
+    emitter('skin arcs #area', BT, ((0xFFFFFF, 1.0), (0xB8D0FF, 1.0)), (.45, .8), (3, 6), rate=5, maxp=60, radius=.45, thick=0, noise=(0, 0), add=True, alpha=FLICK, mode='Billboard'),
+    emitter('skin arcs 2 #area', BT2, ((0xE8F2FF, 1.0), (0xC8A8FF, 1.0)), (.4, .75), (3, 6), rate=4, maxp=50, radius=.5, thick=0, noise=(0, 0), add=True, alpha=FLICK, mode='Billboard'),
+    emitter('tendrils #area', BT, ((0xFFFFFF, 1.0), (0x9AB8FF, 1.0)), (.8, 1.3), (2, 5), rate=1.2, maxp=20, radius=.9, thick=.2, noise=(0, 0), add=True, alpha=FLICK, mode='Billboard'),
+    emitter('plasma #area', GLOW, ((0xA8C8FF, .7), (0xFFFFFF, .7)), (.14, .3), (8, 16), rate=6, maxp=120, radius=.5, thick=1.0, speed=(.001, .004), noise=(.08, .6), add=True),
+    emitter('sparks #detail', EMBER, ((0xFFFFFF, .95), (0xB0CCFF, .95)), (.02, .045), (8, 18), rate=5, maxp=120, radius=.5, thick=.2, speed=(.03, .09), noise=(.02, .4), add=True),
 ])
 
-# ---- Twilight sword strike (unit = a block): a crescent flash, amber and violet streaks thrown out, a flare and drifting motes
-write('twilight_hit', [
-    light('dusk flash', 0xFFA050, 3.0, 8),
-    emitter('flare #hold', FLARE, ((0xFFE0B0, 1.0)), 1.6, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, .5, 0), hold=True, mode='Billboard'),
-    emitter('amber streaks #area', LT + 'streak.png', ((0xFFB040, 1.0), (0xFF7A28, 1.0)), (.04, .09), (8, 16), rate=0, burst=22, maxp=40, radius=.1, speed=(.08, .22), noise=(0, 0), add=True, mode='StretchedBillboard'),
-    emitter('violet streaks #area', LT + 'streak.png', ((0xB070FF, 1.0), (0x7A40E0, 1.0)), (.04, .09), (8, 16), rate=0, burst=22, maxp=40, radius=.1, speed=(.08, .22), noise=(0, 0), add=True, mode='StretchedBillboard'),
-    emitter('motes #area', EMBER, ((0xFFE0A0, .95), (0xD0A0FF, .95)), (.03, .08), (20, 40), rate=0, burst=16, maxp=40, radius=.2, speed=(.01, .05), lin=(0, .01, 0), noise=(.03, .4), add=True),
+# ---- The storm the ball bursts into (unit = its radius): a rolling wall of thunderhead round the rim, a bright eye, lightning forking all through it, driving rain and sparks
+write('storm_sphere', [
+    light('storm light', 0x9AB8FF, 1.6, 10, vol=1.3),
+    emitter('eye #hold', GLOW, ((0xFFFFFF, .9)), .35, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, 1, 1), hold=True, mode='Billboard'),
+    emitter('eye halo #hold', GLOW, ((0x6A9CFF, .5)), 1.0, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, 1, 1), hold=True, mode='Billboard'),
+    emitter('cloud wall #area', PUFF, ((0x1C2238, .7), (0x2E3858, .65)), (.3, .55), (30, 56), rate=14, maxp=420, radius=1.0, thick=.22, speed=(.001, .006), noise=(.04, .3)),
+    emitter('wall lining #area', PUFF, ((0x7C8CC0, .35), (0xA8B8E8, .3)), (.2, .4), (24, 44), rate=6, maxp=160, radius=.95, thick=.15, speed=(.001, .004), noise=(.04, .3)),
+    emitter('mist #area', PUFF, ((0x8898C8, .14), (0xB0C0F0, .12)), (.3, .6), (30, 50), rate=4, maxp=120, radius=.85, thick=1.0, speed=(.001, .004), noise=(.05, .3)),
+    emitter('forks #area', BT, ((0xFFFFFF, 1.0), (0xB8D0FF, 1.0)), (.45, 1.0), (3, 7), rate=5, maxp=70, radius=.85, thick=1.0, noise=(0, 0), add=True, rot=0, alpha=FLICK, mode='Billboard'),
+    emitter('forks 2 #area', BT2, ((0xFFFFFF, 1.0), (0xC8A8FF, 1.0)), (.4, .9), (3, 7), rate=4, maxp=60, radius=.9, thick=1.0, noise=(0, 0), add=True, rot=0, alpha=FLICK, mode='Billboard'),
+    emitter('wall arcs #area', BT, ((0xE8F2FF, 1.0), (0x9AB8FF, 1.0)), (.3, .6), (3, 6), rate=5, maxp=60, radius=1.0, thick=.05, noise=(0, 0), add=True, alpha=FLICK, mode='Billboard'),
+    emitter('flashes #area', GLOW, ((0xDCE8FF, .55)), (.5, 1.1), (3, 6), rate=1.2, maxp=24, radius=.8, thick=1.0, noise=(0, 0), add=True, alpha=(0, 0, .3, 1, 1, 0)),
+    emitter('rain #area', LT + 'streak.png', ((0xCFE0FF, .7), (0x9AB8FF, .7)), (.012, .024), (10, 18), rate=12, maxp=320, radius=.9, thick=1.0, sscale=(1, .08, 1), pos=(0, .6, 0), speed=(.01, .02), lin=(.25, -1.9, 0), noise=(0, 0), add=True, mode='StretchedBillboard'),
+    emitter('sparks #detail', EMBER, ((0xFFFFFF, .95), (0xB0CCFF, .95)), (.008, .02), (12, 30), rate=6, maxp=260, radius=.9, thick=.6, speed=(.004, .02), noise=(.02, .4), add=True),
 ])
 
-# ---- The Twilight crescent wave, carried along its path (unit = a block): a big dusk crescent with a violet and amber wake
-write('twilight_wave', [
-    light('wave light', 0xFF9A50, 3.0, 6),
-    emitter('wake #area', GLOW, ((0xFF9040, .8), (0x9A60FF, .8)), (.4, .9), (10, 22), rate=6, maxp=80, radius=1.2, thick=1.0, sscale=(1, 1, 1), speed=(.002, .01), noise=(.04, .3), add=True),
-    emitter('sparks #area', EMBER, ((0xFFE0A0, .95), (0xD0A0FF, .95)), (.05, .12), (14, 30), rate=5, maxp=90, radius=1.3, thick=.6, speed=(.004, .02), noise=(.03, .4), add=True),
+# ---- The moment the ball bursts (unit = the storm's radius): a white flash and a ring of arcs thrown out
+write('storm_burst', [
+    light('burst light', 0xCFE0FF, 2.0, 14),
+    emitter('flash #hold', FLARE, ((0xFFFFFF, 1.0)), 1.4, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, .4, 0, 1, 0), hold=True, mode='Billboard'),
+    emitter('thrown arcs #area', BT, ((0xFFFFFF, 1.0), (0xB8D0FF, 1.0)), (.3, .6), (5, 10), rate=0, burst=26, maxp=40, radius=.2, speed=(.06, .13), noise=(0, 0), add=True, alpha=FLICK, mode='Billboard'),
+    emitter('thrown sparks #area', EMBER, ((0xFFFFFF, .95), (0xB0CCFF, .95)), (.015, .03), (12, 24), rate=0, burst=60, maxp=80, radius=.1, speed=(.04, .12), noise=(.02, .4), add=True),
 ])
+
+# ---- The Sword of Twilight's light (unit = a block). Sealed it is white and gold; unsealed ("_dark") it is black and red.
+for suffix, hot, a1, a2, b1, b2, smoke in (('', 0xFFFFFF, 0xFFE9A0, 0xFFC83C, 0xFFF6D8, 0xFFD870, None), ('_dark', 0xFF5060, 0xFF2030, 0xA00818, 0xFF4050, 0x700810, 0x0A0406)):
+    hit = [
+        light('flash', a2, 3.0, 8),
+        emitter('flare #hold', FLARE, ((hot, 1.0)), 1.6, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, .5, 0), hold=True, mode='Billboard'),
+        emitter('streaks #area', LT + 'streak.png', ((a1, 1.0), (a2, 1.0)), (.04, .09), (8, 16), rate=0, burst=26, maxp=40, radius=.1, speed=(.08, .22), noise=(0, 0), add=True, mode='StretchedBillboard'),
+        emitter('fine streaks #area', LT + 'streak.png', ((hot, 1.0), (b1, 1.0)), (.02, .05), (6, 12), rate=0, burst=22, maxp=40, radius=.1, speed=(.12, .3), noise=(0, 0), add=True, mode='StretchedBillboard'),
+        emitter('motes #area', EMBER, ((b1, .95), (b2, .95)), (.03, .08), (20, 40), rate=0, burst=16, maxp=40, radius=.2, speed=(.01, .05), lin=(0, .2, 0), noise=(.03, .4), add=True),
+    ]
+    wave = [
+        light('wave light', a2, 3.0, 6),
+        emitter('wake #area', GLOW, ((a1, .8), (a2, .8)), (.4, .9), (10, 22), rate=6, maxp=80, radius=1.2, thick=1.0, speed=(.002, .01), noise=(.04, .3), add=True),
+        emitter('sparks #area', EMBER, ((b1, .95), (b2, .95)), (.05, .12), (14, 30), rate=5, maxp=90, radius=1.3, thick=.6, speed=(.004, .02), noise=(.03, .4), add=True),
+    ]
+    if smoke is not None:
+        hit.append(emitter('black smoke #area', PUFF, (smoke, .7), (.3, .7), (14, 28), rate=0, burst=10, maxp=20, radius=.4, speed=(.01, .04), noise=(.03, .3)))
+        wave.append(emitter('black wake #area', PUFF, (smoke, .6), (.4, .8), (12, 24), rate=4, maxp=60, radius=1.0, thick=1.0, speed=(.002, .01), noise=(.04, .3)))
+    write('twilight_hit' + suffix, hit); write('twilight_wave' + suffix, wave)
 
 # ---- Waterspout: a tall spinning column of spray and mist (unit = height)
 write('waterspout', [
@@ -276,7 +306,7 @@ def sprite_fx(tex, mode, h, size, rgb, alpha, speed, n):
         o = emitter('spiral #area', texture, col, sz, life, radius=1.0, thick=.5, sscale=(1, .02, 1), pos=(0, 0, 0), lin=(0, h / sec, 0), **kw)
         v = o['data'][1]['config'][1]['velocityOverLifetime'][1]
         put(o['data'][1]['config'][1], 'velocityOverLifetime/orbital/1', const(8.0 / sec)); v['radial'] = const(-.55 / sec)
-    elif mode == 4: o = emitter('burst #area', texture, col, sz, life, radius=.04, speed=(.7 / sec, 1.1 / sec), **kw)
+    elif mode == 4: o = emitter('burst #area', texture, col, sz, life, radius=.04, speed=(.7 / L, 1.1 / L), **kw)
     else:           o = emitter('drift #area', texture, col, sz, (70, 130), radius=1.0, sscale=(1, max(.05, h / 2), 1), pos=(0, h / 2, 0), rate=n / 100 / MPF, maxp=int(n * 1.7 / MPF) + 8, add=not smoke, noise=(.05, .2))
     return o
 def scene_env(key, gold):

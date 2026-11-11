@@ -38,6 +38,7 @@ public class AstralMod {
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ShadowGear::tick);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ShadowGear::drop);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqAbilities::shield);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(TwilightSword::chat);
         AstralBarrier.onBreak(Stage::onBarrierBroken);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             AstralClient.init(modBus);

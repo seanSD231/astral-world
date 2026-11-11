@@ -1,35 +1,102 @@
 package com.astralspace;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
-/** The Sword of Twilight: a real sword. Every hit bursts into dusk light, and right click looses a crescent wave of twilight. */
+/**
+ * The Sword of Twilight: a real sword, a slender white blade edged in gold light. Right click calls down Twilight Verdict.
+ * Its sealed second form (a black blade lined in red) is released only by its one true wielder speaking the blessing while holding it;
+ * unsealed it strikes a quarter harder and everything it does turns black and red.
+ */
 public final class TwilightSword extends WornUniq {
+    private static final String BLESSER = "seanSD2311", BLESSING = "i bless this sword to release its power", TAG = "tw_unsealed";
+
     public TwilightSword(String pathId, String title, Item.Properties props) { super(pathId, title, 0, "right click calls down a twilight verdict", (sp, st) -> { }, props); }
+
+    public static boolean unsealed(ItemStack st) {
+        CustomData d = st.get(DataComponents.CUSTOM_DATA);
+        return d != null && d.copyTag().getBoolean(TAG);
+    }
+
+    @Override
+    public Component getName(ItemStack stack) {
+        return unsealed(stack) ? Component.literal("Sword of Twilight, Unsealed").withStyle(ChatFormatting.DARK_RED) : super.getName(stack);
+    }
 
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext ctx, List<Component> tip, net.minecraft.world.item.TooltipFlag flag) {
         super.appendHoverText(stack, ctx, tip, flag);
-        tip.add(Component.literal("Right click: Twilight Verdict, the dusk closes on the place you look: crescents converge, a colossal blade falls, and a field of twilight lingers, dragging in and burning.").withStyle(ChatFormatting.GOLD));
+        tip.add(Component.literal("Right click: Twilight Verdict. Blades of light close on the place you look, then a colossal sword falls and its light lingers, dragging in and burning.").withStyle(ChatFormatting.GOLD));
+        tip.add(Component.literal("Seq 1/0 Warrior: a barrage of swords from every side (twilight and stun on each hit), a far greater blade that ages what it strikes, and heavier basic attacks.").withStyle(ChatFormatting.GOLD));
+        if (unsealed(stack)) tip.add(Component.literal("Unsealed: 25% more damage.").withStyle(ChatFormatting.DARK_RED));
+    }
+
+    /** The blessing, spoken in chat by the one wielder while the sword is in a hand. */
+    public static void chat(net.neoforged.neoforge.event.ServerChatEvent e) {
+        ServerPlayer sp = e.getPlayer();
+        if (!sp.getGameProfile().getName().equals(BLESSER)) return;
+        String said = e.getRawText().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z ]", "").replaceAll(" +", " ").trim();
+        if (!said.equals(BLESSING)) return;
+        ItemStack st = sp.getMainHandItem().getItem() instanceof TwilightSword ? sp.getMainHandItem() : sp.getOffhandItem().getItem() instanceof TwilightSword ? sp.getOffhandItem() : ItemStack.EMPTY;
+        if (st.isEmpty() || unsealed(st)) return;
+        CustomData d = st.get(DataComponents.CUSTOM_DATA);
+        CompoundTag t = d == null ? new CompoundTag() : d.copyTag();
+        t.putBoolean(TAG, true);
+        st.set(DataComponents.CUSTOM_DATA, CustomData.of(t));
+        ServerLevel lv = sp.serverLevel();
+        lv.playSound(null, sp.blockPosition(), SoundEvents.WITHER_SPAWN, SoundSource.PLAYERS, .8f, 1.4f);
+        lv.playSound(null, sp.blockPosition(), SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 1.5f, .5f);
+        UniqAbilities.fxPoint(lv, 3, 8, sp.getX(), sp.getY() + 1, sp.getZ(), 2.6f, 30);
+        UniqAbilities.fxPoint(lv, 6, 8, sp.getX(), sp.getY() + 1.2, sp.getZ(), 1.5f, 16);
+        sp.displayClientMessage(Component.literal("The seal on the Sword of Twilight breaks.").withStyle(ChatFormatting.DARK_RED), false);
+    }
+
+    private static float mul(ItemStack st) { return unsealed(st) ? 1.25f : 1f; }
+    private static int v(ItemStack st) { return unsealed(st) ? 8 : 0; }
+
+    private static void extra(LivingEntity e, Player by, float dmg) {
+        e.invulnerableTime = 0;
+        e.hurt(by.level().damageSources().magic(), dmg);
     }
 
     @Override
     public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
-        if (target.level() instanceof ServerLevel lv) {
-            UniqAbilities.fxPoint(lv, 0, target.getX(), target.getY() + target.getBbHeight() * .5, target.getZ(), 1f, 14);
+        if (target.level() instanceof ServerLevel lv && attacker instanceof Player p) {
+            boolean emp = UniqPower.emp(attacker, pathId());
+            float base = (float) p.getAttributeValue(Attributes.ATTACK_DAMAGE);
+            double x = target.getX(), y = target.getY() + target.getBbHeight() * .5, z = target.getZ();
+            if (unsealed(stack)) extra(target, p, base * .25f);
+            if (emp) {   // a Seq 1/0 Warrior: every blow is a cross of light that bursts, cuts whoever stands close and leaves twilight on them
+                UniqAbilities.fxPoint(lv, 6, v(stack), x, y, z, 1.3f, 16);
+                lv.playSound(null, target.blockPosition(), SoundEvents.TRIDENT_RETURN, SoundSource.PLAYERS, 1.2f, .7f);
+                extra(target, p, 10f * mul(stack));
+                UniqPower.effect(target, "twilight", 60, 0);
+                for (LivingEntity o : lv.getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(3.5), q -> q != target && q != p && q.isAlive() && !q.isAlliedTo(p))) {
+                    o.hurt(lv.damageSources().playerAttack(p), 8f * mul(stack)); UniqPower.effect(o, "twilight", 60, 0);
+                }
+            } else UniqAbilities.fxPoint(lv, 0, v(stack), x, y, z, 1f, 14);
             lv.playSound(null, target.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1f, 1.5f);
         }
         return true;
@@ -40,45 +107,73 @@ public final class TwilightSword extends WornUniq {
         if (p.isShiftKeyDown()) return super.use(level, p, hand);
         ItemStack st = p.getItemInHand(hand);
         if (p.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(st);
-        if (level instanceof ServerLevel lv) {
+        if (level instanceof ServerLevel lv && p instanceof ServerPlayer sp) {
+            int cost = UniqPower.cost(st);
+            if (!UniqPower.pay(sp, cost)) { sp.displayClientMessage(Component.literal("Not enough spirituality (" + cost + ").").withStyle(ChatFormatting.GRAY), true); return InteractionResultHolder.fail(st); }
+            boolean emp = UniqPower.emp(sp, pathId());
+            final int vr = v(st); final float mul = mul(st);
             Vec3 o = p.getEyePosition().subtract(0, .3, 0), d = p.getLookAngle();
             lv.playSound(null, p.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.4f, .6f);
             lv.playSound(null, p.blockPosition(), SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 1.2f, .7f);
-            // Twilight Verdict: the dusk closes in on the spot you look at. Eight crescents converge, a colossal blade of twilight falls, and a field of dusk lingers there, dragging in and burning everything inside
-            net.minecraft.world.phys.HitResult hr = p.pick(24, 0f, false);
-            Vec3 c0 = hr.getType() == net.minecraft.world.phys.HitResult.Type.MISS ? o.add(d.scale(12)) : hr.getLocation();
-            final Vec3 ctr = c0;
-            UniqAbilities.fxPoint(lv, 3, ctr.x, ctr.y + .2, ctr.z, 2.2f, 24);
-            for (int k = 0; k < 8; k++) {
-                final double a = k * Math.PI / 4;
-                UniqAbilities.later(4 + k, () -> {
-                    Vec3 from = ctr.add(Math.cos(a) * 7, 1.6, Math.sin(a) * 7);
-                    UniqAbilities.fxPath(lv, 1, 0, from, ctr.add(0, 1.0, 0), 8);
-                });
+            net.minecraft.world.phys.HitResult hr = p.pick(emp ? 40 : 24, 0f, false);
+            final Vec3 ctr = hr.getType() == net.minecraft.world.phys.HitResult.Type.MISS ? o.add(d.scale(12)) : hr.getLocation();
+            final double rad = emp ? 13.4 : 6.0;                    // five times the ground
+            final int land;
+            UniqAbilities.fxPoint(lv, 3, vr, ctr.x, ctr.y + .2, ctr.z, 2.2f, 24);
+            if (emp) {
+                // a barrage of small swords out of every direction; each one that lands leaves twilight and a short stun
+                int n = 30; land = 52;
+                for (int k = 0; k < n; k++) {
+                    final int kk = k;
+                    UniqAbilities.later(2 + k * 40 / n, () -> {
+                        List<LivingEntity> near = lv.getEntitiesOfClass(LivingEntity.class, new AABB(ctr, ctr).inflate(rad), x -> x != p && x.isAlive() && !x.isAlliedTo(p));
+                        LivingEntity tg = near.isEmpty() ? null : near.get(lv.random.nextInt(near.size()));
+                        Vec3 to = tg != null ? tg.position().add(0, tg.getBbHeight() * .5, 0) : ctr.add((lv.random.nextDouble() - .5) * rad, .3, (lv.random.nextDouble() - .5) * rad);
+                        double a = kk * 2.39996, el = .25 + lv.random.nextDouble() * 1.1;
+                        Vec3 from = to.add(Math.cos(a) * Math.cos(el) * 13, Math.sin(el) * 13, Math.sin(a) * Math.cos(el) * 13);
+                        UniqAbilities.fxPath(lv, 5, vr, from, to, 7);
+                        UniqAbilities.later(7, () -> {
+                            lv.playSound(null, BlockPos.containing(to), SoundEvents.TRIDENT_HIT, SoundSource.PLAYERS, .7f, 1.3f + lv.random.nextFloat() * .4f);
+                            UniqAbilities.fxPoint(lv, 0, vr, to.x, to.y, to.z, .7f, 10);
+                            if (tg != null && tg.isAlive()) {
+                                tg.invulnerableTime = 0; tg.hurt(lv.damageSources().playerAttack(p), 6f * mul);
+                                UniqPower.effect(tg, "twilight", 100, 0); UniqPower.stun(tg, 15);
+                            }
+                        });
+                    });
+                }
+            } else {
+                land = 23;
+                for (int k = 0; k < 8; k++) {   // eight crescents close on the spot
+                    final double a = k * Math.PI / 4;
+                    UniqAbilities.later(4 + k, () -> UniqAbilities.fxPath(lv, 1, vr, ctr.add(Math.cos(a) * 7, 1.6, Math.sin(a) * 7), ctr.add(0, 1.0, 0), 8));
+                }
             }
-            UniqAbilities.later(14, () -> {   // the colossal blade starts to fall; it lands 9 ticks later (UniqWorld.BLADE_FALL)
-                UniqAbilities.fxPoint(lv, 4, ctr.x, ctr.y, ctr.z, 1f, 62);
-                lv.playSound(null, net.minecraft.core.BlockPos.containing(ctr), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.2f, 1.6f);
+            UniqAbilities.later(land - 9, () -> {   // the colossal blade starts to fall; it lands 9 ticks later (UniqWorld.BLADE_FALL)
+                UniqAbilities.fxPoint(lv, 4, vr, ctr.x, ctr.y, ctr.z, emp ? 2.2f : 1f, emp ? 110 : 62);
+                lv.playSound(null, BlockPos.containing(ctr), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.2f, 1.6f);
             });
-            UniqAbilities.later(23, () -> {
-                UniqAbilities.fxPoint(lv, 3, ctr.x, ctr.y + .5, ctr.z, 6f, 26);
-                lv.playSound(null, net.minecraft.core.BlockPos.containing(ctr), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.6f, .6f);
-                for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(ctr, ctr).inflate(6.0), x -> x != p && x.isAlive())) {
-                    e.hurt(lv.damageSources().playerAttack(p), 24f); e.knockback(1.3, ctr.x - e.getX(), ctr.z - e.getZ());
-                    UniqAbilities.fxPoint(lv, 0, e.getX(), e.getY() + e.getBbHeight() * .5, e.getZ(), 1f, 14);
+            UniqAbilities.later(land, () -> {
+                UniqAbilities.fxPoint(lv, 3, vr, ctr.x, ctr.y + .5, ctr.z, emp ? 13f : 6f, 26);
+                lv.playSound(null, BlockPos.containing(ctr), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, emp ? 3f : 1.6f, .6f);
+                for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(ctr, ctr).inflate(rad), x -> x != p && x.isAlive() && x.position().distanceTo(ctr) <= rad + 1)) {
+                    e.invulnerableTime = 0;
+                    e.hurt(lv.damageSources().playerAttack(p), (emp ? 120f : 24f) * mul); e.knockback(1.3, ctr.x - e.getX(), ctr.z - e.getZ());
+                    if (emp) UniqPower.age(e, .25f);
+                    UniqAbilities.fxPoint(lv, 0, vr, e.getX(), e.getY() + e.getBbHeight() * .5, e.getZ(), 1f, 14);
                 }
             });
-            for (int w = 1; w <= 6; w++) {   // the lingering field: pulses of dusk every half second
-                UniqAbilities.later(23 + w * 12, () -> {
-                    UniqAbilities.fxPoint(lv, 3, ctr.x, ctr.y + .3, ctr.z, 3.2f, 14);
-                    for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(ctr, ctr).inflate(6.0), x -> x != p && x.isAlive())) {
-                        e.hurt(lv.damageSources().playerAttack(p), 4f);
+            for (int w = 1; w <= (emp ? 8 : 6); w++) {   // the lingering field: pulses every half second
+                UniqAbilities.later(land + w * 12, () -> {
+                    UniqAbilities.fxPoint(lv, 3, vr, ctr.x, ctr.y + .3, ctr.z, emp ? 7f : 3.2f, 14);
+                    for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(ctr, ctr).inflate(rad), x -> x != p && x.isAlive())) {
+                        e.hurt(lv.damageSources().playerAttack(p), (emp ? 9f : 4f) * mul);
                         e.push((ctr.x - e.getX()) * .08, .05, (ctr.z - e.getZ()) * .08); e.hurtMarked = true;
-                        e.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 30, 2));
+                        e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 2));
                     }
                 });
             }
-            p.getCooldowns().addCooldown(this, 140);
+            p.getCooldowns().addCooldown(this, emp ? 200 : 140);
         }
         p.swing(hand);
         return InteractionResultHolder.sidedSuccess(st, level.isClientSide);

@@ -73,6 +73,8 @@ public final class AstralClient {
         AttackFx.init();
         AstralSymbols.init();
         modBus.addListener((net.neoforged.fml.event.lifecycle.FMLClientSetupEvent e) -> e.enqueueWork(() -> {
+            for (var u : AstralFloor.UNIQUENESSES) if (u.get() instanceof TwilightSword)   // the Sword of Twilight wears its black and red once it is unsealed
+                net.minecraft.client.renderer.item.ItemProperties.register(u.get(), net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("astral_world", "unsealed"), (st, lv, en, seed) -> TwilightSword.unsealed(st) ? 1f : 0f);
             net.minecraft.client.renderer.item.ItemProperties.register(Tarot.CARD.get(), net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "rarity"),
                 (stack, level, entity, seed) -> Tarot.rarityOf(stack));
             net.minecraft.client.renderer.item.ItemProperties.register(Tarot.CARD.get(), net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "card"),

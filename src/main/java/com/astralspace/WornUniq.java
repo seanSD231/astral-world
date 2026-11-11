@@ -21,6 +21,8 @@ import java.util.List;
 public class WornUniq extends Uniqueness {
     public interface Ability { void use(ServerPlayer sp, ItemStack stack); }
 
+    /** The Quill's ability, kept as one object so press() can recognise it. */
+    public static final Ability QUILL = UniqAbilities::quill;
     private final int cooldown;
     private final String blurb;
     private final Ability ability;
@@ -39,6 +41,7 @@ public class WornUniq extends Uniqueness {
         super.appendHoverText(stack, ctx, tip, flag);
         tip.add(Component.literal("Wear it in the Uniqueness curio slot.").withStyle(ChatFormatting.AQUA));
         tip.add(Component.literal("Press the Uniqueness key (G): " + blurb).withStyle(ChatFormatting.AQUA));
+        tip.add(Component.literal("Costs " + UniqPower.cost(stack) + " spirituality. A Seq 1 or 0 of its pathway draws out its full power.").withStyle(ChatFormatting.DARK_AQUA));
     }
 
     @Override
@@ -70,9 +73,12 @@ public class WornUniq extends Uniqueness {
         if (st.getItem() instanceof DoorEyes) { DoorEyes.trigger(sp); return; }
         WornUniq w = (WornUniq) st.getItem();
         if (sp.getCooldowns().isOnCooldown(w)) { sp.displayClientMessage(Component.literal("Still recovering...").withStyle(ChatFormatting.GRAY), true); return; }
+        boolean quillEmp = w.ability == (Ability) QUILL && UniqPower.emp(sp, w.pathId());   // the Quill at Seq 1/0: half the cost, half the wait
+        int cost = UniqPower.cost(st) / (quillEmp ? 2 : 1);
+        if (!UniqPower.pay(sp, cost)) { sp.displayClientMessage(Component.literal("Not enough spirituality (" + cost + ").").withStyle(ChatFormatting.GRAY), true); return; }
         UniqAbilities.refund = false;
-        try { w.ability.use(sp, st); } catch (Throwable t) { com.mojang.logging.LogUtils.getLogger().warn("[astral] uniqueness ability failed: {}", t.toString()); return; }
-        if (UniqAbilities.refund) return;
-        if (w.cooldown > 0) sp.getCooldowns().addCooldown(w, w.cooldown);
+        try { w.ability.use(sp, st); } catch (Throwable t) { UniqPower.refund(sp, cost); com.mojang.logging.LogUtils.getLogger().warn("[astral] uniqueness ability failed: {}", t.toString()); return; }
+        if (UniqAbilities.refund) { UniqPower.refund(sp, cost); return; }
+        if (w.cooldown > 0) sp.getCooldowns().addCooldown(w, quillEmp ? w.cooldown / 2 : w.cooldown);
     }
 }

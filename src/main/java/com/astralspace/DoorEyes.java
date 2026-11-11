@@ -44,6 +44,7 @@ public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it
         super.appendHoverText(stack, ctx, tip, flag);
         tip.add(Component.literal("Wear it in the Uniqueness curio slot.").withStyle(ChatFormatting.AQUA));
         tip.add(Component.literal("Press the Door key while looking at a creature: doors open around it, stars flood in, swell, and go supernova.").withStyle(ChatFormatting.AQUA));
+        tip.add(Component.literal("Costs " + UniqPower.cost(stack) + " spirituality. Seq 1/0 Door: you step 20 blocks clear first (sneak to step to the target instead), and the last blast lights a second, greater round of supernovas.").withStyle(ChatFormatting.DARK_AQUA));
     }
 
     @Override
@@ -79,7 +80,24 @@ public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it
         var hit = net.minecraft.world.entity.projectile.ProjectileUtil.getEntityHitResult(sp, eye, end, new net.minecraft.world.phys.AABB(eye, end).inflate(1.5),
             x -> x instanceof LivingEntity && x.isAlive() && !x.isSpectator() && x != sp, 48 * 48);
         if (hit == null || !(hit.getEntity() instanceof LivingEntity target)) { sp.displayClientMessage(Component.literal("No one in sight.").withStyle(ChatFormatting.GRAY), true); return; }
-        BURSTS.add(new Burst(sp.serverLevel(), sp.getUUID(), target));
+        int cost = UniqPower.cost(st);
+        if (!UniqPower.pay(sp, cost)) { sp.displayClientMessage(Component.literal("Not enough spirituality (" + cost + ").").withStyle(ChatFormatting.GRAY), true); return; }
+        boolean emp = UniqPower.emp(sp, "apprentice");
+        if (emp) {   // a Seq 1/0 of the Door steps through one first: sneaking, to the target's side; otherwise to twenty blocks clear of it
+            Vec3 away = sp.position().subtract(target.position()); away = new Vec3(away.x, 0, away.z);
+            away = away.lengthSqr() < 1e-4 ? new Vec3(1, 0, 0) : away.normalize();
+            Vec3 to = target.position().add(away.scale(sp.isShiftKeyDown() ? 2.0 : 20.0));
+            ServerLevel lv = sp.serverLevel();
+            int top = lv.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(to.x), (int) Math.floor(to.z));
+            double ty = Math.abs(top - target.getY()) <= 12 ? top : target.getY();
+            lv.sendParticles(PartyItems.STAR.get(), sp.getX(), sp.getY() + 1, sp.getZ(), 40, .3, .6, .3, .05);
+            sp.teleportTo(to.x, ty, to.z);
+            sp.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, target.getEyePosition());
+            lv.sendParticles(PartyItems.STAR.get(), to.x, ty + 1, to.z, 40, .3, .6, .3, .05);
+            lv.playSound(null, to.x, ty, to.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1f, 1.3f);
+        }
+        Burst b = new Burst(sp.serverLevel(), sp.getUUID(), target); b.emp = emp;
+        BURSTS.add(b);
         sp.getCooldowns().addCooldown(st.getItem(), BURST_COOLDOWN);
     }
 
@@ -90,6 +108,7 @@ public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it
 
     private static final class Burst {
         final ServerLevel lv; final UUID owner; final LivingEntity target; final double[] ang = new double[DOORS], lift = new double[DOORS];
+        boolean emp, second; double area = AREA, dmgR = DMG_RADIUS, boost = 1;
         Vec3 c; int age; final List<net.minecraft.world.entity.Entity> doors = new java.util.ArrayList<>();
         Burst(ServerLevel lv, UUID owner, LivingEntity t) {
             this.lv = lv; this.owner = owner; this.target = t; c = t.position().add(0, t.getBbHeight() * .5, 0);
@@ -110,11 +129,11 @@ public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it
         static final int SEED = FILL - 28;
         /** Real stars bloom across the whole area and swell; each then goes supernova, one after another, rippling out from the middle. */
         void seedStars() {
-            fuse = new int[NODES];
+            fuse = new int[NODES]; nodes.clear();
             for (int i = 0; i < NODES; i++) {
                 double dx, dy, dz; do { dx = lv.random.nextDouble() * 2 - 1; dy = lv.random.nextDouble() * 2 - 1; dz = lv.random.nextDouble() * 2 - 1; } while (dx * dx + dy * dy + dz * dz > 1);
-                Vec3 q = c.add(dx * AREA * .9, dy * AREA * .55 + .5, dz * AREA * .9); nodes.add(q);
-                fuse[i] = Math.max(1, Math.min(CHAIN, (int) Math.round(q.distanceTo(c) / (AREA * 1.05) * CHAIN + lv.random.nextDouble() * 3)));
+                Vec3 q = c.add(dx * area * .9, dy * area * .55 + .5, dz * area * .9); nodes.add(q);
+                fuse[i] = Math.max(1, Math.min(CHAIN, (int) Math.round(q.distanceTo(c) / (area * 1.05) * CHAIN + lv.random.nextDouble() * 3)));
                 double sz = 4 + lv.random.nextDouble() * 4;
                 lv.sendParticles(PartyItems.STAR_CORE.get(), q.x, q.y, q.z, 0, sz, -1, (FILL - SEED) + fuse[i], 1);   // swells for exactly as long as its fuse
             }
@@ -153,11 +172,11 @@ public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it
                 double a = ang[i];
                 Vec3 pos = new Vec3(c.x + Math.cos(a) * RING, target.getY() + lift[i], c.z + Math.sin(a) * RING);
                 Vec3 n = new Vec3(-Math.cos(a), 0, -Math.sin(a)), r = new Vec3(-n.z, 0, n.x);
-                if (age % 3 == 1 && doors.isEmpty()) {   // fallback doorway outline when LOTM is missing
+                if (age % 3 == 1 && doors.isEmpty() && !second) {   // fallback doorway outline when LOTM is missing
                     for (int k = 0; k <= 18; k++) { double t = Math.PI * k / 18; fb(pos, r, .5 * Math.cos(t) * grow, (1.5 + .5 * Math.sin(t)) * grow); }
                     for (int k = 0; k <= 8; k++) { double v = 1.5 * grow * k / 8; fb(pos, r, -.5 * grow, v); fb(pos, r, .5 * grow, v); }
                 }
-                if (age > OPEN - 4) {   // a heavy stream of stars out of every door, towards the middle
+                if (age > OPEN - 4 && !second) {   // a heavy stream of stars out of every door, towards the middle
                     Vec3 d = c.subtract(pos.add(0, 1, 0)).normalize();
                     for (int k = 0; k < 6; k++) {
                         double u = (lv.random.nextDouble() - .5) * .9, v = .1 + lv.random.nextDouble() * 1.9;
@@ -168,15 +187,21 @@ public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it
             }
             if (age > OPEN && age < FILL) {   // the whole area fills up and thickens
                 int cnt = 12 + (age - OPEN) * 2;
-                lv.sendParticles(PartyItems.STAR.get(), c.x, c.y + 1, c.z, cnt, AREA * .55, AREA * .35, AREA * .55, 0.004);
+                lv.sendParticles(PartyItems.STAR.get(), c.x, c.y + 1, c.z, cnt, area * .55, area * .35, area * .55, 0.004);
                 if (age % 5 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.8f, 0.7f + (age - OPEN) * .012f);
             }
             if (age == SEED) seedStars();
             if (age > FILL && age <= FILL + CHAIN) chain(age - FILL);
-            if (age >= FINAL) sc = 2.2;
+            if (age >= FINAL - 7 && age < FINAL) implode(FINAL - age);
+            if (age >= FINAL) sc = 2.2 * boost;
             if (age == FINAL) { explode(); closeDoors(); }
             if (age > FINAL) aftershock();
             if (age == FINAL + 10) clearDoors();
+            if (age > FINAL + AFTER && emp && !second) {   // the last blast lights a second round: more room, bigger stars, a greater end
+                second = true; area = AREA * 1.6; dmgR = DMG_RADIUS * 1.6; boost = 1.5; sc = 1; age = SEED - 1;
+                lv.playSound(null, c.x, c.y, c.z, SoundEvents.END_PORTAL_SPAWN, SoundSource.PLAYERS, 1.2f, .7f);
+                return false;
+            }
             return age > FINAL + AFTER;
         }
         void fb(Vec3 pos, Vec3 r, double u, double v) { lv.sendParticles(PartyItems.STAR.get(), pos.x + r.x * u, pos.y + v, pos.z + r.z * u, 1, 0, 0, 0, 0); }
@@ -193,10 +218,30 @@ public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it
                 star(c.x, c.y, c.z, dx, -dz * Math.sin(tilt), dz * Math.cos(tilt), speed);
             }
         }
+        /** The breath before the blast: everything is drawn in to a point and the light goes with it. */
+        void implode(int left) {
+            double r = area * (.25 + .12 * left);
+            for (int i = 0; i < 46; i++) {
+                double y = 1 - 2 * (i + .5) / 46, rr = Math.sqrt(1 - y * y), th = i * 2.399963 + left;
+                lv.sendParticles(PartyItems.STAR.get(), c.x + Math.cos(th) * rr * r, c.y + y * r * .7, c.z + Math.sin(th) * rr * r, 0, -Math.cos(th) * rr, -y * .7, -Math.sin(th) * rr, r * .16);
+            }
+            if (left == 7) lv.playSound(null, c.x, c.y, c.z, SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 2f, 1.6f);
+        }
+        /** A pillar of stars through the heart of it, and the disc of the blast across the ground. */
+        void pillarAndDisc() {
+            for (int i = 0; i < 120; i++) {
+                double up = (lv.random.nextDouble() * 2 - 1), j = .05;
+                star(c.x + (lv.random.nextDouble() - .5) * .8, c.y, c.z + (lv.random.nextDouble() - .5) * .8, (lv.random.nextDouble() - .5) * j, Math.signum(up), (lv.random.nextDouble() - .5) * j, .5 + Math.abs(up) * 1.4);
+            }
+            ring(180, 1.25, 0, 0); ring(140, .95, 0, .4); ring(100, .7, 0, .8);
+            lv.sendParticles(PartyItems.RING.get(), c.x, c.y, c.z, 0, 230 * boost, 0, 56, 1);
+            lv.sendParticles(PartyItems.FLASH.get(), c.x, c.y, c.z, 0, 110 * boost, 4, 12, 1);
+        }
         void explode() {
+            pillarAndDisc();
             ServerPlayer sp = lv.getServer().getPlayerList().getPlayer(owner);
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayersNear(lv, null, c.x, c.y, c.z, 96.0, new Net.FlashPayload(255, 3500));
-            net.neoforged.neoforge.network.PacketDistributor.sendToPlayersNear(lv, null, c.x, c.y, c.z, 400.0, new DoorNet.Nova(c.x, c.y - 1.0, c.z, 1f));
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayersNear(lv, null, c.x, c.y, c.z, 400.0, new DoorNet.Nova(c.x, c.y - 1.0, c.z, (float) boost));
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 2f, 0.7f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 2f, 1.5f);
             lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 2f, 0.5f);
@@ -215,9 +260,9 @@ public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it
             for (int i = 0; i < 5; i++) ring(70, .5 + i * .12, (i - 2) * .55, i * 1.3);   // five crossed shockwaves
             inLunge = true;
             try {
-                for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(DMG_RADIUS), x -> x.isAlive() && (sp == null || x != sp))) {
-                    if (e.position().add(0, e.getBbHeight() * .5, 0).distanceTo(c) > DMG_RADIUS) continue;
-                    if (e.hurt(sp != null ? lv.damageSources().playerAttack(sp) : lv.damageSources().magic(), BURST_DAMAGE)) {
+                for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(dmgR), x -> x.isAlive() && (sp == null || x != sp))) {
+                    if (e.position().add(0, e.getBbHeight() * .5, 0).distanceTo(c) > dmgR) continue;
+                    if (e.hurt(sp != null ? lv.damageSources().playerAttack(sp) : lv.damageSources().magic(), BURST_DAMAGE * (second ? 1.5f : 1f))) {
                         Vec3 away = e.position().subtract(c.x, e.getY(), c.z); if (away.lengthSqr() < 1e-4) away = new Vec3(0, 0, 1);
                         away = away.normalize(); e.knockback(1.8, -away.x, -away.z); e.setDeltaMovement(e.getDeltaMovement().add(0, .5, 0)); e.hurtMarked = true;
                     }

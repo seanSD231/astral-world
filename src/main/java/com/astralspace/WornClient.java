@@ -28,6 +28,7 @@ public final class WornClient {
     private static final Map<UUID, Long> SHADOW = new HashMap<>();
     private static final Map<UUID, Object> SUNFX = new HashMap<>();
     private static final Map<UUID, String> SUNKIND = new HashMap<>();
+    private static final Map<UUID, Float> SHADOWR = new HashMap<>();
 
     private static float since(UUID id, Map<UUID, Long> m, float pt) {
         Long t = m.get(id); Minecraft mc = Minecraft.getInstance();
@@ -81,7 +82,8 @@ public final class WornClient {
         if (mc.level == null) return;
         Entity e = mc.level.getEntity(entityId);
         if (e == null) return;
-        (kind == 2 ? SPIN : kind == 3 ? SHADOW : STRIKE).put(e.getUUID(), mc.level.getGameTime());
+        (kind == 2 ? SPIN : kind == 3 || kind == 5 ? SHADOW : STRIKE).put(e.getUUID(), mc.level.getGameTime());
+        if (kind == 3 || kind == 5) SHADOWR.put(e.getUUID(), kind == 5 ? 30f : 20f);   // 5: the Seq 1/0 flood, half again as far
     }
 
     public static final class Layer extends RenderLayer<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> {
@@ -148,20 +150,30 @@ public final class WornClient {
             int n = 7 + Math.round(8 * night);
             pose.pushPose(); body(pose); UniqGfx.tr(pose, 0, 24f + h * 16f, 0); pose.mulPose(Axis.XP.rotationDegrees(180));
             UniqGfx.tr(pose, 0, .2f, 0);
+            UniqGfx.pool(pose, buf, (9f + 12f * night) * k, t, 3, .9f * k);   // the pool they rise from
             for (int i = 0; i < n; i++) {
                 float a = i * (360f / n) + t * 2.5f, r = (5f + 9f * night) + (2.5f + 3f * night) * (float) Math.sin(t * .13 + i * 1.9);
                 float hh = (6f + 5f * night + 4f * (float) Math.pow(Math.sin(t * .07 + i * 2.1), 2)) * k;
                 pose.pushPose(); pose.mulPose(Axis.YP.rotationDegrees(a)); UniqGfx.tr(pose, r, 0, 0);
-                UniqGfx.tentacle(pose, buf, t, i, hh, 2.4f, 0xFF0A0410, 0xFF6A30A8);
+                UniqGfx.tentacle(pose, buf, t, i, hh * (i % 3 == 0 ? 1.5f : 1f), i % 3 == 0 ? 3.1f : 2.2f, 0xFF0A0410, 0xFF6A30A8);
                 pose.popPose();
             }
             float sp = since(p.getUUID(), SHADOW, pt);
-            if (sp < 100) {   // the shadow floods out to 20 blocks, holds, then draws back
-                float g = sp < 25 ? sp / 25f : sp < 85 ? 1f : 1 - (sp - 85) / 15f, side = 20f * 2 * 16 * g;
-                UniqGfx.box(pose, buf, side, .25f, side, UniqGfx.rgba(0x060210, .5f)); pose.mulPose(Axis.YP.rotationDegrees(45)); UniqGfx.box(pose, buf, side * .92f, .3f, side * .92f, UniqGfx.rgba(0x060210, .45f));
+            if (sp < 100) {   // the shadow floods out (20 blocks, 30 at Seq 1/0), holds, then draws back: a round creeping pool with tentacles groping up all over it
+                float g = sp < 25 ? ease3(sp / 25f) : sp < 85 ? 1f : 1 - (sp - 85) / 15f, rad = SHADOWR.getOrDefault(p.getUUID(), 20f) * 16 * g;
+                UniqGfx.pool(pose, buf, rad, t, 11, .8f);
+                int m = rad > 400 ? 40 : 26;
+                for (int i = 0; i < m; i++) {
+                    float a = i * 2.39996f, rr = rad * (float) Math.sqrt((i + .5f) / m) * .95f;
+                    pose.pushPose(); UniqGfx.tr(pose, (float) Math.cos(a) * rr, 0, (float) Math.sin(a) * rr);
+                    UniqGfx.tentacle(pose, buf, t, i + 30, (22f + 16f * UniqGfx.rnd(i + 5)) * g, 3.4f, 0xFF0A0410, 0xFF6A30A8);
+                    pose.popPose();
+                }
             }
             pose.popPose();
         }
+
+        private static float ease3(float x) { x = Math.max(0f, Math.min(1f, x)); return 1f - (1f - x) * (1f - x) * (1f - x); }
 
         /** The top of the floor under the player, up to four blocks down (far below if there is none). */
         private static double groundBelow(net.minecraft.world.level.Level lv, AbstractClientPlayer p) {

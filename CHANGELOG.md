@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.205
+- Uniqueness abilities now cost spirituality (shown on each tooltip; refunded if the ability does nothing).
+- Seq 1/0 forms, for someone of that item's own pathway at Sequence 1 or 0: Quill half cost and half cooldown; Doll goes to every nearby enemy, appears beside it after a second and stuns for 5; Wheel has three times the luck; Writhing Shadows 1.5x bigger, double damage, 2 s stun, then bleed, twilight, slowness and darkness for 5 s; Eyes of the Door step you 20 blocks clear (sneak: to the target) and the last blast lights a second, greater round; Sun has five larger suns in a wider fan and then six more around you (each hits less hard); Feathered Serpent only strikes enemies, 50 blocks, 30% of max health, Slowness III; Sword of Twilight calls a barrage of small swords from every side (twilight and stun), then a far larger sword with five times the ground, heavy damage and 25% ageing, and heavier basic attacks; Ball of Lightning hits much harder over ten times the ground, lasts 9 s, lets no player out and blinds for half a second every three.
+- Sword of Twilight remodelled after the reference: a white blade edged in gold, a golden crescent guard, a blue grip (item, falling sword and all its light are now white and gold). Its sealed form: if seanSD2311 holds it and says "I bless this sword, to release its power", it becomes black and red, does 25% more damage and all its effects turn black and red.
+- Ball of Lightning effects redone: the ball is pure ball lightning (no cloud), and it bursts into a storm with a wall of thunderhead, forks, rain and flashes.
+- Eyes of the Door: the last explosion now draws everything in to a point first, then throws a pillar of stars and rings across the ground.
+- Writhing Shadows: thicker tentacles with bulges, suckers and curling tips, a round creeping pool of shadow, barbed spears; the flood is a round pool full of tentacles.
+- Feathered Serpent redesigned (emerald body, gold belly, plume crest, beating wings, tail streamers, horned head with a fan of plumes) and new inventory sprites for the Serpent, Doll, Shadows, Wheel, Sun, Ball of Lightning and both swords (tools/art/icons.py).
+- Untested in game.
+
 ## 0.2.204
 - Scene particles are now Photon effects when LOTM is installed: every motes/sparks/petals/leaves/pages/smoke/coins call in the holograms (112 effects, one per call, with gold versions for shiny cards) plus the low fog rings and the floor fog of Sleepless, the River and the Lord of Mysteries. They are generated straight from the renderer's own calls (tools/fx/gen_fx.py), and the old sprites remain as the fallback when LOTM or an effect is missing.
 - Sword of Twilight: Twilight Verdict now really drops a colossal sword of dusk (it was only a crescent before): it falls point first, buries itself, cracks the ground with light and stands burning while the field pulses.

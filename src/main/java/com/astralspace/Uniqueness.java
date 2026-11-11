@@ -29,6 +29,7 @@ public class Uniqueness extends Item {
     private static final Logger LOGGER = LogUtils.getLogger();
     public static final int HOLD_TICKS = 100;
     private final String pathId, title;
+    public String pathId() { return pathId; }
     private final boolean model3d;
 
     public Uniqueness(String pathId, String title) { this(pathId, title, false); }
