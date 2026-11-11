@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.207
+- Demoness Seq 1 and 0: anyone standing inside the scene takes on LOTM's own Witch body (the Assassin Sequence 7 model), and gets their own back on leaving. (Found it in LOTM: AssassinWitchChestLayer.)
+- Goddess of Origin: the tree rebuilt after the two pictures together: a vast trunk plaited from strands wound both ways, veins of blue light climbing it, roots and limbs that end in curls, broad flat tiers of green canopy stacked to a crown with light breaking through, standing stones in the mist.
+- Paragon: the locomotive remodelled after the picture (black and gilt, banded boiler, tall flared chimney, great lamp, brass domes and a swinging bell, gilt scrollwork, red-spoked wheels worked by rods, leading bogie, cowcatcher, arched cab), with a gilt-framed tender and maroon coaches with lit windows and clerestory roofs. Airships after the picture: a plump cream-gold envelope with seams, a red nose and tall red fins, broad wooden propellers on outriggers and a tower of round railed galleries below instead of a boat. The warship after the pictures: a gilded bow with carved scrolls, a tan deck, two tall funnels close together, white boats on davits and a second mast.
+- Arbiter: the heart (now beating) and the feather on the scales are much bigger and lit.
+- Untested in game.
+
 ## 0.2.206
 - Shiny: the black is now part of the effect, not a shadow: a crisp black plate rimmed in gold exactly under the rings, every pathway symbol a gold emblem on a black disc, and rings in the air backed in black.
 - Pathway symbols redrawn at 3x resolution with crisp edges (same look, no blur; tools/art/sharpen_syms.py).

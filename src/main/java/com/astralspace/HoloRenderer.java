@@ -751,8 +751,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             frustum(-.07f * L, 0, .06f * L, .26f * L, 16, 1, 1, s < 0 ? blue : red, 255, true); frustum(-.085f * L, -.07f * L, .05f * L, .06f * L, 16, 1, 1, ivory, 255, true);
             push(); rX(PI / 2); torus(0, 0, 0, .26f * L, .26f * L, .014f * L, 16, 4, 0, TAU, lt, 255); pop();   // the rim runs round the pan, not up and down
             for (int k = 0; k < 3; k++) { float a = k * TAU / 3 + .5f; sphere((float) Math.cos(a) * .24f * L, -.004f * L, (float) Math.sin(a) * .24f * L, .02f * L, .02f * L, .02f * L, 4, 6, lt, 255); }
-            if (s < 0) { push(); tr(0, .1f * L, 0); heartModel(.1f * L, 0xD02030); pop(); bb("glow", 0, .1f * L, 0, .4f * L, .4f * L, 0, rgba(0xD02030, .45f)); }   // a heart, weighed against the feather of truth
-            else { push(); tr(0, .03f * L, 0); rZ(.5f); frustum(-.02f * L, .2f * L, .008f * L, .005f * L, 5, 1, 1, 0xF4F4F0, 255, false); for (int fk = 0; fk < 9; fk++) { float fy = .02f * L + fk * .016f * L, fw = (.06f - Math.abs(fk - 4) * .008f) * L; box(fw * .5f, fy, 0, fw * .5f, .012f * L, .003f * L, 0xFFFFFF, 255); box(-fw * .5f, fy, 0, fw * .5f, .012f * L, .003f * L, 0xF0F0F8, 255); } pop(); bb("glow", 0, .08f * L, 0, .3f * L, .3f * L, 0, rgba(0xFFFFFF, .35f)); }   // a feather
+            if (s < 0) { float beat = 1f + .12f * Math.max(0f, gs(t * 5f)); push(); tr(0, .2f * L, 0); cur.scale(beat); heartModel(.17f * L, 0xD02030); pop(); bb("glow", 0, .2f * L, 0, .75f * L, .75f * L, 0, rgba(0xFF2030, .55f)); }   // a heart, weighed against the feather of truth
+            else { bb("glow", 0, .2f * L, 0, .7f * L, .7f * L, 0, rgba(0xFFFFFF, .4f)); push(); tr(0, .04f * L, 0); rZ(.5f); cur.scale(1.9f); frustum(-.02f * L, .2f * L, .008f * L, .005f * L, 5, 1, 1, 0xF4F4F0, 255, false); for (int fk = 0; fk < 9; fk++) { float fy = .02f * L + fk * .016f * L, fw = (.06f - Math.abs(fk - 4) * .008f) * L; box(fw * .5f, fy, 0, fw * .5f, .012f * L, .003f * L, 0xFFFFFF, 255); box(-fw * .5f, fy, 0, fw * .5f, .012f * L, .003f * L, 0xF0F0F8, 255); } pop(); bb("glow", 0, .08f * L, 0, .3f * L, .3f * L, 0, rgba(0xFFFFFF, .35f)); }   // a feather
             pop(); }
         pop();
     }
@@ -1349,42 +1349,74 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         sprites("page", 60, SPIRALM, R * .8f, 0, top, 1.5f * S, mix(P1, 0xFFFFFF, .3f), .9f, .16f, 59, true);
         gooSymbols(4, by + 9.5f * S, R * .7f, 3.4f * S);
     }
-    /** Goddess of Origin: a giant mystical tree. A twisting trunk with a glowing heart, great branches forking into canopies of luminous blossom, roots across the ground, fruit of light hanging and petals drifting. */
+    /** Goddess of Origin: the world tree, after the two pictures together. A vast trunk plaited from strands that wind both ways like knotwork, veins of blue light climbing it, roots and limbs
+     *  that end in curls; and on the limbs broad flat tiers of green canopy, stacked up to a great crown with the light breaking through it. Standing stones ring its foot in the mist. */
     private void gooGoddess() {
         float D = R * .85f; offX = gx(0, -D); offZ = gz(0, -D); tr(offX, 0, offZ);   // the great tree stands away from the card
-        float U = S * 1.9f, bark = 0, hy = 3.2f * U;
-        int bk = 0x4A3A1C, lf = 0x46C860, lf2 = 0xC8F078, wt = 0x7FE8A0;   // world-tree colours: green leaves, gold-green light
-        solid(true); sphere(0, cy0(U) + 8f * U, 0, 2.6f * U, 2.6f * U, 2.6f * U, 10, 16, 0xFFF2B0, 255); sphere(0, cy0(U) + 8f * U, 0, 3.4f * U, 3.4f * U, 3.4f * U, 10, 16, 0xE8F8A0, 90); sphere(0, cy0(U) + 8f * U, 0, 4.4f * U, 4.4f * U, 4.4f * U, 10, 16, 0xB0F0A0, 50); solid(false);   // its sun: real geometry, so it does not follow the camera
-        for (int i = 0; i < 12; i++) { float a = i * TAU / 12 + t * .05f; push(); tr(0, cy0(U) + 8f * U, 0); rY(-a); rZ(.0f); box(7f * U, 0, 0, 3.4f * U, .08f * U, .08f * U, 0xF0F8B0, 140); pop(); }
-        for (int v = 0; v < 4; v++) {   // trunk: four strands twisting round each other
-            float[][] pts = new float[14][];
-            for (int k = 0; k < 14; k++) { float u = k / 13f, a = v * TAU / 4 + u * 5.5f, rr = (1.5f * (1f - u * .55f) + .1f) * U; pts[k] = v3(gc(a) * rr, u * 5.4f * U, gs(a) * rr); }
-            tube(pts, .85f * U * (v % 2 == 0 ? 1f : .8f), .5f * U, bk);
+        float U = S * 1.9f, H = 8.5f * U;
+        int bkA = 0x1C2A40, bkB = 0x263A58, bkC = 0x14202E, vein = 0x8AEAFF, lfA = 0x285E30, lfB = 0x3F8A40, lfC = 0x7CC860, gl = 0xD8F8A0;
+        frustum(0, H, 1.5f * U, 1.0f * U, 12, 1, 1, bkC, 255, false);
+        for (int v = 0; v < 8; v++) {   // the trunk: strands wound both ways round the core, flaring into the roots below and the limbs above
+            float[][] pts = new float[24][]; float dir = v % 2 == 0 ? 1f : -1f;
+            for (int k = 0; k < 24; k++) { float u = k / 23f, a = v * TAU / 8 + dir * u * 3.6f, rr = (2.9f * (float) Math.pow(1f - u, 2.2f) + 1.15f + 1.1f * u * u * u) * U; pts[k] = v3(gc(a) * rr, u * H, gs(a) * rr); }
+            tube(pts, .95f * U, .55f * U, v % 2 == 0 ? bkA : bkB);
+            float[][] vp = new float[24][];   // a vein of light in the groove beside it
+            for (int k = 0; k < 24; k++) { float u = k / 23f, a = v * TAU / 8 + TAU / 16 + dir * u * 3.6f, rr = (2.9f * (float) Math.pow(1f - u, 2.2f) + 1.42f + 1.1f * u * u * u) * U; vp[k] = v3(gc(a) * rr, u * H, gs(a) * rr); }
+            tube(vp, .07f * U, .05f * U, vein);
+            for (int q = 0; q < 3; q++) { float u = fract(t * .07f + q / 3f + v * .13f); int k = Math.min(22, (int) (u * 23)); float[] pp = vp[k]; bb("glow", pp[0], pp[1], pp[2], 1.5f * U, 1.5f * U, 0, rgba(vein, .7f * fd(u))); }   // light travelling up it
         }
-        for (int v = 0; v < 9; v++) {   // roots flaring across the ground
-            float[][] pts = new float[10][]; float a = v * TAU / 9 + .2f;
-            for (int k = 0; k < 10; k++) { float u = k / 9f, aa = a + u * .5f * (v % 2 == 0 ? 1 : -1), r2 = (1.2f + u * 6.5f) * U; pts[k] = v3(gc(aa) * r2, (1f - u) * 1.8f * U * (1f - u * .3f) + .1f * U + gs(u * 9f + v) * .15f * U, gs(aa) * r2); }
-            tube(pts, .7f * U, .1f * U, bk);
+        for (int v = 0; v < 10; v++) {   // roots running out across the ground, each ending in a curl
+            float a = v * TAU / 10 + .2f, dir = v % 2 == 0 ? 1 : -1; float[][] pts = new float[16][];
+            for (int k = 0; k < 16; k++) { float u = k / 15f;
+                if (k < 11) { float uu = k / 10f, aa = a + uu * .5f * dir, r2 = (2.6f + uu * 6.5f) * U; pts[k] = v3(gc(aa) * r2, (float) Math.pow(1f - uu, 2f) * 2.4f * U + .12f * U + gs(uu * 9f + v) * .12f * U, gs(aa) * r2); }
+                else { float sp = (k - 10) / 5f * 4.4f, aa = a + .5f * dir, cr = .9f * U * (1f - (k - 10) / 5f * .6f), bxr = 9.1f * U; pts[k] = v3(gc(aa) * (bxr - cr * (float) Math.sin(sp)) , .12f * U + cr * (1f - (float) Math.cos(sp)), gs(aa) * (bxr - cr * (float) Math.sin(sp))); } }
+            tube(pts, .75f * U, .09f * U, v % 2 == 0 ? bkA : bkB);
         }
         cardBeam(P1);
-        float cy2 = 5.2f * U;
-        int[] LC = {0x46C860, 0xFF9CC4, 0xFFE070, 0x6AE8D0, 0xC8F078, 0xB890F0};   // leaves of many colours: green, blossom pink, gold, teal, lime, violet
-        for (int b = 0; b < 10; b++) treeBranch(0, cy2, 0, b * TAU / 10 + .2f, 6.2f * U, 2.6f * U, 1.0f * U, 2, 10 + b * 7, bk, LC[b % 6], 1.5f * U);   // massive limbs, forking three times
-        for (int b = 0; b < 6; b++) treeBranch(0, cy2 + 2.2f * U, 0, b * TAU / 6 + .8f, 4.2f * U, 4.6f * U, .7f * U, 2, 90 + b * 5, bk, LC[(b + 2) % 6], 1.7f * U);
-        for (int b = 0; b < 4; b++) treeBranch(0, cy2 + 4.2f * U, 0, b * TAU / 4 + .4f, 3.2f * U, 5.2f * U, .5f * U, 2, 150 + b * 5, bk, LC[(b + 4) % 6], 1.8f * U);
-        // glowing heart of the tree and a crown of light
-        float hy2 = 2.8f * U;
-        bb("glow", 0, hy2, 0, 6f * U, 6f * U, 0, rgba(wt, .8f)); sphere(0, hy2, 0, .5f * U, .6f * U, .5f * U, 6, 10, 0xE8FFD0, 255);
-        bb("glow", 0, cy2 + 3.5f * U, 0, 26f * U, 20f * U, 0, rgba(wt, .22f));
-        for (int i = 0; i < 48; i++) {   // fruit and lanterns of light of every colour hanging all through the canopy
-            float a = h(i, 3) * TAU, r = (2f + 11f * h(i, 4)) * U, y = cy2 + (.8f + 7f * h(i, 5)) * U + gs(t * .8f + i) * .2f * U; int lc = LC[i % 6];
-            bb("glow", gc(a) * r, y, gs(a) * r, 2.2f * U, 2.2f * U, 0, rgba(lc, .85f)); bb("mote", gc(a) * r, y, gs(a) * r, .6f * U, .6f * U, 0, rgba(0xFFFFFF, 1f));
+        // the limbs: each sweeps out and up, carries a broad flat tier of leaves and ends in a curl
+        solid(false);
+        for (int b = 0; b < 9; b++) {
+            float a = b * TAU / 9 + .35f, y0 = H * (.72f + .03f * (b % 3)), reach = (6.5f + 2.5f * h(b, 5)) * U, rise = (1.2f + 3.6f * h(b, 6) + (b % 3) * 1.2f) * U; float[][] pts = new float[14][];
+            for (int k = 0; k < 14; k++) { float u = k / 13f, aa = a + (float) Math.sin(u * 2.6f) * .28f * (b % 2 == 0 ? 1 : -1); pts[k] = v3(gc(aa) * (1.6f * U + u * reach), y0 + rise * (float) Math.pow(u, 1.6f) + (float) Math.sin(u * PI) * .8f * U, gs(aa) * (1.6f * U + u * reach)); }
+            tube(pts, .7f * U, .16f * U, b % 2 == 0 ? bkA : bkB);
+            float[] e = pts[13]; float ea = a + (float) Math.sin(2.6f) * .28f * (b % 2 == 0 ? 1 : -1);
+            float[][] curl = new float[9][]; for (int k = 0; k < 9; k++) { float sp = k / 8f * 5f, cr = .9f * U * (1f - k / 8f * .65f); curl[k] = v3(e[0] + gc(ea) * cr * (float) Math.sin(sp), e[1] + cr * (1f - (float) Math.cos(sp)), e[2] + gs(ea) * cr * (float) Math.sin(sp)); }
+            tube(curl, .16f * U, .05f * U, bkB);
+            float[] m2 = pts[9];   // the tier of canopy this limb holds up
+            canopyTier(m2[0], m2[1] + 1.0f * U, m2[2], (2.6f + 1.2f * h(b, 7)) * U, 30 + b * 9, lfA, lfB, lfC);
+            bb("glow", m2[0], m2[1] + .4f * U, m2[2], 5f * U, 2.4f * U, 0, rgba(gl, .16f));
         }
-        for (int i = 0; i < 14; i++) { float a = i * TAU / 14 + t * .03f; column("beam", gc(a) * 6f * U, cy2 + 2f * U, cy2 + 9f * U, gs(a) * 6f * U, .8f * U, rgba(LC[i % 6], .3f)); }   // shafts of coloured light through the leaves
-        for (int i = 0; i < 40; i++) { float a = t * (.1f + .1f * h(i, 6)) + i * 2.4f, r = (3f + 12f * h(i, 7)) * U, y = (1f + 12f * h(i, 8)) * U; bb("glow", gc(a) * r, y, gs(a) * r, .8f * U, .8f * U, 0, rgba(LC[(i + 1) % 6], .6f)); }   // fireflies
+        for (int b = 0; b < 4; b++) {   // small low tiers on short boughs half way up, like the old trees in the hills
+            float a = b * TAU / 4 + 1.1f, y0 = H * (.38f + .08f * b); float[][] pts = new float[8][];
+            for (int k = 0; k < 8; k++) { float u = k / 7f; pts[k] = v3(gc(a) * (1.4f * U + u * 3.6f * U), y0 + u * u * 1.4f * U, gs(a) * (1.4f * U + u * 3.6f * U)); }
+            tube(pts, .4f * U, .12f * U, bkA); canopyTier(pts[7][0], pts[7][1] + .6f * U, pts[7][2], 1.7f * U, 200 + b * 9, lfA, lfB, lfC);
+        }
+        // the crown: three wide tiers, the light of the sky breaking through the middle of them
+        canopyTier(0, H + 3.2f * U, 0, 5.4f * U, 300, lfA, lfB, lfC); canopyTier(0, H + 5.0f * U, 0, 4.0f * U, 320, lfA, lfB, lfC); canopyTier(0, H + 6.4f * U, 0, 2.4f * U, 340, lfB, lfC, lfC);
+        for (int v = 0; v < 6; v++) { float a = v * TAU / 6 + .5f; float[][] pts = new float[8][]; for (int k = 0; k < 8; k++) { float u = k / 7f; pts[k] = v3(gc(a + u * .5f) * (1.0f * U + u * 2.6f * U), H + u * 4.6f * U, gs(a + u * .5f) * (1.0f * U + u * 2.6f * U)); } tube(pts, .5f * U, .14f * U, v % 2 == 0 ? bkA : bkB); }
+        bb("glow", 0, H + 4.4f * U, 0, 16f * U, 11f * U, 0, rgba(0xFFF8D0, .45f)); bb("glow", 0, H + 4.4f * U, 0, 30f * U, 20f * U, 0, rgba(gl, .2f));
+        for (int i = 0; i < 16; i++) { float a = i * TAU / 16 + t * .02f, rr = (1.5f + 6.5f * h(i, 9)) * U; column("beam", gc(a) * rr, .5f * U, H + 4f * U, gs(a) * rr, (.6f + .9f * h(i, 10)) * U, rgba(i % 3 == 0 ? vein : 0xFFF4C0, .1f + .1f * gs(t * .5f + i))); }   // shafts of light falling through the tiers
+        bb("glow", 0, H * .45f, 0, 9f * U, H * 1.1f, 0, rgba(vein, .2f));
+        for (int i = 0; i < 7; i++) {   // standing stones round its foot, a line of the same light cut into each
+            float a = i * TAU / 7 + .7f, rr = 10.2f * U, hh = (2.2f + 1.6f * h(i, 12)) * U; push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2); rZ((h(i, 13) - .5f) * .16f);
+            taper(0, hh, .7f * U, .4f * U, .45f * U, .26f * U, 0x2A3038, 255); box(0, hh * .5f, .41f * U, .04f * U, hh * .3f, .02f * U, vein, 255); pop();
+            bb("glow", gc(a) * rr, hh * .5f, gs(a) * rr, 2.2f * U, hh, 0, rgba(vein, .18f)); }
+        for (int i = 0; i < 46; i++) { float a = t * (.06f + .08f * h(i, 6)) + i * 2.4f, r = (2.5f + 9f * h(i, 7)) * U, y = (.6f + 13f * h(i, 8)) * U; bb("glow", gc(a) * r, y, gs(a) * r, .8f * U, .8f * U, 0, rgba(i % 3 == 0 ? vein : gl, .55f)); bb("mote", gc(a) * r, y, gs(a) * r, .16f * U, .16f * U, 0, rgba(0xFFFFFF, .9f)); }   // drifting lights
         for (int i = 0; i < 3; i++) { float pw = fract(t * .2f + i / 3f); flat("ring", 0, .12f, 0, pw * 1.8f * R, 0, rgba(P1, fd(pw))); }
-        sprites("petal", 120, FALLM, R * .85f, 0, top * 1.1f, 1f * S, P1, 1f, .1f, 62, true); if (!LotmFx.hold(curId, "astral_world:light_motes", ex, ey + 4f * S, ez, R * .8f)) sprites("mote", 70, RISEM, R * .7f, 0, top, .45f * S, 0xFFF0A0, 1f, .25f, 64, false);
+        fogRing(12, 8.5f * U, 0x3A5A60, .3f);
+        sprites("leaf", 90, FALLM, R * .85f, 0, top * 1.1f, .8f * S, 0x7CC860, 1f, .08f, 62, true); if (!LotmFx.hold(curId, "astral_world:light_motes", ex, ey + 4f * S, ez, R * .8f)) sprites("mote", 70, RISEM, R * .7f, 0, top, .45f * S, 0xFFF0A0, 1f, .25f, 64, false);
         gooSymbols(6, top * .95f, R * .9f, 3.4f * S);
+    }
+    /** One flat tier of a great tree's canopy: a spread of low leafy domes, darker underneath and lit on top, with a fringe of leaves round its rim. */
+    private void canopyTier(float x, float y, float z, float r, int seed, int dark, int mid, int lit) {
+        sphere(x, y - r * .1f, z, r * .8f, r * .14f, r * .8f, 5, 10, dark, 255);
+        int n = 7 + (int) (r / S);
+        for (int i = 0; i < n; i++) {
+            float a = i * TAU / n + h(seed, i), rr = r * (.42f + .32f * h(seed + i, 2)), cr = r * (.36f + .2f * h(seed + i, 3));
+            sphere(x + gc(a) * rr, y + r * (.02f + .08f * h(seed + i, 4)), z + gs(a) * rr, cr, cr * .36f, cr, 5, 9, i % 3 == 0 ? lit : i % 3 == 1 ? mid : mix(mid, dark, .5f), 255);
+        }
+        sphere(x, y + r * .12f, z, r * .5f, r * .2f, r * .5f, 5, 10, lit, 255);
+        for (int i = 0; i < n; i++) { float a = i * TAU / n + t * .01f + seed; bb("leaf", x + gc(a) * r * .95f, y + gs(t * .8f + i + seed) * r * .04f, z + gs(a) * r * .95f, r * .28f, r * .28f, a, rgba(lit, .95f)); }
     }
     private float cy0(float U) { return 5.2f * U; }
     /** Father of Devils: a vast horned skull wreathed in hellfire above a whirling pit, ringed by black spires and braziers, chains and eyes hanging in the dark. */
@@ -2285,31 +2317,75 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             for (int k = 0; k < 4; k++) { push(); rZ(k * PI / 4); box(0, 0, sd * .05f * s, .43f * s, .03f * s, .015f * s, brass, 255); pop(); }
             sphere(0, 0, sd * .05f * s, .09f * s, .09f * s, .06f * s, 4, 6, brass, 255); pop(); }
     }
-    private void trainLoco(float s, float roll, int body, int trim) {   // forward is +x, up +y, the rails at y = 0
-        int blk = 0x15171C, brass = 0xC8A040;
-        push(); tr(.3f * s, 1.05f * s, 0); rZ(-PI / 2); frustum(-1.5f * s, 1.5f * s, .52f * s, .52f * s, 14, 1, 1, body, 255, true); pop();
-        sphere(1.8f * s, 1.05f * s, 0, .3f * s, .52f * s, .52f * s, 6, 12, blk, 255);
-        for (int k = 0; k < 3; k++) { push(); tr(-.9f * s + k * 1.1f * s, 1.05f * s, 0); rZ(-PI / 2); frustum(-.05f * s, .05f * s, .54f * s, .54f * s, 14, 1, 1, brass, 255, true); pop(); }
-        push(); tr(1.3f * s, 1.55f * s, 0); frustum(0, .5f * s, .14f * s, .12f * s, 8, 1, 1, blk, 255, true); frustum(.5f * s, .72f * s, .12f * s, .25f * s, 8, 1, 1, blk, 255, true); pop();
-        sphere(.2f * s, 1.58f * s, 0, .2f * s, .2f * s, .2f * s, 5, 8, brass, 255);
-        box(-1.55f * s, 1.4f * s, 0, .55f * s, .75f * s, .55f * s, body, 255); box(-1.55f * s, 2.2f * s, 0, .72f * s, .06f * s, .62f * s, trim, 255);
-        for (int sd = -1; sd <= 1; sd += 2) box(-1.55f * s, 1.55f * s, sd * .56f * s, .3f * s, .26f * s, .01f * s, 0xFFE9A0, 255);
-        box(0, .62f * s, 0, 2.1f * s, .07f * s, .62f * s, blk, 255); box(2.15f * s, .55f * s, 0, .22f * s, .16f * s, .5f * s, blk, 255);
-        sphere(2.12f * s, 1.05f * s, 0, .06f * s, .06f * s, .06f * s, 4, 6, 0xFFF4C0, 255);
-        for (int k = 0; k < 5; k++) { push(); tr(2.3f * s, .4f * s + .02f * s, (k - 2) * .13f * s); rZ(.45f); box(0, 0, 0, .3f * s, .02f * s, .02f * s, blk, 255); pop(); }   // cowcatcher
-        box(1.9f * s, 1.55f * s, 0, .08f * s, .18f * s, .18f * s, brass, 255); sphere(1.98f * s, 1.55f * s, 0, .08f * s, .08f * s, .08f * s, 4, 6, 0xFFF4C0, 255);   // headlamp
-        sphere(.8f * s, 1.55f * s, 0, .22f * s, .2f * s, .22f * s, 5, 8, brass, 255); sphere(-.1f * s, 1.55f * s, 0, .1f * s, .1f * s, .1f * s, 4, 6, brass, 255);   // dome and bell
-        for (int sd = -1; sd <= 1; sd += 2) { box(.2f * s, .8f * s, sd * .6f * s, 1.3f * s, .04f * s, .02f * s, trim, 255); box(-.2f * s, 1.95f * s, sd * .5f * s, .2f * s, .03f * s, .01f * s, brass, 255); }
-        for (int k = 0; k < 3; k++) trainWheels(s, (-1.1f + k * 1.1f) * s, roll, blk, brass);
-        for (int sd = -1; sd <= 1; sd += 2) box(.0f * s + .1f * s * (float) Math.cos(roll), .45f * s + .1f * s * (float) Math.sin(roll), sd * .7f * s, 1.15f * s, .03f * s, .02f * s, brass, 255);
+    /** A pair of spoked wheels on one axle: radius r, an iron tyre with a gilt rim and red spokes. */
+    private void wheelPair(float s, float x, float r, float roll, int spoke) {
+        int tyre = 0x121316, gold = 0xD8B050;
+        for (int sd = -1; sd <= 1; sd += 2) { push(); tr(x, r, sd * .62f * s); rZ(-roll * .45f * s / r);
+            push(); rX(PI / 2); torus(0, 0, 0, r * .93f, r * .93f, .07f * r, 16, 4, 0, TAU, tyre, 255); torus(0, 0, 0, r * .8f, r * .8f, .03f * r, 16, 3, 0, TAU, gold, 255); pop();
+            for (int k = 0; k < 6; k++) { push(); rZ(k * PI / 6); box(0, 0, 0, r * .86f, .04f * r, .02f * s, spoke, 255); pop(); }
+            sphere(0, 0, sd * .03f * s, .16f * r, .16f * r, .1f * r, 4, 8, gold, 255); pop(); }
+        push(); tr(x, r, 0); rX(PI / 2); frustum(-.6f * s, .6f * s, .05f * r, .05f * r, 6, 1, 1, tyre, 255, false); pop();
+    }
+    /** A gilt scroll on a flat side (in the xy plane at z): two curls back to back. */
+    private void scroll(float x, float y, float z, float r, int gold) {
+        torus(x - r, y, z, r, r, r * .14f, 10, 3, -.4f, PI * 1.5f, gold, 255); torus(x + r, y, z, r, r, r * .14f, 10, 3, -PI * .5f, PI + .4f, gold, 255);
+        sphere(x, y - r * .9f, z, r * .2f, r * .2f, r * .1f, 3, 5, gold, 255);
+    }
+    /** The locomotive, after the picture: black and gilt. A long boiler banded in brass, a smokebox with a round door and a great lamp, a tall flared chimney, brass domes and a bell,
+     *  gilt scrollwork along its sides, red-spoked driving wheels worked by rods, a leading bogie, a cowcatcher and a roofed cab. Forward is +x, the rails at y = 0. */
+    private void trainLoco(float s, float roll, int body, int trim) {
+        int blk = 0x15161A, iron = 0x24262C, gold = 0xD8B050, brass = 0xB8923A, red = 0x9A2420, lamp = 0xFFF0B8;
+        box(.15f * s, .78f * s, 0, 2.25f * s, .05f * s, .6f * s, blk, 255);                                                   // running board
+        for (int sd = -1; sd <= 1; sd += 2) { box(.15f * s, .7f * s, sd * .6f * s, 2.25f * s, .04f * s, .015f * s, gold, 255);   // its gilt edge
+            for (int k = 0; k < 4; k++) scroll((-.4f + k * .62f) * s, 1.28f * s, sd * .535f * s, .13f * s, gold); }           // scrollwork on the boiler's flanks
+        push(); tr(.35f * s, 1.3f * s, 0); rZ(-PI / 2); frustum(-1.25f * s, 1.05f * s, .5f * s, .5f * s, 16, 1, 1, iron, 255, true);   // boiler
+        for (int k = 0; k < 4; k++) frustum((-1.1f + k * .62f) * s, (-1.04f + k * .62f) * s, .515f * s, .515f * s, 16, 1, 1, brass, 255, false);
+        frustum(1.05f * s, 1.6f * s, .54f * s, .54f * s, 16, 1, 1, blk, 255, true);                                            // smokebox
+        frustum(1.6f * s, 1.66f * s, .44f * s, .4f * s, 16, 1, 1, iron, 255, true); frustum(1.6f * s, 1.63f * s, .47f * s, .47f * s, 16, 1, 1, gold, 255, false);   // its door, ringed in gilt
+        frustum(1.66f * s, 1.72f * s, .08f * s, .05f * s, 8, 1, 1, gold, 255, true); pop();
+        for (int k = 0; k < 6; k++) { float a = k * TAU / 6; box(2.02f * s, 1.3f * s + gs(a) * .3f * s, gc(a) * .3f * s, .012f * s, .03f * s, .03f * s, gold, 255); }   // door dogs
+        push(); tr(1.7f * s, 1.8f * s, 0); frustum(0, .62f * s, .15f * s, .13f * s, 10, 1, 1, blk, 255, true); frustum(.62f * s, 1.0f * s, .13f * s, .3f * s, 12, 1, 1, blk, 255, false); frustum(1.0f * s, 1.06f * s, .31f * s, .31f * s, 12, 1, 1, gold, 255, true); frustum(.1f * s, .16f * s, .17f * s, .17f * s, 10, 1, 1, gold, 255, false); pop();   // the tall flared chimney
+        push(); tr(1.98f * s, 1.98f * s, 0); box(0, 0, 0, .13f * s, .15f * s, .15f * s, blk, 255); box(.14f * s, 0, 0, .012f * s, .12f * s, .12f * s, lamp, 255); box(0, .17f * s, 0, .15f * s, .02f * s, .17f * s, gold, 255); pop();   // the great lamp
+        sphere(.75f * s, 1.84f * s, 0, .24f * s, .24f * s, .24f * s, 6, 10, brass, 255);                                          // steam dome
+        push(); tr(.75f * s, 1.7f * s, 0); frustum(0, .12f * s, .27f * s, .24f * s, 10, 1, 1, gold, 255, false); pop();
+        sphere(-.05f * s, 1.8f * s, 0, .17f * s, .15f * s, .17f * s, 5, 8, brass, 255);                                          // sand dome
+        for (int sd = -1; sd <= 1; sd += 2) box(.38f * s, 1.95f * s, sd * .1f * s, .012f * s, .16f * s, .012f * s, gold, 255); box(.38f * s, 2.1f * s, 0, .015f * s, .015f * s, .12f * s, gold, 255);
+        push(); tr(.38f * s, 2.0f * s, 0); rX(gs(t * 3f) * .5f); frustum(-.14f * s, 0, .1f * s, .05f * s, 8, 1, 1, gold, 255, true); pop();   // the bell, swinging
+        box(-.55f * s, 1.95f * s, .2f * s, .02f * s, .14f * s, .02f * s, brass, 255);                                           // whistle
+        // the cab
+        box(-1.5f * s, 1.5f * s, 0, .6f * s, .72f * s, .58f * s, iron, 255);
+        push(); tr(-1.5f * s, 2.22f * s, 0); rZ(-PI / 2); frustum(-.74f * s, .74f * s, .64f * s, .64f * s, 12, .22f, 1, blk, 255, true); pop();   // an arched roof
+        for (int sd = -1; sd <= 1; sd += 2) { box(-1.5f * s, 1.75f * s, sd * .585f * s, .34f * s, .22f * s, .008f * s, lamp, 255); box(-1.5f * s, 1.75f * s, sd * .59f * s, .02f * s, .22f * s, .008f * s, gold, 255);
+            box(-1.5f * s, 1.5f * s, sd * .59f * s, .6f * s, .02f * s, .008f * s, gold, 255); box(-1.5f * s, 1.15f * s, sd * .59f * s, .5f * s, .012f * s, .008f * s, gold, 255); scroll(-1.5f * s, 1.3f * s, sd * .595f * s, .1f * s, gold); }
+        box(-.895f * s, 1.85f * s, 0, .008f * s, .16f * s, .3f * s, lamp, 255);
+        // cylinders, rods and wheels
+        for (int sd = -1; sd <= 1; sd += 2) {
+            push(); tr(1.35f * s, .6f * s, sd * .66f * s); rZ(-PI / 2); frustum(-.3f * s, .3f * s, .17f * s, .17f * s, 10, 1, 1, blk, 255, true); frustum(-.32f * s, -.28f * s, .185f * s, .185f * s, 10, 1, 1, gold, 255, false); frustum(.28f * s, .32f * s, .185f * s, .185f * s, 10, 1, 1, gold, 255, false); pop();
+            float cx = .22f * s * (float) Math.cos(roll * .9f), cy = .22f * s * (float) Math.sin(roll * .9f);
+            box(-.1f * s + cx, .5f * s + cy, sd * .7f * s, 1.0f * s, .035f * s, .02f * s, brass, 255);                         // coupling rod
+            box(.75f * s + cx * .5f, .55f * s + cy * .5f, sd * .72f * s, .5f * s, .03f * s, .02f * s, brass, 255);             // connecting rod
+        }
+        for (int k = 0; k < 3; k++) wheelPair(s, (-1.1f + k * 1.0f) * s, .5f * s, roll, red);
+        wheelPair(s, 1.55f * s, .28f * s, roll, red); wheelPair(s, 2.05f * s, .28f * s, roll, red);                             // leading bogie
+        box(2.38f * s, .62f * s, 0, .05f * s, .12f * s, .62f * s, red, 255); box(2.42f * s, .62f * s, 0, .012f * s, .05f * s, .62f * s, gold, 255);   // buffer beam
+        for (int k = 0; k < 7; k++) { push(); tr(2.42f * s, .5f * s, (k - 3) * .19f * s); rZ(-.75f); rY((k - 3) * .08f); box(.22f * s, 0, 0, .28f * s, .02f * s, .02f * s, blk, 255); pop(); }   // cowcatcher
+        box(2.78f * s, .1f * s, 0, .03f * s, .03f * s, .5f * s, gold, 255);
     }
     private void trainCar(float s, float roll, int body, int trim, boolean tender) {
-        int blk = 0x15171C, brass = 0xC8A040;
-        if (tender) { box(0, .9f * s, 0, 1.2f * s, .45f * s, .56f * s, blk, 255); for (int k = 0; k < 9; k++) sphere((h(k, 31) - .5f) * 1.8f * s, 1.4f * s, (h(k, 32) - .5f) * .8f * s, .2f * s, .16f * s, .2f * s, 4, 6, 0x303038, 255); }
-        else { box(0, 1.0f * s, 0, 1.5f * s, .6f * s, .58f * s, body, 255); box(0, 1.7f * s, 0, 1.58f * s, .07f * s, .64f * s, trim, 255);
-            for (int k = -2; k <= 2; k++) for (int sd = -1; sd <= 1; sd += 2) box(k * .55f * s, 1.15f * s, sd * .59f * s, .2f * s, .22f * s, .01f * s, 0xFFE9A0, 255); }
-        box(0, .5f * s, 0, 1.4f * s, .06f * s, .5f * s, blk, 255);
-        trainWheels(s, -.8f * s, roll, blk, brass); trainWheels(s, .8f * s, roll, blk, brass);
+        int blk = 0x15161A, gold = 0xD8B050, red = 0x9A2420, maroon = 0x3E1618, cream = 0xE8DCC0;
+        if (tender) {   // the tender: black, framed in gilt, heaped with coal
+            box(0, 1.15f * s, 0, 1.2f * s, .42f * s, .56f * s, blk, 255); box(0, 1.6f * s, 0, 1.22f * s, .04f * s, .58f * s, gold, 255);
+            for (int sd = -1; sd <= 1; sd += 2) { box(0, 1.15f * s, sd * .565f * s, 1.05f * s, .3f * s, .006f * s, 0x24262C, 255); for (int e = -1; e <= 1; e += 2) box(0, 1.15f * s + e * .3f * s, sd * .57f * s, 1.05f * s, .015f * s, .006f * s, gold, 255); scroll(0, 1.2f * s, sd * .572f * s, .16f * s, gold); }
+            for (int k = 0; k < 11; k++) sphere((h(k, 31) - .5f) * 1.9f * s, 1.66f * s, (h(k, 32) - .5f) * .8f * s, .2f * s, .15f * s, .2f * s, 4, 6, 0x1E1E24, 255);
+        } else {        // a coach: maroon panels lined in gilt, a cream band of lit windows, a clerestory roof
+            box(0, 1.0f * s, 0, 1.5f * s, .22f * s, .58f * s, maroon, 255); box(0, 1.42f * s, 0, 1.5f * s, .2f * s, .575f * s, cream, 255); box(0, 1.68f * s, 0, 1.5f * s, .06f * s, .58f * s, maroon, 255);
+            push(); tr(0, 1.72f * s, 0); rZ(-PI / 2); frustum(-1.56f * s, 1.56f * s, .62f * s, .62f * s, 12, .2f, 1, blk, 255, true); pop();
+            box(0, 1.9f * s, 0, 1.3f * s, .06f * s, .3f * s, blk, 255); for (int k = -4; k <= 4; k++) for (int sd = -1; sd <= 1; sd += 2) box(k * .28f * s, 1.9f * s, sd * .305f * s, .09f * s, .03f * s, .006f * s, 0xFFE9A0, 255);
+            for (int sd = -1; sd <= 1; sd += 2) { for (int k = -3; k <= 3; k++) { box(k * .4f * s, 1.42f * s, sd * .582f * s, .14f * s, .15f * s, .006f * s, 0xFFE9A0, 255); box(k * .4f * s + .19f * s, 1.42f * s, sd * .584f * s, .025f * s, .2f * s, .006f * s, maroon, 255); }
+                box(0, 1.2f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); box(0, 1.63f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); box(0, .82f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); }
+        }
+        box(0, .7f * s, 0, 1.4f * s, .06f * s, .5f * s, blk, 255);
+        wheelPair(s, -.9f * s, .3f * s, roll, red); wheelPair(s, -.45f * s, .3f * s, roll, red); wheelPair(s, .45f * s, .3f * s, roll, red); wheelPair(s, .9f * s, .3f * s, roll, red);
     }
     private void railRing(float rad, float s) {
         for (int sd = -1; sd <= 1; sd += 2) tube(ring(0, .14f * s, 0, rad + sd * .5f * s, 72), .045f * s, .045f * s, metal(.6f));
@@ -2343,7 +2419,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
     /** A paddle steamer, bow toward +x: dark hull with a red waterline, white decks, two striped funnels, side paddle wheels, a mast and flag, lifeboats. */
     private void steamShip(float s) {
-        int iron = 0x4A4F58, dkiron = 0x2E323A, deck = 0x6C7078, belt = 0x3A3F48, red = 0x5A2A22, blk = 0x15171C, brass = 0x9A8450, steel = 0x3A404C;
+        int iron = 0x3A3E46, dkiron = 0x26292F, deck = 0xB89A6A, belt = 0x2E3238, red = 0x6A3A22, blk = 0x15171C, brass = 0xD8B050, steel = 0x3A404C, gold = 0xD8B050;
         // an iron steam warship, bow toward +x: a long armoured hull with a ram bow, a citadel, raked funnels, twin gun turrets fore and aft, tripod mast
         box(0, .42f * s, 0, 2.7f * s, .42f * s, .9f * s, iron, 255);                          // main hull
         box(0, .06f * s, 0, 2.55f * s, .08f * s, .78f * s, red, 255);                          // anti-fouling red below the waterline
@@ -2351,6 +2427,11 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         push(); tr(2.7f * s, .42f * s, 0); sphere(0, 0, 0, 1.0f * s, .42f * s, .9f * s, 8, 14, iron, 255); sphere(0, .2f * s, 0, 1.0f * s, .22f * s, .93f * s, 6, 12, belt, 255);
         tr(.85f * s, -.25f * s, 0); rZ(-PI / 2); frustum(0, .5f * s, .09f * s, .03f * s, 8, 1, 1, steel, 255, true); pop();   // the ram
         push(); tr(-2.7f * s, .42f * s, 0); sphere(0, 0, 0, .8f * s, .42f * s, .85f * s, 6, 12, iron, 255); pop();           // rounded stern
+        // the gilded bow of the picture: a gold stem and great scrolls of carving sweeping back along both cheeks
+        push(); tr(3.62f * s, .5f * s, 0); rZ(.25f); box(0, 0, 0, .05f * s, .5f * s, .05f * s, gold, 255); pop();
+        for (int sd = -1; sd <= 1; sd += 2) for (int k = 0; k < 4; k++) { float bx = (3.3f - k * .42f) * s, br = (.2f + .04f * k) * s, bz = sd * (.42f + k * .15f) * s; push(); tr(bx, .52f * s, bz); rY(-sd * (.62f - k * .12f));
+            torus(0, 0, 0, br, br, br * .2f, 10, 3, -.5f, PI * 1.4f, gold, 255); torus(-br * 1.5f, -br * .3f, 0, br * .6f, br * .6f, br * .16f, 8, 3, PI * .4f, PI * 2.1f, gold, 255); sphere(br * .1f, 0, 0, br * .3f, br * .3f, br * .14f, 3, 6, gold, 255); pop(); }
+        for (int sd = -1; sd <= 1; sd += 2) { float[][] ln = new float[8][]; for (int k = 0; k < 8; k++) { float u = k / 7f; ln[k] = v3((3.5f - u * 1.9f) * s, (.8f - .06f * (float) Math.sin(u * PI)) * s, sd * (.2f + .72f * (float) Math.sqrt(u)) * s); } tube(ln, .03f * s, .03f * s, gold); }   // a gilt rail from the stem
         box(0, .86f * s, 0, 2.6f * s, .05f * s, .86f * s, deck, 255);                           // steel deck
         for (int k = -6; k <= 6; k++) for (int sd = -1; sd <= 1; sd += 2) box(k * .4f * s, .7f * s, sd * .93f * s, .035f * s, .035f * s, .01f * s, blk, 255);   // rivets
         for (int k = -5; k <= 5; k++) for (int sd = -1; sd <= 1; sd += 2) box(k * .42f * s, .5f * s, sd * .92f * s, .13f * s, .05f * s, .02f * s, blk, 255);    // gun ports
@@ -2359,7 +2440,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         box(.55f * s, 1.58f * s, 0, .38f * s, .24f * s, .42f * s, belt, 255); box(.55f * s, 1.84f * s, 0, .42f * s, .04f * s, .46f * s, dkiron, 255);
         for (int sd = -1; sd <= 1; sd += 2) box(.9f * s, 1.6f * s, sd * .2f * s, .015f * s, .05f * s, .1f * s, 0x40C8FF, 200);   // slit windows
         // two raked funnels
-        for (int f = 0; f < 2; f++) { push(); tr(-.7f * s + f * 1.0f * s, 1.46f * s, 0); rZ(.1f); frustum(0, 1.0f * s, .3f * s, .26f * s, 12, 1, 1, dkiron, 255, true); frustum(.82f * s, 1.02f * s, .28f * s, .28f * s, 12, 1, 1, blk, 255, true); frustum(.55f * s, .62f * s, .31f * s, .31f * s, 12, 1, 1, brass, 255, true); pop(); }
+        for (int f = 0; f < 2; f++) { push(); tr(-.55f * s + f * .7f * s, 1.46f * s, 0); rZ(.06f); frustum(0, 1.7f * s, .27f * s, .24f * s, 12, 1, 1, dkiron, 255, true); frustum(1.5f * s, 1.72f * s, .255f * s, .255f * s, 12, 1, 1, blk, 255, true); frustum(1.0f * s, 1.06f * s, .27f * s, .27f * s, 12, 1, 1, brass, 255, false); frustum(.4f * s, .46f * s, .285f * s, .285f * s, 12, 1, 1, brass, 255, false); pop(); }   // two tall funnels close together
         // turrets: twin guns forward and aft, slowly training
         for (int g = 0; g < 2; g++) { float tx = g == 0 ? 1.75f * s : -1.9f * s, sw = (g == 0 ? 1f : -1f) * (gs(t * .35f + g * 2f) * .35f);
             push(); tr(tx, .9f * s, 0); rY(sw + (g == 0 ? 0 : PI));
@@ -2370,31 +2451,47 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int sd = -1; sd <= 1; sd += 2) for (int k = 0; k < 2; k++) { push(); tr((-.5f + k * .9f) * s, 1.1f * s, sd * .66f * s); rY(-sd * PI / 2); rZ(-PI / 2 + .1f); frustum(0, .38f * s, .035f * s, .03f * s, 6, 1, 1, blk, 255, true); pop(); }
         push(); tr(.1f * s, 1.5f * s, 0); for (int sd = -1; sd <= 1; sd += 2) { push(); rX(sd * .12f); frustum(0, 1.7f * s, .035f * s, .02f * s, 6, 1, 1, dkiron, 255, true); pop(); }
         frustum(0, 1.9f * s, .03f * s, .02f * s, 6, 1, 1, dkiron, 255, true); frustum(1.25f * s, 1.35f * s, .16f * s, .2f * s, 10, 1, 1, steel, 255, true); box(0, 1.9f * s, 0, .015f * s, .01f * s, .3f * s, dkiron, 255); pop();
-        for (int sd = -1; sd <= 1; sd += 2) box(-1.6f * s, 1.0f * s, sd * .55f * s, .3f * s, .07f * s, .09f * s, belt, 255);   // gray steam launches
+        for (int sd = -1; sd <= 1; sd += 2) for (int k = 0; k < 4; k++) {   // white ship's boats swung out on davits along both sides
+            float bx = (-1.5f + k * .78f) * s; push(); tr(bx, 1.22f * s, sd * 1.02f * s); sphere(0, 0, 0, .3f * s, .1f * s, .11f * s, 5, 8, 0xECE8DC, 255); box(0, .05f * s, 0, .26f * s, .012f * s, .09f * s, 0x8A6A44, 255); pop();
+            for (int e = -1; e <= 1; e += 2) { push(); tr(bx + e * .22f * s, .9f * s, sd * .88f * s); rX(-sd * .3f); frustum(0, .5f * s, .014f * s, .012f * s, 4, 1, 1, dkiron, 255, false); pop(); } }
+        push(); tr(-1.55f * s, .9f * s, 0); frustum(0, 2.3f * s, .035f * s, .02f * s, 6, 1, 1, dkiron, 255, true); frustum(1.3f * s, 1.4f * s, .14f * s, .18f * s, 10, 1, 1, steel, 255, true); box(0, 1.9f * s, 0, .012f * s, .01f * s, .45f * s, dkiron, 255); pop();   // the mainmast, with its own top
         push(); tr(-2.9f * s, .3f * s, 0); rX(t * 9f); box(0, 0, 0, .02f * s, .3f * s, .05f * s, 0x303038, 255); box(0, 0, 0, .02f * s, .05f * s, .3f * s, 0x303038, 255); pop();   // screw
     }
-    private void airship(float s) {   // nose toward +x
-        int env = 0xD8D2C0, shade = 0xB8B2A0, rib = 0x8A6A3A, red = 0xB02830, dkred = 0x7A1820, steel = 0x3A404C, brass = 0xC8A040, blk = 0x303038;
-        sphere(0, 0, 0, 4f * s, 1.45f * s, 1.45f * s, 14, 28, env, 255);
-        sphere(0, -.28f * s, 0, 3.9f * s, 1.3f * s, 1.3f * s, 10, 22, shade, 255);                // a darker belly
-        for (int k = -4; k <= 4; k++) { float x = k * .8f * s, r = 1.45f * s * (float) Math.sqrt(Math.max(.05f, 1f - (x / (4f * s)) * (x / (4f * s)))); push(); tr(x, 0, 0); rY(PI / 2); torus(0, 0, 0, r * 1.012f, r * 1.012f, .03f * s, 18, 3, 0, TAU, rib, 255); pop(); }
-        box(0, -1.4f * s, 0, 3.4f * s, .04f * s, .08f * s, rib, 255);                              // keel line
-        push(); tr(4f * s, 0, 0); sphere(0, 0, 0, .22f * s, .22f * s, .22f * s, 8, 12, brass, 255); pop();   // nose cap
-        // tail: four swept fins, red with a darker rudder edge
-        for (int k = 0; k < 4; k++) { push(); tr(-3.1f * s, 0, 0); rX(k * PI / 2);
-            box(-.25f * s, 1.2f * s, 0, .6f * s, .55f * s, .025f * s, red, 255); box(-.8f * s, 1.25f * s, 0, .16f * s, .5f * s, .03f * s, dkred, 255); box(.2f * s, .78f * s, 0, .3f * s, .1f * s, .03f * s, rib, 255); pop(); }
-        // gondola: a wooden hull with a cabin, windows, a brass roof and a glass nose
-        box(0, -1.85f * s, 0, 1.2f * s, .18f * s, .38f * s, 0x6A4624, 255); box(0, -1.68f * s, 0, 1.1f * s, .15f * s, .4f * s, 0xE8DEC0, 255); box(0, -1.52f * s, 0, 1.15f * s, .035f * s, .43f * s, brass, 255);
-        push(); tr(1.2f * s, -1.8f * s, 0); sphere(0, 0, 0, .3f * s, .24f * s, .34f * s, 8, 12, 0x6A4624, 255); pop(); push(); tr(-1.2f * s, -1.8f * s, 0); sphere(0, 0, 0, .3f * s, .24f * s, .34f * s, 8, 12, 0x6A4624, 255); pop();
-        for (int k = -3; k <= 3; k++) for (int sd = -1; sd <= 1; sd += 2) box(k * .3f * s, -1.68f * s, sd * .41f * s, .08f * s, .08f * s, .01f * s, 0x40C8FF, 255);
-        for (int sd = -1; sd <= 1; sd += 2) for (int k = -1; k <= 1; k += 2) { box(k * .7f * s, -1.1f * s, sd * .3f * s, .025f * s, .45f * s, .025f * s, rib, 255); box(k * .7f * s, -1.1f * s, sd * .3f * s, .025f * s, .025f * s, .0f * s, rib, 255); }
-        // two engine nacelles on short struts, each with a turning propeller
-        for (int sd = -1; sd <= 1; sd += 2) { push(); tr(-1.0f * s, -.55f * s, sd * 1.55f * s);
-            box(0, .3f * s, -sd * .12f * s, .03f * s, .3f * s, .03f * s, rib, 255);
-            push(); rZ(-PI / 2); frustum(-.35f * s, .35f * s, .17f * s, .13f * s, 10, 1, 1, steel, 255, true); frustum(-.38f * s, -.3f * s, .19f * s, .19f * s, 10, 1, 1, brass, 255, true); pop();
-            push(); tr(.42f * s, 0, 0); rX(t * 16f + sd); box(0, 0, 0, .02f * s, .5f * s, .06f * s, blk, 255); box(0, 0, 0, .02f * s, .06f * s, .5f * s, blk, 255); pop(); pop(); }
-        for (int k = -4; k <= 4; k++) { float x = k * .8f * s; for (int sd = -1; sd <= 1; sd += 2) box(x, -1.0f * s, sd * .5f * s, .01f * s, .52f * s, .01f * s, 0xC8B890, 255); }   // rigging down to the gondola
-        push(); tr(-3.9f * s, -1.8f * s, 0); rX(t * 18f); box(0, 0, 0, .02f * s, .6f * s, .05f * s, blk, 255); box(0, 0, 0, .02f * s, .05f * s, .6f * s, blk, 255); pop();   // stern propeller
+    /** An airship after the picture: a plump cream-gold envelope laced with seams, a red nose ring and tall red tail fins, wooden propellers on outriggers, and under it
+     *  not a boat but a tower of round galleries, each a ringed deck with a rail, hung on a central trunk. Nose toward +x. */
+    private void airship(float s) {
+        int env = 0xEAD9A0, shade = 0xC8B478, seam = 0x9A7A3A, red = 0xB03020, dkred = 0x7A1A14, wood = 0x6A4624, wd2 = 0x8A6234, brass = 0xC8A040, blue = 0x3A78B0, cream = 0xF0E6C8, blk = 0x2A2420;
+        sphere(0, 0, 0, 3.7f * s, 1.6f * s, 1.6f * s, 14, 28, env, 255);
+        sphere(0, -.3f * s, 0, 3.6f * s, 1.42f * s, 1.45f * s, 10, 22, shade, 255);                // a darker belly
+        for (int k = -4; k <= 4; k++) { float x = k * .74f * s, r = 1.6f * s * (float) Math.sqrt(Math.max(.05f, 1f - (x / (3.7f * s)) * (x / (3.7f * s)))); push(); tr(x, 0, 0); rY(PI / 2); torus(0, 0, 0, r * 1.012f, r * 1.012f, .025f * s, 18, 3, 0, TAU, seam, 255); pop(); }
+        for (int k = 0; k < 8; k++) { float a = k * TAU / 8; float[][] ln = new float[11][]; for (int j = 0; j < 11; j++) { float u = -1f + 2f * j / 10f, r = 1.61f * s * (float) Math.sqrt(Math.max(0f, 1f - u * u)); ln[j] = v3(u * 3.7f * s, gc(a) * r, gs(a) * r); } tube(ln, .018f * s, .018f * s, seam); }   // seams from nose to tail
+        push(); tr(3.3f * s, 0, 0); rY(PI / 2); torus(0, 0, 0, .73f * s, .73f * s, .07f * s, 16, 4, 0, TAU, red, 255); pop(); sphere(3.68f * s, 0, 0, .2f * s, .2f * s, .2f * s, 6, 10, red, 255);   // the red nose
+        // tail: a tall red rudder above, a smaller one below, and two tailplanes
+        push(); tr(-3.0f * s, 0, 0);
+        taper(.9f * s, 2.9f * s, .75f * s, .03f * s, .28f * s, .02f * s, red, 255); taper(.9f * s, 2.9f * s, .1f * s, .04f * s, .05f * s, .03f * s, dkred, 255);
+        push(); rX(PI); taper(.9f * s, 1.9f * s, .6f * s, .03f * s, .25f * s, .02f * s, red, 255); pop();
+        for (int sd = -1; sd <= 1; sd += 2) { push(); rX(sd * PI / 2); taper(.9f * s, 2.3f * s, .65f * s, .03f * s, .25f * s, .02f * s, red, 255); pop(); }
+        pop();
+        // propellers on outriggers: one each side forward, one at the tail, broad wooden blades
+        for (int sd = -1; sd <= 1; sd += 2) { push(); tr(1.6f * s, -.5f * s, sd * 1.5f * s);
+            box(0, 0, -sd * .45f * s, .04f * s, .04f * s, .5f * s, wood, 255); box(0, .25f * s, -sd * .5f * s, .03f * s, .28f * s, .03f * s, wood, 255);
+            push(); rZ(-PI / 2); frustum(-.3f * s, .3f * s, .16f * s, .12f * s, 10, 1, 1, red, 255, true); frustum(.3f * s, .45f * s, .12f * s, .03f * s, 8, 1, 1, brass, 255, true); pop();
+            push(); tr(.4f * s, 0, 0); rX(t * 16f + sd); for (int bl = 0; bl < 2; bl++) { push(); rX(bl * PI / 2); taper(-.95f * s, 0, .02f * s, .12f * s, .03f * s, .05f * s, wd2, 255); taper(0, .95f * s, .03f * s, .05f * s, .02f * s, .12f * s, wd2, 255); pop(); } pop(); pop(); }
+        push(); tr(-3.75f * s, 0, 0); rX(t * 18f); for (int bl = 0; bl < 2; bl++) { push(); rX(bl * PI / 2); taper(-.8f * s, 0, .02f * s, .1f * s, .03f * s, .04f * s, wd2, 255); taper(0, .8f * s, .03f * s, .04f * s, .02f * s, .1f * s, wd2, 255); pop(); } pop();
+        // the tower of galleries under the hull
+        push(); tr(.2f * s, -1.5f * s, 0);
+        frustum(-2.7f * s, 0, .2f * s, .3f * s, 10, 1, 1, wood, 255, true);                           // the trunk they hang on
+        float[][] decks = {{-.55f, .75f}, {-1.25f, 1.05f}, {-1.95f, 1.35f}, {-2.6f, .8f}};            // {height, radius}
+        for (int d = 0; d < decks.length; d++) { float y = decks[d][0] * s, r = decks[d][1] * s;
+            frustum(y - .07f * s, y, r * .96f, r, 20, 1, 1, d % 2 == 0 ? blue : wd2, 255, true);        // the deck
+            frustum(y, y + .05f * s, r, r * .2f, 20, 1, 1, cream, 255, false);                          // its boards rising to the trunk
+            push(); tr(0, y + .26f * s, 0); rX(PI / 2); torus(0, 0, 0, r, r, .022f * s, 24, 3, 0, TAU, brass, 255); pop();   // the rail
+            for (int k = 0; k < 12; k++) { float a = k * TAU / 12; box(gc(a) * r, y + .15f * s, gs(a) * r, .014f * s, .13f * s, .014f * s, brass, 255); }
+            if (d < 3) { frustum(y + .3f * s, y + .55f * s, r * .45f, r * .38f, 12, 1, 1, cream, 255, true); for (int k = 0; k < 8; k++) { float a = k * TAU / 8; box(gc(a) * r * .44f, y + .42f * s, gs(a) * r * .44f, .04f * s, .07f * s, .04f * s, 0x40C8FF, 255); } }   // a round cabin with windows
+        }
+        frustum(-2.95f * s, -2.67f * s, .05f * s, .8f * s, 14, 1, 1, wood, 255, true); sphere(0, -3.0f * s, 0, .09f * s, .09f * s, .09f * s, 4, 6, brass, 255);
+        pop();
+        for (int k = -2; k <= 2; k++) for (int sd = -1; sd <= 1; sd += 2) { float[][] ln = {v3(k * .8f * s, -1.3f * s, sd * .7f * s), v3(.2f * s + k * .3f * s, -2.0f * s, sd * .75f * s)}; tube(ln, .012f * s, .012f * s, 0xC8B890); }   // stays
     }
     /** An airship carrying guns: small armoured gun turrets slung under both flanks of the hull and a heavy dorsal turret, the barrels swinging a little. */
     private void gunAirship(float s, int pairs) {

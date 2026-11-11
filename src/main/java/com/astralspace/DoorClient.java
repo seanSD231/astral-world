@@ -49,6 +49,7 @@ public final class DoorClient {
         if (mc.level == null || mc.player == null) return;
         while (KEY.consumeClick()) if (mc.screen == null) PacketDistributor.sendToServer(new DoorNet.Key());
         WornClient.tick(mc);
+        DemonessLook.tick(mc);
         if (mc.player.tickCount % 10 == 0) for (AbstractClientPlayer p : mc.level.players()) WORN.put(p.getUUID(), !DoorEyes.findEyes(p).isEmpty());
     }
 
