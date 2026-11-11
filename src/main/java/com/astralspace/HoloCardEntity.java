@@ -113,8 +113,13 @@ public class HoloCardEntity extends Entity {
     /** Lord of Mysteries: seven real seats round the table (scale of one chair in S units, ring radius in S units, first angle) and the Fool at Seq 1: eight chairs round a round table. HoloRenderer draws from the same numbers. */
     public static final float LOM_CHAIR = .9f, LOM_RING = 4.35f, LOM_PHASE = .2f, LOM_S = 2.35f;
     public static final float F1_R = 9f, F1_S = 1.7f;
+    /** Lord of Mysteries' long table, in blocks, in the quarter-turn frame (x right, the table running away along -z from the card): half width, half length, centre z, the side seats' x and spacing, the head seat's z. */
+    public static final float LOM_TW = 1.9f, LOM_TL = 7.6f, LOM_TZC = -9.9f, LOM_SX = 3.3f, LOM_SZ = 4.7f, LOM_HEAD = 2.1f;
+    /** Door Seq 0: six doors in a ring (radius as a share of the scene's 11 blocks, first angle); walking into one brings you out of another. */
+    public static final float DOOR_RING = .72f, DOOR_PHASE = .26f;
+    private final java.util.Map<java.util.UUID, Long> doorCd = new java.util.HashMap<>();
     /** The hall's layout in hall units (times HALL_K for blocks): table centre z and half length, half width, the side chairs' x and pitch. The renderer draws from the same numbers. */
-    public static final float HALL_ZC = -14.2f, HALL_HL = 13.0f, HALL_W = 1.2f, HALL_SX = 2.0f, HALL_PITCH = 2.4f, HALL_Z0 = -3.7f, HALL_CHAIR = .9f, HALL_HEAD = 1.3f;
+    public static final float HALL_ZC = -13.75f, HALL_HL = 13.0f, HALL_W = 1.2f, HALL_SX = 2.0f, HALL_PITCH = 2.4f, HALL_Z0 = -3.25f, HALL_CHAIR = .9f, HALL_HEAD = .85f;
     private void spawnHall() {
         int k = throneQuarter(); float K = HALL_K;
         double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));
@@ -156,39 +161,76 @@ public class HoloCardEntity extends Entity {
             level().addFreshEntity(tp);
         }
     }
-    /** The River of Eternal Darkness: its centre line and half-width at distance x along it (the renderer draws the same river), and the stone bridge across it as rows of solid blocks {local x, local z, bottom, top}. */
-    public static float riverZ(float x) { float R = 12f; return R * .22f * (float) Math.sin(x / (R * 1.1f) * 2f + 1f) + R * .06f * (float) Math.sin(x / (R * .45f)); }
-    public static float riverW(float x) { return 6.2f * 2.35f * 1.5f * (.85f + .2f * (float) Math.sin(x * .3f + 2f)); }
-    public static final float BOAT_X = -7f;
-    public static final float BRIDGE_X = 3f, BRIDGE_ROW = 1.5f;
+    /** The River of Eternal Darkness is a ring round the scene: its centre line's radius and its half width at an angle (the renderer draws the same river),
+     *  the rowboat's angle at a game time (it sails the whole loop, on both sides alike), the rocks in it and the stone bridge across it at angle 0 (along +x). */
+    public static final float RIV_R = 34f, RIV_HW = 5.5f, BRIDGE_ROW = 1.5f;
+    public static float rivR(double th) { return RIV_R + 1.6f * (float) Math.sin(3 * th + .7); }
+    public static float rivHW(double th) { return RIV_HW * (1f + .12f * (float) Math.sin(5 * th + 1)); }
+    public static double boatTheta(double time) { return time * .0035; }
+    private static float rnd(int k, int s) { double v = Math.sin(k * 127.1 + s * 311.7) * 43758.5453; return (float) (v - Math.floor(v)); }
+    /** {angle, radius, size} */
+    public static java.util.List<float[]> riverRocks() {
+        java.util.List<float[]> l = new java.util.ArrayList<>();
+        for (int k = 0; k < 14; k++) { double th = .5 + k * (Math.PI * 2 - 1.0) / 14 + rnd(k, 1) * .2; float sd = k % 2 == 0 ? 1 : -1; l.add(new float[]{(float) th, rivR(th) + sd * rivHW(th) * (.45f + .35f * rnd(k, 2)), .9f + 1.1f * rnd(k, 3)}); }   // near the banks, so the boat's channel stays clear
+        return l;
+    }
+    /** {x, z, bottom, top}: two files of blocks, a low arch with a hollow under its middle for the boat. */
     public static java.util.List<float[]> bridgeRows() {
         java.util.List<float[]> rows = new java.util.ArrayList<>();
-        float z0 = riverZ(BRIDGE_X), half = riverW(BRIDGE_X) * .7f; int n = (int) Math.ceil(2 * half / BRIDGE_ROW);
+        float rc = rivR(0), half = rivHW(0) * 1.3f; int n = (int) Math.ceil(2 * half / BRIDGE_ROW);
         for (int j = 0; j < n; j++) {
-            float z = z0 - half + (j + .5f) * BRIDGE_ROW, u = (z - z0) / half, top = .35f + (1f - u * u) * 1.45f, bot = Math.abs(u) < .6f ? top - .45f : 0f;
-            for (int c = -1; c <= 1; c += 2) rows.add(new float[]{BRIDGE_X + c * BRIDGE_ROW / 2, z, bot, top});
+            float x = rc - n * BRIDGE_ROW / 2f + (j + .5f) * BRIDGE_ROW, u = (x - rc) / (n * BRIDGE_ROW / 2f), top = .35f + (1f - u * u) * 1.6f, bot = Math.abs(u) < .62f ? top - .4f : 0f;
+            for (int c = -1; c <= 1; c += 2) rows.add(new float[]{x, c * BRIDGE_ROW / 2, bot, top});
         }
         return rows;
     }
     private void spawnBridge() {
-        int k = throneQuarter(); double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));
         for (float[] q : bridgeRows()) {
-            double wx = q[0] * c + q[1] * sn, wz = -q[0] * sn + q[1] * c;
             ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
             tp.setup(getUUID(), BRIDGE_ROW, q[3] - q[2], false);
-            tp.setPos(getX() + wx, getY() + q[2], getZ() + wz);
+            tp.setPos(getX() + q[0], getY() + q[2], getZ() + q[1]);
             level().addFreshEntity(tp);
         }
-        double bz = riverZ(BOAT_X), bwx = BOAT_X * c + bz * sn, bwz = -BOAT_X * sn + bz * c;   // the rowboat's bench is a real seat
-        ThronePart seat = new ThronePart(ThronePart.TYPE.get(), level());
-        seat.setup(getUUID(), 1.0f, .45f, true);
-        seat.setPos(getX() + bwx, getY() + .1, getZ() + bwz);
+        for (float[] r : riverRocks()) {   // the rocks are solid
+            ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
+            tp.setup(getUUID(), r[2] * 1.5f, r[2] * .62f, false);
+            tp.setPos(getX() + Math.cos(r[0]) * r[1], getY(), getZ() + Math.sin(r[0]) * r[1]);
+            level().addFreshEntity(tp);
+        }
+        ThronePart seat = new ThronePart(ThronePart.TYPE.get(), level());   // the rowboat's bench: a real seat that sails the river
+        seat.setup(getUUID(), .9f, .5f, true);
+        seat.setBoat(getX(), getY(), getZ());
         level().addFreshEntity(seat);
     }
     private void spawnThrone() {
         if (goo() == 2) { spawnBridge(); return; }
-        if (goo() == 0) { spawnRing(7, LOM_RING * LOM_S, LOM_PHASE, LOM_CHAIR * LOM_S); return; }
-        if (pathIndex() == 18 && seq() == 1) { float k = F1_S * .55f; spawnRing(8, F1_R * .34f + 1.7f * k, (float) Math.PI / 8, k); return; }
+        if (goo() == 0) {   // the long table (walk on it, lay things on it) and its seven seats
+            int k = throneQuarter(); double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2)); float kc = LOM_CHAIR * LOM_S;
+            java.util.List<float[]> parts = new java.util.ArrayList<>();   // {x, z, side, height, kind (1 seat, 2 table)}
+            for (int i = 0; i < 4; i++) parts.add(new float[]{0, LOM_TZC - LOM_TL + LOM_TW + i * 2 * LOM_TW, 2 * LOM_TW, .8f * kc, 2});
+            for (int sd = -1; sd <= 1; sd += 2) for (int j = -1; j <= 1; j++) parts.add(new float[]{sd * LOM_SX, LOM_TZC + j * LOM_SZ, .8f * kc, .5f * kc, 1});
+            parts.add(new float[]{0, LOM_HEAD, .88f * kc, .55f * kc, 1});
+            for (float[] q : parts) {
+                ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
+                tp.setup(getUUID(), q[2], q[3], q[4] == 1); if (q[4] == 2) tp.setTable();
+                tp.setPos(getX() + q[0] * c + q[1] * sn, getY(), getZ() - q[0] * sn + q[1] * c);
+                level().addFreshEntity(tp);
+            }
+            return;
+        }
+        if (pathIndex() == 18 && seq() == 1) {   // the round table (HoloRenderer.foolTable: radius R * .42, chairs 1.7 k beyond it, k = S * .6) with its eight seats, and the table top itself to walk on and lay things on
+            float k = F1_S * .6f, tr0 = F1_R * .42f, cell = tr0 * 2 / 6;
+            spawnRing(8, tr0 + 1.7f * k, (float) Math.PI / 8, k);
+            for (int ix = 0; ix < 6; ix++) for (int iz = 0; iz < 6; iz++) {
+                float x = -tr0 + cell * (ix + .5f), z = -tr0 + cell * (iz + .5f);
+                if (x * x + z * z > (tr0 + cell * .2f) * (tr0 + cell * .2f)) continue;
+                ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
+                tp.setup(getUUID(), cell, .84f * k, false); tp.setTable();
+                tp.setPos(getX() + x, getY(), getZ() + z);
+                level().addFreshEntity(tp);
+            }
+            return;
+        }
         if (pathIndex() == 18) { spawnHall(); return; }
         float s = .95f * (seq() == 0 ? 2.1f : 1.15f);
         int k = throneQuarter();
@@ -208,10 +250,32 @@ public class HoloCardEntity extends Entity {
         }
     }
 
+    /** Door Seq 0: whoever walks into one of the six doors steps out of another, picked at random. */
+    private void doorways() {
+        double rr = 11.0 * DOOR_RING; long now = level().getGameTime();
+        for (Player pl : level().getEntitiesOfClass(Player.class, getBoundingBox().inflate(rr + 3, 4, rr + 3))) {
+            Long cd = doorCd.get(pl.getUUID());
+            if (cd != null && now < cd) continue;
+            for (int i = 0; i < 6; i++) {
+                double a = i * Math.PI / 3 + DOOR_PHASE, dx = getX() + Math.cos(a) * rr, dz = getZ() + Math.sin(a) * rr;
+                if (Math.abs(pl.getY() - getY()) > 3 || (pl.getX() - dx) * (pl.getX() - dx) + (pl.getZ() - dz) * (pl.getZ() - dz) > .8 * .8) continue;
+                int j = (i + 1 + random.nextInt(5)) % 6; double b = j * Math.PI / 3 + DOOR_PHASE;
+                boolean inward = (pl.getX() - getX()) * (pl.getX() - getX()) + (pl.getZ() - getZ()) * (pl.getZ() - getZ()) < rr * rr;   // going out: come out the far side of the other door, and the other way round
+                double er = rr + (inward ? 1.7 : -1.7), tx = getX() + Math.cos(b) * er, tz = getZ() + Math.sin(b) * er;
+                float yaw = (float) Math.toDegrees(Math.atan2(-(Math.cos(b) * (inward ? 1 : -1)), Math.sin(b) * (inward ? 1 : -1)));
+                if (pl instanceof net.minecraft.server.level.ServerPlayer sp) sp.teleportTo((net.minecraft.server.level.ServerLevel) level(), tx, getY(), tz, yaw, pl.getXRot());
+                level().playSound(null, tx, getY(), tz, net.minecraft.sounds.SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.PLAYERS, .7f, 1.5f);
+                doorCd.put(pl.getUUID(), now + 30);
+                break;
+            }
+        }
+    }
+
     @Override
     public void tick() {
         super.tick();
         if (!level().isClientSide && tickCount == 2 && hasThrone()) spawnThrone();
+        if (!level().isClientSide && goo() < 0 && pathIndex() == 1 && seq() == 0 && !symbolOnly()) doorways();
         // if the block under the card is broken, the card drops as an item instead of floating
         if (!level().isClientSide && tickCount % 10 == 0 && level().getBlockState(blockPosition().below()).isAir() && level().getBlockState(blockPosition()).isAir()) {
             level().addFreshEntity(new ItemEntity(level(), getX(), getY() + .2, getZ(), realPath.isEmpty() ? Tarot.makeCard(pathway(), seq(), shiny()) : Tarot.makeCard(realPath, realSeq, realShiny)));

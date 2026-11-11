@@ -32,7 +32,19 @@ public class ThronePart extends Entity {
     private static final EntityDataAccessor<Boolean> SEAT = SynchedEntityData.defineId(ThronePart.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> TBL = SynchedEntityData.defineId(ThronePart.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> OCC = SynchedEntityData.defineId(ThronePart.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> SAILS = SynchedEntityData.defineId(ThronePart.class, EntityDataSerializers.BOOLEAN);
     private UUID parent;
+    private double bx, by, bz;
+
+    /** Makes this seat the bench of the rowboat on the River of Eternal Darkness round this centre: it sails the loop, the same on server and client (both work it out from the game time). */
+    public void setBoat(double x, double y, double z) {
+        bx = x; by = y; bz = z; entityData.set(SAILS, true);
+        setPos(x, y, z); sail();
+    }
+    private void sail() {
+        double th = HoloCardEntity.boatTheta(level().getGameTime()), r = HoloCardEntity.rivR(th);
+        setPos(bx + Math.cos(th) * r, by + .08, bz + Math.sin(th) * r);
+    }
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, AstralMod.MOD_ID);
     public static final DeferredHolder<EntityType<?>, EntityType<ThronePart>> TYPE = ENTITIES.register("throne_part", () ->
@@ -48,7 +60,7 @@ public class ThronePart extends Entity {
         refreshDimensions();
     }
 
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(W, 1f); b.define(H, 1f); b.define(SEAT, false); b.define(TBL, false); b.define(OCC, -1); }
+    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(W, 1f); b.define(H, 1f); b.define(SEAT, false); b.define(TBL, false); b.define(OCC, -1); b.define(SAILS, false); }
     @Override public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
         if (key == W || key == H) refreshDimensions();
         super.onSyncedDataUpdated(key);
@@ -126,6 +138,12 @@ public class ThronePart extends Entity {
     @Override
     public void tick() {
         super.tick();
+        if (entityData.get(SAILS)) {
+            if (level().isClientSide && bx == 0 && bz == 0) {   // the client finds the river's centre: the nearest River card (its own first position is somewhere on the loop)
+                for (HoloCardEntity c : level().getEntitiesOfClass(HoloCardEntity.class, getBoundingBox().inflate(60, 8, 60), q -> q.goo() == 2)) { bx = c.getX(); by = c.getY(); bz = c.getZ(); }
+            }
+            if (bx != 0 || bz != 0) sail();
+        }
         if (!level().isClientSide && entityData.get(SEAT) && tickCount % 5 == 0) {
             int v = -1;
             if (getFirstPassenger() instanceof net.minecraft.server.level.ServerPlayer sp) v = java.util.Arrays.asList(Tarot.PATHWAYS).indexOf(Lotm.pathwayId(sp));

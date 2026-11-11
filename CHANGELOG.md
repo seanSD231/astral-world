@@ -2,6 +2,23 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.206
+- Shiny: the black is now part of the effect, not a shadow: a crisp black plate rimmed in gold exactly under the rings, every pathway symbol a gold emblem on a black disc, and rings in the air backed in black.
+- Pathway symbols redrawn at 3x resolution with crisp edges (same look, no blur; tools/art/sharpen_syms.py).
+- Spectator Seq 0: smaller quill; shiny scene uses the shiny card art; card rows no longer clip; cards show their real backs; the finale is now ten seconds of coloured pillars, rings and light before the cards are flung out and it resets.
+- Black Emperor: the crown's band and plates are black (and the small crowns have black velvet); Seq 1/0 spikes are tall and black again.
+- Hanged Man Seq 4/2 use LOTM's own Bearing of Sins effects. Warrior Seq 2: small swords circle it instead of shards.
+- Demoness Seq 1: no mirror, no fog; Seq 0: smaller hats and potions, only a breath of mist.
+- Apothecary Seq 1/0: the shelves are gone; vampires' coffins standing ajar and altars with a turning crimson crescent over moonflowers.
+- Sailor: the symbol sits clear above the trident; Seq 0 has far less fog and spray. Paragon Seq 0: the water is redone (the pale cap that hid it is gone): deep water in a stone quay with currents, ripples and glints.
+- Fool Seq 1: the round table is solid (walk on it, lay things on it) and the chairs are where the seats are (they were misplaced, so you could not sit); thin fog at player level. Mystery Pryer: the orb no longer dips into the floor.
+- Marauder: Worms of Time as described in the books: small translucent worms of twelve clear rings.
+- Door Seq 0: the ring of doors stands still and the light in each doorway no longer turns; walking into a door brings you out of another one at random.
+- Monster Seq 0: no extra wheels or big dice, a cloud of small dice instead. Planter Seq 0: the spiky things were my butterflies (drawn with a wing texture); they are small two-winged butterflies now.
+- Fool Seq 0 and Lord of Mysteries: chairs and table remodelled after the reference scenes (block seats with tall framed backs, the Fool's with a spire; a long patinated bronze table with a border and sunk panels). Fool Seq 0: a far smaller sky sphere centred on the hall, soft nebula (no cloud edges), more fog, bright and dim and red lights, the head chair close to the table. Lord of Mysteries: the same long table with seven real seats, ten doors all facing the table, the ring of 22 symbols removed.
+- River of Eternal Darkness: the river is a loop round the whole scene; one unbroken ribbon of water and banks (no splitting strips); a whole rowboat (no holes) sails the loop and you can ride it; the rocks are solid; the bridge no longer z-fights or meets a tombstone.
+- Untested in game.
+
 ## 0.2.205
 - Uniqueness abilities now cost spirituality (shown on each tooltip; refunded if the ability does nothing).
 - Seq 1/0 forms, for someone of that item's own pathway at Sequence 1 or 0: Quill half cost and half cooldown; Doll goes to every nearby enemy, appears beside it after a second and stuns for 5; Wheel has three times the luck; Writhing Shadows 1.5x bigger, double damage, 2 s stun, then bleed, twilight, slowness and darkness for 5 s; Eyes of the Door step you 20 blocks clear (sneak: to the target) and the last blast lights a second, greater round; Sun has five larger suns in a wider fan and then six more around you (each hits less hard); Feathered Serpent only strikes enemies, 50 blocks, 30% of max health, Slowness III; Sword of Twilight calls a barrage of small swords from every side (twilight and stun), then a far larger sword with five times the ground, heavy damage and 25% ageing, and heavier basic attacks; Ball of Lightning hits much harder over ten times the ground, lasts 9 s, lets no player out and blinds for half a second every three.
