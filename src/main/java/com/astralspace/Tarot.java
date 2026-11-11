@@ -169,9 +169,15 @@ public final class Tarot {
         public Component getName(ItemStack stack) {
             CompoundTag t = tag(stack);
             if (!t.contains("pathway")) return Component.literal("Tarot Card (temp)").withStyle(ChatFormatting.LIGHT_PURPLE);
-            if (gooIndex(t.getString("pathway")) >= 0) return Component.literal("Great Old One - " + GOO_NAMES[gooIndex(t.getString("pathway"))]).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD);
-            int seq = Math.max(0, Math.min(9, t.getInt("seq")));
-            return Component.literal((t.getBoolean("shiny") ? "Shiny " : "") + pretty(t.getString("pathway")) + " - Seq " + seq).withStyle(RARITY_COLOR[seq]);
+            boolean mim = canMimic(t) && t.contains("mimicPath") && !t.getString("mimicPath").isEmpty();   // wearing another card's face: its name too, in a slightly different shade
+            String pw = mim ? t.getString("mimicPath") : t.getString("pathway");
+            if (gooIndex(pw) >= 0) return Component.literal("Great Old One - " + GOO_NAMES[gooIndex(pw)]).withStyle(mim ? net.minecraft.network.chat.Style.EMPTY.withBold(true).withColor(net.minecraft.network.chat.TextColor.fromRgb(0xDCDCEC)) : net.minecraft.network.chat.Style.EMPTY.withBold(true).withColor(ChatFormatting.WHITE));
+            int seq = Math.max(0, Math.min(9, mim ? t.getInt("mimicSeq") : t.getInt("seq")));
+            Component nm = Component.literal((t.getBoolean("shiny") ? "Shiny " : "") + pretty(pw) + " - Seq " + seq);
+            if (!mim) return nm.copy().withStyle(RARITY_COLOR[seq]);
+            Integer col = RARITY_COLOR[seq].getColor(); int c = col == null ? 0xFFFFFF : col;
+            int r2 = Math.min(255, (int) (((c >> 16) & 255) * .88f + 14)), g2 = Math.min(255, (int) (((c >> 8) & 255) * .88f + 10)), b2 = Math.min(255, (int) ((c & 255) * .88f + 22));
+            return nm.copy().withStyle(net.minecraft.network.chat.Style.EMPTY.withColor(net.minecraft.network.chat.TextColor.fromRgb((r2 << 16) | (g2 << 8) | b2)));
         }
 
         @Override public boolean isFoil(ItemStack stack) { return tag(stack).getBoolean("shiny") || super.isFoil(stack); }
@@ -215,7 +221,7 @@ public final class Tarot {
                 return InteractionResultHolder.success(st);
             }
             if (!level.isClientSide && player instanceof ServerPlayer sp && t.contains("pathway"))
-                net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new Net.PackPayload("view", t.getString("pathway") + ":" + t.getInt("seq") + ":" + (t.getBoolean("shiny") ? 1 : 0)));
+                net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new Net.PackPayload("view", (canMimic(t) && t.contains("mimicPath") && !t.getString("mimicPath").isEmpty() ? t.getString("mimicPath") + ":" + t.getInt("mimicSeq") : t.getString("pathway") + ":" + t.getInt("seq")) + ":" + (t.getBoolean("shiny") ? 1 : 0)));
             return InteractionResultHolder.success(st);
         }
 

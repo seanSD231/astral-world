@@ -135,8 +135,8 @@ write('fool_hall_fog', [
 
 # ---- Seer: a smaller, paler mist with a few drifting lights (unit = the scene's radius)
 write('seer_fog', [
-    emitter('mist #area', PUFF, ((0x4A4F68, .4), (0x606890, .3)), (.3, .55), (40, 70), rate=14, maxp=500, radius=1.0, sscale=(1, .12, 1), speed=(.001, .004), lin=(.003, .002, 0), noise=(.03, .25), pos=(0, .06, 0)),
-    emitter('high mist #area', PUFF, (0x707AA0, .12), (.6, 1.0), (50, 90), rate=5, maxp=180, radius=1.1, sscale=(1, .45, 1), speed=(.001, .003), lin=(-.003, .002, 0), noise=(.04, .2), pos=(0, .3, 0)),
+    emitter('mist #area', PUFF, ((0x666C8C, .4), (0x7C86AE, .3)), (.3, .55), (40, 70), rate=14, maxp=500, radius=1.0, sscale=(1, .12, 1), speed=(.001, .004), lin=(.003, .002, 0), noise=(.03, .25), pos=(0, .3, 0)),
+    emitter('high mist #area', PUFF, (0x8A94BC, .12), (.6, 1.0), (50, 90), rate=5, maxp=180, radius=1.1, sscale=(1, .45, 1), speed=(.001, .003), lin=(-.003, .002, 0), noise=(.04, .2), pos=(0, .6, 0)),
     emitter('lights #detail', GLOW, ((0xE8D0FF, .6), (0xB0C8FF, .5)), (.012, .03), (60, 110), rate=.4, maxp=70, radius=1.0, sscale=(1, .5, 1), pos=(0, .3, 0), lin=(0, .002, 0), noise=(.02, .3), add=True),
     emitter('motes #detail', EMBER, (0xFFFFFF, .8), (.004, .01), (60, 100), rate=.7, maxp=110, radius=1.0, sscale=(1, .5, 1), pos=(0, .3, 0), lin=(0, .002, 0), noise=(.02, .3), add=True),
 ])
@@ -167,7 +167,7 @@ write('light_motes', [
 write('calamity_embers', [
     light('fire light', 0xFF6A20, 5.0, 5, vol=.8),
     emitter('embers #area', EMBER, ((0xFF4A10, .95), (0xFFC060, .95)), (.02, .05), (20, 50), rate=4, maxp=400, radius=.7, sscale=(1, .3, 1), speed=(.01, .04), lin=(0, .03, 0), add=True),
-    emitter('smoke #area', PUFF, (0x1A0A08, .4), (.4, .8), (50, 90), rate=3, maxp=200, radius=.6, sscale=(1, .3, 1), speed=(.002, .01), lin=(0, .02, 0)),
+    emitter('smoke #area', PUFF, (0x1A0A08, .18), (.3, .6), (40, 70), rate=1, maxp=50, radius=.6, sscale=(1, .3, 1), speed=(.002, .01), lin=(0, .02, 0)),
 ])
 
 # ---- Anarchy: spark shards thrown out, dust, a flicker of light
@@ -221,4 +221,11 @@ write('twilight_wave', [
     light('wave light', 0xFF9A50, 3.0, 6),
     emitter('wake #area', GLOW, ((0xFF9040, .8), (0x9A60FF, .8)), (.4, .9), (10, 22), rate=6, maxp=80, radius=1.2, thick=1.0, sscale=(1, 1, 1), speed=(.002, .01), noise=(.04, .3), add=True),
     emitter('sparks #area', EMBER, ((0xFFE0A0, .95), (0xD0A0FF, .95)), (.05, .12), (14, 30), rate=5, maxp=90, radius=1.3, thick=.6, speed=(.004, .02), noise=(.03, .4), add=True),
+])
+
+# ---- Waterspout: a tall spinning column of spray and mist (unit = height)
+write('waterspout', [
+    emitter('spray #area', PUFF, ((0xBFE4FF, .5), (0x7FB8E8, .45)), (.08, .16), (30, 50), rate=9, maxp=500, radius=1.0, sscale=(.1, .5, .1), speed=(.002, .008), lin=(0, .02, 0), noise=(.04, .3), pos=(0, .5, 0)),
+    emitter('drops #detail', EMBER, (0xE8F6FF, .9), (.006, .014), (30, 60), rate=5, maxp=200, radius=1.0, sscale=(.12, .5, .12), speed=(.002, .01), lin=(0, .015, 0), noise=(.05, .3), pos=(0, .5, 0), add=True),
+    emitter('foot foam #area', PUFF, (0xEAF6FF, .45), (.15, .28), (30, 50), rate=3, maxp=120, radius=.4, sscale=(1, .2, 1), speed=(.003, .01), pos=(0, .03, 0)),
 ])

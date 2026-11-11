@@ -114,7 +114,7 @@ public class HoloCardEntity extends Entity {
     public static final float LOM_CHAIR = .9f, LOM_RING = 4.35f, LOM_PHASE = .2f, LOM_S = 2.35f;
     public static final float F1_R = 9f, F1_S = 1.7f;
     /** The hall's layout in hall units (times HALL_K for blocks): table centre z and half length, half width, the side chairs' x and pitch. The renderer draws from the same numbers. */
-    public static final float HALL_ZC = -12.4f, HALL_HL = 13.0f, HALL_W = 1.2f, HALL_SX = 2.0f, HALL_PITCH = 2.4f, HALL_Z0 = -1.9f, HALL_CHAIR = .9f, HALL_HEAD = 2.0f;
+    public static final float HALL_ZC = -15.0f, HALL_HL = 13.0f, HALL_W = 1.2f, HALL_SX = 2.0f, HALL_PITCH = 2.4f, HALL_Z0 = -3.4f, HALL_CHAIR = .9f, HALL_HEAD = 2.6f;
     private void spawnHall() {
         int k = throneQuarter(); float K = HALL_K;
         double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));

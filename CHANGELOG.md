@@ -2,6 +2,20 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.203
+- Fool Seq 1: the fog is further out and higher and slightly lighter. Fool Seq 0: much smaller sky sphere, the table moved away from the card (the card sits on the floor, easy to pick up), and a cleaner table.
+- Sleepless Seq 1/0: a dark haze and fog puffs now cover the whole floor.
+- Apothecary Seq 1/0: shelved apothecary cabinets of glowing bottles fill the empty space; Seq 0 cauldron smaller and mushrooms no longer clip it.
+- Demoness Seq 1: decluttered (fewer roses/arches/petals, no hats, broom or extra bottles; those stay at Seq 0). Player model change still not done.
+- Arbiter Seq 0: gavel moved out of the scales. Door Seq 0 and Lord of Mysteries: LOTM door models. Lord of Mysteries table is now a smooth round annulus table and the fog is denser.
+- Marauder Seq 1/0: a slowly turning clock with cogs and smooth crawling worms (no glitching). Shiny Marauder draws solid black error lines.
+- Paragon Seq 1 orb lifted by one block. Hanged Man Seq 0 rainbow swirl centred on the cross. Chained Seq 0 locks and rings no longer clip the cage.
+- Wheel of Fortune Seq 0: smaller dice and small wheels turning around the big one. Mystery Pryer Seq 0: ring of tall gilded mirrors. Planter Seq 0: fewer flowers (less lag) plus fluttering butterflies. Sailor Seq 0: waterspouts are now Photon effects.
+- Goddess of Origin: branches fork three ways and carry real leaves. Key of Light: halos removed, coloured light everywhere. Calamity: much less smoke. Almighty: stands clear of the card, small beam on the card.
+- Demon of Knowledge: a water moat all the way round with an armada of steamships (replaces the floating ghost steamers).
+- Marauder error card disguise: right click view and item name now show the mimicked card (name in a slightly different shade).
+- Untested in game.
+
 ## 0.2.202
 - Shiny cards are now truly gold and black: every texture (pathway symbols, sprites, LOTM models) is converted to brightness only and tinted gold, so no more orange/green/yellow-green shinies, and a solid black base sits under every shiny scene so the gold has black to contrast against.
 - Sword of Twilight right click redone: Twilight Verdict. Eight crescents converge on where you look, a colossal blade falls, and a field of dusk lingers for ~3 seconds dragging in and burning everything inside (long cooldown).
