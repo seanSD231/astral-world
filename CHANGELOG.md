@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.200
+- God Almighty and the Goddess of Origin now stand away from the card like the White Tower. Almighty's four pillars reach the ground. The Goddess's tree is vastly bigger, with massive forking limbs, leaves of many colours, hundreds of glowing lights, shafts of coloured light and fireflies.
+- Father of Devils: a dark dome, a great shell of hellfire round the maw, heavy chains binding it to the ground and a crown of horns.
+- Calamity of Destruction: the meteors hang in the sky instead of falling, and the ruin is full of burning roses, a giant bloom, blood petals and craters (more Demoness).
+- Key of Light redone: the veil and crystals are gone; seven spectrum halos turn up the length of the great key with beams of every colour.
+- Lord of Mysteries: the white platform and the great door are removed.
+- River of Eternal Darkness: much longer and wider, a real stone bridge you can walk over (a hollow arch for the boat), a rowboat with a lantern and a hooded boatman drifting downriver, a darker mist, and a small beam above the card so you can find it.
+- Untested in game.
+
 ## 0.2.199
 - Secrets Supplicant / Hanged Man: Seq 0 cross now stands back from the card so the card can be picked up, the grey curtains (white lines and eyes) are gone, the rainbow floor is much bigger and the pathway symbol hangs in front instead of inside the cross; Seq 1 loses its big orb; the Seq 2 hanging symbol is higher.
 - Demoness: wings and thorn vines removed; now a scene of beauty and witchcraft with a tall rose-framed mirror, witch hats, a broom and perfume bottles.

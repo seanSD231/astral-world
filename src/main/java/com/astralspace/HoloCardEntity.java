@@ -100,7 +100,7 @@ public class HoloCardEntity extends Entity {
 
     /** Throne holograms (Death and Black Emperor, Seq 1 and 0) turn in quarter turns so their solid parts line up with the model. */
     public int throneQuarter() { return (int) Math.round((Math.PI - Math.toRadians(getYRot())) / (Math.PI / 2)); }
-    public boolean hasThrone() { return !symbolOnly() && (goo() == 0 || goo() < 0 && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8 || pathIndex() == 18)); }
+    public boolean hasThrone() { return !symbolOnly() && (goo() == 0 || goo() == 2 || goo() < 0 && seq() <= 1 && (pathIndex() == 5 || pathIndex() == 8 || pathIndex() == 18)); }
 
     /** Real, solid boxes matching HoloRenderer.throneModel (s = .95 * scale): three steps, seat, armrests and the back. */
     /** The Fool's hall: twenty-two seats you can sit in and the long table under the card, matching HoloRenderer.foolHall (local x right, z toward you). */
@@ -152,7 +152,31 @@ public class HoloCardEntity extends Entity {
             level().addFreshEntity(tp);
         }
     }
+    /** The River of Eternal Darkness: its centre line and half-width at distance x along it (the renderer draws the same river), and the stone bridge across it as rows of solid blocks {local x, local z, bottom, top}. */
+    public static float riverZ(float x) { float R = 12f; return R * .22f * (float) Math.sin(x / (R * 1.1f) * 2f + 1f) + R * .06f * (float) Math.sin(x / (R * .45f)); }
+    public static float riverW(float x) { return 6.2f * 2.35f * 1.5f * (.85f + .2f * (float) Math.sin(x * .3f + 2f)); }
+    public static final float BRIDGE_X = 3f, BRIDGE_ROW = 1.5f;
+    public static java.util.List<float[]> bridgeRows() {
+        java.util.List<float[]> rows = new java.util.ArrayList<>();
+        float z0 = riverZ(BRIDGE_X), half = riverW(BRIDGE_X) * .7f; int n = (int) Math.ceil(2 * half / BRIDGE_ROW);
+        for (int j = 0; j < n; j++) {
+            float z = z0 - half + (j + .5f) * BRIDGE_ROW, u = (z - z0) / half, top = .35f + (1f - u * u) * 1.45f, bot = Math.abs(u) < .6f ? top - .45f : 0f;
+            for (int c = -1; c <= 1; c += 2) rows.add(new float[]{BRIDGE_X + c * BRIDGE_ROW / 2, z, bot, top});
+        }
+        return rows;
+    }
+    private void spawnBridge() {
+        int k = throneQuarter(); double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));
+        for (float[] q : bridgeRows()) {
+            double wx = q[0] * c + q[1] * sn, wz = -q[0] * sn + q[1] * c;
+            ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
+            tp.setup(getUUID(), BRIDGE_ROW, q[3] - q[2], false);
+            tp.setPos(getX() + wx, getY() + q[2], getZ() + wz);
+            level().addFreshEntity(tp);
+        }
+    }
     private void spawnThrone() {
+        if (goo() == 2) { spawnBridge(); return; }
         if (goo() == 0) { spawnRing(7, LOM_RING * LOM_S, LOM_PHASE, LOM_CHAIR * LOM_S); return; }
         if (pathIndex() == 18 && seq() == 1) { float k = F1_S * .55f; spawnRing(8, F1_R * .34f + 1.7f * k, (float) Math.PI / 8, k); return; }
         if (pathIndex() == 18) { spawnHall(); return; }

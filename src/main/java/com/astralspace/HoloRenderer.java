@@ -105,7 +105,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void quad(String tex, float cx, float cy, float cz, float ax, float ay, float az, float bx, float by, float bz, int argb) {
         quadUV(tex, cx, cy, cz, ax, ay, az, bx, by, bz, argb, 0, 0, 1, 1);
     }
+    private float offX, offZ;   // a scene that stands away from its card shifts everything by this, absolute quads included
     private void quadUV(String tex, float cx, float cy, float cz, float ax, float ay, float az, float bx, float by, float bz, int argb, float u0, float v0, float u1, float v1) {
+        cx += offX; cz += offZ;
         int a = (argb >> 24) & 255, r = (argb >> 16) & 255, g = (argb >> 8) & 255, b = argb & 255;
         if (a <= 2) return;
         VertexConsumer vc = buf.getBuffer(RenderType.eyes(tex(tex)));
@@ -155,6 +157,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
 
     // ================= solid glowing quads (symbols, panels) and LOTM models =================
     private void eq(ResourceLocation rl, float cx, float cy, float cz, float ax, float ay, float az, float bx, float by, float bz, int argb, float u0, float v0, float u1, float v1) {
+        cx += offX; cz += offZ;
         int a = (argb >> 24) & 255, r = (argb >> 16) & 255, g = (argb >> 8) & 255, b = argb & 255;
         if (a <= 2) return;
         VertexConsumer vc = buf.getBuffer(eqSolid ? RenderType.entityTranslucent(rl) : RenderType.entityTranslucentEmissive(rl));   // emissive writes no depth, so models showed through
@@ -933,7 +936,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         boolean shiny = e.shiny();
         this.buf = bufs; this.mat = ps.last().pose();
         this.t = (e.tickCount + pt) / 20f;
-        clear(); strans = false;
+        clear(); strans = false; offX = 0; offZ = 0;
         boolean symOnly = e.symbolOnly();
         drawCard(e, bufs, light, pi, seq, shiny);
         if (seq >= 6 && !symOnly) return;
@@ -963,7 +966,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float yawR = (float) Math.toRadians(e.getYRot());
         float ffx = -(float) Math.sin(yawR), ffz = (float) Math.cos(yawR);
         float ssx = -ffz, ssz = ffx;
-        float hw = .3f, hl = .45f, y = (e.goo() < 0 && pi == 18 && seq == 0 && !e.symbolOnly()) ? .83f * HK : .03f;
+        float hw = .3f, hl = .45f, y = (e.goo() < 0 && pi == 18 && seq == 0 && !e.symbolOnly()) ? .83f * HK : e.goo() == 2 && !e.symbolOnly() ? .16f : .03f;
         float[][] p = {{-hw, -hl}, {hw, -hl}, {hw, hl}, {-hw, hl}};
         float[][] uv = {{0, 1}, {1, 1}, {1, 0}, {0, 0}};
         for (int k = 0; k < 4; k++)
@@ -992,6 +995,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private int gooDomeRgb;
     private void gooScene(int g) {
         gooBase(g, g == 1 ? 0x100800 : g == 5 ? 0x020A18 : g == 6 ? 0x180804 : g == 3 ? 0x1A0204 : g == 7 ? 0x0C0012 : g == 8 ? 0x020A0C : g == 0 ? 0x08041A : g == 4 ? 0x04041A : 0x010204, 248);
+        offX = 0; offZ = 0;
         switch (g) {
             case 0 -> gooLord(); case 1 -> gooAlmighty(); case 2 -> gooDarkness(); case 3 -> gooCalamity(); case 4 -> gooKnowledge();
             case 5 -> gooKey(); case 6 -> gooGoddess(); case 7 -> gooDevils(); default -> gooAnarchy();
@@ -1025,11 +1029,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int i = 0; i < 7; i++) {
             float a = i * TAU / 7 + HoloCardEntity.LOM_PHASE, rc = HoloCardEntity.LOM_RING * S; push(); tr(gc(a) * rc, 0, gs(a) * rc); rY((float) Math.atan2(-gc(a), -gs(a))); cur.scale(kc, kc, kc); hallChair(0x4A4038, 0x1C1814, 0xE0B860, i == 0); pop();
         }
-        // the great door of light at the far end, on a round dais, with a column of white light rising from it
-        float gzl = -R * .62f, gwx = gx(0, gzl), gwz = gz(0, gzl);
-        for (int k = 0; k < 3; k++) { push(); tr(gwx, 0, gwz); frustum(k * .3f * S, (k + 1) * .3f * S, (4.4f - k * .8f) * S, (4.1f - k * .8f) * S, 24, 1, 1, mix(0x8A8478, 0xFFFFFF, k * .25f), 255, true); pop(); }
-        lomDoor(0, gzl, 5.2f * S, 6.8f * S, gl ? hsv(h(fb, 40), .9f) : 0xFFFFFF, gl ? (h(fb, 41) - .5f) * 1.5f * S : 0f);
-        column("beam", gwx, 0, top * 1.4f, gwz, 2.4f * S, rgba(0xFFFFFF, .18f));
         // the other doors of the mysteries stand around the fog, each its own colour
         for (int i = 0; i < 4; i++) {
             float ang = (i < 2 ? 1f : -1f) * (1.15f + .6f * (i % 2)), lx = R * 1.5f * gs(ang), lz = -R * 1.5f * gc(ang);
@@ -1065,11 +1064,12 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
 
     /** God Almighty: a stepped golden dais with four pillars, a vast armillary around a blazing sun, wings of light spread behind it, rays flaring and the five symbols circling. */
     private void gooAlmighty() {
+        float D = R * .62f; offX = gx(0, -D); offZ = gz(0, -D); tr(offX, 0, offZ);   // stands away from the card, like the White Tower
         for (int k = 0; k < 5; k++) frustum(k * .5f * S, (k + 1) * .5f * S, (4.6f - k * .7f) * S, (4.4f - k * .7f) * S, 28, 1, 1, mix(0x9A6818, 0xFFE070, k / 4f), 255, true);
         for (int i = 0; i < 4; i++) {
-            float a = i * PI / 2 + PI / 4; push(); tr(gc(a) * 3.3f * S, 2.5f * S, gs(a) * 3.3f * S);
-            frustum(0, 5.4f * S, .4f * S, .32f * S, 12, 1, 1, metal(.6f), 255, true); box(0, 5.5f * S, 0, .6f * S, .12f * S, .6f * S, metal(.9f), 255); box(0, -.05f * S, 0, .6f * S, .15f * S, .6f * S, metal(.8f), 255); pop();
-            bb("glow", gc(a) * 3.3f * S, 8.2f * S, gs(a) * 3.3f * S, 2.2f * S, 2.2f * S, 0, rgba(P3, .6f));
+            float a = i * PI / 2 + PI / 4; push(); tr(gc(a) * 3.3f * S, 0f, gs(a) * 3.3f * S);
+            frustum(0, 7.9f * S, .4f * S, .32f * S, 12, 1, 1, metal(.6f), 255, true); box(0, 8.0f * S, 0, .6f * S, .12f * S, .6f * S, metal(.9f), 255); box(0, -.05f * S, 0, .6f * S, .15f * S, .6f * S, metal(.8f), 255); pop();
+            bb("glow", gc(a) * 3.3f * S, 8.3f * S, gs(a) * 3.3f * S, 2.2f * S, 2.2f * S, 0, rgba(P3, .6f));
         }
         float ay = CY + 2.4f * S, ar = 3.6f * S;
         push(); tr(0, ay, 0);
@@ -1100,8 +1100,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         sprites("feather", 30, FALLM, R * .8f, 0, top, 1.1f * S, 0xFFFFFF, 1f, .12f, 54, true); sprites("spark", 60, RISEM, R * .7f, 0, top, .35f * S, 0xFFFFFF, 1f, .3f, 55, true);
     }
 
-    private float riverZ(float x) { return R * .22f * gs(x / (R * 1.1f) * 2f + 1f) + R * .06f * gs(x / (R * .45f)); }
-    private float riverW(float x) { return 6.2f * S * (.85f + .2f * gs(x * .3f + 2f)); }
+    private float riverZ(float x) { return HoloCardEntity.riverZ(x); }
+    private float riverW(float x) { return HoloCardEntity.riverW(x); }
     /** A branching tree: tubes forking recursively, ending in leaf clusters (leaf 0 = bare). */
     private void treeBranch(float x, float y, float z, float ang, float len, float rise, float r0, int depth, int seed, int bark, int leaf, float leafSize) {
         int n = 7; float[][] pts = new float[n][]; float dx = gc(ang), dz = gs(ang);
@@ -1116,7 +1116,13 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
     /** Eternal Darkness: a wide black river winding out of the dark where the dead rest, lit by a pale moon: glimmers sliding down the water, pale banks lined with leaning gravestones, bare dead trees and black reeds. */
     private void gooDarkness() {
-        float len = R * 2.8f; int seg = 96;
+        // the scene is drawn in the throne's quarter-turn frame, so the real blocks of the bridge line up exactly with what you see
+        float q = thQ * PI / 2, oSx = sx0, oSz = sz0, oFx = fx, oFz = fz; sx0 = gc(q); sz0 = -gs(q); fx = -gs(q); fz = -gc(q);
+        gooDarkness2();
+        sx0 = oSx; sz0 = oSz; fx = oFx; fz = oFz;
+    }
+    private void gooDarkness2() {
+        float len = R * 4.2f; int seg = 140;
         for (int i = 0; i < seg; i++) {
             float x0 = (i / (float) seg - .5f) * len, x1 = ((i + 1) / (float) seg - .5f) * len, z0 = riverZ(x0), z1 = riverZ(x1), dx = x1 - x0, dz = z1 - z0, l = (float) Math.sqrt(dx * dx + dz * dz), w = riverW((x0 + x1) / 2) / 2;
             float ux2 = dx / l, uz2 = dz / l, px = -uz2, pz = ux2, mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
@@ -1129,12 +1135,25 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             quad("solid", gx(mx, mz) + wbx * .97f, .09f, gz(mx, mz) + wbz * .97f, wax, 0, waz, wbx * .06f, 0, wbz * .06f, rgba(mix(P1, 0xFFFFFF, .3f), .6f * (.5f + .5f * fe)));
             quad("solid", gx(mx, mz) - wbx * .97f, .09f, gz(mx, mz) - wbz * .97f, wax, 0, waz, wbx * .06f, 0, wbz * .06f, rgba(mix(P1, 0xFFFFFF, .3f), .6f * (1.0f - .5f * fe)));
         }
-        // an old stone arch bridge across the middle, and rocks breaking the water
-        { float bx = R * .25f, bz = riverZ(bx), sl = (riverZ(bx + .5f) - riverZ(bx - .5f)); float ang = (float) Math.atan2(sl, 1f), hw = riverW(bx) * .5f;
-          push(); tr(gx(bx, bz), 0, gz(bx, bz)); rY(-(float) Math.atan2(gz(1, 0) - gz(0, 0), gx(1, 0) - gx(0, 0))); rY(-ang);   // local x runs along the river, local z across it
-          for (int k = -8; k <= 8; k++) { float u = k / 8f, yy = (1f - u * u) * 1.4f * S + .3f * S; box(0, yy, k * hw * 1.4f / 8f, 1.5f * S, .22f * S, hw * 1.4f / 8f * .6f + .1f * S, 0x6A6E68, 255); }
-          box(1.55f * S, 1.2f * S, 0, .12f * S, .3f * S, hw * 1.55f, 0x555A54, 255); box(-1.55f * S, 1.2f * S, 0, .12f * S, .3f * S, hw * 1.55f, 0x555A54, 255);
-          pop(); }
+        // a stone bridge across the river: these are real blocks you can walk over (HoloCardEntity.bridgeRows), a hollow arch in the middle for the boat
+        for (float[] r : HoloCardEntity.bridgeRows()) {
+            float cx2 = gx(r[0], r[1]), cz2 = gz(r[0], r[1]), hh = (r[3] - r[2]) / 2f;
+            box(cx2, r[2] + hh, cz2, .75f, hh, .75f, 0x6A6E68, 255); box(cx2, r[3] - .06f, cz2, .78f, .06f, .78f, 0x8A8E86, 255);
+            if (Math.abs(r[0] - HoloCardEntity.BRIDGE_X) > .5f) box(cx2 + (r[0] > HoloCardEntity.BRIDGE_X ? .7f : -.7f), r[3] + .3f, cz2, .08f, .3f, .75f, 0x555A54, 255);   // low parapet either side
+        }
+        // a rowboat drifting down the river, a lantern at its bow and a hooded boatman at the oars
+        { float bu = fract(t * .018f), bx = (bu - .5f) * len * .92f, bz = riverZ(bx), sl = riverZ(bx + .5f) - riverZ(bx - .5f);
+          push(); tr(gx(bx, bz), .1f + gs(t * 1.3f) * .05f, gz(bx, bz)); rY(-(float) Math.atan2(gz(1, 0) - gz(0, 0), gx(1, 0) - gx(0, 0))); rY(-(float) Math.atan2(sl, 1f)); rX(gs(t * .9f) * .03f);
+          int wood = 0x4A3220, wd2 = 0x2E1E12;
+          sphere(0, .55f, 0, 3.2f, .7f, 1.15f, 8, 16, wood, 255); box(0, .95f, 0, 2.6f, .08f, 1.05f, wd2, 255);
+          box(0, .9f, 1.05f, 2.6f, .12f, .08f, wd2, 255); box(0, .9f, -1.05f, 2.6f, .12f, .08f, wd2, 255);
+          for (int k = -1; k <= 1; k++) box(k * 1.0f, .8f, 0, .1f, .05f, 1.0f, wd2, 255);
+          push(); tr(3.3f, 1.2f, 0); frustum(0, .8f, .04f, .04f, 5, 1, 1, wd2, 255, true); pop();
+          push(); tr(-.4f, .95f, 0); frustum(0, .9f, .5f, .3f, 10, 1, 1, 0x0A0A10, 255, true); sphere(0, 1.05f, 0, .3f, .32f, .3f, 8, 12, 0x0A0A10, 255); pop();
+          for (int sd = -1; sd <= 1; sd += 2) { push(); tr(-.4f, 1.4f, sd * .55f); rZ(gs(t * 1.6f + (sd > 0 ? 0 : PI)) * .5f - .6f); rX(sd * .0f); frustum(0, 2.2f, .05f, .05f, 5, 1, 1, wd2, 255, true); pop(); }
+          pop();
+          float hxn = (float) Math.atan2(gz(1, 0) - gz(0, 0), gx(1, 0) - gx(0, 0));
+          bb("glow", gx(bx, bz) + gc(hxn) * 3.3f, 2.2f, gz(bx, bz) + gs(hxn) * 3.3f, 3.2f, 3.2f, 0, rgba(0xFFC860, .6f)); bb("mote", gx(bx, bz) + gc(hxn) * 3.3f, 2.1f, gz(bx, bz) + gs(hxn) * 3.3f, .5f, .5f, 0, rgba(0xFFFFFF, 1f)); }
         for (int k = 0; k < 10; k++) { float x = (h(k, 41) - .5f) * len * .85f, z = riverZ(x) + (h(k, 42) - .5f) * riverW(x) * .7f, rs = (.35f + .5f * h(k, 43)) * S;
             sphere(gx(x, z), 0, gz(x, z), rs, rs * .7f, rs, 5, 8, 0x4A4E4A, 255);
             flat("ring", gx(x, z), .12f, gz(x, z), rs * 3.2f, 0, rgba(0xC8DCF0, .35f)); }   // foam where the current splits
@@ -1157,7 +1176,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
         for (int k = 0; k < 24; k++) { float x = (h(k, 31) - .5f) * len, side = h(k, 32) < .5f ? -1f : 1f, z = riverZ(x) + side * (riverW(x) * .5f + .3f * S + h(k, 33) * 1.2f * S);
             push(); tr(gx(x, z), 0, gz(x, z)); taper(0, (1.4f + 1.8f * h(k, 34)) * S, .09f * S, .09f * S, 0, 0, 0x08080A, 255); pop(); }
-        for (int k = 0; k < 7; k++) fogRing(8, R * (.4f + .4f * k), mix(P2, 0x8090A8, .55f), .09f);   // pale, thin mist, not a black wall
+        for (int k = 0; k < 9; k++) fogRing(10, R * (.3f + .5f * k), mix(0x141C2C, P2, .25f), .15f);   // a dark mist, but not a black wall
+        column("beam", 0, .1f, 4f * S, 0, .6f * S, rgba(P1, .55f)); column("beam", 0, .1f, 4f * S, 0, .22f * S, rgba(0xFFFFFF, .7f));   // a small beam so the card can be found
         gooSymbols(2, CY + 3.4f * S, R * .5f, 3.0f * S);
     }
     /** Calamity of Destruction: a vast cracked molten core in burning shells, spikes erupting from the ground, meteors falling and a storm of shards and shockwaves. */
@@ -1177,7 +1197,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             bb("glow", gc(a) * r, .6f * S, gs(a) * r, 3.4f * S, 3.4f * S, 0, rgba(P1, .45f));
         }
         for (int i = 0; i < 9; i++) {   // meteors
-            float p = fract(t * .16f + i / 9f), a = h(i, 21) * TAU, r = R * (.35f + .6f * h(i, 22)), y = (1f - p) * top * 1.6f + 1f * S, mx = gc(a) * r + (1f - p) * 7f, mz = gs(a) * r;
+            float p = .5f, a = h(i, 21) * TAU + t * .02f, r = R * (.35f + .6f * h(i, 22)), y = top * (.55f + .9f * h(i, 26)) + gs(t * .5f + i) * .6f * S, mx = gc(a) * r, mz = gs(a) * r;
             float mr = (.8f + .8f * h(i, 23)) * S;
             push(); tr(mx, y, mz); rY(t * h(i, 24)); rX(t * h(i, 25) * 2f); sphere(0, 0, 0, mr, mr * .9f, mr, 6, 9, 0x2A0A08, 255); pop();
             bb("glow", mx, y, mz, mr * 4f, mr * 4f, 0, rgba(P1, .65f));
@@ -1191,6 +1211,11 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int i = 0; i < 3; i++) { float pw = fract(t * .22f + i / 3f); flat("ring_thick", 0, .1f, 0, pw * R * 1.8f, 0, rgba(P1, fd(pw))); }
         for (int i = 0; i < 10; i++) flat("crack", 0, .12f, 0, R * 1.3f, i * TAU / 10 + .3f, rgba(P1, .85f));
         if (!LotmFx.hold(curId, "astral_world:calamity_embers", ex, ey + .3f, ez, R * .8f)) sprites("spark", 70, RISEM, R * .7f, 0, top, .45f * S, P3, 1f, .5f, 58, true);
+        // the Demoness in the ruin: roses burning in the scorched ground, a giant blooming rose beneath the meteor, petals of blood and craters
+        for (int i = 0; i < 26; i++) { float a = h(i, 31) * TAU, r = R * (.2f + .8f * h(i, 32)); push(); tr(gc(a) * r, 0, gs(a) * r); rY(h(i, 33) * TAU); rose((.5f + .6f * h(i, 34)) * S, i % 3 == 0 ? P3 : P1, mix(P1, P2, .6f), 0x20080A); pop(); if (i % 3 == 0) flameAt(gc(a) * r, .5f * S, gs(a) * r, 1.2f * S, i, P2, P1, P3, .8f); }
+        push(); tr(0, 0, 0); rose(3.2f * S, P1, mix(P1, P2, .5f), 0x20080A); pop();
+        for (int i = 0; i < 6; i++) { float a = i * TAU / 6 + .4f, r = R * .62f; flat("glow", gc(a) * r, .1f, gs(a) * r, 6f * S, 0, rgba(0x000000, .8f)); flat("ring", gc(a) * r, .11f, gs(a) * r, 5f * S, 0, rgba(P1, .8f)); }   // craters
+        sprites("petal", 90, FALLM, R, 0, top * 1.2f, .8f * S, 0xC01020, 1f, .2f, 66, true);
         gooSymbols(3, CY + 4f * S, R * .75f, 3.0f * S);
     }
     private static final int[] BOOKS = {0x8A2A2A, 0x2A4A8A, 0x2A6A3A, 0x7A5A1A, 0x5A2A7A, 0x2A6A6A};
@@ -1242,7 +1267,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
     /** Goddess of Origin: a giant mystical tree. A twisting trunk with a glowing heart, great branches forking into canopies of luminous blossom, roots across the ground, fruit of light hanging and petals drifting. */
     private void gooGoddess() {
-        float U = S * 1.05f, bark = 0, hy = 3.2f * U;
+        float D = R * .85f; offX = gx(0, -D); offZ = gz(0, -D); tr(offX, 0, offZ);   // the great tree stands away from the card
+        float U = S * 1.9f, bark = 0, hy = 3.2f * U;
         int bk = 0x4A3A1C, lf = 0x46C860, lf2 = 0xC8F078, wt = 0x7FE8A0;   // world-tree colours: green leaves, gold-green light
         solid(true); sphere(0, cy0(U) + 8f * U, 0, 2.6f * U, 2.6f * U, 2.6f * U, 10, 16, 0xFFF2B0, 255); sphere(0, cy0(U) + 8f * U, 0, 3.4f * U, 3.4f * U, 3.4f * U, 10, 16, 0xE8F8A0, 90); sphere(0, cy0(U) + 8f * U, 0, 4.4f * U, 4.4f * U, 4.4f * U, 10, 16, 0xB0F0A0, 50); solid(false);   // its sun: real geometry, so it does not follow the camera
         for (int i = 0; i < 12; i++) { float a = i * TAU / 12 + t * .05f; push(); tr(0, cy0(U) + 8f * U, 0); rY(-a); rZ(.0f); box(7f * U, 0, 0, 3.4f * U, .08f * U, .08f * U, 0xF0F8B0, 140); pop(); }
@@ -1257,16 +1283,20 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             tube(pts, .7f * U, .1f * U, bk);
         }
         float cy2 = 5.2f * U;
-        for (int b = 0; b < 8; b++) treeBranch(0, cy2, 0, b * TAU / 8 + .2f, 3.6f * U, 1.8f * U, .5f * U, 2, 10 + b * 7, bk, lf, 1.1f * U);
-        for (int b = 0; b < 5; b++) treeBranch(0, cy2 + 1.6f * U, 0, b * TAU / 5 + .8f, 2.6f * U, 3.2f * U, .38f * U, 1, 90 + b * 5, bk, lf2, 1.3f * U);
+        int[] LC = {0x46C860, 0xFF9CC4, 0xFFE070, 0x6AE8D0, 0xC8F078, 0xB890F0};   // leaves of many colours: green, blossom pink, gold, teal, lime, violet
+        for (int b = 0; b < 10; b++) treeBranch(0, cy2, 0, b * TAU / 10 + .2f, 5.6f * U, 2.6f * U, 1.0f * U, 3, 10 + b * 7, bk, LC[b % 6], 1.5f * U);   // massive limbs, forking three times
+        for (int b = 0; b < 6; b++) treeBranch(0, cy2 + 2.2f * U, 0, b * TAU / 6 + .8f, 4.2f * U, 4.6f * U, .7f * U, 2, 90 + b * 5, bk, LC[(b + 2) % 6], 1.7f * U);
+        for (int b = 0; b < 4; b++) treeBranch(0, cy2 + 4.2f * U, 0, b * TAU / 4 + .4f, 3.2f * U, 5.2f * U, .5f * U, 2, 150 + b * 5, bk, LC[(b + 4) % 6], 1.8f * U);
         // glowing heart of the tree and a crown of light
         float hy2 = 2.8f * U;
         bb("glow", 0, hy2, 0, 6f * U, 6f * U, 0, rgba(wt, .8f)); sphere(0, hy2, 0, .5f * U, .6f * U, .5f * U, 6, 10, 0xE8FFD0, 255);
         bb("glow", 0, cy2 + 3.5f * U, 0, 26f * U, 20f * U, 0, rgba(wt, .22f));
-        for (int i = 0; i < 12; i++) {   // fruit of light hanging from the canopy
-            float a = h(i, 3) * TAU, r = (1.5f + 5f * h(i, 4)) * U, y = cy2 + (1.4f + 3f * h(i, 5)) * U + gs(t * .8f + i) * .15f * U;
-            bb("glow", gc(a) * r, y, gs(a) * r, 1.3f * U, 1.3f * U, 0, rgba(0xD8FF90, .85f)); bb("mote", gc(a) * r, y, gs(a) * r, .5f * U, .5f * U, 0, rgba(0xFFFFFF, 1f));
+        for (int i = 0; i < 48; i++) {   // fruit and lanterns of light of every colour hanging all through the canopy
+            float a = h(i, 3) * TAU, r = (2f + 11f * h(i, 4)) * U, y = cy2 + (.8f + 7f * h(i, 5)) * U + gs(t * .8f + i) * .2f * U; int lc = LC[i % 6];
+            bb("glow", gc(a) * r, y, gs(a) * r, 2.2f * U, 2.2f * U, 0, rgba(lc, .85f)); bb("mote", gc(a) * r, y, gs(a) * r, .6f * U, .6f * U, 0, rgba(0xFFFFFF, 1f));
         }
+        for (int i = 0; i < 14; i++) { float a = i * TAU / 14 + t * .03f; column("beam", gc(a) * 6f * U, cy2 + 2f * U, cy2 + 9f * U, gs(a) * 6f * U, .8f * U, rgba(LC[i % 6], .3f)); }   // shafts of coloured light through the leaves
+        for (int i = 0; i < 40; i++) { float a = t * (.1f + .1f * h(i, 6)) + i * 2.4f, r = (3f + 12f * h(i, 7)) * U, y = (1f + 12f * h(i, 8)) * U; bb("glow", gc(a) * r, y, gs(a) * r, .8f * U, .8f * U, 0, rgba(LC[(i + 1) % 6], .6f)); }   // fireflies
         for (int i = 0; i < 3; i++) { float pw = fract(t * .2f + i / 3f); flat("ring", 0, .12f, 0, pw * 1.8f * R, 0, rgba(P1, fd(pw))); }
         sprites("petal", 120, FALLM, R * .85f, 0, top * 1.1f, 1f * S, P1, 1f, .1f, 62, true); if (!LotmFx.hold(curId, "astral_world:light_motes", ex, ey + 4f * S, ez, R * .8f)) sprites("mote", 70, RISEM, R * .7f, 0, top, .45f * S, 0xFFF0A0, 1f, .25f, 64, false);
         gooSymbols(6, top * .95f, R * .9f, 3.4f * S);
@@ -1274,6 +1304,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private float cy0(float U) { return 5.2f * U; }
     /** Father of Devils: a vast horned skull wreathed in hellfire above a whirling pit, ringed by black spires and braziers, chains and eyes hanging in the dark. */
     private void gooDevils() {
+        dome(R * 3.6f, 0x080008, 246);
         flat("whirl", 0, .06f, 0, 2.1f * R, -t * .4f, rgba(0x7A22B0, .9f)); flat("whirl", 0, .08f, 0, 1.5f * R, t * .6f, rgba(0xA01830, .9f)); flat("whirl", 0, .1f, 0, .8f * R, -t * 1.1f, rgba(0xB02040, .95f));
         int horn = mix(0x1C0C18, P1, .15f); float sy = 3.0f * S;
         for (int i = 0; i < 12; i++) {   // ring of black spires
@@ -1285,6 +1316,15 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         flat("whirl", 0, vy, 0, 9 * S, t * 1.2f, rgba(0xB02040, .95f)); flat("whirl", 0, vy, 0, 6 * S, -t * 1.8f, rgba(0x9A50E0, .9f));
         sphere(0, vy, 0, vr, vr, vr, 10, 16, 0x050205, 255);
         for (int i = 0; i < 7; i++) wrapTentacle(0, vy, 0, vr, R * .7f, i * TAU / 7 + t * .03f, i % 2 == 0 ? 1f : -1f, i, mix(0x3A0A20, P1, .15f), .6f * S);
+        solid(true); sphere(0, vy, 0, vr * 2.4f, vr * 2.4f, vr * 2.4f, 12, 20, 0x14040E, 90); sphere(0, vy, 0, vr * 3.1f, vr * 3.1f, vr * 3.1f, 12, 20, P1, 28); solid(false);   // a great shell of hellfire round the maw
+        for (int i = 0; i < 8; i++) {   // heavy chains holding the maw down to the ground: it is bound
+            float a = i * TAU / 8 + .2f; float[][] pts = new float[12][];
+            for (int k = 0; k < 12; k++) { float u = k / 11f; pts[k] = v3(gc(a) * (vr * .9f + u * R * .8f), vy * (1f - u) + gs(u * PI) * 1.2f * S, gs(a) * (vr * .9f + u * R * .8f)); }
+            tube(pts, .22f * S, .2f * S, 0x2A2A32);
+            for (int k = 1; k < 11; k++) { float[] q = pts[k]; push(); tr(q[0], q[1], q[2]); rY(-a); torus(0, 0, 0, .3f * S, .3f * S, .06f * S, 8, 4, 0, TAU, 0x6A6A74, 255); pop(); }
+            push(); tr(gc(a) * R * .8f, 0, gs(a) * R * .8f); box(0, .3f * S, 0, .6f * S, .3f * S, .6f * S, 0x1A1A20, 255); torus(0, .75f * S, 0, .4f * S, .4f * S, .09f * S, 10, 5, 0, TAU, 0x6A6A74, 255); pop();
+        }
+        for (int i = 0; i < 10; i++) { float a = i * TAU / 10 + t * .1f; push(); tr(gc(a) * vr * 1.5f, vy + vr * .9f, gs(a) * vr * 1.5f); rY(-a); rZ(-.5f); taper(0, 2.6f * S, .3f * S, .3f * S, 0, 0, horn, 255); pop(); }   // a crown of horns round the maw
         sym(vy + vr * 1.3f + 3.4f * S, 3.4f * S, 0);
         flameAt(gx(-1.5f * S, 0), sy + 2.4f * S, gz(-1.5f * S, 0), 4.2f * S, 11, P2, P1, P3, .85f); flameAt(gx(1.5f * S, 0), sy + 2.4f * S, gz(1.5f * S, 0), 4.2f * S, 12, P2, P1, P3, .85f);
         for (int i = 0; i < 6; i++) { float a = i * TAU / 6 + .2f, px = gc(a) * R * .6f, pz = gs(a) * R * .6f; push(); tr(px, 0, pz); box(0, 1.2f * S, 0, .6f * S, 1.2f * S, .6f * S, 0x1A0A18, 255); pop(); flameAt(px, 2.7f * S, pz, 4f * S, i + 5, P2, P1, P3, .9f); }
@@ -1344,17 +1384,13 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         push(); tr(0, kl + 1.2f * S, 0); torus(0, 0, 0, 1.2f * S, 1.2f * S, .22f * S, 24, 6, 0, TAU, metal(.85f), 255); torus(0, 0, 0, .8f * S, .8f * S, .08f * S, 24, 4, 0, TAU, mix(P1, 0xFFFFFF, .5f), 255); pop();
         for (int k = 0; k < 3; k++) box(.7f * S, (.08f + .07f * k) * kl, 0, .7f * S, .18f * S, .13f * S, metal(.8f), 255);
         pop();
-        float kx = gx(0, 0), kz = gz(0, 0);
-        for (int k = 0; k < 7; k++) {
-            float a = -PI * .5f + (k - 3) * .38f + gs(t * .3f + k) * .03f, dxl = gc(a) * R * .9f, dyl = gs(a) * R * .9f;
-            quad("solid", kx + sx0 * dxl * .5f, gy + dyl * .5f, kz + sz0 * dxl * .5f, sx0 * dxl * .5f, dyl * .5f, sz0 * dxl * .5f, -sz0 * .25f * S, 0, sx0 * .25f * S, rgba(SPECTRUM[k], .45f));
-        }
-        for (int k = 0; k < 7; k++) { float a = t * .18f + k * TAU / 7, rr = R * .55f; push(); tr(gc(a) * rr, gy + gs(t * .6f + k) * 1.2f * S, gs(a) * rr); rY(t * .5f + k); rX(.4f); frustum(0, 1.1f * S, .4f * S, 0, 4, 1, 1, SPECTRUM[k], 220, false); pop(); }
+        for (int k = 0; k < 7; k++) {   // seven halos of the spectrum turning up the length of the key
+            push(); tr(0, (1.4f + k * 1.05f) * S, 0); rY(t * (.4f + .1f * k) * (k % 2 == 0 ? 1 : -1)); rX(.15f * gs(t * .5f + k)); torus(0, 0, 0, (1.6f + .15f * gs(k)) * S, (1.6f + .15f * gs(k)) * S, .09f * S, 30, 4, 0, TAU, SPECTRUM[k], 255); pop();
+            bb("glow", 0, (1.4f + k * 1.05f) * S, 0, 5f * S, 5f * S, 0, rgba(SPECTRUM[k], .3f)); }
         for (int i = 0; i < 7; i++) { float pw = fract(t * .2f + i / 7f); flat("ring", 0, .12f + i * .01f, 0, pw * 1.8f * R, 0, rgba(SPECTRUM[i], fd(pw))); }
-        for (int i = 0; i < 28; i++) { float a = i * TAU / 28; standIn("glow", gc(a) * R * 1.6f, 2f * S + 5f * S * (i % 3), gs(a) * R * 1.6f, 14f * S, 12f * S, rgba(SPECTRUM[i % 7], .4f)); }   // bands of every colour all round, fixed in the world
-        for (int k = 0; k < 7; k++) sprites("spark", 12, RADIALM, R * .9f, gy, 0, .45f * S, SPECTRUM[k], 1f, .35f, 60 + k, true);
-        for (int k = 0; k < 7; k++) sprites("mote", 14, RISEM, R * .8f, 0, top, .5f * S, SPECTRUM[k], 1f, .2f, 80 + k, false);
-        for (int k = 0; k < 14; k++) { float a = k * TAU / 14, rr = R * .85f; push(); tr(gc(a) * rr, 0, gs(a) * rr); frustum(0, 3f * S + 2f * S * h(k, 9), .5f * S, 0, 6, 1, 1, SPECTRUM[k % 7], 200, false); pop(); }   // crystal spires in every colour
+        for (int k = 0; k < 7; k++) { float a = k * TAU / 7 + t * .1f; column("beam", gc(a) * R * .7f, 0, top * 1.2f, gs(a) * R * .7f, 1.0f * S, rgba(SPECTRUM[k], .35f)); }
+        for (int k = 0; k < 7; k++) sprites("spark", 10, RADIALM, R * .9f, gy, 0, .4f * S, SPECTRUM[k], 1f, .35f, 60 + k, true);
+        for (int k = 0; k < 7; k++) sprites("mote", 12, RISEM, R * .8f, 0, top, .45f * S, SPECTRUM[k], 1f, .2f, 80 + k, false);
         gooSymbols(5, CY - 1f * S, R * .5f, 2.8f * S);
     }
 
