@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.196
+- Demon of Knowledge now has far more vehicles than the Paragon: three phantom train lines (a new inner ring), six airships, two gunships and two ghost steamers sailing low over the floor.
+- Every one of them phases in and out of reality on its own beat: it solidifies, flickers, fades out entirely and returns.
+- Untested in game.
+
 ## 0.2.195
 - Secret Supplicant 0 (Last Hope) redrawn from your screenshot: a vast black upside-down cross with iron bands, end caps, a rune plate and red runes scratched over it, chains across the body, on a black stone mound, your own skin hanging on it. Paragon 0 gets two more airships (a sister to the first and a great gunship riding high with five turret pairs and a dorsal gun). Demon of Knowledge gets a second outer rail line with an armoured gun train, two more airships and a gunship overhead.
 - Uniqueness: the Writhing Shadows tentacles now rise out of the ordinary shadow under your feet, short, fading out about a block off the ground (so none while flying) and in the dark; at night they reach farther out and there are about twice as many. The ball of storms and the Twilight sword strikes and wave are now this mod's own Photon effects (storm_ball, twilight_hit, twilight_wave). The Feathered Serpent is rebuilt with all-white plumes, a bigger horned fanged head with a halo of plumes, and now bursts up out of the ground and strikes upward from below. The Wheel of Fortune is rebuilt as a gilded double-rimmed wheel with a blue gem band, a star and carved spokes. Untested in game.

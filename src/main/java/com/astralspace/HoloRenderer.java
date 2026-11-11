@@ -315,6 +315,13 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
           .setOverlay(OverlayTexture.NO_OVERLAY).setLight(LIGHT).setNormal(tn.x, tn.y, tn.z);
     }
     /** Lit quad in the current local frame; hint is a point inside the shape so the normal points outward. */
+    private float vAlpha = 1f;   // scales every solid face: the vehicles of the Demon of Knowledge phase in and out of reality
+    /** How solid a phasing thing is right now: it fades in, holds, flickers out and is gone for a while. */
+    private float phaseA(float seed) {
+        float a = Math.max(0f, Math.min(1f, (float) Math.sin(t * .28f + seed * 2.1f) * 1.7f + .35f));
+        if (a > 0f && a < 1f && ((int) (t * 14 + seed * 7) & 1) == 0) a *= .4f;
+        return a;
+    }
     private void sq(float[] a, float[] b, float[] c, float[] d, float[] hint, int rgb, int alpha) {
         float ex = b[0] - a[0], ey = b[1] - a[1], ez = b[2] - a[2], fx2 = d[0] - a[0], fy2 = d[1] - a[1], fz2 = d[2] - a[2];
         float nx = ey * fz2 - ez * fy2, ny = ez * fx2 - ex * fz2, nz = ex * fy2 - ey * fx2;
@@ -323,7 +330,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float mx = (a[0] + b[0] + c[0] + d[0]) / 4 - hint[0], my = (a[1] + b[1] + c[1] + d[1]) / 4 - hint[1], mz = (a[2] + b[2] + c[2] + d[2]) / 4 - hint[2];
         if (nx * mx + ny * my + nz * mz < 0) { nx = -nx; ny = -ny; nz = -nz; }
         float[] n = {nx, ny, nz};
-        VertexConsumer vc = buf.getBuffer(strans ? RenderType.entityTranslucent(SOLID) : RenderType.entityCutoutNoCull(SOLID));
+        if (vAlpha < .999f) alpha = (int) (alpha * vAlpha);
+        VertexConsumer vc = buf.getBuffer(strans || vAlpha < .999f ? RenderType.entityTranslucent(SOLID) : RenderType.entityCutoutNoCull(SOLID));
         sv(a, n, rgb, alpha, vc); sv(b, n, rgb, alpha, vc); sv(c, n, rgb, alpha, vc); sv(d, n, rgb, alpha, vc);
     }
     private static float[] v3(float x, float y, float z) { return new float[]{x, y, z}; }
@@ -1183,14 +1191,31 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         sphere(0, by, 0, 1.3f * S, 1.3f * S, 1.3f * S, 10, 16, mix(P3, 0xFFFFFF, .75f), 255);
         solid(true); sphere(0, by, 0, 1.8f * S, 1.8f * S, 1.8f * S, 10, 16, P1, 80); solid(false);
         frustum(0, by - 1.5f * S, .5f * S, .9f * S, 10, 1, 1, dk, 255, true);
-        float ts = .4f * S, trad = R * .6f;   // vehicles circling it, like the Paragon: a book-laden steam train on a track and airships
-        railRing(trad, ts);
-        trainRun(trad, ts, 3.2f * S, 1f, new int[]{0, 1, 2, 2}, new float[]{0f, 3.4f, 6.6f, 9.9f}, mix(0x3A2A18, P2, .3f), 0xC8A040);
-        for (int a2 = 0; a2 < 2; a2++) { float ta = t * (a2 == 0 ? -.12f : .09f) + a2 * PI, ar = R * (.45f + .25f * a2), ay = by + 5.5f * S + a2 * 3f * S + gs(t * .6f + a2) * .4f * S; push(); tr(gc(ta) * ar, ay, gs(ta) * ar); rY((a2 == 0 ? PI / 2 : -PI / 2) - ta); airship(.5f * S); pop(); }
-        float ts2 = .36f * S, trad2 = R * .8f; railRing(trad2, ts2);   // a second, outer line run the other way by an armoured gun train
-        trainRun(trad2, ts2, 2.8f * S, -1f, new int[]{0, 1, 3, 2, 3, 2}, new float[]{0f, 3.4f, 6.6f, 9.8f, 13f, 16.2f}, 0x3A404C, 0xC8A040);
-        for (int a3 = 0; a3 < 2; a3++) { float ta = t * (a3 == 0 ? .1f : -.08f) + a3 * 2.2f + 1f, ar = R * (.3f + .35f * a3), ay = by + 8.5f * S + a3 * 2.5f * S + gs(t * .5f + a3 * 2f) * .4f * S; push(); tr(gc(ta) * ar, ay, gs(ta) * ar); rY((a3 == 0 ? -PI / 2 : PI / 2) - ta); airship(.42f * S); pop(); }
-        { float ta = t * .05f, ar = R * .5f, ay = by + 13f * S + gs(t * .3f) * .6f * S; push(); tr(gc(ta) * ar, ay, gs(ta) * ar); rY(-PI / 2 - ta); gunAirship(.8f * S, 4); pop(); }   // a gunship high overhead
+        // vehicles that phase in and out of reality: each solidifies, flickers and is gone again, all on their own beat
+        float ts = .4f * S, trad = R * .6f; railRing(trad, ts);
+        vAlpha = phaseA(0f); if (vAlpha > .02f) trainRun(trad, ts, 3.2f * S, 1f, new int[]{0, 1, 2, 2}, new float[]{0f, 3.4f, 6.6f, 9.9f}, mix(0x3A2A18, P2, .3f), 0xC8A040); vAlpha = 1f;
+        float ts2 = .36f * S, trad2 = R * .8f; railRing(trad2, ts2);
+        vAlpha = phaseA(2.3f); if (vAlpha > .02f) trainRun(trad2, ts2, 2.8f * S, -1f, new int[]{0, 1, 3, 2, 3, 2}, new float[]{0f, 3.4f, 6.6f, 9.8f, 13f, 16.2f}, 0x3A404C, 0xC8A040); vAlpha = 1f;
+        float ts3 = .3f * S, trad3 = R * .36f; railRing(trad3, ts3);
+        vAlpha = phaseA(4.1f); if (vAlpha > .02f) trainRun(trad3, ts3, 2.4f * S, 1f, new int[]{0, 1, 2}, new float[]{0f, 3.4f, 6.6f}, mix(0x3A2A18, P3, .3f), 0xC8A040); vAlpha = 1f;
+        for (int a2 = 0; a2 < 6; a2++) {
+            float ta = t * (a2 % 2 == 0 ? -.12f : .09f) + a2 * 1.05f, ar = R * (.3f + .13f * (a2 % 4)), ay = by + (4.5f + a2 * 1.6f) * S + gs(t * .6f + a2) * .4f * S;
+            vAlpha = phaseA(1f + a2 * 1.3f);
+            if (vAlpha > .02f) { push(); tr(gc(ta) * ar, ay, gs(ta) * ar); rY((a2 % 2 == 0 ? PI / 2 : -PI / 2) - ta); rZ(gs(t * .5f + a2) * .04f); airship((.42f + .06f * (a2 % 3)) * S); pop(); }
+            vAlpha = 1f;
+        }
+        for (int g2 = 0; g2 < 2; g2++) {   // two gunships riding high overhead
+            float ta = t * (g2 == 0 ? .05f : -.04f) + g2 * PI, ar = R * (.5f - .12f * g2), ay = by + (13f + 3f * g2) * S + gs(t * .3f + g2) * .6f * S;
+            vAlpha = phaseA(7f + g2 * 2.7f);
+            if (vAlpha > .02f) { push(); tr(gc(ta) * ar, ay, gs(ta) * ar); rY((g2 == 0 ? -PI / 2 : PI / 2) - ta); gunAirship((.8f + .2f * g2) * S, 4 + g2); pop(); }
+            vAlpha = 1f;
+        }
+        for (int sh = 0; sh < 2; sh++) {   // ghost steamers sailing the air low over the floor
+            float ta = t * (sh == 0 ? .16f : -.13f) + sh * 3f, sr = R * (.48f + .2f * sh);
+            vAlpha = phaseA(9f + sh * 3.3f);
+            if (vAlpha > .02f) { push(); tr(gc(ta) * sr, .1f + 1.3f * S + gs(t * .8f + sh) * .15f * S, gs(ta) * sr); rY((sh == 0 ? -ta : -ta + PI) + (sh == 0 ? -PI / 2 : PI / 2) + PI / 2 * 0); steamShip(.26f * S); pop(); }
+            vAlpha = 1f;
+        }
         for (int i = 0; i < 8; i++) { float a = i * TAU / 8 + .2f, rr = R * .93f; push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2);   // bookcases round the edge
             box(0, 2.2f * S, 0, 1.5f * S, 2.2f * S, .35f * S, dk, 255);
             for (int r2 = 0; r2 < 4; r2++) for (int b = 0; b < 8; b++) box((-1.3f + b * .34f) * S, (.55f + r2 * .95f) * S, .12f * S, .13f * S, .38f * S, .2f * S, BOOKS[(b + r2 + i) % 6], 255);
@@ -2044,7 +2069,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             pop();
         }
         float fx2 = (float) -Math.sin(th0) * dir, fz2 = (float) Math.cos(th0) * dir, cx = (float) Math.cos(th0) * rad + fx2 * 1.3f * s, cz = (float) Math.sin(th0) * rad + fz2 * 1.3f * s;
-        for (int k = 0; k < 7; k++) { float p = fract(t * .7f + k / 7f); bb("smoke", cx - fx2 * p * 3f * s, 2.3f * s + p * 3.5f * s, cz - fz2 * p * 3f * s, (.5f + 1.3f * p) * s, (.5f + 1.3f * p) * s, t + k, rgba(0xC8C8D0, .55f * (1f - p))); }
+        for (int k = 0; k < 7; k++) { float p = fract(t * .7f + k / 7f); bb("smoke", cx - fx2 * p * 3f * s, 2.3f * s + p * 3.5f * s, cz - fz2 * p * 3f * s, (.5f + 1.3f * p) * s, (.5f + 1.3f * p) * s, t + k, rgba(0xC8C8D0, .55f * (1f - p) * vAlpha)); }
     }
     /** An armoured gun car: sloped plate sides, a turret and two long cannon, aimed outward and swinging a little. */
     private void gunCar(float s, float roll, float th, float dir, int seed) {
