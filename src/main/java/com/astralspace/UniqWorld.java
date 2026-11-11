@@ -47,6 +47,7 @@ public final class UniqWorld {
     /** The effects that are Photon: started here, killed when they are over. */
     private static void photon(Fx f, Minecraft mc) {
         long now = mc.level.getGameTime();
+        if (f.kind == FXPOINT && f.id == 4) { LIVE.add(new Fx(SLASH, 4, 0, f.x, f.y, f.z, f.x, f.y, f.z, f.dur, f.start)); return; }
         if (f.kind == FXPOINT && f.id == 0) LIVE.add(new Fx(SLASH, 0, 0, f.x, f.y, f.z, f.x, f.y, f.z, 12, f.start));
         if (f.kind == FXPOINT && f.id == 3) LIVE.add(new Fx(SLASH, 3, 0, f.x, f.y, f.z, f.x, f.y, f.z, f.dur, f.start));
         if (f.kind == FXPATH && f.id == 1) LIVE.add(new Fx(SLASH, 1, f.id2, f.x, f.y, f.z, f.x2, f.y2, f.z2, f.dur, f.start));
@@ -159,6 +160,7 @@ public final class UniqWorld {
     /** A crescent moon of dusk cutting upright through its target, tilted like a sword stroke and turned to face whoever is looking. */
     private static void slash(PoseStack ps, MultiBufferSource buf, Fx f, float t, Vec3 cam) {
         float k = t / f.dur;
+        if (f.id == 4) { blade(ps, buf, f, t, cam); return; }
         if (f.id == 3) {   // the dusk detonating: a ring of upright crescents flung outward, a flat ring of light under them
             float g = ease(k * 1.4f), al = (1f - k) * (1f - k);
             for (int j = 0; j < 8; j++) {
@@ -187,6 +189,32 @@ public final class UniqWorld {
         ps.translate(0, 0, .01); UniqGfx.crescent(ps, buf, R, W * 1.1f, UniqGfx.rgba(0xFFA040, .85f * al));
         ps.translate(0, 0, .01); UniqGfx.crescent(ps, buf, R, W * .5f, UniqGfx.rgba(0xFFF4D0, al));
         ps.popPose();
+    }
+
+    /** Twilight Verdict: a colossal sword of dusk drops point first out of the sky, buries itself and stands there burning before it fades. Sizes in pixels (16 to a block). */
+    private static final float BLADE_FALL = 9f;
+    private static void blade(PoseStack ps, MultiBufferSource buf, Fx f, float t, Vec3 cam) {
+        float kf = Mth.clamp(t / BLADE_FALL, 0f, 1f), drop = 30f * (1f - kf * kf), al = Mth.clamp((f.dur - t) / 10f, 0f, 1f) * Mth.clamp(t / 2f, 0f, 1f);
+        if (al <= .01f) return;
+        float yaw = (float) Math.atan2(cam.x - f.x, cam.z - f.z), sh = t > BLADE_FALL && t < BLADE_FALL + 6f ? (float) Math.sin(t * 5f) * .04f * (1f - (t - BLADE_FALL) / 6f) : 0f;
+        ps.pushPose(); ps.translate(f.x - cam.x, f.y - cam.y - 1.2 + drop, f.z - cam.z); ps.mulPose(Axis.YP.rotation(yaw)); ps.mulPose(Axis.ZP.rotation(sh));
+        int edge = UniqGfx.rgba(0xFFA040, .9f * al), body = UniqGfx.rgba(0x9A5AE8, .88f * al), core = UniqGfx.rgba(0xFFF4D0, al), gold = UniqGfx.rgba(0xFFD070, al), dark = UniqGfx.rgba(0x2A1638, al);
+        for (int j = 0; j < 5; j++) { ps.pushPose(); UniqGfx.tr(ps, 0, 5 + j * 10, 0); UniqGfx.box(ps, buf, 7 + j * 7, 10, 5, j < 2 ? core : edge); ps.popPose(); }   // the point
+        ps.pushPose(); UniqGfx.tr(ps, 0, 150, 0); UniqGfx.box(ps, buf, 40, 200, 5, edge); UniqGfx.box(ps, buf, 30, 200, 6.5f, body); UniqGfx.box(ps, buf, 7, 196, 8, core); ps.popPose();   // the blade: burning edges, a violet flat, a pale fuller
+        for (int j = 0; j < 6; j++) { ps.pushPose(); UniqGfx.tr(ps, 0, 70 + j * 30, 0); UniqGfx.box(ps, buf, 12, 3, 8.5f, gold); ps.popPose(); }   // runes down the fuller
+        ps.pushPose(); UniqGfx.tr(ps, 0, 256, 0); UniqGfx.box(ps, buf, 96, 12, 14, gold); UniqGfx.box(ps, buf, 18, 18, 18, UniqGfx.rgba(0xC070FF, al)); ps.popPose();   // the guard and its gem
+        for (int sd = -1; sd <= 1; sd += 2) { ps.pushPose(); UniqGfx.tr(ps, sd * 50, 250, 0); UniqGfx.box(ps, buf, 10, 22, 12, gold); ps.popPose(); }
+        ps.pushPose(); UniqGfx.tr(ps, 0, 292, 0); UniqGfx.box(ps, buf, 10, 60, 10, dark); ps.popPose();
+        ps.pushPose(); UniqGfx.tr(ps, 0, 328, 0); UniqGfx.box(ps, buf, 18, 14, 18, gold); ps.popPose();
+        ps.pushPose(); UniqGfx.tr(ps, 0, 150, -1); UniqGfx.box(ps, buf, 70, 230, 1, UniqGfx.rgba(0xFF9A50, .22f * al)); ps.popPose();   // its glow
+        ps.popPose();
+        if (t > BLADE_FALL) {   // the ground breaks into light where it lands
+            float g = ease((t - BLADE_FALL) / 10f), fa = al * (1f - .6f * g);
+            ps.pushPose(); ps.translate(f.x - cam.x, f.y - cam.y + .05, f.z - cam.z);
+            UniqGfx.box(ps, buf, 16f * 12f * g, .5f, 16f * 12f * g, UniqGfx.rgba(0xFFA040, .3f * fa));
+            for (int j = 0; j < 8; j++) { float a = j * (float) Math.PI / 4 + .3f; UniqGfx.seg(ps, buf, 0, 1, 0, (float) Math.cos(a) * 96f * g, 1, (float) Math.sin(a) * 96f * g, 3f, UniqGfx.rgba(j % 2 == 0 ? 0xFFF4D0 : 0xC070FF, .8f * fa)); }
+            ps.popPose();
+        }
     }
 
     private static void storm(PoseStack ps, MultiBufferSource buf, Fx f, float t, Vec3 cam) {

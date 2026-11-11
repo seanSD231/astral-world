@@ -137,7 +137,9 @@ public final class UniqClient extends BlockEntityWithoutLevelRenderer {
         UniqAnim.Part[] parts = UniqAnim.PARTS.get(name);
         if (parts == null) return;
         Minecraft mc = Minecraft.getInstance();
-        boolean flat = ctx == ItemDisplayContext.GUI || ctx == ItemDisplayContext.FIXED;
+        boolean orb = name.equals("storm_katana");   // the ball of lightning has no hand model: the Photon ball at the hand is the whole visual
+        if (orb && ctx != ItemDisplayContext.GUI && ctx != ItemDisplayContext.FIXED && ctx != ItemDisplayContext.GROUND) return;
+        boolean flat = ctx == ItemDisplayContext.GUI || ctx == ItemDisplayContext.FIXED || orb;
         if (flat) {
             VertexConsumer fv = ItemRenderer.getFoilBufferDirect(buf, ItemBlockRenderTypes.getRenderType(stack, true), true, false);
             mc.getItemRenderer().renderModelLists(model(name + "_icon"), stack, light, overlay, pose, fv);

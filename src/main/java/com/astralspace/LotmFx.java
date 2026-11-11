@@ -47,7 +47,8 @@ final class LotmFx {
         String key = id + ":" + fx;
         Object[] e = LIVE.get(key);
         if (e != null) {
-            boolean moved = Math.abs((double) e[2] - x) + Math.abs((double) e[3] - y) + Math.abs((double) e[4] - z) > .02 || Math.abs((float) e[5] - scale) > .01f;
+            boolean moved = Math.abs((double) e[2] - x) + Math.abs((double) e[3] - y) + Math.abs((double) e[4] - z) > .6 ||   // a little play, so a gently bobbing anchor does not restart the effect every frame
+                     Math.abs((float) e[5] - scale) > .01f;
             if (!moved) { e[1] = now; return e[0] != null; }
             stop(e[0]); LIVE.remove(key);
         }

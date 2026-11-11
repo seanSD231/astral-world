@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.204
+- Scene particles are now Photon effects when LOTM is installed: every motes/sparks/petals/leaves/pages/smoke/coins call in the holograms (112 effects, one per call, with gold versions for shiny cards) plus the low fog rings and the floor fog of Sleepless, the River and the Lord of Mysteries. They are generated straight from the renderer's own calls (tools/fx/gen_fx.py), and the old sprites remain as the fallback when LOTM or an effect is missing.
+- Sword of Twilight: Twilight Verdict now really drops a colossal sword of dusk (it was only a crescent before): it falls point first, buries itself, cracks the ground with light and stands burning while the field pulses.
+- Sailor trident rebuilt from scratch as a classic fork: banded shaft with a butt spike, flared socket, tall middle prong, and side prongs that leave sideways and bend up in a U, all with flat arrowheads. (The old side prongs bent the wrong way.)
+- Ball of lightning: the item no longer draws any hand model (that mesh was the flag-like thing); the Photon ball is the only visual.
+- Fixes to the last two builds: Marauder clock hands were invisible and skewed; Fool Seq 0 head chair sat far from the table; a bobbing anchor restarted some Photon effects every frame; Sailor Seq 0 had no waterspouts without LOTM; shiny Hanged Man figure now gold; a seam in the gold ramp.
+- Untested in game.
+
 ## 0.2.203
 - Fool Seq 1: the fog is further out and higher and slightly lighter. Fool Seq 0: much smaller sky sphere, the table moved away from the card (the card sits on the floor, easy to pick up), and a cleaner table.
 - Sleepless Seq 1/0: a dark haze and fog puffs now cover the whole floor.

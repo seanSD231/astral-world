@@ -56,11 +56,11 @@ public final class TwilightSword extends WornUniq {
                     UniqAbilities.fxPath(lv, 1, 0, from, ctr.add(0, 1.0, 0), 8);
                 });
             }
-            UniqAbilities.later(18, () -> {
-                UniqAbilities.fxPath(lv, 1, 1, ctr.add(0, 13, 0), ctr, 8);
-                lv.playSound(null, net.minecraft.core.BlockPos.containing(ctr), SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 2f, .5f);
+            UniqAbilities.later(14, () -> {   // the colossal blade starts to fall; it lands 9 ticks later (UniqWorld.BLADE_FALL)
+                UniqAbilities.fxPoint(lv, 4, ctr.x, ctr.y, ctr.z, 1f, 62);
+                lv.playSound(null, net.minecraft.core.BlockPos.containing(ctr), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.2f, 1.6f);
             });
-            UniqAbilities.later(26, () -> {
+            UniqAbilities.later(23, () -> {
                 UniqAbilities.fxPoint(lv, 3, ctr.x, ctr.y + .5, ctr.z, 6f, 26);
                 lv.playSound(null, net.minecraft.core.BlockPos.containing(ctr), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.6f, .6f);
                 for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(ctr, ctr).inflate(6.0), x -> x != p && x.isAlive())) {
@@ -69,7 +69,7 @@ public final class TwilightSword extends WornUniq {
                 }
             });
             for (int w = 1; w <= 6; w++) {   // the lingering field: pulses of dusk every half second
-                UniqAbilities.later(26 + w * 12, () -> {
+                UniqAbilities.later(23 + w * 12, () -> {
                     UniqAbilities.fxPoint(lv, 3, ctr.x, ctr.y + .3, ctr.z, 3.2f, 14);
                     for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(ctr, ctr).inflate(6.0), x -> x != p && x.isAlive())) {
                         e.hurt(lv.damageSources().playerAttack(p), 4f);

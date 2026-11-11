@@ -229,3 +229,118 @@ write('waterspout', [
     emitter('drops #detail', EMBER, (0xE8F6FF, .9), (.006, .014), (30, 60), rate=5, maxp=200, radius=1.0, sscale=(.12, .5, .12), speed=(.002, .01), lin=(0, .015, 0), noise=(.05, .3), pos=(0, .5, 0), add=True),
     emitter('foot foam #area', PUFF, (0xEAF6FF, .45), (.15, .28), (30, 50), rate=3, maxp=120, radius=.4, sscale=(1, .2, 1), speed=(.003, .01), pos=(0, .03, 0)),
 ])
+
+# ================= every sprites(...) call of the hologram renderer as a Photon effect =================
+# HoloRenderer.sprites() asks for "astral_world:sp/<p|g><index>_<texture>_<mode>_<seed>[_g]" (unit = the call's radius, origin at its y0) and only draws its
+# own sprites when that effect is missing. This reads the calls straight out of the Java source, so the two never drift apart: rerun after changing a call.
+import re
+JAVA = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../src/main/java/com/astralspace/HoloRenderer.java')
+SRC = open(JAVA).read()
+def table(name):
+    body = SRC[SRC.index(name + ' = {'):]; body = body[:body.index('};')]
+    return [[int(x, 16) for x in re.findall(r'0x([0-9A-Fa-f]{6})', row)] for row in re.findall(r'\{([^{}]*)\}', body)]
+PALS, GOOPALS = table('int[][] PAL'), table('int[][] GOOPAL')
+SPEC = [int(x, 16) for x in re.findall(r'0x([0-9A-Fa-f]{6})', SRC[SRC.index('SPECTRUM = {'):SRC.index('};', SRC.index('SPECTRUM = {'))])]
+FN = {'moon': 'p0', 'door': 'p1', 'justiciar': 'p2', 'demoness': 'p3', 'rare': 'p3', 'epic': 'p3', 'sun': 'p4', 'death': 'p5', 'abyss': 'p6', 'redPriest': 'p7', 'blackEmperor': 'p8',
+      'error': 'p9', 'wheel': 'p10', 'hermit': 'p11', 'mother': 'p12', 'chained': 'p13', 'whiteTower': 'p14', 'sailor': 'p15', 'paragon': 'p16', 'hangedMan': 'p17', 'fool': 'p18',
+      'darkness': 'p19', 'visionary': 'p20', 'twilight': 'p21', 'gooLord': 'g0', 'gooAlmighty': 'g1', 'gooDarkness2': 'g2', 'gooCalamity': 'g3', 'gooKnowledge': 'g4', 'gooKey': 'g5',
+      'gooGoddess': 'g6', 'gooDevils': 'g7', 'gooAnarchy': 'g8', 'gooScene': 'g*'}
+def mix(a, b, f):
+    return (int(((a >> 16) & 255) * (1 - f) + ((b >> 16) & 255) * f) << 16) | (int(((a >> 8) & 255) * (1 - f) + ((b >> 8) & 255) * f) << 8) | int((a & 255) * (1 - f) + (b & 255) * f)
+def gmap(rgb):
+    l = min(1.0, (.3 * ((rgb >> 16) & 255) + .59 * ((rgb >> 8) & 255) + .11 * (rgb & 255)) / 255 * 1.3)
+    return mix(0x050403, 0x9A6A10, l / .3) if l < .3 else mix(0x9A6A10, 0xFFD448, (l - .3) / .45) if l < .75 else mix(0xFFD448, 0xFFF0A0, (l - .75) / .25)
+def split_args(s):
+    out, depth, cur = [], 0, ''
+    for ch in s:
+        if ch == ',' and depth == 0: out.append(cur.strip()); cur = ''
+        else:
+            depth += ch in '([' ; depth -= ch in ')]'; cur += ch
+    out.append(cur.strip()); return out
+def ev(expr, env):
+    e = re.sub(r'\(m \? ([^:]+) : ([^)]+)\)', r'(\2)', expr)
+    e = re.sub(r'(\d*\.?\d+)f\b', r'\1', e).replace('(float)', '').replace('Math.', '')
+    return eval(e, {'__builtins__': {}}, env)
+MODES = {'FALLM': 0, 'RISEM': 1, 'SPIRALM': 2, 'ORBITM': 3, 'RADIALM': 4, 'DRIFTM': 5}
+def sprite_fx(tex, mode, h, size, rgb, alpha, speed, n):
+    """One sprites() call in units of its radius: h = height of the column, size = sprite size, n = how many are alive at once."""
+    L = max(30.0, min(240.0, 20.0 / max(.02, speed))); sec = L / 20.0
+    smoke = tex == 'smoke'
+    texture = PUFF if smoke else HT + tex + '.png'
+    col = (rgb, min(1.0, alpha * (.35 if smoke else 1.0)))
+    kw = dict(rate=n / L / MPF, maxp=int(n * 1.7 / MPF) + 8, add=not smoke, noise=(.02, .3))
+    sz, life = (size * .6, size * 1.4), (L * .75, L * 1.3)
+    if mode == 0:   o = emitter('fall #area', texture, col, sz, life, radius=1.0, sscale=(1, .02, 1), pos=(0, h, 0), lin=(0, -h / sec, 0), **kw)
+    elif mode == 1: o = emitter('rise #area', texture, col, sz, life, radius=1.0, sscale=(1, .02, 1), pos=(0, 0, 0), lin=(0, h / sec, 0), **kw)
+    elif mode == 2:
+        o = emitter('spiral #area', texture, col, sz, life, radius=1.0, thick=.5, sscale=(1, .02, 1), pos=(0, 0, 0), lin=(0, h / sec, 0), **kw)
+        v = o['data'][1]['config'][1]['velocityOverLifetime'][1]
+        put(o['data'][1]['config'][1], 'velocityOverLifetime/orbital/1', const(8.0 / sec)); v['radial'] = const(-.55 / sec)
+    elif mode == 4: o = emitter('burst #area', texture, col, sz, life, radius=.04, speed=(.7 / sec, 1.1 / sec), **kw)
+    else:           o = emitter('drift #area', texture, col, sz, (70, 130), radius=1.0, sscale=(1, max(.05, h / 2), 1), pos=(0, h / 2, 0), rate=n / 100 / MPF, maxp=int(n * 1.7 / MPF) + 8, add=not smoke, noise=(.05, .2))
+    return o
+def scene_env(key, gold):
+    goo = key[0] == 'g'; pal = (GOOPALS if goo else PALS)[int(key[1:])]
+    P = [0xFFD448, 0x9A6A10, 0xFFF0B8] if gold else pal
+    R, top, S, CY = (12.0, 19.0, 2.35, 7.4) if goo else (6.0, 8.5, 1.15, 3.2)
+    env = dict(R=R, top=top, S=S, CY=CY, N=1.5, P1=P[0], P2=P[1], P3=P[2], PUR=0xA050FF, mix=mix, max=max, min=min, SPECTRUM=SPEC, H=2.3, gy=CY + 2.4 * S)
+    env['iron'] = mix(0x707890, P[0], .15); env['wy'] = max(top * .5, 3.0 * S + .5)
+    return env
+made = 0
+for mt in re.finditer(r'sprites\("(\w+)", ([^;]*)\);', SRC):
+    fn = re.findall(r'private void (\w+)\(', SRC[:mt.start()])[-1]
+    if fn not in FN: continue
+    args = split_args(mt.group(2))
+    keys = ['g%d' % i for i in range(9)] if FN[fn] == 'g*' else [FN[fn]]
+    for key in keys:
+        for gold in ((False, True) if key[0] == 'p' else (False,)):
+            for k in (range(7) if re.search(r'\bk\b', mt.group(2)) else (None,)):
+                env = scene_env(key, gold)
+                if k is not None: env['k'] = k
+                try:
+                    n, rad, y0, y1, size, rgb, alpha, speed, seed = ev(args[0], env), ev(args[2], env), ev(args[3], env), ev(args[4], env), ev(args[5], env), int(ev(args[6], env)), ev(args[7], env), ev(args[8], env), int(ev(args[9], env))
+                except Exception as ex:
+                    print('skipped', fn, mt.group(0)[:60], ex); continue
+                mode = MODES[args[1]]
+                if gold: rgb = gmap(rgb)
+                h = abs(y1 - y0) / rad if mode != 4 else 1.0
+                write('sp/%s_%s_%d_%d%s' % (key, mt.group(1), mode, seed, '_g' if gold else ''), [sprite_fx(mt.group(1), mode, h, size / rad, rgb, alpha, speed, n)])
+                made += 1
+print('sprite effects:', made)
+
+# ---- the low fog ring of a scene (HoloRenderer.fogRing): "sp/<p|g><index>_fog[_g]", unit = the ring's radius
+for mt in re.finditer(r'private void (\w+)\(', SRC):
+    fn = mt.group(1)
+    if fn not in FN or FN[fn] == 'g*': continue
+    body = SRC[mt.end():]; nxt = re.search(r'\n    private ', body); body = body[:nxt.start()] if nxt else body
+    call = re.search(r'fogRing\(([^;]*)\);', body)
+    if not call: continue
+    args = split_args(call.group(1))
+    for gold in ((False, True) if FN[fn][0] == 'p' else (False,)):
+        env = scene_env(FN[fn], gold)
+        try: rgb, a = int(ev(args[2], env)), ev(args[3], env)
+        except Exception as ex: print('skipped fog', fn, ex); continue
+        if gold: rgb = gmap(rgb)
+        write('sp/%s_fog%s' % (FN[fn], '_g' if gold else ''), [
+            emitter('fog ring #area', PUFF, ((rgb, min(.6, a * .75)), (mix(rgb, 0xFFFFFF, .12), min(.5, a * .6))), (.45, .85), (60, 100), rate=1.6 / MPF, maxp=int(220 / MPF), radius=1.0, thick=.35, sscale=(1, .06, 1), speed=(.004, .015), lin=(.01, .004, 0), noise=(.04, .2), pos=(0, .22, 0)),
+            emitter('fog wisps #area', PUFF, (mix(rgb, 0xFFFFFF, .25), min(.3, a * .4)), (.25, .5), (50, 90), rate=.6 / MPF, maxp=int(80 / MPF), radius=1.0, thick=.6, sscale=(1, .12, 1), speed=(.004, .012), lin=(-.008, .01, 0), noise=(.05, .25), pos=(0, .3, 0)),
+        ])
+
+# ---- fog over a scene's whole floor (HoloRenderer.floorFog): "sp/<p|g><index>_floor[_g]", unit = the floor's radius
+for mt in re.finditer(r'private void (\w+)\(', SRC):
+    fn = mt.group(1)
+    if fn not in FN or FN[fn] == 'g*': continue
+    body = SRC[mt.end():]; nxt = re.search(r'\n    private ', body); body = body[:nxt.start()] if nxt else body
+    at = body.find('floorFog(')
+    if at < 0: continue
+    depth, j = 1, at + 9
+    while depth: depth += body[j] == '('; depth -= body[j] == ')'; j += 1
+    args = split_args(body[at + 9:j - 1])
+    for gold in ((False, True) if FN[fn][0] == 'p' else (False,)):
+        env = scene_env(FN[fn], gold)
+        rgb, a = int(ev(args[3], env)), ev(args[4], env)
+        if gold: rgb = gmap(rgb)
+        write('sp/%s_floor%s' % (FN[fn], '_g' if gold else ''), [
+            emitter('floor fog #area', PUFF, ((rgb, min(.6, a * 2.2)), (mix(rgb, 0xFFFFFF, .1), min(.5, a * 1.8))), (.1, .2), (70, 110), rate=7 / MPF, maxp=int(900 / MPF), radius=1.0, thick=1.0, sscale=(1, .015, 1), speed=(.001, .004), lin=(.006, .0015, 0), noise=(.015, .2), pos=(0, .02, 0)),
+            emitter('low wisps #area', PUFF, (mix(rgb, 0xFFFFFF, .2), min(.3, a * 1.1)), (.07, .14), (60, 100), rate=2.5 / MPF, maxp=int(320 / MPF), radius=1.0, thick=1.0, sscale=(1, .04, 1), speed=(.001, .004), lin=(-.005, .003, 0), noise=(.02, .25), pos=(0, .05, 0)),
+        ])
