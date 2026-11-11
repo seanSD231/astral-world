@@ -103,6 +103,31 @@ public final class Tarot {
 
     public static ItemStack makeCard(String pathway, int seq) { return makeCard(pathway, seq, false); }
 
+    /** The Marauder (Seq 0) and the Lord of Mysteries can wear another card's face: crouch and right click in the air. */
+    public static boolean canMimic(CompoundTag t) {
+        String p = t.getString("pathway");
+        return p.equals("goo_lord_of_mysteries") || p.equals("marauder") && t.getInt("seq") == 0;
+    }
+    /** Server: the held mimic card takes the chosen card's appearance (path "" clears it). Marauder: any pathway and Seq 0 to 9; Lord of Mysteries: that and the other Great Old Ones. */
+    public static void setMimic(ServerPlayer sp, String path, int seq) {
+        for (InteractionHand h : InteractionHand.values()) {
+            ItemStack st = sp.getItemInHand(h);
+            if (!(st.getItem() instanceof CardItem)) continue;
+            CompoundTag t = st.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+            if (!canMimic(t)) continue;
+            boolean lord = t.getString("pathway").equals("goo_lord_of_mysteries");
+            if (path.isEmpty()) { CustomData.update(DataComponents.CUSTOM_DATA, st, x -> { x.remove("mimicPath"); x.remove("mimicSeq"); }); sp.displayClientMessage(Component.literal("The card shows its own face again."), true); return; }
+            boolean ok = false;
+            for (String id : PATHWAYS) if (id.equals(path)) ok = true;
+            if (lord && gooIndex(path) >= 0 && !path.equals("goo_lord_of_mysteries")) ok = true;
+            if (!ok) return;
+            int sq = gooIndex(path) >= 0 ? 0 : Math.max(0, Math.min(9, seq));
+            CustomData.update(DataComponents.CUSTOM_DATA, st, x -> { x.putString("mimicPath", path); x.putInt("mimicSeq", sq); });
+            sp.displayClientMessage(Component.literal("The card now wears the face of " + pretty(path) + (gooIndex(path) >= 0 ? "" : " - Seq " + sq) + "."), true);
+            return;
+        }
+    }
+
     /** A shiny card carries shiny:1b in its custom data. */
     public static ItemStack makeCard(String pathway, int seq, boolean shiny) {
         ItemStack s = new ItemStack(CARD.get());
@@ -166,7 +191,9 @@ public final class Tarot {
                 if (!lv.getEntitiesOfClass(HoloCardEntity.class, new net.minecraft.world.phys.AABB(at, at).inflate(.45, .3, .45)).isEmpty()) return net.minecraft.world.InteractionResult.FAIL;
                 HoloCardEntity e = new HoloCardEntity(HoloCardEntity.TYPE.get(), lv);
                 int seq = Math.max(0, Math.min(9, t.getInt("seq")));
-                e.setCard(t.getString("pathway"), seq, t.getBoolean("shiny")); e.setOwner(c.getPlayer());
+                if (t.contains("mimicPath") && !t.getString("mimicPath").isEmpty()) { e.setCard(t.getString("mimicPath"), t.getInt("mimicSeq"), false); e.setReal(t.getString("pathway"), seq, t.getBoolean("shiny")); }
+                else e.setCard(t.getString("pathway"), seq, t.getBoolean("shiny"));
+                e.setOwner(c.getPlayer());
                 e.setSymbolOnly(c.getPlayer().isShiftKeyDown());
                 e.moveTo(at.x, at.y, at.z, c.getPlayer().getYRot(), 0);
                 lv.addFreshEntity(e);
@@ -183,6 +210,10 @@ public final class Tarot {
         public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
             ItemStack st = player.getItemInHand(hand);
             CompoundTag t = tag(st);
+            if (player.isShiftKeyDown() && t.contains("pathway") && canMimic(t)) {
+                if (!level.isClientSide && player instanceof ServerPlayer sp0) net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp0, new Net.PackPayload("mimic", t.getString("pathway").startsWith("goo_") ? "lord" : "marauder"));
+                return InteractionResultHolder.success(st);
+            }
             if (!level.isClientSide && player instanceof ServerPlayer sp && t.contains("pathway"))
                 net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new Net.PackPayload("view", t.getString("pathway") + ":" + t.getInt("seq") + ":" + (t.getBoolean("shiny") ? 1 : 0)));
             return InteractionResultHolder.success(st);
@@ -192,10 +223,11 @@ public final class Tarot {
         public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> lines, net.minecraft.world.item.TooltipFlag flag) {
             CompoundTag t = tag(stack);
             if (!t.contains("pathway")) { lines.add(Component.literal("A placeholder card for testing.").withStyle(ChatFormatting.GRAY)); return; }
-            if (gooIndex(t.getString("pathway")) >= 0) { lines.add(Component.literal("Great Old One").withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD)); return; }
+            if (gooIndex(t.getString("pathway")) >= 0) { lines.add(Component.literal("Great Old One").withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD)); if (canMimic(t)) lines.add(Component.literal("Crouch + right click in the air: wear another card's face" + (t.contains("mimicPath") && !t.getString("mimicPath").isEmpty() ? " (now " + pretty(t.getString("mimicPath")) + ")" : "") + ".").withStyle(ChatFormatting.AQUA)); return; }
             int seq = Math.max(0, Math.min(9, t.getInt("seq")));
             lines.add(Component.literal(RARITY[seq]).withStyle(RARITY_COLOR[seq]));
             if (t.getBoolean("shiny")) lines.add(Component.literal("Shiny").withStyle(ChatFormatting.YELLOW));
+            if (canMimic(t)) lines.add(Component.literal("Crouch + right click in the air: wear another card's face" + (t.contains("mimicPath") && !t.getString("mimicPath").isEmpty() ? " (now " + pretty(t.getString("mimicPath")) + ")" : "") + ".").withStyle(ChatFormatting.AQUA));
         }
     }
 

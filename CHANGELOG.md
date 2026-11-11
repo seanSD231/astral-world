@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.201
+- Marauder (Seq 0) and Lord of Mysteries: crouch and right click in the air to open a menu of cards (Marauder: any pathway and Seq 0 to 9; Lord of Mysteries: that and the other Great Old Ones). Pick one and the card wears that card's face; when placed it shows that card's scene (and its real seats and bridge). Picking it up gives you your own card back; "Show my own face" clears it.
+- Marauder scenes are calmer and easier to look at: slower stepped time, far fewer flashes and dead pixels.
+- Trident fully redone: wrapped shaft, finned collar, a long leaf-bladed middle prong and two sweeping barbed side prongs.
+- Arbiter scales: one pan now holds a heart and the other a proper feather (the heart against the feather of truth).
+- Chained: each padlock and its chain are one pendulum, hooked through the shackle and swaying together.
+- Seq 0 is now clearly different from Seq 1 for: Monster (giant dice and a coin fountain), Planter (many more, smaller flowers), White Tower (ring of lesser spires and orbiting books), Sailor (waterspouts and a great whirlpool), Justiciar (a court of columns and a falling gavel), Corpse Collector (a rising graveyard and streaming souls), Door (a ring of coloured doors), Mystery Pryer (a great watching eye sweeping a beam) and Prisoner (a vast cage with a bound figure).
+- Untested in game. Not done: the Demoness chest change on players (needs player-model work), which I'd like to talk through first.
+
 ## 0.2.200
 - God Almighty and the Goddess of Origin now stand away from the card like the White Tower. Almighty's four pillars reach the ground. The Goddess's tree is vastly bigger, with massive forking limbs, leaves of many colours, hundreds of glowing lights, shafts of coloured light and fireflies.
 - Father of Devils: a dark dome, a great shell of hellfire round the maw, heavy chains binding it to the ground and a crown of horns.

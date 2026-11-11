@@ -34,6 +34,8 @@ public class HoloCardEntity extends Entity {
     private static final EntityDataAccessor<Integer> GOO = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> SYMBOL = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
     private UUID owner;
+    private String realPath = ""; private int realSeq; private boolean realShiny;   // a disguised card (Marauder / Lord of Mysteries): what to give back
+    public void setReal(String p, int sq, boolean sh) { realPath = p; realSeq = sq; realShiny = sh; }
     private String ownerName = "";
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, AstralMod.MOD_ID);
@@ -69,10 +71,12 @@ public class HoloCardEntity extends Entity {
         setCard(t.getString("pathway"), t.getInt("seq"), t.getBoolean("shiny"));
         setSymbolOnly(t.getBoolean("symbolOnly"));
         owner = t.hasUUID("owner") ? t.getUUID("owner") : null; ownerName = t.getString("ownerName");
+        realPath = t.getString("realPath"); realSeq = t.getInt("realSeq"); realShiny = t.getBoolean("realShiny");
     }
     @Override protected void addAdditionalSaveData(CompoundTag t) {
         t.putBoolean("symbolOnly", symbolOnly()); t.putString("pathway", pathway()); t.putInt("seq", seq()); t.putBoolean("shiny", shiny());
         if (owner != null) t.putUUID("owner", owner); t.putString("ownerName", ownerName);
+        t.putString("realPath", realPath); t.putInt("realSeq", realSeq); t.putBoolean("realShiny", realShiny);
     }
 
     @Override public boolean isPickable() { return true; }
@@ -91,7 +95,7 @@ public class HoloCardEntity extends Entity {
             player.displayClientMessage(Component.literal("This card belongs to " + (ownerName.isEmpty() ? "someone else" : ownerName) + "."), true);
             return InteractionResult.CONSUME;
         }
-        ItemStack st = Tarot.makeCard(pathway(), seq(), shiny());
+        ItemStack st = realPath.isEmpty() ? Tarot.makeCard(pathway(), seq(), shiny()) : Tarot.makeCard(realPath, realSeq, realShiny);
         if (!player.getInventory().add(st)) player.drop(st, false);
         level().playSound(null, getX(), getY(), getZ(), net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_RESONATE, net.minecraft.sounds.SoundSource.PLAYERS, .7f, 1.4f);
         discard();
@@ -204,7 +208,7 @@ public class HoloCardEntity extends Entity {
         if (!level().isClientSide && tickCount == 2 && hasThrone()) spawnThrone();
         // if the block under the card is broken, the card drops as an item instead of floating
         if (!level().isClientSide && tickCount % 10 == 0 && level().getBlockState(blockPosition().below()).isAir() && level().getBlockState(blockPosition()).isAir()) {
-            level().addFreshEntity(new ItemEntity(level(), getX(), getY() + .2, getZ(), Tarot.makeCard(pathway(), seq(), shiny())));
+            level().addFreshEntity(new ItemEntity(level(), getX(), getY() + .2, getZ(), realPath.isEmpty() ? Tarot.makeCard(pathway(), seq(), shiny()) : Tarot.makeCard(realPath, realSeq, realShiny)));
             discard();
         }
     }

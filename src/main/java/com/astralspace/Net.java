@@ -90,6 +90,13 @@ public final class Net {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Client -> server: the card the held Marauder / Lord of Mysteries card should wear ("" clears it). */
+    public record MimicPayload(String path, int seq) implements CustomPacketPayload {
+        public static final Type<MimicPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "mimic"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, MimicPayload> CODEC = StreamCodec.composite(ByteBufCodecs.STRING_UTF8, MimicPayload::path, ByteBufCodecs.VAR_INT, MimicPayload::seq, MimicPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** Server -> client: a tarot pack was opened. `pack` is its pathway, `cards` is "pathway:seq,pathway:seq,..." (the cards are held until flipped, see PackDelivery). */
     public record PackPayload(String pack, String cards) implements CustomPacketPayload {
         public static final Type<PackPayload> TYPE =
@@ -296,7 +303,10 @@ public final class Net {
         registrar.playToServer(PackRevealPayload.TYPE, PackRevealPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) PackDelivery.reveal(sp, payload.index());
         }));
-        registrar.playToClient(PackPayload.TYPE, PackPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> PackScreen.open(payload.pack(), payload.cards())));
+        registrar.playToClient(PackPayload.TYPE, PackPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> { if (payload.pack().equals("mimic")) MimicScreen.open(payload.cards().equals("lord")); else PackScreen.open(payload.pack(), payload.cards()); }));
+        registrar.playToServer(MimicPayload.TYPE, MimicPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) Tarot.setMimic(sp, payload.path(), payload.seq());
+        }));
         registrar.playToClient(TreeAnimPayload.TYPE, TreeAnimPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             ClientState.animAttack = payload.attack();
             ClientState.animTicks = payload.ticks();
