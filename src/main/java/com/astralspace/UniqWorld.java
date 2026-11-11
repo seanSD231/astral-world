@@ -17,7 +17,7 @@ import java.util.List;
 public final class UniqWorld {
     private UniqWorld() {}
 
-    public static final int SERPENT = 1, SPIKES = 2, DOLL = 3, STORM = 4, FXPOINT = 5, FXPATH = 6;
+    public static final int SERPENT = 1, SPIKES = 2, DOLL = 3, STORM = 4, FXPOINT = 5, FXPATH = 6, SLASH = 7;
     private static final String[] FXN = {"astral_world:twilight_hit", "astral_world:twilight_wave", "astral_world:storm_ball"};
     private static final List<Object[]> PENDING = new ArrayList<>();   // {game tick, Runnable}
 
@@ -47,6 +47,10 @@ public final class UniqWorld {
     /** The effects that are Photon: started here, killed when they are over. */
     private static void photon(Fx f, Minecraft mc) {
         long now = mc.level.getGameTime();
+        if (f.kind == FXPOINT || f.kind == FXPATH) {
+            if (f.id == 0) { LIVE.add(new Fx(SLASH, 0, 0, f.x, f.y, f.z, f.x, f.y, f.z, 12, f.start)); LIVE.add(new Fx(SLASH, 2, 0, f.x, f.y, f.z, f.x, f.y, f.z, 14, f.start + 3)); }
+            else if (f.id == 1) LIVE.add(new Fx(SLASH, 1, 0, f.x, f.y, f.z, f.x2, f.y2, f.z2, f.dur, f.start));
+        }
         if (f.kind == FXPOINT) {
             Object h = LotmFx.start(FXN[f.id], f.x, f.y, f.z, (float) f.x2);
             later(now + f.dur, () -> LotmFx.kill(h));
@@ -84,6 +88,7 @@ public final class UniqWorld {
         UniqGfx.light = 0xF000F0;
         LIVE.removeIf(f -> {
             float t = mc.level.getGameTime() - f.start + pt;
+            if (t < 0) return false;
             if (t >= f.dur) return true;
             try {
                 switch (f.kind) {
@@ -91,6 +96,7 @@ public final class UniqWorld {
                     case SPIKES -> spikes(ps, buf, f, t, cam);
                     case DOLL -> doll(ps, buf, f, t, cam, mc, pt);
                     case STORM -> storm(ps, buf, f, t, cam);
+                    case SLASH -> slash(ps, buf, f, t, cam);
                     default -> { }
                 }
             } catch (Throwable ignored) { }
@@ -148,6 +154,23 @@ public final class UniqWorld {
         float yaw = (float) Math.atan2(dir.x, dir.z);
         ps.pushPose(); ps.translate(p.x - cam.x, p.y - cam.y, p.z - cam.z); ps.mulPose(Axis.YP.rotation(yaw)); ps.scale(1.7f, 1.7f, 1.7f);
         UniqGfx.doll(ps, buf, t, tau < 1f ? 1f : 0f, false, tau >= 1f);
+        ps.popPose();
+    }
+
+    /** A crescent moon of dusk cutting upright through its target, tilted like a sword stroke and turned to face whoever is looking. */
+    private static void slash(PoseStack ps, MultiBufferSource buf, Fx f, float t, Vec3 cam) {
+        float k = t / f.dur;
+        Vec3 p = f.id == 1 ? lerpPos(f, k) : new Vec3(f.x, f.y, f.z);
+        float grow = f.id == 1 ? .75f + .25f * ease(k * 4f) : .45f + .75f * ease(k * 2.5f);
+        float al = f.id == 1 ? Mth.clamp((1f - k) * 4f, 0f, 1f) : (1f - k) * (1f - k);
+        if (al <= .01f) return;
+        float R = (f.id == 1 ? 34f : 22f) * grow, W = (f.id == 1 ? 11f : 7f) * grow;
+        float tilt = f.id == 2 ? 42f : f.id == 1 ? -8f : -48f;
+        float yaw = (float) Math.atan2(cam.x - p.x, cam.z - p.z);
+        ps.pushPose(); ps.translate(p.x - cam.x, p.y - cam.y, p.z - cam.z); ps.mulPose(Axis.YP.rotation(yaw)); ps.mulPose(Axis.ZP.rotationDegrees(tilt));
+        UniqGfx.crescent(ps, buf, R * 1.08f, W * 1.7f, UniqGfx.rgba(0x8A50FF, .42f * al));
+        ps.translate(0, 0, .01); UniqGfx.crescent(ps, buf, R, W * 1.1f, UniqGfx.rgba(0xFFA040, .85f * al));
+        ps.translate(0, 0, .01); UniqGfx.crescent(ps, buf, R, W * .5f, UniqGfx.rgba(0xFFF4D0, al));
         ps.popPose();
     }
 

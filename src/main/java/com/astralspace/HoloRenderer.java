@@ -1198,14 +1198,15 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         vAlpha = phaseA(2.3f); if (vAlpha > .02f) trainRun(trad2, ts2, 2.8f * S, -1f, new int[]{0, 1, 3, 2, 3, 2}, new float[]{0f, 3.4f, 6.6f, 9.8f, 13f, 16.2f}, 0x3A404C, 0xC8A040); vAlpha = 1f;
         float ts3 = .3f * S, trad3 = R * .36f; railRing(trad3, ts3);
         vAlpha = phaseA(4.1f); if (vAlpha > .02f) trainRun(trad3, ts3, 2.4f * S, 1f, new int[]{0, 1, 2}, new float[]{0f, 3.4f, 6.6f}, mix(0x3A2A18, P3, .3f), 0xC8A040); vAlpha = 1f;
-        for (int a2 = 0; a2 < 6; a2++) {
-            float ta = t * (a2 % 2 == 0 ? -.12f : .09f) + a2 * 1.05f, ar = R * (.3f + .13f * (a2 % 4)), ay = by + (4.5f + a2 * 1.6f) * S + gs(t * .6f + a2) * .4f * S;
+        for (int a2 = 0; a2 < 6; a2++) {   // three tiers, a pair to each tier on opposite sides of one circle, so none of them ever meet
+            int tier = a2 / 2, side = a2 % 2;
+            float ta = t * (tier % 2 == 0 ? -.1f : .08f) * (1f + .15f * tier) + side * PI + tier * .8f, ar = R * .55f, ay = by + (3f + tier * 2.8f) * S + gs(t * .6f + a2) * .25f * S;
             vAlpha = phaseA(1f + a2 * 1.3f);
-            if (vAlpha > .02f) { push(); tr(gc(ta) * ar, ay, gs(ta) * ar); rY((a2 % 2 == 0 ? PI / 2 : -PI / 2) - ta); rZ(gs(t * .5f + a2) * .04f); airship((.42f + .06f * (a2 % 3)) * S); pop(); }
+            if (vAlpha > .02f) { push(); tr(gc(ta) * ar, ay, gs(ta) * ar); rY((tier % 2 == 0 ? PI / 2 : -PI / 2) - ta); rZ(gs(t * .5f + a2) * .04f); airship(.42f * S); pop(); }
             vAlpha = 1f;
         }
-        for (int g2 = 0; g2 < 2; g2++) {   // two gunships riding high overhead
-            float ta = t * (g2 == 0 ? .05f : -.04f) + g2 * PI, ar = R * (.5f - .12f * g2), ay = by + (13f + 3f * g2) * S + gs(t * .3f + g2) * .6f * S;
+        for (int g2 = 0; g2 < 2; g2++) {   // two gunships riding high overhead, a tier apart
+            float ta = t * (g2 == 0 ? .05f : -.04f) + g2 * PI, ar = R * (.4f - .08f * g2), ay = by + (13f + 3.8f * g2) * S + gs(t * .3f + g2) * .3f * S;
             vAlpha = phaseA(7f + g2 * 2.7f);
             if (vAlpha > .02f) { push(); tr(gc(ta) * ar, ay, gs(ta) * ar); rY((g2 == 0 ? -PI / 2 : PI / 2) - ta); gunAirship((.8f + .2f * g2) * S, 4 + g2); pop(); }
             vAlpha = 1f;
@@ -2088,49 +2089,73 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
     /** A paddle steamer, bow toward +x: dark hull with a red waterline, white decks, two striped funnels, side paddle wheels, a mast and flag, lifeboats. */
     private void steamShip(float s) {
-        int hull = 0x20242C, red = 0xA82828, white = 0xEEE8DC, brass = 0xC8A040;
-        box(0, .5f * s, 0, 2.5f * s, .5f * s, .95f * s, hull, 255); box(0, .12f * s, 0, 2.4f * s, .12f * s, .9f * s, red, 255);
-        push(); tr(2.5f * s, .5f * s, 0); sphere(0, 0, 0, 1.2f * s, .5f * s, .95f * s, 6, 10, hull, 255); pop();
-        box(0, 1.08f * s, 0, 2.4f * s, .06f * s, .92f * s, 0x8A6A3A, 255);
-        box(-.2f * s, 1.55f * s, 0, 1.5f * s, .42f * s, .72f * s, white, 255); box(-.2f * s, 1.98f * s, 0, 1.55f * s, .05f * s, .76f * s, brass, 255);
-        box(-.1f * s, 2.35f * s, 0, .9f * s, .32f * s, .55f * s, white, 255); box(-.1f * s, 2.69f * s, 0, .95f * s, .05f * s, .6f * s, brass, 255);
-        for (int k = -3; k <= 3; k++) for (int sd = -1; sd <= 1; sd += 2) { box(-.2f * s + k * .4f * s, 1.6f * s, sd * .73f * s, .13f * s, .15f * s, .01f * s, 0xFFE9A0, 255); }
-        for (int f = 0; f < 2; f++) { push(); tr(-.9f * s + f * 1.25f * s, 2.0f * s, 0); frustum(0, 1.1f * s, .28f * s, .24f * s, 12, 1, 1, 0x15171C, 255, true); frustum(.55f * s, .75f * s, .29f * s, .29f * s, 12, 1, 1, red, 255, true); frustum(1.1f * s, 1.15f * s, .3f * s, .3f * s, 12, 1, 1, brass, 255, true); pop(); }
-        for (int sd = -1; sd <= 1; sd += 2) { push(); tr(-.5f * s, 1.0f * s, sd * 1.15f * s); rX(0); rZ(-t * 2.2f);   // the paddle wheels turning
-            torus(0, 0, 0, .75f * s, .75f * s, .04f * s, 16, 3, 0, TAU, brass, 255);
-            for (int k = 0; k < 10; k++) { push(); rZ(k * TAU / 10); box(.7f * s, 0, 0, .12f * s, .03f * s, .22f * s, 0x6A4A2A, 255); box(0, 0, 0, .7f * s, .02f * s, .03f * s, brass, 255); pop(); } pop(); }
-        box(.6f * s, 2.0f * s, 0, .06f * s, .06f * s, .06f * s, brass, 255);
-        push(); tr(1.5f * s, 1.08f * s, 0); frustum(0, 1.8f * s, .04f * s, .03f * s, 6, 1, 1, 0x8A6A3A, 255, true); box(.2f * s, 1.6f * s, 0, .2f * s, .12f * s, .01f * s, red, 255); pop();
-        for (int sd = -1; sd <= 1; sd += 2) box(.2f * s, 1.2f * s, sd * .5f * s, .45f * s, .08f * s, .13f * s, 0xE0D8C0, 255);
+        int iron = 0x4A4F58, dkiron = 0x2E323A, deck = 0x6C7078, belt = 0x3A3F48, red = 0x5A2A22, blk = 0x15171C, brass = 0x9A8450, steel = 0x3A404C;
+        // an iron steam warship, bow toward +x: a long armoured hull with a ram bow, a citadel, raked funnels, twin gun turrets fore and aft, tripod mast
+        box(0, .42f * s, 0, 2.7f * s, .42f * s, .9f * s, iron, 255);                          // main hull
+        box(0, .06f * s, 0, 2.55f * s, .08f * s, .78f * s, red, 255);                          // anti-fouling red below the waterline
+        box(0, .62f * s, 0, 2.72f * s, .16f * s, .93f * s, belt, 255);                         // armour belt
+        push(); tr(2.7f * s, .42f * s, 0); sphere(0, 0, 0, 1.0f * s, .42f * s, .9f * s, 8, 14, iron, 255); sphere(0, .2f * s, 0, 1.0f * s, .22f * s, .93f * s, 6, 12, belt, 255);
+        tr(.85f * s, -.25f * s, 0); rZ(-PI / 2); frustum(0, .5f * s, .09f * s, .03f * s, 8, 1, 1, steel, 255, true); pop();   // the ram
+        push(); tr(-2.7f * s, .42f * s, 0); sphere(0, 0, 0, .8f * s, .42f * s, .85f * s, 6, 12, iron, 255); pop();           // rounded stern
+        box(0, .86f * s, 0, 2.6f * s, .05f * s, .86f * s, deck, 255);                           // steel deck
+        for (int k = -6; k <= 6; k++) for (int sd = -1; sd <= 1; sd += 2) box(k * .4f * s, .7f * s, sd * .93f * s, .035f * s, .035f * s, .01f * s, blk, 255);   // rivets
+        for (int k = -5; k <= 5; k++) for (int sd = -1; sd <= 1; sd += 2) box(k * .42f * s, .5f * s, sd * .92f * s, .13f * s, .05f * s, .02f * s, blk, 255);    // gun ports
+        // citadel and bridge
+        box(-.15f * s, 1.15f * s, 0, 1.15f * s, .3f * s, .62f * s, iron, 255); box(-.15f * s, 1.46f * s, 0, 1.2f * s, .04f * s, .66f * s, dkiron, 255);
+        box(.55f * s, 1.58f * s, 0, .38f * s, .24f * s, .42f * s, belt, 255); box(.55f * s, 1.84f * s, 0, .42f * s, .04f * s, .46f * s, dkiron, 255);
+        for (int sd = -1; sd <= 1; sd += 2) box(.9f * s, 1.6f * s, sd * .2f * s, .015f * s, .05f * s, .1f * s, 0x40C8FF, 200);   // slit windows
+        // two raked funnels
+        for (int f = 0; f < 2; f++) { push(); tr(-.7f * s + f * 1.0f * s, 1.46f * s, 0); rZ(.1f); frustum(0, 1.0f * s, .3f * s, .26f * s, 12, 1, 1, dkiron, 255, true); frustum(.82f * s, 1.02f * s, .28f * s, .28f * s, 12, 1, 1, blk, 255, true); frustum(.55f * s, .62f * s, .31f * s, .31f * s, 12, 1, 1, brass, 255, true); pop(); }
+        // turrets: twin guns forward and aft, slowly training
+        for (int g = 0; g < 2; g++) { float tx = g == 0 ? 1.75f * s : -1.9f * s, sw = (g == 0 ? 1f : -1f) * (gs(t * .35f + g * 2f) * .35f);
+            push(); tr(tx, .9f * s, 0); rY(sw + (g == 0 ? 0 : PI));
+            frustum(0, .2f * s, .5f * s, .46f * s, 14, 1, 1, steel, 255, true); box(.05f * s, .3f * s, 0, .4f * s, .1f * s, .38f * s, belt, 255);
+            for (int b2 = -1; b2 <= 1; b2 += 2) { push(); tr(.3f * s, .3f * s, b2 * .15f * s); rZ(-PI / 2 + .06f); frustum(0, 1.0f * s, .07f * s, .055f * s, 8, 1, 1, blk, 255, true); frustum(.9f * s, 1.02f * s, .09f * s, .09f * s, 8, 1, 1, steel, 255, true); pop(); }
+            pop(); }
+        // secondary guns on the citadel flanks and a tripod mast with a fighting top
+        for (int sd = -1; sd <= 1; sd += 2) for (int k = 0; k < 2; k++) { push(); tr((-.5f + k * .9f) * s, 1.1f * s, sd * .66f * s); rY(-sd * PI / 2); rZ(-PI / 2 + .1f); frustum(0, .38f * s, .035f * s, .03f * s, 6, 1, 1, blk, 255, true); pop(); }
+        push(); tr(.1f * s, 1.5f * s, 0); for (int sd = -1; sd <= 1; sd += 2) { push(); rX(sd * .12f); frustum(0, 1.7f * s, .035f * s, .02f * s, 6, 1, 1, dkiron, 255, true); pop(); }
+        frustum(0, 1.9f * s, .03f * s, .02f * s, 6, 1, 1, dkiron, 255, true); frustum(1.25f * s, 1.35f * s, .16f * s, .2f * s, 10, 1, 1, steel, 255, true); box(0, 1.9f * s, 0, .015f * s, .01f * s, .3f * s, dkiron, 255); pop();
+        for (int sd = -1; sd <= 1; sd += 2) box(-1.6f * s, 1.0f * s, sd * .55f * s, .3f * s, .07f * s, .09f * s, belt, 255);   // gray steam launches
+        push(); tr(-2.9f * s, .3f * s, 0); rX(t * 9f); box(0, 0, 0, .02f * s, .3f * s, .05f * s, 0x303038, 255); box(0, 0, 0, .02f * s, .05f * s, .3f * s, 0x303038, 255); pop();   // screw
     }
     private void airship(float s) {   // nose toward +x
-        int env = 0xD8D2C0, rib = 0x8A6A3A, red = 0xB02830;
-        sphere(0, 0, 0, 4f * s, 1.5f * s, 1.5f * s, 10, 20, env, 255);
-        for (int k = -3; k <= 3; k++) { float x = k * .95f * s, r = 1.5f * s * (float) Math.sqrt(Math.max(.05f, 1f - (x / (4f * s)) * (x / (4f * s)))); push(); tr(x, 0, 0); rY(PI / 2); torus(0, 0, 0, r * 1.01f, r * 1.01f, .04f * s, 14, 3, 0, TAU, rib, 255); pop(); }
-        box(0, -1.95f * s, 0, 1.3f * s, .35f * s, .45f * s, 0x7A5230, 255); box(0, -1.9f * s, .0f, 1.2f * s, .2f * s, .47f * s, 0xFFE9A0, 255);
-        for (int sd = -1; sd <= 1; sd += 2) for (int k = -1; k <= 1; k += 2) box(k * .8f * s, -1.4f * s, sd * .3f * s, .03f * s, .5f * s, .03f * s, rib, 255);
-        for (int k = 0; k < 4; k++) { push(); tr(-3.3f * s, 0, 0); rX(k * PI / 2); box(-.2f * s, 1.55f * s, 0, .6f * s, .55f * s, .04f * s, red, 255); pop(); }
-        for (int sd = -1; sd <= 1; sd += 2) { push(); tr(-1.3f * s, -1.9f * s, sd * .75f * s); rX(t * 14f); box(0, 0, 0, .03f * s, .55f * s, .07f * s, 0x303038, 255); box(0, 0, 0, .03f * s, .07f * s, .55f * s, 0x303038, 255); pop(); }
-        for (int k = -2; k <= 2; k++) box(k * .22f * s, -1.9f * s, .48f * s, .08f * s, .08f * s, .01f * s, 0x40C8FF, 255);   // gondola windows
-        for (int sd = -1; sd <= 1; sd += 2) { push(); tr(-3.2f * s, 0, 0); rX(sd * .0f); box(-.3f * s, 0, sd * 1.5f * s, .55f * s, .04f * s, .55f * s, red, 255); pop(); }   // side fins
-        push(); tr(-4.1f * s, -1.9f * s, 0); rX(t * 18f); box(0, 0, 0, .02f * s, .8f * s, .05f * s, 0x303038, 255); box(0, 0, 0, .02f * s, .05f * s, .8f * s, 0x303038, 255); pop();   // a big stern propeller
-        for (int k = -4; k <= 4; k++) { float x = k * .9f * s; for (int sd = -1; sd <= 1; sd += 2) { float yy = -1.45f * s * (1f - Math.abs(k) / 5f); box(x, -.8f * s - yy * 0, sd * .5f * s, .012f * s, .62f * s, .012f * s, 0xC8B890, 255); } }   // rigging down to the gondola
-        push(); tr(3.6f * s, 1.3f * s, 0); frustum(0, .9f * s, .03f * s, .03f * s, 5, 1, 1, rib, 255, true); box(-.35f * s, .65f * s, 0, .35f * s, .22f * s, .01f * s, red, 255); pop();
+        int env = 0xD8D2C0, shade = 0xB8B2A0, rib = 0x8A6A3A, red = 0xB02830, dkred = 0x7A1820, steel = 0x3A404C, brass = 0xC8A040, blk = 0x303038;
+        sphere(0, 0, 0, 4f * s, 1.45f * s, 1.45f * s, 14, 28, env, 255);
+        sphere(0, -.28f * s, 0, 3.9f * s, 1.3f * s, 1.3f * s, 10, 22, shade, 255);                // a darker belly
+        for (int k = -4; k <= 4; k++) { float x = k * .8f * s, r = 1.45f * s * (float) Math.sqrt(Math.max(.05f, 1f - (x / (4f * s)) * (x / (4f * s)))); push(); tr(x, 0, 0); rY(PI / 2); torus(0, 0, 0, r * 1.012f, r * 1.012f, .03f * s, 18, 3, 0, TAU, rib, 255); pop(); }
+        box(0, -1.4f * s, 0, 3.4f * s, .04f * s, .08f * s, rib, 255);                              // keel line
+        push(); tr(4f * s, 0, 0); sphere(0, 0, 0, .22f * s, .22f * s, .22f * s, 8, 12, brass, 255); pop();   // nose cap
+        // tail: four swept fins, red with a darker rudder edge
+        for (int k = 0; k < 4; k++) { push(); tr(-3.1f * s, 0, 0); rX(k * PI / 2);
+            box(-.25f * s, 1.65f * s, 0, .6f * s, .5f * s, .025f * s, red, 255); box(-.75f * s, 1.7f * s, 0, .16f * s, .46f * s, .03f * s, dkred, 255); box(-.2f * s, 1.2f * s, 0, .5f * s, .08f * s, .03f * s, rib, 255); pop(); }
+        // gondola: a wooden hull with a cabin, windows, a brass roof and a glass nose
+        box(0, -1.85f * s, 0, 1.2f * s, .18f * s, .38f * s, 0x6A4624, 255); box(0, -1.68f * s, 0, 1.1f * s, .15f * s, .4f * s, 0xE8DEC0, 255); box(0, -1.52f * s, 0, 1.15f * s, .035f * s, .43f * s, brass, 255);
+        push(); tr(1.2f * s, -1.8f * s, 0); sphere(0, 0, 0, .3f * s, .24f * s, .34f * s, 8, 12, 0x6A4624, 255); pop(); push(); tr(-1.2f * s, -1.8f * s, 0); sphere(0, 0, 0, .3f * s, .24f * s, .34f * s, 8, 12, 0x6A4624, 255); pop();
+        for (int k = -3; k <= 3; k++) for (int sd = -1; sd <= 1; sd += 2) box(k * .3f * s, -1.68f * s, sd * .41f * s, .08f * s, .08f * s, .01f * s, 0x40C8FF, 255);
+        for (int sd = -1; sd <= 1; sd += 2) for (int k = -1; k <= 1; k += 2) { box(k * .7f * s, -1.1f * s, sd * .3f * s, .025f * s, .45f * s, .025f * s, rib, 255); box(k * .7f * s, -1.1f * s, sd * .3f * s, .025f * s, .025f * s, .0f * s, rib, 255); }
+        // two engine nacelles on short struts, each with a turning propeller
+        for (int sd = -1; sd <= 1; sd += 2) { push(); tr(-1.0f * s, -.55f * s, sd * 1.55f * s);
+            box(0, .3f * s, -sd * .12f * s, .03f * s, .3f * s, .03f * s, rib, 255);
+            push(); rZ(-PI / 2); frustum(-.35f * s, .35f * s, .17f * s, .13f * s, 10, 1, 1, steel, 255, true); frustum(-.38f * s, -.3f * s, .19f * s, .19f * s, 10, 1, 1, brass, 255, true); pop();
+            push(); tr(.42f * s, 0, 0); rX(t * 16f + sd); box(0, 0, 0, .02f * s, .5f * s, .06f * s, blk, 255); box(0, 0, 0, .02f * s, .06f * s, .5f * s, blk, 255); pop(); pop(); }
+        for (int k = -4; k <= 4; k++) { float x = k * .8f * s; for (int sd = -1; sd <= 1; sd += 2) box(x, -1.0f * s, sd * .5f * s, .01f * s, .52f * s, .01f * s, 0xC8B890, 255); }   // rigging down to the gondola
+        push(); tr(-3.9f * s, -1.8f * s, 0); rX(t * 18f); box(0, 0, 0, .02f * s, .6f * s, .05f * s, blk, 255); box(0, 0, 0, .02f * s, .05f * s, .6f * s, blk, 255); pop();   // stern propeller
     }
-    /** An airship carrying guns: turret pairs along both flanks of the hull and a heavy dorsal turret, the barrels swinging a little. */
+    /** An airship carrying guns: small armoured gun turrets slung under both flanks of the hull and a heavy dorsal turret, the barrels swinging a little. */
     private void gunAirship(float s, int pairs) {
         airship(s);
         int steel = 0x3A404C, blk = 0x15171C, brass = 0xC8A040;
         for (int k = 0; k < pairs; k++) for (int sd = -1; sd <= 1; sd += 2) {
-            float x = (-2.8f + k * 5.6f / Math.max(1, pairs - 1)) * s;
-            push(); tr(x, -.55f * s, sd * 1.3f * s); rY(sd * (1.5708f + gs(t * .4f + k) * .2f));
-            box(0, 0, 0, .34f * s, .22f * s, .34f * s, steel, 255); box(0, .12f * s, 0, .26f * s, .05f * s, .26f * s, brass, 255);
-            for (int g = -1; g <= 1; g += 2) { push(); tr(.2f * s, .05f * s, g * .1f * s); rZ(-PI / 2 + .12f); frustum(0, 1.1f * s, .06f * s, .045f * s, 8, 1, 1, blk, 255, true); frustum(1.0f * s, 1.15f * s, .08f * s, .08f * s, 8, 1, 1, brass, 255, true); pop(); }
+            float x = (-2.6f + k * 5.2f / Math.max(1, pairs - 1)) * s;
+            push(); tr(x, -.8f * s, sd * 1.1f * s); rY(-sd * PI / 2 + gs(t * .4f + k) * .2f);
+            frustum(-.2f * s, .04f * s, .2f * s, .17f * s, 10, 1, 1, steel, 255, true); frustum(.04f * s, .1f * s, .22f * s, .22f * s, 10, 1, 1, brass, 255, true);
+            for (int g = -1; g <= 1; g += 2) { push(); tr(.1f * s, 0, g * .07f * s); rZ(-PI / 2 - .25f); frustum(0, .75f * s, .04f * s, .03f * s, 8, 1, 1, blk, 255, true); frustum(.68f * s, .78f * s, .055f * s, .055f * s, 8, 1, 1, brass, 255, true); pop(); }
             pop();
         }
-        push(); tr(.6f * s, 1.55f * s, 0); rY(gs(t * .3f) * .5f);
-        frustum(0, .35f * s, .55f * s, .45f * s, 12, 1, 1, steel, 255, true); frustum(.35f * s, .4f * s, .5f * s, .5f * s, 12, 1, 1, brass, 255, true);
-        for (int g = -1; g <= 1; g += 2) { push(); tr(.15f * s, .22f * s, g * .18f * s); rZ(-PI / 2 + .1f); frustum(0, 2.6f * s, .1f * s, .07f * s, 8, 1, 1, blk, 255, true); frustum(2.4f * s, 2.7f * s, .13f * s, .13f * s, 8, 1, 1, brass, 255, true); pop(); }
+        push(); tr(.6f * s, 1.38f * s, 0); rY(gs(t * .3f) * .5f);
+        frustum(0, .3f * s, .5f * s, .42f * s, 14, 1, 1, steel, 255, true); frustum(.3f * s, .35f * s, .46f * s, .46f * s, 14, 1, 1, brass, 255, true);
+        for (int g = -1; g <= 1; g += 2) { push(); tr(.15f * s, .2f * s, g * .16f * s); rZ(-PI / 2 + .1f); frustum(0, 2.4f * s, .09f * s, .065f * s, 8, 1, 1, blk, 255, true); frustum(2.2f * s, 2.5f * s, .12f * s, .12f * s, 8, 1, 1, brass, 255, true); pop(); }
         pop();
     }
     private void paragon(int N) {
@@ -2175,7 +2200,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void hangedMan(boolean m) {
         dome(R * 4f, 0x000000, m ? 252 : 246);
         mcStars(100, R * 3.2f, 0xFFFFFF, P1, .5f * S);
-        flat("whirl", 0, .06f, 0, 2f * R, t * .3f, rgba(P2, .9f));
+        if (m) { flat("rainbow_swirl", 0, .06f, 0, 2.2f * R, t * .35f, rgba(0xFFFFFF, .95f)); flat("rainbow_swirl", 0, .09f, 0, 1.2f * R, -t * .6f, rgba(0xFFFFFF, .7f)); }
+        else flat("whirl", 0, .06f, 0, 2f * R, t * .3f, rgba(P2, .9f));
         sigil(R);
         float ey = top * 1.25f, er = 3.2f * S, bh = 4.2f * S, headY = 1.5f * S, feetY = headY + bh;
         if (!m) {

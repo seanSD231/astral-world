@@ -201,8 +201,8 @@ write('storm_ball', [
     emitter('core halo #hold', GLOW, ((0x7A9CFF, .8)), 1.9, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, 1, 1), hold=True, mode='Billboard'),
     emitter('thunderheads #area', PUFF, ((0x1C2032, .8), (0x30364E, .75)), (.42, .75), (30, 60), rate=16, maxp=380, radius=.8, thick=1.0, speed=(.001, .006), noise=(.05, .3)),
     emitter('pale cloud #area', PUFF, ((0x6A7494, .5), (0x8A94B4, .4)), (.32, .55), (24, 44), rate=7, maxp=160, radius=.85, thick=.4, speed=(.001, .004), noise=(.05, .3)),
-    emitter('bolts #area', BT, ((0xE8F2FF, 1.0), (0xB8D0FF, 1.0)), (.5, 1.0), (4, 9), rate=3.2, maxp=60, radius=.7, thick=.7, noise=(0, 0), add=True, rot=0, alpha=(0, 1, .4, 1, .4, 0, 1, 0), mode='Billboard'),
-    emitter('bolts 2 #area', BT2, ((0xFFFFFF, 1.0), (0xA8C0FF, 1.0)), (.4, .85), (4, 8), rate=2.6, maxp=50, radius=.8, thick=.6, noise=(0, 0), add=True, rot=0, alpha=(0, 1, .4, 1, .4, 0, 1, 0), mode='Billboard'),
+    emitter('bolts #area', BT, ((0xE8F2FF, 1.0), (0xB8D0FF, 1.0)), (.22, .45), (4, 9), rate=3.2, maxp=60, radius=.7, thick=.7, noise=(0, 0), add=True, rot=0, alpha=(0, 1, .4, 1, .4, 0, 1, 0), mode='Billboard'),
+    emitter('bolts 2 #area', BT2, ((0xFFFFFF, 1.0), (0xA8C0FF, 1.0)), (.18, .4), (4, 8), rate=2.6, maxp=50, radius=.8, thick=.6, noise=(0, 0), add=True, rot=0, alpha=(0, 1, .4, 1, .4, 0, 1, 0), mode='Billboard'),
     emitter('streaks #area', LT + 'streak.png', ((0xFFFFFF, 1.0), (0x9AB8FF, 1.0)), (.03, .07), (6, 14), rate=6, maxp=140, radius=.35, thick=.5, speed=(.05, .14), noise=(0, 0), add=True, mode='StretchedBillboard'),
     emitter('sparks #detail', EMBER, ((0xFFFFFF, .95), (0xB0CCFF, .95)), (.01, .03), (12, 30), rate=4, maxp=200, radius=.9, thick=.5, speed=(.004, .02), noise=(.02, .4), add=True),
 ])
@@ -211,7 +211,6 @@ write('storm_ball', [
 write('twilight_hit', [
     light('dusk flash', 0xFFA050, 3.0, 8),
     emitter('flare #hold', FLARE, ((0xFFE0B0, 1.0)), 1.6, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, .5, 0), hold=True, mode='Billboard'),
-    emitter('crescent #hold', HT + 'crescent.png', ((0xFFB060, 1.0)), 1.7, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=35, alpha=(0, 1, .6, 0), hold=True, mode='Billboard'),
     emitter('amber streaks #area', LT + 'streak.png', ((0xFFB040, 1.0), (0xFF7A28, 1.0)), (.04, .09), (8, 16), rate=0, burst=22, maxp=40, radius=.1, speed=(.08, .22), noise=(0, 0), add=True, mode='StretchedBillboard'),
     emitter('violet streaks #area', LT + 'streak.png', ((0xB070FF, 1.0), (0x7A40E0, 1.0)), (.04, .09), (8, 16), rate=0, burst=22, maxp=40, radius=.1, speed=(.08, .22), noise=(0, 0), add=True, mode='StretchedBillboard'),
     emitter('motes #area', EMBER, ((0xFFE0A0, .95), (0xD0A0FF, .95)), (.03, .08), (20, 40), rate=0, burst=16, maxp=40, radius=.2, speed=(.01, .05), lin=(0, .01, 0), noise=(.03, .4), add=True),
@@ -220,8 +219,6 @@ write('twilight_hit', [
 # ---- The Twilight crescent wave, carried along its path (unit = a block): a big dusk crescent with a violet and amber wake
 write('twilight_wave', [
     light('wave light', 0xFF9A50, 3.0, 6),
-    emitter('crescent #hold', HT + 'crescent.png', ((0xFFC070, 1.0)), 3.2, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, 1, 1), hold=True, mode='Billboard'),
-    emitter('crescent glow #hold', HT + 'crescent.png', ((0xB070FF, .8)), 4.4, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, 1, 1), hold=True, mode='Billboard'),
     emitter('wake #area', GLOW, ((0xFF9040, .8), (0x9A60FF, .8)), (.4, .9), (10, 22), rate=6, maxp=80, radius=1.2, thick=1.0, sscale=(1, 1, 1), speed=(.002, .01), noise=(.04, .3), add=True),
     emitter('sparks #area', EMBER, ((0xFFE0A0, .95), (0xD0A0FF, .95)), (.05, .12), (14, 30), rate=5, maxp=90, radius=1.3, thick=.6, speed=(.004, .02), noise=(.03, .4), add=True),
 ])

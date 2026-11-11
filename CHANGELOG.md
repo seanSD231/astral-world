@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.197
+- Sword of Twilight: both slashes (the strike and the right-click wave) are now a proper upright crescent moon, tilted like a sword stroke, turned to face you and cutting through the target, instead of the sideways billboard. The strike is a crossing pair.
+- Ball of Lightning: the lightning in the storm is much thinner, the ball on your hand is smaller, and the off hand no longer shows a flat item picture.
+- Feathered Serpent coils further away from the body.
+- Hanged Man (Seq 0): the floor under the cross is a swirling rainbow instead of plain red.
+- Airships rebuilt: smooth belly-shaded envelope, swept tail fins, wooden gondola with windows, engine nacelles with propellers; the gunship now hangs small armoured turrets under the hull instead of big boxes.
+- The steamer is now an iron steam warship: armoured hull and ram bow, citadel, raked funnels, twin gun turrets, tripod mast. No flag, no paddle wheels.
+- Demon of Knowledge: airships fly in separate tiers and can no longer pass through each other.
+- Untested in game.
+
 ## 0.2.196
 - Demon of Knowledge now has far more vehicles than the Paragon: three phantom train lines (a new inner ring), six airships, two gunships and two ghost steamers sailing low over the floor.
 - Every one of them phases in and out of reality on its own beat: it solidifies, flickers, fades out entirely and returns.

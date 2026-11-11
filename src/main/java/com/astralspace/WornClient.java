@@ -53,7 +53,7 @@ public final class WornClient {
                 Object nh = LotmFx.carry(sun ? "bard/flaring_sun" : "astral_world:storm_ball", pt -> {
                     Entity e = Minecraft.getInstance().level == null ? null : Minecraft.getInstance().level.getPlayerByUUID(id);
                     return e == null ? Vec3.ZERO : sun ? shoulder(e, pt) : hand(e, pt);
-                }, sun ? .1f : .16f);
+                }, sun ? .1f : .075f);
                 SUNFX.put(p.getUUID(), nh == null ? "none" : nh); SUNKIND.put(p.getUUID(), want);
             }
         }

@@ -101,6 +101,20 @@ final class UniqGfx {
         quad(vc, m, a, r, g, b, x0 / 16, y0 / 16, z, x1 / 16, y1 / 16, z, x2 / 16, y2 / 16, z, x2 / 16, y2 / 16, z, 0, 0, 1);
     }
 
+    /** A crescent moon in the XY plane, open toward -x, R px from its centre to the tip of the curve, W px thick at the belly. Both faces. */
+    static void crescent(PoseStack p, MultiBufferSource b, float R, float W, int argb) {
+        VertexConsumer vc = vc(b); PoseStack.Pose m = p.last();
+        int a = argb >>> 24, r = argb >> 16 & 255, g = argb >> 8 & 255, bl = argb & 255;
+        int n = 16; float sh = -R * .75f;
+        for (int i = 0; i < n; i++) {
+            float u0 = -1f + 2f * i / n, u1 = -1f + 2f * (i + 1) / n, t0 = u0 * 1.25f, t1 = u1 * 1.25f;
+            float ox0 = (R * (float) Math.cos(t0) + sh) / 16, oy0 = R * (float) Math.sin(t0) / 16, ox1 = (R * (float) Math.cos(t1) + sh) / 16, oy1 = R * (float) Math.sin(t1) / 16;
+            float ix0 = ox0 - W * (1 - u0 * u0) / 16, ix1 = ox1 - W * (1 - u1 * u1) / 16;
+            quad(vc, m, a, r, g, bl, ix0, oy0, 0, ox0, oy0, 0, ox1, oy1, 0, ix1, oy1, 0, 0, 0, 1);
+            quad(vc, m, a, r, g, bl, ix1, oy1, 0, ox1, oy1, 0, ox0, oy0, 0, ix0, oy0, 0, 0, 0, -1);
+        }
+    }
+
     // ---- models ----
 
     /** A tentacle of shadow standing up from the origin, swaying and tapering to a curled tip. */
@@ -174,7 +188,7 @@ final class UniqGfx {
     static void serpentCoil(PoseStack p, MultiBufferSource b, float t, float strike) {
         int n = 26; float[][] pts = new float[n][3];
         for (int i = 0; i < n; i++) {
-            float u = i / (float) (n - 1), a = (float) (u * Math.PI * 4 + t * .06f), r = 7f - 3.4f * u + strike * 14 * u, y = 1.5f + u * u * 14f + strike * 8 * (1 - u);
+            float u = i / (float) (n - 1), a = (float) (u * Math.PI * 4 + t * .06f), r = 12.5f - 4f * u + strike * 14 * u, y = 1.5f + u * u * 14f + strike * 8 * (1 - u);
             pts[i] = new float[]{(float) Math.cos(a) * r, y, (float) Math.sin(a) * r};
         }
         serpent(p, b, pts, 14f + (float) Math.sin(t * .2f) * 6f, t);
@@ -279,7 +293,7 @@ final class UniqGfx {
             float x = 0, y = 0, z = 0;
             for (int j = 1; j <= 6; j++) {
                 float f = j / 6f, nx = dx * len * f + (rnd(s * 7 + k * 13 + j) - .5f) * r * .35f, ny = dy * len * f + (rnd(s * 3 + k * 11 + j) - .5f) * r * .35f, nz = dz * len * f + (rnd(s * 5 + k * 7 + j) - .5f) * r * .35f;
-                seg(p, b, x, y, z, nx, ny, nz, Math.max(.5f, r * .035f * (1.2f - f)), 0xFFE8F2FF); x = nx; y = ny; z = nz;
+                seg(p, b, x, y, z, nx, ny, nz, Math.max(.3f, r * .016f * (1.2f - f)), 0xFFE8F2FF); x = nx; y = ny; z = nz;
             }
         }
     }
