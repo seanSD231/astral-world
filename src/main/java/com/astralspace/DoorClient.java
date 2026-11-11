@@ -41,6 +41,7 @@ public final class DoorClient {
         NeoForge.EVENT_BUS.addListener(DoorClient::tick);
         NeoForge.EVENT_BUS.addListener(NovaRender::render);
         NeoForge.EVENT_BUS.addListener(UniqWorld::render);
+        UniqWorld.init();
     }
 
     private static void tick(ClientTickEvent.Post e) {

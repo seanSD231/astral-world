@@ -17,13 +17,52 @@ import java.util.List;
 public final class UniqWorld {
     private UniqWorld() {}
 
-    public static final int SERPENT = 1, SPIKES = 2, DOLL = 3, STORM = 4;
+    public static final int SERPENT = 1, SPIKES = 2, DOLL = 3, STORM = 4, FXPOINT = 5, FXPATH = 6;
+    private static final String[] FXN = {"astral_world:twilight_hit", "astral_world:twilight_wave", "astral_world:storm_ball"};
+    private static final List<Object[]> PENDING = new ArrayList<>();   // {game tick, Runnable}
+
+    public static void init() { net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqWorld::tick); }
+
+    private static void later(long at, Runnable r) { PENDING.add(new Object[]{at, r}); }
+
+    private static void tick(net.neoforged.neoforge.client.event.ClientTickEvent.Post e) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) { PENDING.clear(); return; }
+        long now = mc.level.getGameTime();
+        for (int i = PENDING.size() - 1; i >= 0; i--) { Object[] o = PENDING.get(i); if ((long) o[0] <= now) { PENDING.remove(i); try { ((Runnable) o[1]).run(); } catch (Throwable ignored) { } } }
+    }
+
+    private static Vec3 lerpPos(Fx f, float k) { return new Vec3(Mth.lerp(k, f.x, f.x2), Mth.lerp(k, f.y, f.y2), Mth.lerp(k, f.z, f.z2)); }
     private record Fx(int kind, int id, int id2, double x, double y, double z, double x2, double y2, double z2, int dur, long start) {}
     private static final List<Fx> LIVE = new ArrayList<>();
 
     public static void add(int kind, int id, int id2, double x, double y, double z, double x2, double y2, double z2, int dur) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null) LIVE.add(new Fx(kind, id, id2, x, y, z, x2, y2, z2, dur, mc.level.getGameTime()));
+        if (mc.level == null) return;
+        Fx f = new Fx(kind, id, id2, x, y, z, x2, y2, z2, dur, mc.level.getGameTime());
+        if (kind == FXPOINT || kind == FXPATH || (kind == STORM && LotmFx.available())) { photon(f, mc); return; }
+        LIVE.add(f);
+    }
+
+    /** The effects that are Photon: started here, killed when they are over. */
+    private static void photon(Fx f, Minecraft mc) {
+        long now = mc.level.getGameTime();
+        if (f.kind == FXPOINT) {
+            Object h = LotmFx.start(FXN[f.id], f.x, f.y, f.z, (float) f.x2);
+            later(now + f.dur, () -> LotmFx.kill(h));
+        } else if (f.kind == FXPATH) {
+            Object h = LotmFx.carry(FXN[f.id], pt -> lerpPos(f, Mth.clamp((Minecraft.getInstance().level.getGameTime() - f.start + Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false)) / Math.max(1f, f.dur), 0f, 1f)), 1f);
+            later(now + f.dur, () -> LotmFx.kill(h));
+        } else {   // the storm: a small ball flies, then it swells into the great sphere
+            int fly = f.id; float R = f.id2 / 10f;
+            Object ball = LotmFx.carry(FXN[2], pt -> lerpPos(f, Mth.clamp((Minecraft.getInstance().level.getGameTime() - f.start + Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false)) / Math.max(1f, fly), 0f, 1f)), .7f);
+            later(now + fly, () -> {
+                LotmFx.kill(ball);
+                final Object[] big = {LotmFx.start(FXN[2], f.x2, f.y2, f.z2, R * .3f)};
+                for (int i = 1; i <= 10; i++) { final int k = i; later(mc.level.getGameTime() + i * 2, () -> { LotmFx.kill(big[0]); big[0] = LotmFx.start(FXN[2], f.x2, f.y2, f.z2, R * (.3f + .7f * Math.min(1f, k / 8f))); }); }   // it swells
+                later(now + f.dur, () -> LotmFx.kill(big[0]));
+            });
+        }
     }
 
     /** True while this player's doll is out walking (so it is not also drawn on the shoulder). */
@@ -63,22 +102,23 @@ public final class UniqWorld {
     private static Vec3 pos(Entity en, float pt, double up) { return new Vec3(Mth.lerp(pt, en.xo, en.getX()), Mth.lerp(pt, en.yo, en.getY()) + up, Mth.lerp(pt, en.zo, en.getZ())); }
 
     private static void serpent(PoseStack ps, MultiBufferSource buf, Fx f, float t, Vec3 cam, Minecraft mc, float pt) {
-        Entity src = mc.level.getEntity(f.id), dst = mc.level.getEntity(f.id2);
-        Vec3 s = src != null ? pos(src, pt, .25) : new Vec3(f.x, f.y, f.z), d = dst != null ? pos(dst, pt, dst.getBbHeight() * .55) : new Vec3(f.x2, f.y2, f.z2);
+        Entity dst = mc.level.getEntity(f.id2);
+        Vec3 g = dst != null ? pos(dst, pt, 0) : new Vec3(f.x2, f.y2, f.z2);
+        double hc = dst != null ? dst.getBbHeight() * .55 : 1.0;
         float out = f.dur * .42f;
         float tau = t < out ? ease(t / out) : 1f - ease((t - f.dur * .58f) / (f.dur * .42f));
         if (tau <= .01f) return;
-        double sc = 2.4;
-        Vec3 dir = d.subtract(s); Vec3 side = new Vec3(-dir.z, 0, dir.x).normalize();
-        int n = 24; float[][] pts = new float[n][3];
-        for (int i = 0; i < n; i++) {
-            float ti = Math.max(0f, tau - (n - 1 - i) * .034f);
-            Vec3 pp = s.add(dir.scale(ti)).add(0, Math.sin(Math.PI * ti) * 2.0, 0).add(side.scale(Math.sin(ti * 14 + t * .3) * (1 - ti) * .8));
-            Vec3 rel = pp.subtract(s).scale(16 / sc);
+        double sc = 2.6, a0 = f.id2 * 2.1; Vec3 off = new Vec3(Math.cos(a0) * 2.4, 0, Math.sin(a0) * 2.4), side = new Vec3(-off.z, 0, off.x).normalize();
+        int n = 26; float[][] pts = new float[n][3];
+        for (int i = 0; i < n; i++) {   // it comes up out of the ground beside them and strikes upward through them
+            float ti = Math.max(0f, tau - (n - 1 - i) * .032f);
+            double hor = 1.0 - ti * ti, ver = Math.sqrt(ti);
+            Vec3 pp = g.add(off.scale(hor)).add(0, -3.2 + (hc + 3.2) * ver, 0).add(side.scale(Math.sin(ti * 12 + t * .3) * (1 - ti) * .7));
+            Vec3 rel = pp.subtract(g).scale(16 / sc);
             pts[i] = new float[]{(float) rel.x, (float) rel.y, (float) rel.z};
         }
-        ps.pushPose(); ps.translate(s.x - cam.x, s.y - cam.y, s.z - cam.z); ps.scale((float) sc, (float) sc, (float) sc);
-        UniqGfx.serpent(ps, buf, pts, tau > .96f ? 4f : 38f, t);
+        ps.pushPose(); ps.translate(g.x - cam.x, g.y - cam.y, g.z - cam.z); ps.scale((float) sc, (float) sc, (float) sc);
+        UniqGfx.serpent(ps, buf, pts, tau > .96f ? 4f : 40f, t);
         ps.popPose();
     }
 

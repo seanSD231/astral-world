@@ -39,6 +39,16 @@ public final class UniqAbilities {
         fx(sp, 1);
     }
 
+    /** A Photon effect at a spot (0 twilight hit, 2 storm ball), played for this many ticks. */
+    public static void fxPoint(ServerLevel lv, int idx, double x, double y, double z, float scale, int life) {
+        world(lv, new DoorNet.World(5, idx, 0, x, y, z, scale, 0, 0, life));
+    }
+
+    /** A Photon effect carried along a path (1 twilight wave). */
+    public static void fxPath(ServerLevel lv, int idx, Vec3 a, Vec3 b, int ticks) {
+        world(lv, new DoorNet.World(6, idx, 0, a.x, a.y, a.z, b.x, b.y, b.z, ticks));
+    }
+
     private static void world(ServerLevel lv, DoorNet.World w) {
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayersNear(lv, null, w.x(), w.y(), w.z(), 192.0, w);
     }

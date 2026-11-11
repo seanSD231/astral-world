@@ -117,46 +117,55 @@ final class UniqGfx {
         }
     }
 
-    static final int[] RAINBOW = {0xFFE03A3A, 0xFFF08A30, 0xFFF2D040, 0xFF30C8A0, 0xFF3090E0, 0xFF6050D0};
+    static final int[] WHITES = {0xFFFFFFFF, 0xFFF1F4FA, 0xFFE3EAF4, 0xFFFAFAFF};
 
-    /** The feathered serpent: points tail to head in pixels. Its body is scaled green, and every part of it is laid with long plumes in quetzal colours. */
+    /** The feathered serpent: points tail to head in pixels. A thick jade-scaled body with a pale belly, dorsal spines, and a dense mane of long white plumes along both flanks and the back; a horned, fanged head with a halo of white plumes. */
     static void serpent(PoseStack p, MultiBufferSource b, float[][] pts, float jaw, float t) {
         int n = pts.length;
         for (int i = 0; i < n - 1; i++) {
-            float u = i / (float) (n - 1), w = 1.4f + 3.0f * (float) Math.sin(Math.PI * Math.min(1f, .12f + u * .88f));
+            float u = i / (float) (n - 1), w = 1.6f + 3.8f * (float) Math.sin(Math.PI * Math.min(1f, .1f + u * .9f));
             float[] a = pts[i], c = pts[i + 1];
             seg(p, b, a[0], a[1], a[2], c[0], c[1], c[2], w, i % 2 == 0 ? 0xFF1F9E6A : 0xFF168058);
-            seg(p, b, a[0], a[1] - w * .28f, a[2], c[0], c[1] - w * .28f, c[2], w * .55f, 0xFFE8D070);   // pale belly scales
+            seg(p, b, a[0], a[1] - w * .3f, a[2], c[0], c[1] - w * .3f, c[2], w * .6f, 0xFFF0E0A8);      // pale belly plates
             float dx = c[0] - a[0], dy = c[1] - a[1], dz = c[2] - a[2], l = (float) Math.sqrt(dx * dx + dy * dy + dz * dz); if (l < 1e-4f) continue;
             dx /= l; dy /= l; dz /= l;
-            float sx = dy * 0 - dz * 1, sy = dz * 0 - dx * 0, sz = dx * 1 - dy * 0;   // d x up(0,1,0)
-            float sl = (float) Math.sqrt(sx * sx + sy * sy + sz * sz); if (sl < 1e-3f) { sx = 1; sy = 0; sz = 0; sl = 1; }
-            sx /= sl; sy /= sl; sz /= sl;
-            float fl = 5.6f - 2.6f * u + (float) Math.sin(t * .25f + i) * .6f;
-            for (int sd = -1; sd <= 1; sd += 2) for (int k = 0; k < 2; k++) {
-                float spread = .55f + k * .35f, up = k == 0 ? .2f : .55f;
-                feather(p, b, a[0] + sx * sd * w * .35f, a[1] + w * .2f, a[2] + sz * sd * w * .35f,
-                    -dx * .75f + sx * sd * spread, -dy * .75f + up, -dz * .75f + sz * sd * spread, fl * (k == 0 ? 1f : .8f), 2.1f, RAINBOW[(i + k * 3 + (sd + 1)) % RAINBOW.length]);
+            float sx = -dz, sz = dx, sl = (float) Math.sqrt(sx * sx + sz * sz); if (sl < 1e-3f) { sx = 1; sz = 0; sl = 1; }
+            sx /= sl; sz /= sl;
+            seg(p, b, a[0], a[1] + w * .55f, a[2], a[0] - dx * 1.2f, a[1] + w * .55f + 1.8f, a[2] - dz * 1.2f, .7f, 0xFF0F6A48);   // a dorsal spine
+            float fl = 7.5f - 3.2f * u + (float) Math.sin(t * .25f + i) * .7f;
+            for (int sd = -1; sd <= 1; sd += 2) for (int k = 0; k < 3; k++) {     // three rows of plumes down each flank
+                float spread = .4f + k * .32f, up = -.1f + k * .42f;
+                feather(p, b, a[0] + sx * sd * w * .38f, a[1] + w * (.1f + k * .18f), a[2] + sz * sd * w * .38f,
+                    -dx * .8f + sx * sd * spread, -dy * .8f + up, -dz * .8f + sz * sd * spread, fl * (1f - k * .12f), 2.6f, WHITES[(i + k + sd + 1) % WHITES.length]);
             }
+            feather(p, b, a[0], a[1] + w * .5f, a[2], -dx * .8f, -dy * .8f + .9f, -dz * .8f, fl * .8f, 2.2f, WHITES[i % WHITES.length]);   // and one along the spine
         }
-        // a fan of long plumes off the tail
+        // a great fan of white plumes off the tail
         float[] t0 = pts[0], t1 = pts[1]; float tx = t0[0] - t1[0], ty = t0[1] - t1[1], tz = t0[2] - t1[2];
-        for (int k = 0; k < 5; k++) feather(p, b, t0[0], t0[1], t0[2], tx + (k - 2) * .55f, ty + (k % 2) * .4f, tz + (k - 2) * .3f, 9f - Math.abs(k - 2), 2.4f, RAINBOW[k % RAINBOW.length]);
+        for (int k = 0; k < 7; k++) feather(p, b, t0[0], t0[1], t0[2], tx + (k - 3) * .5f, ty + (k % 2) * .5f - .2f, tz + (k - 3) * .35f, 12f - Math.abs(k - 3) * 1.4f, 3f, WHITES[k % WHITES.length]);
         // the head
         float[] h0 = pts[n - 2], h1 = pts[n - 1]; float hx = h1[0] - h0[0], hy = h1[1] - h0[1], hz = h1[2] - h0[2], hl = (float) Math.sqrt(hx * hx + hy * hy + hz * hz);
         if (hl < 1e-4f) return;
         p.pushPose(); tr(p, h1[0], h1[1], h1[2]); p.mulPose(new Quaternionf().rotationTo(0, 0, 1, hx / hl, hy / hl, hz / hl));
-        box(p, b, 4.6f, 3.8f, 6f, 0xFF1F9E6A);
-        box(p, b, 3.4f, 2.4f, 3.2f, 0xFF28B07A);                                  // snout
-        tr(p, 0, .3f, 5.4f);
-        p.pushPose(); tr(p, 0, .6f, 0); p.mulPose(Axis.XP.rotationDegrees(-jaw)); tr(p, 0, 0, 1.4f); box(p, b, 2.8f, 1f, 3.6f, 0xFFF0D060); box(p, b, .5f, .9f, .5f, 0xFFFFFFFF); p.popPose();
-        p.pushPose(); tr(p, 0, -.6f, 0); p.mulPose(Axis.XP.rotationDegrees(jaw)); tr(p, 0, 0, 1.2f); box(p, b, 2.6f, 1f, 3.2f, 0xFFD8B850); p.popPose();
+        box(p, b, 6.2f, 5f, 7.5f, 0xFF1F9E6A);                         // skull
+        box(p, b, 4.6f, 3.2f, 4f, 0xFF28B07A);                         // snout bridge
+        box(p, b, 5f, .8f, 6f, 0xFF0F6A48);                            // brow ridge
+        for (int sd = -1; sd <= 1; sd += 2) {
+            p.pushPose(); tr(p, sd * 2.6f, 1.2f, 1.6f); box(p, b, 1.3f, 1.3f, 1.6f, 0xFFFFE050); tr(p, sd * .1f, 0, .5f); box(p, b, .5f, 1.3f, .4f, 0xFF140808); p.popPose();   // slit eyes
+            seg(p, b, sd * 2.2f, 2.4f, -.5f, sd * 4.4f, 5.5f, -4f, 1.1f, 0xFFF3E6C0);                  // swept horns
+            for (int k = 0; k < 3; k++) seg(p, b, sd * 2.4f, -.6f + k * .5f, 3.6f, sd * (5.5f + k), -1.5f - k * 1.4f, 7f + k * 2f, .35f, 0xFFE8E0C0);   // whiskers
+        }
+        p.pushPose(); tr(p, 0, .1f, 5f);
+        p.pushPose(); tr(p, 0, .9f, 0); p.mulPose(Axis.XP.rotationDegrees(-jaw)); tr(p, 0, 0, 2.1f); box(p, b, 4.2f, 1.3f, 5.2f, 0xFF28B07A);
+        for (int k = -1; k <= 1; k += 2) { tr(p, k * 1.5f, -.9f, 1.4f); box(p, b, .5f, 1.4f, .5f, 0xFFFFFFFF); tr(p, -k * 1.5f, .9f, -1.4f); }   // fangs
         p.popPose();
-        p.pushPose(); tr(p, h1[0], h1[1], h1[2]); p.mulPose(new Quaternionf().rotationTo(0, 0, 1, hx / hl, hy / hl, hz / hl));
-        for (int sd = -1; sd <= 1; sd += 2) { tr(p, sd * 2.4f, .9f, 1.2f); box(p, b, .8f, 1.2f, 1.2f, 0xFFFFE050); tr(p, -sd * 2.4f, -.9f, -1.2f); }
-        for (int k = 0; k < 7; k++) {   // the crest, swept back
-            float s2 = (k - 3) * .5f;
-            feather(p, b, s2 * .5f, 1.9f, -1f, s2 * .5f, .45f, -1f, 8f - Math.abs(k - 3) * 1.2f, 2.2f, RAINBOW[(k + 2) % RAINBOW.length]);
+        p.pushPose(); tr(p, 0, -1.1f, 0); p.mulPose(Axis.XP.rotationDegrees(jaw * .8f)); tr(p, 0, 0, 1.8f); box(p, b, 3.8f, 1.1f, 4.4f, 0xFFF0E0A8);
+        seg(p, b, 0, .6f, 1.5f, 0, .9f, 5.5f + jaw * .1f, .5f, 0xFFC02828); seg(p, b, 0, .9f, 5.5f + jaw * .1f, -.8f, 1f, 7.2f + jaw * .1f, .35f, 0xFFC02828); seg(p, b, 0, .9f, 5.5f + jaw * .1f, .8f, 1f, 7.2f + jaw * .1f, .35f, 0xFFC02828);   // forked tongue
+        p.popPose();
+        p.popPose();
+        for (int k = 0; k < 11; k++) {   // a halo of white plumes behind the head
+            float ang = k * 6.283f / 11, cx = (float) Math.cos(ang), cy = (float) Math.sin(ang);
+            feather(p, b, cx * 2.8f, cy * 2.4f, -3f, cx * .7f, cy * .7f, -1f, 9f + (k % 2) * 3f, 3.2f, WHITES[k % WHITES.length]);
         }
         p.popPose();
     }
@@ -171,27 +180,42 @@ final class UniqGfx {
         serpent(p, b, pts, 14f + (float) Math.sin(t * .2f) * 6f, t);
     }
 
-    /** A wheel of fortune in the XY plane facing +z, r pixels across. Spin it by turning the pose about z first. */
+    /** A wheel of fortune in the XY plane facing +z, r pixels across: a gilded double rim with studs and gems, a deep blue band of coloured wedges, a golden star and eight carved spokes. Spin it by turning the pose about z first. */
     static void wheel(PoseStack p, MultiBufferSource b, float r) {
-        int[] cols = {0xFFC8282C, 0xFFF0C440, 0xFF2850C0, 0xFFF0C440, 0xFF28A050, 0xFFF0C440, 0xFF7A30B0, 0xFFF0C440};
-        int n = 16;
-        for (int k = 0; k < n; k++) {   // wedges, the back and the front
-            double a0 = Math.PI * 2 * k / n, a1 = Math.PI * 2 * (k + 1) / n;
-            for (float z : new float[]{-.7f, .7f}) {
-                tri(p, b, 0, 0, (float) Math.cos(a0) * r, (float) Math.sin(a0) * r, (float) Math.cos(a1) * r, (float) Math.sin(a1) * r, z, cols[k % cols.length]);
-                tri(p, b, 0, 0, (float) Math.cos(a0) * r * .55f, (float) Math.sin(a0) * r * .55f, (float) Math.cos(a1) * r * .55f, (float) Math.sin(a1) * r * .55f, z * 1.5f, k % 2 == 0 ? 0xFF2A1A10 : 0xFF3A2A18);
+        int gold = 0xFFD9A63A, dgold = 0xFF9A6E1E, navy = 0xFF14204A;
+        int[] gem = {0xFFE02830, 0xFF3070F0, 0xFF30C860, 0xFFFFFFFF, 0xFFB040E0, 0xFFF0A020, 0xFF30D0E0, 0xFFFF70B0};
+        int n = 24;
+        for (float z : new float[]{-1.1f, 1.1f}) {
+            for (int k = 0; k < n; k++) {   // the band: deep blue behind, bright wedges on it
+                double a0 = Math.PI * 2 * k / n, a1 = Math.PI * 2 * (k + 1) / n;
+                tri(p, b, 0, 0, (float) Math.cos(a0) * r, (float) Math.sin(a0) * r, (float) Math.cos(a1) * r, (float) Math.sin(a1) * r, z, navy);
+                float r0 = r * .56f, r1 = r * .9f; int col = gem[(k / 3) % gem.length];
+                if (k % 3 != 2) { tri(p, b, (float) Math.cos(a0) * r0, (float) Math.sin(a0) * r0, (float) Math.cos(a0) * r1, (float) Math.sin(a0) * r1, (float) Math.cos(a1) * r1, (float) Math.sin(a1) * r1, z * 1.3f, col);
+                                  tri(p, b, (float) Math.cos(a0) * r0, (float) Math.sin(a0) * r0, (float) Math.cos(a1) * r1, (float) Math.sin(a1) * r1, (float) Math.cos(a1) * r0, (float) Math.sin(a1) * r0, z * 1.3f, col); }
+            }
+            for (int k = 0; k < 8; k++) {   // a golden eight-pointed star in the middle
+                double a0 = Math.PI * 2 * k / 8, a1 = a0 + Math.PI / 8, a2 = a0 + Math.PI / 4;
+                tri(p, b, (float) Math.cos(a0) * r * .55f, (float) Math.sin(a0) * r * .55f, (float) Math.cos(a1) * r * .22f, (float) Math.sin(a1) * r * .22f, (float) Math.cos(a2) * r * .55f, (float) Math.sin(a2) * r * .55f, z * 1.6f, k % 2 == 0 ? gold : dgold);
             }
         }
-        for (int k = 0; k < 32; k++) {   // the gilded rim
-            double a0 = Math.PI * 2 * k / 32, a1 = Math.PI * 2 * (k + 1) / 32;
-            seg(p, b, (float) Math.cos(a0) * (r + .6f), (float) Math.sin(a0) * (r + .6f), 0, (float) Math.cos(a1) * (r + .6f), (float) Math.sin(a1) * (r + .6f), 0, 2.4f, 0xFFD9A63A);
+        for (int ring = 0; ring < 2; ring++) {   // the double gilded rim, thick and round
+            float rr = r + .8f + ring * 1.9f;
+            for (int k = 0; k < 40; k++) {
+                double a0 = Math.PI * 2 * k / 40, a1 = Math.PI * 2 * (k + 1) / 40;
+                seg(p, b, (float) Math.cos(a0) * rr, (float) Math.sin(a0) * rr, 0, (float) Math.cos(a1) * rr, (float) Math.sin(a1) * rr, 0, 2.6f - ring * .4f, ring == 0 ? gold : dgold);
+            }
         }
-        for (int k = 0; k < 8; k++) {   // spokes and pegs
-            double a = Math.PI * 2 * k / 8;
-            seg(p, b, 0, 0, 1.6f, (float) Math.cos(a) * r, (float) Math.sin(a) * r, 1.6f, 1.1f, 0xFFB88A2A);
-            p.pushPose(); tr(p, (float) Math.cos(a) * (r + 2.2f), (float) Math.sin(a) * (r + 2.2f), 0); sphere(p, b, 1.4f, 5, 8, 0xFFFFF0A0); p.popPose();
+        for (int k = 0; k < 16; k++) {   // studs and gems around the rim
+            double a = Math.PI * 2 * k / 16; float rr = r + 3.6f;
+            p.pushPose(); tr(p, (float) Math.cos(a) * rr, (float) Math.sin(a) * rr, 0); sphere(p, b, 1.5f, 5, 8, k % 2 == 0 ? gem[(k / 2) % gem.length] : 0xFFFFF0B0); p.popPose();
         }
-        p.pushPose(); tr(p, 0, 0, 1.8f); sphere(p, b, 3.2f, 7, 12, 0xFFE8B840); tr(p, 0, 0, 1.5f); sphere(p, b, 1.5f, 5, 8, 0xFFFFF4C0); p.popPose();
+        for (int k = 0; k < 8; k++) {   // spokes: a carved gold bar with a gem on it
+            double a = Math.PI * 2 * k / 8; float ca = (float) Math.cos(a), sa = (float) Math.sin(a);
+            seg(p, b, ca * 3f, sa * 3f, 0, ca * (r + .5f), sa * (r + .5f), 0, 2f, gold);
+            seg(p, b, ca * 3f, sa * 3f, 1.3f, ca * (r * .55f), sa * (r * .55f), 1.3f, .9f, dgold);
+            p.pushPose(); tr(p, ca * r * .72f, sa * r * .72f, 2f); sphere(p, b, 1.1f, 5, 8, gem[k]); p.popPose();
+        }
+        p.pushPose(); tr(p, 0, 0, 1.6f); sphere(p, b, 3.6f, 8, 14, gold); tr(p, 0, 0, 2f); sphere(p, b, 2f, 6, 10, 0xFFE02830); p.popPose();
     }
 
     static void pointer(PoseStack p, MultiBufferSource b, float r) {

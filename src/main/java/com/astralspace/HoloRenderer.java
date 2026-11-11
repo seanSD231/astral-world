@@ -1187,6 +1187,10 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         railRing(trad, ts);
         trainRun(trad, ts, 3.2f * S, 1f, new int[]{0, 1, 2, 2}, new float[]{0f, 3.4f, 6.6f, 9.9f}, mix(0x3A2A18, P2, .3f), 0xC8A040);
         for (int a2 = 0; a2 < 2; a2++) { float ta = t * (a2 == 0 ? -.12f : .09f) + a2 * PI, ar = R * (.45f + .25f * a2), ay = by + 5.5f * S + a2 * 3f * S + gs(t * .6f + a2) * .4f * S; push(); tr(gc(ta) * ar, ay, gs(ta) * ar); rY((a2 == 0 ? PI / 2 : -PI / 2) - ta); airship(.5f * S); pop(); }
+        float ts2 = .36f * S, trad2 = R * .8f; railRing(trad2, ts2);   // a second, outer line run the other way by an armoured gun train
+        trainRun(trad2, ts2, 2.8f * S, -1f, new int[]{0, 1, 3, 2, 3, 2}, new float[]{0f, 3.4f, 6.6f, 9.8f, 13f, 16.2f}, 0x3A404C, 0xC8A040);
+        for (int a3 = 0; a3 < 2; a3++) { float ta = t * (a3 == 0 ? .1f : -.08f) + a3 * 2.2f + 1f, ar = R * (.3f + .35f * a3), ay = by + 8.5f * S + a3 * 2.5f * S + gs(t * .5f + a3 * 2f) * .4f * S; push(); tr(gc(ta) * ar, ay, gs(ta) * ar); rY((a3 == 0 ? -PI / 2 : PI / 2) - ta); airship(.42f * S); pop(); }
+        { float ta = t * .05f, ar = R * .5f, ay = by + 13f * S + gs(t * .3f) * .6f * S; push(); tr(gc(ta) * ar, ay, gs(ta) * ar); rY(-PI / 2 - ta); gunAirship(.8f * S, 4); pop(); }   // a gunship high overhead
         for (int i = 0; i < 8; i++) { float a = i * TAU / 8 + .2f, rr = R * .93f; push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2);   // bookcases round the edge
             box(0, 2.2f * S, 0, 1.5f * S, 2.2f * S, .35f * S, dk, 255);
             for (int r2 = 0; r2 < 4; r2++) for (int b = 0; b < 8; b++) box((-1.3f + b * .34f) * S, (.55f + r2 * .95f) * S, .12f * S, .13f * S, .38f * S, .2f * S, BOOKS[(b + r2 + i) % 6], 255);
@@ -2088,6 +2092,22 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int k = -4; k <= 4; k++) { float x = k * .9f * s; for (int sd = -1; sd <= 1; sd += 2) { float yy = -1.45f * s * (1f - Math.abs(k) / 5f); box(x, -.8f * s - yy * 0, sd * .5f * s, .012f * s, .62f * s, .012f * s, 0xC8B890, 255); } }   // rigging down to the gondola
         push(); tr(3.6f * s, 1.3f * s, 0); frustum(0, .9f * s, .03f * s, .03f * s, 5, 1, 1, rib, 255, true); box(-.35f * s, .65f * s, 0, .35f * s, .22f * s, .01f * s, red, 255); pop();
     }
+    /** An airship carrying guns: turret pairs along both flanks of the hull and a heavy dorsal turret, the barrels swinging a little. */
+    private void gunAirship(float s, int pairs) {
+        airship(s);
+        int steel = 0x3A404C, blk = 0x15171C, brass = 0xC8A040;
+        for (int k = 0; k < pairs; k++) for (int sd = -1; sd <= 1; sd += 2) {
+            float x = (-2.8f + k * 5.6f / Math.max(1, pairs - 1)) * s;
+            push(); tr(x, -.55f * s, sd * 1.3f * s); rY(sd * (1.5708f + gs(t * .4f + k) * .2f));
+            box(0, 0, 0, .34f * s, .22f * s, .34f * s, steel, 255); box(0, .12f * s, 0, .26f * s, .05f * s, .26f * s, brass, 255);
+            for (int g = -1; g <= 1; g += 2) { push(); tr(.2f * s, .05f * s, g * .1f * s); rZ(-PI / 2 + .12f); frustum(0, 1.1f * s, .06f * s, .045f * s, 8, 1, 1, blk, 255, true); frustum(1.0f * s, 1.15f * s, .08f * s, .08f * s, 8, 1, 1, brass, 255, true); pop(); }
+            pop();
+        }
+        push(); tr(.6f * s, 1.55f * s, 0); rY(gs(t * .3f) * .5f);
+        frustum(0, .35f * s, .55f * s, .45f * s, 12, 1, 1, steel, 255, true); frustum(.35f * s, .4f * s, .5f * s, .5f * s, 12, 1, 1, brass, 255, true);
+        for (int g = -1; g <= 1; g += 2) { push(); tr(.15f * s, .22f * s, g * .18f * s); rZ(-PI / 2 + .1f); frustum(0, 2.6f * s, .1f * s, .07f * s, 8, 1, 1, blk, 255, true); frustum(2.4f * s, 2.7f * s, .13f * s, .13f * s, 8, 1, 1, brass, 255, true); pop(); }
+        pop();
+    }
     private void paragon(int N) {
         sigil(R); boolean m = N == 2; float s = (m ? .42f : .5f) * S, rad = R * (m ? .58f : .72f);
         railRing(rad, s);
@@ -2101,6 +2121,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             float rad2 = R * 1.08f; railRing(rad2, s * 1.1f);   // the great outer loop, run the other way by an armoured gun train
             trainRun(rad2, s * 1.1f, 2.6f * S, -1f, new int[]{0, 1, 3, 3, 3, 2}, new float[]{0f, 3.5f, 6.6f, 9.8f, 13.0f, 16.4f}, 0x3A404C, 0xC8A040);
             float ta = -t * .1f, ar = R * .85f, ay = top * .85f + (float) Math.sin(t * .6f) * .5f * S; push(); tr((float) Math.cos(ta) * ar, ay, (float) Math.sin(ta) * ar); rY(PI / 2 - ta); rZ((float) Math.sin(t * .5f) * .04f); airship(.36f * S); pop();
+            float t2 = -t * .1f + PI, ar2 = R * .85f, ay2 = top * .85f + (float) Math.sin(t * .6f + 2f) * .5f * S; push(); tr((float) Math.cos(t2) * ar2, ay2, (float) Math.sin(t2) * ar2); rY(PI / 2 - t2); rZ((float) Math.sin(t * .5f + 1f) * .04f); airship(.36f * S); pop();   // a sister ship on the other side
+            float t3 = t * .045f, ar3 = R * .35f, ay3 = top * 1.75f + (float) Math.sin(t * .3f) * .6f * S; push(); tr((float) Math.cos(t3) * ar3, ay3, (float) Math.sin(t3) * ar3); rY(-PI / 2 - t3); rZ((float) Math.sin(t * .25f) * .03f); gunAirship(1.05f * S, 5); pop();   // and a great gunship riding high above
         }
         symFront(CY + 1.6f * S, 3.4f * S, 0f);
         sprites("spark", 50 * N, SPIRALM, R, 0, top, .4f * S, P1, 1f, .2f, 32, true);
@@ -2140,19 +2162,26 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         if (!m) { push(); tr(0, ey - er, 0); chain(ey - er - feetY, .8f * S, iron); pop(); }
         if (!m) bearerSym(0, feetY - bh * .5f, 0, bh * 1.5f, -face);
         if (m) {   // Sacrifice Authority: Last Hope. A great cross standing on a mound, a mercury likeness nailed to it, chained and bleeding, inside walls of grey curtain that watch with eyes
-            float P = .2f * S; int wood = 0x4A3020, aged = 0x6A5A48, nail = 0x30303C, stone = 0x2A2018;
-            // the mound, then an upside-down cross of squared timber banded in iron, as in Last Hope
-            frustum(0, 4f * P, 17f * P, 7f * P, 18, 1, 1, stone, 255, true); frustum(4f * P, 4.3f * P, 7f * P, 7f * P, 18, 1, 1, 0xAEB8CC, 255, true);
+            float P = .2f * S; int blk = 0x15121A, band = 0x363640, nail = 0x30303C, redr = 0xD01828;
+            // the mound of black stone, then a vast black cross of squared timber banded in iron and cut with red runes, upside down, as in Last Hope
+            frustum(0, 3f * P, 20f * P, 12f * P, 18, 1, 1, 0x100C14, 255, true); frustum(3f * P, 5f * P, 12f * P, 8f * P, 18, 1, 1, 0x1A1620, 255, true);
             pushFace();
-            box(0, 28f * P, 0, 2f * P, 24f * P, 2f * P, wood, 255);               // the long beam, 4 to 52
-            box(0, 18f * P, 0, 20f * P, 2f * P, 2f * P, wood, 255);               // the crossbar, low down
-            for (int k = 0; k < 6; k++) box(0, (8f + k * 7.4f) * P, 0, 2.15f * P, .5f * P, 2.15f * P, iron, 255);
-            for (int sd = -1; sd <= 1; sd += 2) box(sd * 19f * P, 18f * P, 0, .5f * P, 2.15f * P, 2.15f * P, iron, 255);
-            for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * 16f * P, 18f * P, 4.5f * P); rZ(sd * .12f); chain(13f * P, .6f * P, iron); pop(); }   // chains from the wrists to the ground
+            box(0, 31f * P, 0, 4f * P, 26f * P, 4f * P, blk, 255);                  // the long beam, 5 to 57
+            box(0, 20f * P, 0, 26f * P, 4f * P, 4f * P, blk, 255);                  // the crossbar, thick and low
+            for (int k = 0; k < 7; k++) box(0, (9f + k * 7.6f) * P, 0, 4.5f * P, 1.1f * P, 4.5f * P, band, 255);   // iron bands
+            for (int sd = -1; sd <= 1; sd += 2) { box(sd * 25f * P, 20f * P, 0, 1.8f * P, 5.2f * P, 5.2f * P, band, 255); for (int k = 0; k < 3; k++) box(sd * (9f + k * 6f) * P, 20f * P, 0, 1.1f * P, 4.5f * P, 4.5f * P, band, 255); }
+            box(0, 51f * P, 0, 5f * P, 4.5f * P, 4.4f * P, 0x0C0A10, 255);          // the rune plate near the top
+            for (int k = 0; k < 5; k++) box((k - 2) * 1.9f * P, 51f * P, 4.5f * P, .35f * P, (1.6f + (k % 2)) * P, .1f * P, redr, 255);
+            for (int k = 0; k < 22; k++) {   // red runes scratched over the wood
+                float rx = (h(k, 31) - .5f) * 8f * P, ry = (8f + h(k, 32) * 40f) * P; boolean bar = k % 4 == 0;
+                box(bar ? (h(k, 33) - .5f) * 40f * P : rx * .8f, bar ? 20f * P + (h(k, 34) - .5f) * 3f * P : ry, 4.5f * P, .25f * P, .8f * P, .06f * P, redr, 255);
+            }
+            for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * 16f * P, 22f * P, 4.5f * P); rZ(sd * .12f); chain(15f * P, .6f * P, iron); pop(); }   // chains from the wrists to the ground
+            for (int sd = -1; sd <= 1; sd += 2) { push(); tr(-sd * 5f * P, 30f * P, 6.5f * P); rZ(sd * .9f); chain(11f * P, .55f * P, iron); pop(); }   // chains wound across the body
             pop();
             // the hanged man himself: the player's own skin, upside down, arms nailed out along the bar
             ResourceLocation sk = Minecraft.getInstance().player != null ? Minecraft.getInstance().player.getSkin().texture() : ResourceLocation.withDefaultNamespace("textures/entity/player/wide/steve.png");
-            float yB = 16f * P, zf = 4.5f * P;
+            float yB = 18f * P, zf = 6.5f * P;
             skinPart(sk, 0, 0, 8, 8, 8, 0, 4, 0, true, P, yB, zf);              // head
             skinPart(sk, 16, 16, 8, 12, 4, 0, -6, 0, true, P, yB, zf);          // body
             skinPart(sk, 40, 16, 4, 12, 4, -10, -2, -PI / 2, true, P, yB, zf);  // right arm, out along the bar
@@ -2161,8 +2190,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             skinPart(sk, 16, 48, 4, 12, 4, 2, -18, 0, true, P, yB, zf);         // left leg
             for (int sd = -1; sd <= 1; sd += 2) {   // a nail through each wrist, bleeding
                 float nx = gx(sd * 16f * P, zf + 2.5f * P), nz = gz(sd * 16f * P, zf + 2.5f * P);
-                bb("glow", nx, 18f * P, nz, 2.5f * P, 2.5f * P, 0, rgba(0xC01020, .6f));
-                for (int d = 0; d < 4; d++) { float pp = fract(t * .45f + d * .25f + (sd + 1) * .13f); bb("drop", nx, 18f * P * (1f - pp) + 4f * P * pp, nz, .8f * P, 1.2f * P, 0, rgba(0xB01018, 1f - pp * .4f)); }
+                bb("glow", nx, 20f * P, nz, 2.5f * P, 2.5f * P, 0, rgba(0xC01020, .6f));
+                for (int d = 0; d < 4; d++) { float pp = fract(t * .45f + d * .25f + (sd + 1) * .13f); bb("drop", nx, 20f * P * (1f - pp) + 5f * P * pp, nz, .8f * P, 1.2f * P, 0, rgba(0xB01018, 1f - pp * .4f)); }
             }
             for (int w2 = 0; w2 < 4; w2++) {   // curtains of grey light round the field, each watching with eyes
                 float a = w2 * TAU / 4 + PI / 4, wr = R * .95f, wxp = (float) Math.cos(a) * wr, wzp = (float) Math.sin(a) * wr, yaw = a + PI / 2;

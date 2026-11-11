@@ -68,11 +68,22 @@ final class LotmFx {
         try {
             Method m = Class.forName("net.swimmingtuna.lotm.client.ClientFX").getMethod("carryFX", ResourceLocation.class, java.util.function.Function.class, java.util.function.Function.class, float.class);
             java.util.function.Function<Float, org.joml.Quaternionf> rot = f -> new org.joml.Quaternionf();
-            return m.invoke(null, ResourceLocation.fromNamespaceAndPath("lotm", fx), pos, rot, scale);
+            return m.invoke(null, fx.indexOf(':') >= 0 ? ResourceLocation.parse(fx) : ResourceLocation.fromNamespaceAndPath("lotm", fx), pos, rot, scale);
         } catch (Throwable t) { return null; }
     }
 
     static void kill(Object h) { stop(h); }
+
+    static boolean available() { return prepare(); }
+
+    /** Starts an effect at a spot and gives back its handle (kill it with {@link #kill}). For this mod's own effects the area scales with the scale. */
+    static Object start(String fx, double x, double y, double z, float scale) {
+        if (!prepare()) return null;
+        try {
+            boolean own = fx.indexOf(':') >= 0;
+            return hold.invoke(null, own ? ResourceLocation.parse(fx) : ResourceLocation.fromNamespaceAndPath("lotm", fx), new Vec3(x, y, z), new Vec3(0, 1, 0), scale, own ? scale : 1f, 1f);
+        } catch (Throwable t) { return null; }
+    }
 
     private static void stop(Object h) { if (h != null) try { kill.invoke(h); } catch (Throwable ignored) {} }
 
