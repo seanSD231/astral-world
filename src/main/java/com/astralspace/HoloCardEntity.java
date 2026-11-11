@@ -159,6 +159,7 @@ public class HoloCardEntity extends Entity {
     /** The River of Eternal Darkness: its centre line and half-width at distance x along it (the renderer draws the same river), and the stone bridge across it as rows of solid blocks {local x, local z, bottom, top}. */
     public static float riverZ(float x) { float R = 12f; return R * .22f * (float) Math.sin(x / (R * 1.1f) * 2f + 1f) + R * .06f * (float) Math.sin(x / (R * .45f)); }
     public static float riverW(float x) { return 6.2f * 2.35f * 1.5f * (.85f + .2f * (float) Math.sin(x * .3f + 2f)); }
+    public static final float BOAT_X = -7f;
     public static final float BRIDGE_X = 3f, BRIDGE_ROW = 1.5f;
     public static java.util.List<float[]> bridgeRows() {
         java.util.List<float[]> rows = new java.util.ArrayList<>();
@@ -178,6 +179,11 @@ public class HoloCardEntity extends Entity {
             tp.setPos(getX() + wx, getY() + q[2], getZ() + wz);
             level().addFreshEntity(tp);
         }
+        double bz = riverZ(BOAT_X), bwx = BOAT_X * c + bz * sn, bwz = -BOAT_X * sn + bz * c;   // the rowboat's bench is a real seat
+        ThronePart seat = new ThronePart(ThronePart.TYPE.get(), level());
+        seat.setup(getUUID(), 1.0f, .45f, true);
+        seat.setPos(getX() + bwx, getY() + .1, getZ() + bwz);
+        level().addFreshEntity(seat);
     }
     private void spawnThrone() {
         if (goo() == 2) { spawnBridge(); return; }

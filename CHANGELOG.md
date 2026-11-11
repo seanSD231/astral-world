@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.202
+- Shiny cards are now truly gold and black: every texture (pathway symbols, sprites, LOTM models) is converted to brightness only and tinted gold, so no more orange/green/yellow-green shinies, and a solid black base sits under every shiny scene so the gold has black to contrast against.
+- Sword of Twilight right click redone: Twilight Verdict. Eight crescents converge on where you look, a colossal blade falls, and a field of dusk lingers for ~3 seconds dragging in and burning everything inside (long cooldown).
+- Warrior Seq 4 uses the Silver Sword instead of the Sword of Twilight.
+- The off-hand placeholder for the ball of lightning no longer draws anything in first person (that was the flag-like thing).
+- Warrior Seq 1: banners replaced with flames on the poles.
+- Spectator Seq 0: the ring of cards now faces the middle.
+- Father of Devils: removed the translucent shells that hid entities.
+- River of Eternal Darkness: much longer, enclosed by a dark star-filled sphere, darker water, banks no longer overlap like notepads, denser dark mist, bridge parapets fixed, boatman removed, new rowboat moored in the river with a real seat you can sit in.
+- Untested in game. Rest of the long list (Fool, Marauder, Sailor trident, Demon of Knowledge moat, etc.) follows in the next versions.
+
 ## 0.2.201
 - Marauder (Seq 0) and Lord of Mysteries: crouch and right click in the air to open a menu of cards (Marauder: any pathway and Seq 0 to 9; Lord of Mysteries: that and the other Great Old Ones). Pick one and the card wears that card's face; when placed it shows that card's scene (and its real seats and bridge). Picking it up gives you your own card back; "Show my own face" clears it.
 - Marauder scenes are calmer and easier to look at: slower stepped time, far fewer flashes and dead pixels.
