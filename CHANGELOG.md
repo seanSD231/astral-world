@@ -2,6 +2,18 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.199
+- Secrets Supplicant / Hanged Man: Seq 0 cross now stands back from the card so the card can be picked up, the grey curtains (white lines and eyes) are gone, the rainbow floor is much bigger and the pathway symbol hangs in front instead of inside the cross; Seq 1 loses its big orb; the Seq 2 hanging symbol is higher.
+- Demoness: wings and thorn vines removed; now a scene of beauty and witchcraft with a tall rose-framed mirror, witch hats, a broom and perfume bottles.
+- Apothecary / Moon: the dark dome is filled with many more stars, glowing mushrooms and drifting wisps.
+- Warrior Seq 1 is now a dawn (pale sky, golden light, a ring of upright swords and banners) so it no longer mirrors Seq 0's dusk.
+- Abyss Seq 0: the wall spirals spin in place instead of drifting around the edge.
+- Lawyer Seq 0: far fewer, smaller spikes; Lawyer Seq 2 orbits little crowns instead of shards.
+- Darkness fog now covers the whole floor and is a little darker.
+- Fool: Seq 1 table is bigger with candles and inlay; Seq 0 hall is half as large (matching the other Seq 0 scenes).
+- Spectator Seq 0: the old floating cards are gone. A quill now writes every card in the game once each (no repeats); they fly into a ring of small floating cards, then a wave of brilliant light clears them and it starts again.
+- Untested in game. Still to come: Marauder, the Seq 1/0 look-alike pairs, Arbiter scales, Chained locks, the Great Old Ones.
+
 ## 0.2.198
 - Every shiny card is now gold and black only: all colours are mapped by brightness onto black, deep gold, gold and pale gold (no more white or stray colours on shiny Rare, Epic, Legendary and Mythic cards).
 - Sword of Twilight: the strike is one big crescent; the right click is now Dusk Rend: three crescents (an upright one between a rising and a falling stroke) fan out, then the dusk detonates where the middle one ends (area damage and a burst of crescents).

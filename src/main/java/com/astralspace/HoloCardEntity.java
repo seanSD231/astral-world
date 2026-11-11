@@ -105,7 +105,7 @@ public class HoloCardEntity extends Entity {
     /** Real, solid boxes matching HoloRenderer.throneModel (s = .95 * scale): three steps, seat, armrests and the back. */
     /** The Fool's hall: twenty-two seats you can sit in and the long table under the card, matching HoloRenderer.foolHall (local x right, z toward you). */
     /** How much bigger than a person the Fool's hall is; HoloRenderer.foolHall draws it with the same number. */
-    public static final float HALL_K = 2.4f;
+    public static final float HALL_K = 1.2f;
     /** Lord of Mysteries: seven real seats round the table (scale of one chair in S units, ring radius in S units, first angle) and the Fool at Seq 1: eight chairs round a round table. HoloRenderer draws from the same numbers. */
     public static final float LOM_CHAIR = .9f, LOM_RING = 4.35f, LOM_PHASE = .2f, LOM_S = 2.35f;
     public static final float F1_R = 9f, F1_S = 1.7f;
