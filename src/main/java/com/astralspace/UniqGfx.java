@@ -188,7 +188,7 @@ final class UniqGfx {
     static void serpentCoil(PoseStack p, MultiBufferSource b, float t, float strike) {
         int n = 26; float[][] pts = new float[n][3];
         for (int i = 0; i < n; i++) {
-            float u = i / (float) (n - 1), a = (float) (u * Math.PI * 4 + t * .06f), r = 12.5f - 4f * u + strike * 14 * u, y = 1.5f + u * u * 14f + strike * 8 * (1 - u);
+            float u = i / (float) (n - 1), a = (float) (u * Math.PI * 4 + t * .06f), r = 20f - 6f * u + strike * 14 * u, y = 1.5f + u * u * 14f + strike * 8 * (1 - u);
             pts[i] = new float[]{(float) Math.cos(a) * r, y, (float) Math.sin(a) * r};
         }
         serpent(p, b, pts, 14f + (float) Math.sin(t * .2f) * 6f, t);

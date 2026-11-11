@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.198
+- Every shiny card is now gold and black only: all colours are mapped by brightness onto black, deep gold, gold and pale gold (no more white or stray colours on shiny Rare, Epic, Legendary and Mythic cards).
+- Sword of Twilight: the strike is one big crescent; the right click is now Dusk Rend: three crescents (an upright one between a rising and a falling stroke) fan out, then the dusk detonates where the middle one ends (area damage and a burst of crescents).
+- Feathered Serpent coils further from the body; the storm ball on your hand is much smaller and the storm cloud is lighter and cleaner.
+- Airship tail fins are attached to the hull.
+- Seq 4: Apothecary's moon is gold on shiny, the Corpse Collector skull is gone, the Prisoner's lock and chain bob together, the Seer is now a scrying crystal ball on a tripod, and the Warrior swords use the real sword models.
+- Untested in game.
+
 ## 0.2.197
 - Sword of Twilight: both slashes (the strike and the right-click wave) are now a proper upright crescent moon, tilted like a sword stroke, turned to face you and cutting through the target, instead of the sideways billboard. The strike is a crossing pair.
 - Ball of Lightning: the lightning in the storm is much thinner, the ball on your hand is smaller, and the off hand no longer shows a flat item picture.

@@ -47,12 +47,11 @@ public final class UniqWorld {
     /** The effects that are Photon: started here, killed when they are over. */
     private static void photon(Fx f, Minecraft mc) {
         long now = mc.level.getGameTime();
-        if (f.kind == FXPOINT || f.kind == FXPATH) {
-            if (f.id == 0) { LIVE.add(new Fx(SLASH, 0, 0, f.x, f.y, f.z, f.x, f.y, f.z, 12, f.start)); LIVE.add(new Fx(SLASH, 2, 0, f.x, f.y, f.z, f.x, f.y, f.z, 14, f.start + 3)); }
-            else if (f.id == 1) LIVE.add(new Fx(SLASH, 1, 0, f.x, f.y, f.z, f.x2, f.y2, f.z2, f.dur, f.start));
-        }
+        if (f.kind == FXPOINT && f.id == 0) LIVE.add(new Fx(SLASH, 0, 0, f.x, f.y, f.z, f.x, f.y, f.z, 12, f.start));
+        if (f.kind == FXPOINT && f.id == 3) LIVE.add(new Fx(SLASH, 3, 0, f.x, f.y, f.z, f.x, f.y, f.z, f.dur, f.start));
+        if (f.kind == FXPATH && f.id == 1) LIVE.add(new Fx(SLASH, 1, f.id2, f.x, f.y, f.z, f.x2, f.y2, f.z2, f.dur, f.start));
         if (f.kind == FXPOINT) {
-            Object h = LotmFx.start(FXN[f.id], f.x, f.y, f.z, (float) f.x2);
+            Object h = LotmFx.start(FXN[f.id == 3 ? 0 : f.id], f.x, f.y, f.z, f.id == 3 ? 2.6f : (float) f.x2);
             later(now + f.dur, () -> LotmFx.kill(h));
         } else if (f.kind == FXPATH) {
             Object h = LotmFx.carry(FXN[f.id], pt -> lerpPos(f, Mth.clamp((Minecraft.getInstance().level.getGameTime() - f.start + Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false)) / Math.max(1f, f.dur), 0f, 1f)), 1f);
@@ -160,12 +159,28 @@ public final class UniqWorld {
     /** A crescent moon of dusk cutting upright through its target, tilted like a sword stroke and turned to face whoever is looking. */
     private static void slash(PoseStack ps, MultiBufferSource buf, Fx f, float t, Vec3 cam) {
         float k = t / f.dur;
+        if (f.id == 3) {   // the dusk detonating: a ring of upright crescents flung outward, a flat ring of light under them
+            float g = ease(k * 1.4f), al = (1f - k) * (1f - k);
+            for (int j = 0; j < 8; j++) {
+                float a = j * (float) Math.PI / 4 + k * .6f, r = 4.2f * g;
+                ps.pushPose(); ps.translate(f.x + Math.cos(a) * r - cam.x, f.y - cam.y, f.z + Math.sin(a) * r - cam.z);
+                ps.mulPose(Axis.YP.rotation((float) (Math.PI / 2 - a))); ps.mulPose(Axis.ZP.rotationDegrees(j % 2 == 0 ? -20 : 20));
+                UniqGfx.crescent(ps, buf, 22f * (.5f + g), 7f, UniqGfx.rgba(0x8A50FF, .5f * al));
+                ps.translate(0, 0, .01); UniqGfx.crescent(ps, buf, 22f * (.5f + g), 4.5f, UniqGfx.rgba(0xFFB050, .9f * al));
+                ps.translate(0, 0, .01); UniqGfx.crescent(ps, buf, 22f * (.5f + g), 2f, UniqGfx.rgba(0xFFF4D0, al));
+                ps.popPose();
+            }
+            ps.pushPose(); ps.translate(f.x - cam.x, f.y - cam.y - .6, f.z - cam.z);
+            UniqGfx.box(ps, buf, 16f * 8f * g + 4f, .4f, 16f * 8f * g + 4f, UniqGfx.rgba(0xFFA040, .25f * al));
+            ps.popPose();
+            return;
+        }
         Vec3 p = f.id == 1 ? lerpPos(f, k) : new Vec3(f.x, f.y, f.z);
         float grow = f.id == 1 ? .75f + .25f * ease(k * 4f) : .45f + .75f * ease(k * 2.5f);
         float al = f.id == 1 ? Mth.clamp((1f - k) * 4f, 0f, 1f) : (1f - k) * (1f - k);
         if (al <= .01f) return;
-        float R = (f.id == 1 ? 34f : 22f) * grow, W = (f.id == 1 ? 11f : 7f) * grow;
-        float tilt = f.id == 2 ? 42f : f.id == 1 ? -8f : -48f;
+        float R = (f.id == 1 ? 30f : 30f) * grow, W = (f.id == 1 ? 9f : 10f) * grow;
+        float tilt = f.id == 1 ? (f.id2 == 0 ? -8f : f.id2 == 1 ? -58f : 58f) : -48f;
         float yaw = (float) Math.atan2(cam.x - p.x, cam.z - p.z);
         ps.pushPose(); ps.translate(p.x - cam.x, p.y - cam.y, p.z - cam.z); ps.mulPose(Axis.YP.rotation(yaw)); ps.mulPose(Axis.ZP.rotationDegrees(tilt));
         UniqGfx.crescent(ps, buf, R * 1.08f, W * 1.7f, UniqGfx.rgba(0x8A50FF, .42f * al));

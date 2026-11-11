@@ -45,8 +45,9 @@ public final class UniqAbilities {
     }
 
     /** A Photon effect carried along a path (1 twilight wave). */
-    public static void fxPath(ServerLevel lv, int idx, Vec3 a, Vec3 b, int ticks) {
-        world(lv, new DoorNet.World(6, idx, 0, a.x, a.y, a.z, b.x, b.y, b.z, ticks));
+    public static void fxPath(ServerLevel lv, int idx, Vec3 a, Vec3 b, int ticks) { fxPath(lv, idx, 0, a, b, ticks); }
+    public static void fxPath(ServerLevel lv, int idx, int variant, Vec3 a, Vec3 b, int ticks) {
+        world(lv, new DoorNet.World(6, idx, variant, a.x, a.y, a.z, b.x, b.y, b.z, ticks));
     }
 
     private static void world(ServerLevel lv, DoorNet.World w) {
@@ -126,7 +127,7 @@ public final class UniqAbilities {
     /** An ability sets this when it did nothing, so the key press costs no cooldown. */
     public static boolean refund;
 
-    private static void later(int ticks, Runnable r) { LATER.add(new Object[]{ticks, r}); }
+    static void later(int ticks, Runnable r) { LATER.add(new Object[]{ticks, r}); }
 
     /** Holds someone in place: no walking, no jumping, for this long. */
     private static void pin(LivingEntity e, int ticks) {
