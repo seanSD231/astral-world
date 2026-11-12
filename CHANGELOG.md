@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.211
+- Hunger games: the arena has cover again (pillars, broken walls and hollow mounds, never over the church), the shrinking border now shoves you back inside instead of letting you walk out, the countdown no longer flings you into space, a full heal happens after your sequence is applied rather than before, /hungergames spectate and unspectate, and the board keeps the last six games.
+- The Mother Tree's hitbox is measured off her own model now: twenty boxes, one per slice of height, each only as wide as the tree really is there, and they grow with her. The old hand-written boxes were up to three times too wide around the trunk, so swings at thin air connected.
+- The parry is much harder: the marker sweeps about twice as fast, the score falls away sharply from the centre (the green band is a few percent of the bar), and a click is now scored where you saw the marker instead of up to a whole tick behind it.
+- No divine kingdom of your own opens during the raid: hers is the only one in that arena.
+- At 5% she gathers a supernova. Ten seconds of warning, then everyone still inside the arena loses a life whatever their health, totems or revivals.
+- The curse is a dodge now: a bubble closes round each fighter where they stand and bursts after three quarters of a second. Step out and it costs nothing; stay in and you take one to five of chaos, decay, withering, venom, fatigue, misfortune, silence, freezing, burning and anchoring through LOTM's own silentcurse.
+- Prayer line 6 added.
+- Untested in game.
+
 ## 0.2.210
 - Three fun shrooms: Mystic Shroom shrinks you (through the vanilla scale attribute, so your hitbox shrinks too), Slim Shroom makes you very thin and Wide Shroom very wide (those two change how you are drawn; the hitbox stays). Right click yourself or someone else; it lasts a minute.
 - /funitem lets a rank take one of the shrooms, the bubble wand or the confetti popper, as often as its rank allows: the node astral_world.fun_items is how many days between picks (7 for Supporter, 3 for Supporter+, 1 for VIP).

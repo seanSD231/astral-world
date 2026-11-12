@@ -12,9 +12,13 @@ import net.neoforged.neoforge.network.PacketDistributor;
  * dead centre takes no damage, close takes less, and missing takes the full blow. One try. The result goes to the server when the time is up.
  */
 public final class ParryScreen extends Screen {
+    /** How sharply the score falls away from the middle. Above 1 the good bands shrink: the window for a perfect parry is only a few percent of the bar. */
+    private static final double SHARP = 1.8;
+
     private final int duration;
     private final double period, phase;   // ticks for one sweep across, and where in it the marker starts
     private int tick = 0;
+    private float part = 0;               // how far into the current tick the last frame drew: a click is scored where the marker was drawn, not where it was a whole tick ago
     private double lockedAt = -1, acc = 0;
     private boolean sent = false;
 
@@ -22,8 +26,13 @@ public final class ParryScreen extends Screen {
         super(Component.literal("Parry"));
         this.duration = ticks;
         java.util.Random r = new java.util.Random(seed);
-        this.period = 26 + r.nextInt(6);
+        this.period = 13 + r.nextInt(5);
         this.phase = r.nextDouble() * period * 2;
+    }
+
+    /** The score for a marker stopped at `x`: 1 dead centre, 0 at the ends, falling away sharply. */
+    private static double score(double x) {
+        return Math.pow(Math.max(0, 1 - Math.abs(x - 0.5) * 2), SHARP);
     }
 
     @Override public boolean isPauseScreen() { return false; }
@@ -47,8 +56,8 @@ public final class ParryScreen extends Screen {
 
     private void lock() {
         if (lockedAt >= 0 || tick < 8) return;   // a short pause so a click that opened the screen does not count
-        lockedAt = pos(tick);
-        acc = Math.max(0, 1 - Math.abs(lockedAt - 0.5) * 2);
+        lockedAt = pos(tick + part);
+        acc = score(lockedAt);
         Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(acc > 0.88 ? SoundEvents.ANVIL_PLACE : SoundEvents.SHIELD_BLOCK, acc > 0.88 ? 1.4f : 0.9f, 1f));
     }
 
@@ -63,13 +72,14 @@ public final class ParryScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mx, int my, float pt) {
+        part = pt;
         g.fill(0, 0, width, height, 0xB0200010);
         int bw = Math.min(width - 40, 300), x0 = width / 2 - bw / 2, y0 = height / 2 - 8, h = 18;
         g.fill(x0 - 2, y0 - 2, x0 + bw + 2, y0 + h + 2, 0xFFFFFFFF);
         g.fill(x0, y0, x0 + bw, y0 + h, 0xFF200818);
         // the middle is worth the most: bands from the edges inward
         for (int i = 0; i < bw / 2; i++) {
-            double q = i / (bw / 2.0);   // 0 at the edge, 1 in the middle
+            double q = Math.pow(i / (bw / 2.0), SHARP);   // what a stop here would score
             int col = q > 0.88 ? 0xFF60FF80 : q > 0.65 ? 0xFFFFE070 : q > 0.35 ? 0xFFFF9040 : 0xFF802020;
             g.fill(x0 + i, y0 + 3, x0 + i + 1, y0 + h - 3, col);
             g.fill(x0 + bw - 1 - i, y0 + 3, x0 + bw - i, y0 + h - 3, col);
@@ -78,7 +88,7 @@ public final class ParryScreen extends Screen {
         int mxp = x0 + (int) (f * bw);
         g.fill(mxp - 2, y0 - 8, mxp + 2, y0 + h + 8, lockedAt >= 0 ? 0xFFFFE070 : 0xFFFFFFFF);
         g.drawCenteredString(font, "THE TREE GATHERS ITS POWER", width / 2, y0 - 40, 0xFFD0F0);
-        g.drawCenteredString(font, "Click (or space) when the marker is in the middle", width / 2, y0 - 26, 0xB0B0D0);
+        g.drawCenteredString(font, "Click (or space) on the green. One try, and the green is thin.", width / 2, y0 - 26, 0xB0B0D0);
         if (lockedAt >= 0) {
             String r = acc > 0.88 ? "PERFECT" : acc > 0.65 ? "GOOD" : acc > 0.35 ? "WEAK" : "MISSED";
             g.drawCenteredString(font, r, width / 2, y0 + h + 18, acc > 0.88 ? 0x60FF80 : acc > 0.65 ? 0xFFE070 : acc > 0.35 ? 0xFF9040 : 0xFF5050);

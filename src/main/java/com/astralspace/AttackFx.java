@@ -614,6 +614,18 @@ public final class AttackFx {
         sphere(p, x, y + 2, z, 5 + maxR * 0.2 * pr, clamp01(0.7 * inv * inv * inv), 6, 10);
     }
 
+    /** The curse bubble: a thin shell with a core that brightens as the moment to step out runs down. */
+    private static void bubble(Pen p, boolean add, double t, double x, double y, double z, double rad, double life, int col) {
+        if (!add) return;
+        double pr = Math.min(1, t / Math.max(1, life));
+        float e = clamp01(0.9 - 0.35 * pr);
+        p.col(col);
+        sphere(p, x, y, z, rad * (1 - 0.08 * pr), e * 0.40f, 7, 14);
+        sphere(p, x, y, z, rad * (0.62 + 0.14 * Math.sin(t * 0.9)), e * 0.22f, 5, 10);
+        p.col(0xFFFFFF);
+        sphere(p, x, y, z, rad * (0.08 + 0.18 * pr), clamp01(0.25 + 0.6 * pr), 5, 9);
+    }
+
     private static void vortex(Pen p, boolean add, double t, double x, double y, double z, double rad, double life, int col) {
         if (!add) return;
         double env = Math.min(1, Math.min(t / 6.0, (life - t) / 10.0));
@@ -676,6 +688,7 @@ public final class AttackFx {
                 case 19 -> skyBolts(pen, add, t, x, y, z, a, b, c, life);
                 case 4 -> blast(pen, add, t, x, y, z, a, life, col);
                 case 5 -> vortex(pen, add, t, x, y, z, c, life, col);
+                case 7 -> bubble(pen, add, t, x, y, z, a, life, col);
                 case 6 -> ult(pen, add, t, x, y, z, a, b, life, col, c > 0 ? c : 1);
                 default -> { }
             }

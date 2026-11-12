@@ -859,6 +859,7 @@ public final class EndGame {
         introChat.clear(); introQueue = true;
         rt = 0; aggro = false; graceUntil = INTRO_TICKS + GRACE_TICKS; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; nextTempest = 0; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; nextUltimate = 0; ultCutsceneUntil = 0; clouds.clear(); fruits.clear(); summonSeals.clear(); summonMobs.clear(); globes.clear(); pendingUse.clear(); dazedUntil = 0; temptUntil = 0; bloomTrue = null; kingdomDone = false; kingdomEnd = 0; ultFallUntil = 0; ultImmuneUntil = 0; treeFleshy = false; lineBucket = 20;
         traitor = null; offered = null; offerDone = false; echo = null; resetGrowth(); noHeal.clear(); bloomNoHeal.clear(); sanityLock.clear(); lifeDamage.clear(); desire.clear(); thrallHitAt.clear();
+        novaDone = false;
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
             boss.addTag(TAG_BOSS);
@@ -1498,7 +1499,13 @@ public final class EndGame {
         var item = event.getItemStack().getItem();
         ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
         String norm = key.getPath().replace("_", "");
-        if (!key.getNamespace().equals("lotm") || !COUNTER_ITEMS.contains(norm) || p.getCooldowns().isOnCooldown(item)) return;   // on cooldown: nothing is cast
+        if (!key.getNamespace().equals("lotm")) return;
+        if (norm.contains("kingdom") && p.level() instanceof ServerLevel kl && "raid".equals(AstralData.get(kl.getServer()).endPhase)) {
+            event.setCanceled(true);   // a kingdom of your own would take the fight out of her arena: hers is the only one here
+            p.displayClientMessage(Component.literal("Her roots hold the sky shut. No kingdom of yours will open here.").withStyle(ChatFormatting.DARK_RED), true);
+            return;
+        }
+        if (!COUNTER_ITEMS.contains(norm) || p.getCooldowns().isOnCooldown(item)) return;   // on cooldown: nothing is cast
         for (Object[] o : pendingUse) if (o[0].equals(p.getUUID()) && o[1].equals(key.getPath())) return;
         pendingUse.add(new Object[]{p.getUUID(), norm, gt + 2});
     }
@@ -1725,7 +1732,7 @@ public final class EndGame {
             "PURGE: green circles are safe. Stand INSIDE one before the ground is struck.",
             "TEMPTATION: look AWAY from the boss and CROUCH. It drags your view in random directions: pull the OPPOSITE way.",
             "POWER: the boss gathers a Beyonder ability. A ring shows it is charging, then it strikes at one of you. Get away from where it faces.",
-            "CURSE: purple smoke gathers on every one of you. In a few seconds the whole battlefield is cursed: weakened, unlucky and corrupted. It cannot be dodged, so stay alive and stay together.",
+            "CURSE: a bubble closes round each of you where you stand. SPRINT out of it within three quarters of a second. Anyone still inside when it bursts takes one to five curses.",
             "POLLEN: purple clouds drift across the arena. Standing in one stacks Desire: it slows you, clouds your head and drains your mind. Stay out of them.",
             "MIRROR BLOOM: three flowers appear and only one is true. Touch a false one and it bursts for a quarter of your health and stops all healing. The true one cleanses everyone. Look closely at the sparks. If nobody finds it, they all wither.",
             "FRUIT: fruit falls across the arena. Take it before it ripens or it sprouts a werewolf. Later, the fruit is rotten.",
@@ -1734,7 +1741,7 @@ public final class EndGame {
             "MEMORY: a screen opens with four coloured pads. Remember the order they light up, then click them in the same order.",
             "THREAD: a screen opens with a glowing thread. Trace along it with your mouse without leaving it.",
             "MIND ASSAULT: the tree claws at your mind. A screen opens: click the circles as their rings close and hold and follow the sliders. Fail it and your mind pays for it.",
-            "PARRY: the tree gathers its power into one blast. A bar opens with a sweeping marker: click when it is in the MIDDLE. Dead centre takes nothing, close takes less, a miss takes a life."};
+            "PARRY: the tree gathers its power into one blast. A bar opens with a fast sweeping marker: click on the GREEN. The green is thin and you get one try. Dead centre takes nothing, close takes less, a miss takes a life."};
 
     /** The first time a player meets an attack, they are told how to avoid it. */
     private static void notice(ServerLevel lv, int which) {
@@ -1823,22 +1830,7 @@ public final class EndGame {
             case 15 -> miniAttack(lv, 4);
             case 16 -> parry(lv);
             case 6 -> power(lv);
-            case 7 -> { // a curse on everyone: cannot be dodged, but it does not cost a life
-                if (!crowd) for (ServerPlayer p : fighters(lv)) fx(lv, 5, p.getX(), p.getY(), p.getZ(), 0, 0, 1.5, rgb(0.55f, 0.15f, 0.8f), 70);
-                for (int t = 0; t < 60; t += 6) at(t, l -> {
-                    for (ServerPlayer p : fighters(l)) l.sendParticles(ParticleTypes.WITCH, p.getX(), p.getY() + 1, p.getZ(), 12, 0.6, 0.9, 0.6, 0.05);
-                });
-                at(60, l -> {
-                    sfx(l, SoundEvents.WITHER_AMBIENT, 2f, 0.5f);
-                    for (ServerPlayer p : fighters(l)) {
-                        p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.WEAKNESS, 300, 1));
-                        p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN, 300, 1));
-                        p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.UNLUCK, 300, 2));
-                        if (!corrupt(p, 10)) LOGGER.warn("[astral] the curse could not add corruption to {}", p.getGameProfile().getName());
-                        p.sendSystemMessage(Component.literal("You are cursed.").withStyle(ChatFormatting.DARK_PURPLE));
-                    }
-                });
-            }
+            case 7 -> curseBubbles(lv);
             case 0 -> { // meteors: red marks under every fighter, they land 1.5 s later
                 int shots = 4 + rnd.nextInt(3);
                 for (int k = 0; k < shots; k++) at(k * 30L, l -> {
@@ -2287,7 +2279,7 @@ public final class EndGame {
     private static final Map<UUID, int[]> osuHits = new HashMap<>();
     private static int miniCount = 10, miniNeed = 6, miniTicks = 100;
     private static long miniStart = -1000;
-    private static final String[] MINI_HINT = {"Now click the wishes before they close.", "Now remember the order, then click the pads the same way.", "Now follow the light along the thread.", "Click when the marker is in the middle of the bar.", "Resist it: click the circles as their rings close, and hold and follow the sliders."};
+    private static final String[] MINI_HINT = {"Now click the wishes before they close.", "Now remember the order, then click the pads the same way.", "Now follow the light along the thread.", "Click on the green. It is thin and the marker is quick.", "Resist it: click the circles as their rings close, and hold and follow the sliders."};
 
     /** Opens a minigame on every fighter's screen (except those skipped) and remembers what a pass needs: 60% of it. */
     private static void miniOpen(ServerLevel l, int game, Set<UUID> skip, String hint) {
@@ -2398,6 +2390,96 @@ public final class EndGame {
     private static void sendAnim(ServerLevel lv, int which, int ticks) {
         Net.TreeAnimPayload pk = new Net.TreeAnimPayload(which, ticks, ThreadLocalRandom.current().nextInt(1000));
         for (ServerPlayer p : lv.players()) PacketDistributor.sendToPlayer(p, pk);
+    }
+
+    // ---- the curse: a bubble round every fighter, and three quarters of a second to leave it
+
+    /** The curses she can sink into whoever stays in the bubble, each with the power it is cast at. */
+    private static final String[][] CURSES = {{"chaos", "1000"}, {"decay", "600"}, {"withering", "1000"}, {"venom", "1000"}, {"fatigue", "1000"},
+            {"misfortune", "500"}, {"silence", "100"}, {"freezing", "1000"}, {"burning", "1000"}, {"anchoring", "1000"}};
+    private static final int BUBBLE_TICKS = 15;   // three quarters of a second
+    private static final double BUBBLE_R = 3.0;
+
+    /**
+     * A bubble closes round each fighter where they stand. Anyone still inside theirs when it bursts takes one to five of
+     * {@link #CURSES} through LOTM's own silentcurse command; stepping out of it in time costs nothing at all.
+     */
+    private static void curseBubbles(ServerLevel lv) {
+        List<double[]> pods = new ArrayList<>();
+        for (ServerPlayer p : fighters(lv)) {
+            pods.add(new double[]{p.getX(), p.getY() + 1, p.getZ()});
+            p.displayClientMessage(Component.literal("A curse closes round you. Step out of it!").withStyle(ChatFormatting.DARK_PURPLE), true);
+        }
+        if (pods.isEmpty()) return;
+        sfx(lv, SoundEvents.WITCH_AMBIENT, 2.5f, 0.6f);
+        if (!crowd) for (double[] c : pods) fx(lv, 7, c[0], c[1], c[2], BUBBLE_R, 0, 0, rgb(0.6f, 0.15f, 0.85f), BUBBLE_TICKS + 4);
+        for (int t = 0; t <= BUBBLE_TICKS; t += 5) at(t, l -> {
+            for (double[] c : pods) l.sendParticles(ParticleTypes.WITCH, c[0], c[1], c[2], crowd ? 8 : 24, BUBBLE_R * 0.6, BUBBLE_R * 0.6, BUBBLE_R * 0.6, 0.01);
+        });
+        at(BUBBLE_TICKS, l -> {
+            sfx(l, SoundEvents.WITHER_AMBIENT, 2f, 0.5f);
+            var src = l.getServer().createCommandSourceStack().withSuppressedOutput().withPermission(4);
+            ThreadLocalRandom rr = ThreadLocalRandom.current();
+            for (ServerPlayer p : fighters(l)) {
+                double[] in = null;
+                for (double[] c : pods) if (p.distanceToSqr(c[0], c[1], c[2]) <= BUBBLE_R * BUBBLE_R) { in = c; break; }
+                if (in == null) { p.displayClientMessage(Component.literal("You were out of it in time.").withStyle(ChatFormatting.GREEN), true); continue; }
+                l.sendParticles(ParticleTypes.WITCH, in[0], in[1], in[2], 70, 1.3, 1.3, 1.3, 0.1);
+                List<String[]> pick = new ArrayList<>(java.util.Arrays.asList(CURSES));
+                java.util.Collections.shuffle(pick, rr);
+                int n = 1 + rr.nextInt(5);
+                List<String> names = new ArrayList<>();
+                for (int i = 0; i < n; i++) {
+                    String[] c = pick.get(i);
+                    names.add(c[0]);
+                    try {
+                        l.getServer().getCommands().performPrefixedCommand(src, "silentcurse " + p.getGameProfile().getName() + " " + c[0] + " " + c[1]);
+                    } catch (Throwable t) {
+                        LOGGER.warn("[astral] the curse '{}' could not be cast on {}: {}", c[0], p.getGameProfile().getName(), t.toString());
+                    }
+                }
+                p.sendSystemMessage(Component.literal("The bubble burst on you: " + String.join(", ", names) + ".").withStyle(ChatFormatting.DARK_PURPLE));
+            }
+        });
+    }
+
+    // ---- the supernova: at 5% she spends everything left on one star
+
+    private static boolean novaDone = false;
+    private static final int NOVA_WIND = 200;   // ten seconds of warning
+
+    /**
+     * Her last answer. A star gathers in her crown for ten seconds and then breaks: everyone still inside the arena loses
+     * a life, whatever their health, totems or revivals. Running past the arena's edge is the only way out of it.
+     */
+    private static void supernova(ServerLevel lv) {
+        novaDone = true;
+        ultImmuneUntil = rt + NOVA_WIND;   // she cannot be finished off while it gathers
+        tellLevel(lv, treeName() + " gathers a star in her crown. Get out of the arena.", ChatFormatting.RED);
+        sfx(lv, SoundEvents.WARDEN_SONIC_CHARGE, 5f, 0.35f);
+        fx(lv, 14, cur.cx(), cur.gy(), cur.cz(), NOVA_WIND, ARENA_R, 0, rgb(1f, 0.9f, 0.5f), NOVA_WIND + 60);
+        for (int t = 0; t < NOVA_WIND; t += 20) {
+            final int k = t;
+            at(t, l -> {
+                circle(l, cur.cx(), cur.cz(), ARENA_R * (1 - k / (double) NOVA_WIND) + 6, 1f, 0.88f, 0.45f);
+                sfx(l, SoundEvents.BEACON_AMBIENT, 3f, 0.5f + 1.2f * k / NOVA_WIND);
+                String s = "SUPERNOVA IN " + (NOVA_WIND - k) / 20;
+                for (ServerPlayer p : l.players()) p.displayClientMessage(Component.literal(s).withStyle(ChatFormatting.RED), true);
+            });
+        }
+        at(NOVA_WIND, l -> {
+            sfx(l, SoundEvents.GENERIC_EXPLODE.value(), 5f, 0.35f);
+            fx(l, 1, cur.cx(), cur.gy(), cur.cz(), 220, ARENA_R, 1, rgb(1f, 0.95f, 0.7f), 140);
+            for (int r = 20; r <= ARENA_R; r += 40) circle(l, cur.cx(), cur.cz(), r, 1f, 0.95f, 0.7f);
+            int n = 0;
+            for (ServerPlayer p : fighters(l)) {
+                if (Math.hypot(p.getX() - cur.cx(), p.getZ() - cur.cz()) > ARENA_R) continue;
+                killLife(l, p);
+                n++;
+            }
+            tellLevel(l, "The star breaks. " + (n == 0 ? "The arena was empty." : n + " caught in it."), ChatFormatting.DARK_RED);
+            LOGGER.info("[astral] supernova took a life from {} fighters", n);
+        });
     }
 
     // ---- Divine Kingdom: Thorn Paradise, once she is under 10%
@@ -2594,6 +2676,7 @@ public final class EndGame {
         else if (immuneBarShown) { immuneBarShown = false; if (!rootsActive) raidBar.setName(barName("", ChatFormatting.DARK_PURPLE)); }
         if (!rootsActive) {
             if (!kingdomDone && !cutscene && rootStage >= THRESHOLDS.length && rt >= ultFallUntil && frac < 0.10f) { startKingdom(lv, boss); return; }
+            if (!novaDone && !cutscene && kingdomEnd == 0 && rootStage >= THRESHOLDS.length && rt >= ultFallUntil && frac < 0.05f) { supernova(lv); return; }
             if (rootStage < THRESHOLDS.length && boss.getHealth() <= THRESHOLDS[rootStage] * RAID_HP + 3f) {
                 if (rootStage == 0) startRoots(lv); else if (rootStage == 1) startTransformation(lv); else startSeeds(lv);
             } else if (rootStage >= THRESHOLDS.length && !cutscene && rt >= nextUltimate && boss.getHealth() / RAID_HP <= 0.15f) {
@@ -3019,8 +3102,38 @@ public final class EndGame {
 
     // ---- the tree's hitbox is several boxes: the trunk (the boss itself) and invisible parts for the root plate and the canopy that pass every hit on to her
     static final String TAG_PART = "astral_part";
-    private static final double[][] TREE_PARTS = {{330, 14, 0}, {160, 14, 14}, {130, 14, 84}, {250, 42, 98}, {280, 14, 140}, {360, 84, 154}, {240, 16, 238}};   // width, height, floor above the tree's foot: measured from the model (the boss's own box is the trunk, 120 wide and 84 tall)
+    private static final int SIL_SLABS = 20;
+    private static final double[][][] TREE_SIL = new double[2][][];
+
+    /**
+     * The tree's hitbox, measured off the model itself instead of by hand: the model is cut into {@link #SIL_SLABS} slabs of
+     * height and each slab gets one box around the parts that fall in it, {width, height, floor, x offset, z offset} in model
+     * units. The old hand-written boxes were up to three times too wide around the trunk, so swings at thin air connected.
+     */
+    private static synchronized double[][] treeSil(boolean rot) {
+        int i = rot ? 1 : 0;
+        if (TREE_SIL[i] != null) return TREE_SIL[i];
+        var balls = treeModel(rot).hitBalls;
+        double top = 0;
+        for (float[] b : balls) top = Math.max(top, b[1] + b[3]);
+        double sh = top / SIL_SLABS;
+        List<double[]> out = new ArrayList<>();
+        for (int s = 0; s < SIL_SLABS; s++) {
+            double a0 = s * sh, a1 = a0 + sh, xmin = 1e9, xmax = -1e9, zmin = 1e9, zmax = -1e9;
+            for (float[] b : balls) {
+                if (b[1] + b[3] < a0 || b[1] - b[3] > a1) continue;
+                xmin = Math.min(xmin, b[0] - b[3]); xmax = Math.max(xmax, b[0] + b[3]);
+                zmin = Math.min(zmin, b[2] - b[3]); zmax = Math.max(zmax, b[2] + b[3]);
+            }
+            if (xmax < xmin) continue;   // nothing solid at this height
+            out.add(new double[]{Math.max(2, Math.max(xmax - xmin, zmax - zmin)), sh, a0, (xmin + xmax) / 2, (zmin + zmax) / 2});
+        }
+        LOGGER.info("[astral] tree hitbox ({}): {} boxes up to y {}", rot ? "fleshy" : "world tree", out.size(), (float) top);
+        return TREE_SIL[i] = out.toArray(new double[0][]);
+    }
+
     private static final Map<Integer, UUID> partIds = new HashMap<>();
+    private static boolean partsFleshy;
     private static net.minecraft.world.scores.PlayerTeam partTeam;
 
     /** Keeps the tree's extra hitboxes in place and the right size. While she cannot be hurt (roots, seeds, call, transformation) they shrink away like the trunk does. */
@@ -3030,8 +3143,16 @@ public final class EndGame {
             partTeam = sb.getPlayerTeam("astral_parts") != null ? sb.getPlayerTeam("astral_parts") : sb.addPlayerTeam("astral_parts");
             partTeam.setCollisionRule(net.minecraft.world.scores.Team.CollisionRule.NEVER);
         }
-        for (int i = 0; i < TREE_PARTS.length; i++) {
-            double[] pd = TREE_PARTS[i];
+        if (partsFleshy != treeFleshy) {   // the two forms are not the same shape, so start the boxes again
+            partsFleshy = treeFleshy;
+            for (UUID u : partIds.values()) { Entity e = lv.getEntity(u); if (e != null) e.discard(); }
+            partIds.clear();
+        }
+        double[][] sil = treeSil(treeFleshy);
+        float sc = treeScale;
+        for (int i = 0; i < sil.length; i++) {
+            double[] pd = sil[i];
+            double px = boss.getX() + pd[3] * sc, py = boss.getY() + pd[2] * sc, pz = boss.getZ() + pd[4] * sc;
             Entity ex = partIds.get(i) == null ? null : lv.getEntity(partIds.get(i));
             Mob part;
             if (ex instanceof Mob pm && pm.isAlive()) part = pm;
@@ -3044,15 +3165,15 @@ public final class EndGame {
                 var mh = part.getAttribute(Attributes.MAX_HEALTH);
                 if (mh != null) mh.setBaseValue(1_000_000.0);
                 part.setHealth(1_000_000f);
-                part.moveTo(boss.getX(), boss.getY() + pd[2], boss.getZ());
+                part.moveTo(px, py, pz);
                 lv.addFreshEntity(part);
                 sb.addPlayerToTeam(part.getStringUUID(), partTeam);
                 partIds.put(i, part.getUUID());
             }
             part.getPersistentData().putUUID("partOf", boss.getUUID());
             part.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
-            if (Math.abs(part.getX() - boss.getX()) > 0.01 || Math.abs(part.getY() - (boss.getY() + pd[2])) > 0.01 || Math.abs(part.getZ() - boss.getZ()) > 0.01) part.setPos(boss.getX(), boss.getY() + pd[2], boss.getZ());
-            double w = rootsActive ? 1 : pd[0], h = rootsActive ? 1 : pd[1];
+            if (Math.abs(part.getX() - px) > 0.01 || Math.abs(part.getY() - py) > 0.01 || Math.abs(part.getZ() - pz) > 0.01) part.setPos(px, py, pz);
+            double w = rootsActive ? 1 : pd[0] * sc, h = rootsActive ? 1 : pd[1] * sc;
             if (!pehkui(part, (float) (w / 1.4), (float) (h / 2.7))) {
                 var inst = part.getAttribute(Attributes.SCALE);
                 double want = Math.min(16, Math.max(w / 1.4, h / 2.7));
