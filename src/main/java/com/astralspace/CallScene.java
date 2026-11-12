@@ -31,14 +31,14 @@ public final class CallScene {
             "Something heard you",
             "Something is watching you",
             "Something is angry"};
-    private static final double[] AT = {2.0, 6.5, 11.0, 15.5, 20.0, 24.5, 29.0, 36.0, 40.0, 44.0};   // the server prints the same lines in chat
+    private static final double[] AT = {2.0, 6.5, 11.0, 15.5, 20.0, 24.5, 31.5, 36.0, 40.0, 44.0};   // line 6 runs nearly seven seconds, so line 7 waits for it   // the server prints the same lines in chat
     private static final double[] LEN = {4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 4.2, 3.6, 3.6, 3.6};
     private static final double GLITCH_FROM = 32.0, FIGURES_AT = 47.5;
     private static final int[] LIGHTS = {0xFFD870, 0xB48CFF, 0x7FE0D0, 0xFF9AB8, 0x8CB4FF, 0xFFB070};
     private static boolean wasActive = false;
     private static int tick = 0;
-    private static final boolean[] VOICED = new boolean[7];   // the spoken line has started (line 6 has no recording yet)
-    private static final int[] VOICE_LINE = {1, 2, 3, 4, 5, -1, 7};
+    private static final boolean[] VOICED = new boolean[7];   // the spoken line has started
+    private static final int[] VOICE_LINE = {1, 2, 3, 4, 5, 6, 7};
 
     private CallScene() {}
 

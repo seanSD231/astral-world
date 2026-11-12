@@ -109,6 +109,10 @@ public final class HungerGames {
     // the leaderboard: results of the last game, and the boards (rows of signs) that show them
     private record Result(String name, int kills, int place) { }
     private record BoardPos(String dim, long pos) { }
+    /** Past games, newest first: who won and with how many kills. */
+    private record Past(String name, int kills, int players) { }
+    private static final List<Past> history = new ArrayList<>();
+    private static final int HISTORY = 6;
     private static final List<Result> lastResults = new ArrayList<>();
     private static final List<List<BoardPos>> boards = new ArrayList<>();
 
@@ -142,6 +146,8 @@ public final class HungerGames {
                     return 1;
                 }))
                 .then(Commands.literal("board").requires(s -> s.hasPermission(2)).executes(ctx -> placeBoard(ctx.getSource().getPlayerOrException())))
+                .then(Commands.literal("spectate").executes(ctx -> watch(ctx.getSource().getPlayerOrException())))
+                .then(Commands.literal("unspectate").executes(ctx -> unwatch(ctx.getSource().getPlayerOrException(), true)))
                 .then(Commands.literal("status").executes(ctx -> {
                     ctx.getSource().sendSuccess(() -> Component.literal(phase == Phase.OFF ? "No hunger games running." : "Hunger games: " + phase + ", " + alive.size() + " alive of " + players.size()), false);
                     return 1;
@@ -215,6 +221,7 @@ public final class HungerGames {
                 if (left <= 0) go(s);
             }
             case RUNNING -> {
+                UniqPower.contain(lv, new net.minecraft.world.phys.Vec3(0, groundY, 0), zoneRadius(now), null);   // the wall holds: anyone at its edge is pushed back in
                 if (now % 20 == 0) running(s, lv);
             }
             case ENDING -> { if (now >= phaseEnd) finish(s, null); }
@@ -235,6 +242,48 @@ public final class HungerGames {
     }
 
     // ------------------------------------------------------------------ chests and loot
+
+    /** Cover scattered over the arena: stone pillars, broken walls and little hollow mounds you can duck into. The arena reset clears them with everything else. */
+    private static void placeObstacles(ServerLevel lv) {
+        BlockState[] stone = {Blocks.COBBLESTONE.defaultBlockState(), Blocks.MOSSY_COBBLESTONE.defaultBlockState(), Blocks.STONE_BRICKS.defaultBlockState(),
+            Blocks.CRACKED_STONE_BRICKS.defaultBlockState(), Blocks.MOSSY_STONE_BRICKS.defaultBlockState(), Blocks.DEEPSLATE_BRICKS.defaultBlockState()};
+        int made = 0;
+        for (int tries = 0; tries < 900 && made < 150; tries++) {
+            double a = rnd.nextDouble() * Math.PI * 2, r = 14 + rnd.nextDouble() * (PlanetGenerator.PLAT_R - 40);
+            int x = (int) Math.round(Math.cos(a) * r), z = (int) Math.round(Math.sin(a) * r);
+            if (PlanetGenerator.churchInside(x, z, 6)) continue;
+            BlockPos base = surface(lv, x, z);
+            if (base == null) continue;
+            int kind = rnd.nextInt(3);
+            BlockState bs = stone[rnd.nextInt(stone.length)];
+            if (kind == 0) {                                                   // a pillar
+                int h = 3 + rnd.nextInt(4);
+                for (int y = 0; y < h; y++) lv.setBlock(base.above(y), bs, 2);
+                lv.setBlock(base.above(h), Blocks.COBBLESTONE_SLAB.defaultBlockState(), 2);
+            } else if (kind == 1) {                                            // a broken wall
+                int len = 4 + rnd.nextInt(5); boolean ew = rnd.nextBoolean();
+                for (int i = 0; i < len; i++) {
+                    int h = 2 + rnd.nextInt(2) - (i == 0 || i == len - 1 ? 1 : 0);
+                    for (int y = 0; y < h; y++) lv.setBlock(base.offset(ew ? i : 0, y, ew ? 0 : i), stone[rnd.nextInt(stone.length)], 2);
+                }
+            } else {                                                           // a hollow mound with a way in
+                int rr = 2 + rnd.nextInt(2);
+                for (int dx = -rr; dx <= rr; dx++) for (int dz = -rr; dz <= rr; dz++) {
+                    double dd = Math.sqrt(dx * dx + dz * dz);
+                    if (dd > rr + .4) continue;
+                    int h = (int) Math.round(2.4 - dd * .7);
+                    boolean door = dz == 0 && dx > 0;
+                    for (int y = 0; y < h; y++) {
+                        if (dd < rr - .6 && y < h - 1) continue;                // hollow inside
+                        if (door && y < 2) continue;                           // the way in
+                        lv.setBlock(base.offset(dx, y, dz), stone[rnd.nextInt(stone.length)], 2);
+                    }
+                }
+            }
+            made++;
+        }
+        LOGGER.info("[hungergames] {} pieces of cover placed", made);
+    }
 
     private static void placeChest(ServerLevel lv) {
         int kind = centreLeft > 0 ? 0 : churchLeft > 0 ? 1 : 2;   // 0 middle, 1 inside the church, 2 anywhere on the stone
@@ -351,13 +400,14 @@ public final class HungerGames {
             p.getInventory().clearContent();
             clearCurios(p);
             p.removeAllEffects();
-            p.setHealth(p.getMaxHealth());
             p.getFoodData().setFoodLevel(20);
             p.getFoodData().setSaturation(5f);
             p.setExperienceLevels(0);
             p.experienceProgress = 0f; p.totalExperience = 0;
             p.connection.send(new ClientboundSetExperiencePacket(0f, 0, 0));
             applySeq(p);
+            p.setHealth(p.getMaxHealth());   // after the sequence: that is what decides how much health they have
+            p.setAbsorptionAmount(0f);
             double ang = Math.PI * 2 * i / n, cr = Math.max(3.5, n * 0.9);   // everyone starts in a circle in the middle, facing the others
             double cx = 0.5 + Math.cos(ang) * cr, cz = 0.5 + Math.sin(ang) * cr;
             float yaw = (float) Math.toDegrees(Math.atan2(cx - 0.5, -(cz - 0.5)));
@@ -367,9 +417,9 @@ public final class HungerGames {
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(9, 0));   // there is no tree in the games: the client must not draw its stand-in
             p.setInvulnerable(true);
             p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, COUNTDOWN_TICKS + 20, 7, false, false, false));
-            p.addEffect(new MobEffectInstance(MobEffects.JUMP, COUNTDOWN_TICKS + 20, 128, false, false, false));
             p.sendSystemMessage(Component.literal("You are in the arena. Look at who you are up against: in 15 seconds everyone is sent to the edge of the arena and the games begin. Chests are all over, the middle has the most, and the arena will close in on the middle.").withStyle(ChatFormatting.GOLD));
         }
+        placeObstacles(lv);
         phase = Phase.COUNTDOWN;
         phaseEnd = s.getTickCount() + COUNTDOWN_TICKS;
         LOGGER.info("[hungergames] {} players, {} chests", n, chests.size());
@@ -491,7 +541,6 @@ public final class HungerGames {
         for (ServerPlayer p : onlinePlayers(s)) {
             p.setInvulnerable(false);
             p.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
-            p.removeEffect(MobEffects.JUMP);
             title(p, ChatFormatting.GREEN, "GO", alive.size() + " players");
             p.playNotifySound(net.minecraft.sounds.SoundEvents.ENDER_DRAGON_GROWL, net.minecraft.sounds.SoundSource.MASTER, 0.6f, 1.2f);
         }
@@ -550,6 +599,9 @@ public final class HungerGames {
             net.minecraft.nbt.ListTag res = new net.minecraft.nbt.ListTag();
             for (Result r : lastResults) { CompoundTag c = new CompoundTag(); c.putString("n", r.name()); c.putInt("k", r.kills()); c.putInt("p", r.place()); res.add(c); }
             root.put("results", res);
+            net.minecraft.nbt.ListTag hist = new net.minecraft.nbt.ListTag();
+            for (Past h : history) { CompoundTag c = new CompoundTag(); c.putString("n", h.name()); c.putInt("k", h.kills()); c.putInt("c", h.players()); hist.add(c); }
+            root.put("history", hist);
             net.minecraft.nbt.ListTag bs = new net.minecraft.nbt.ListTag();
             for (List<BoardPos> b : boards) {
                 net.minecraft.nbt.ListTag one = new net.minecraft.nbt.ListTag();
@@ -570,6 +622,9 @@ public final class HungerGames {
             lastResults.clear(); boards.clear();
             net.minecraft.nbt.ListTag res = root.getList("results", Tag.TAG_COMPOUND);
             for (int i = 0; i < res.size(); i++) { CompoundTag c = res.getCompound(i); lastResults.add(new Result(c.getString("n"), c.getInt("k"), c.getInt("p"))); }
+            history.clear();
+            net.minecraft.nbt.ListTag hist = root.getList("history", Tag.TAG_COMPOUND);
+            for (int i = 0; i < hist.size(); i++) { CompoundTag c = hist.getCompound(i); history.add(new Past(c.getString("n"), c.getInt("k"), c.getInt("c"))); }
             net.minecraft.nbt.ListTag bs = root.getList("boards", Tag.TAG_COMPOUND);
             for (int i = 0; i < bs.size(); i++) {
                 net.minecraft.nbt.ListTag one = bs.getCompound(i).getList("signs", Tag.TAG_COMPOUND);
@@ -586,7 +641,7 @@ public final class HungerGames {
         Direction facing = p.getDirection(), right = facing.getClockWise();
         int rot = Mth.floor((p.getYRot() + 180f) * 16f / 360f + 0.5f) & 15;
         BlockPos origin = p.blockPosition().relative(facing, 3);
-        int count = 8;
+        int count = 15;
         List<BoardPos> row = new ArrayList<>();
         String dim = lv.dimension().location().toString();
         for (int i = 0; i < count; i++) {
@@ -611,7 +666,17 @@ public final class HungerGames {
                 BlockPos pos = BlockPos.of(bp.pos());
                 if (!lv.isLoaded(pos) || !(lv.getBlockEntity(pos) instanceof SignBlockEntity sb)) continue;
                 SignText t = new SignText().setColor(DyeColor.BLACK);
-                if (i == 0) {
+                if (i >= 8) {                                                  // the right-hand half: who won the games before this one
+                    int k = i - 8;
+                    if (k == 0) t = t.setMessage(0, Component.literal("PAST").withStyle(ChatFormatting.BOLD)).setMessage(1, Component.literal("WINNERS"))
+                                     .setMessage(2, Component.literal(history.isEmpty() ? "none yet" : history.size() + " games"));
+                    else if (k - 1 < history.size()) {
+                        Past h = history.get(k - 1);
+                        t = t.setMessage(0, Component.literal(k == 1 ? "previous" : k + " back").withStyle(ChatFormatting.DARK_GRAY))
+                             .setMessage(1, Component.literal(h.name()).withStyle(ChatFormatting.GOLD))
+                             .setMessage(2, Component.literal(h.kills() + " kills")).setMessage(3, Component.literal("of " + h.players() + " players"));
+                    }
+                } else if (i == 0) {
                     t = t.setMessage(0, Component.literal("LAST GAME").withStyle(ChatFormatting.BOLD)).setMessage(1, Component.literal("Hunger Games")).setMessage(2, Component.literal(lastResults.isEmpty() ? "no games yet" : lastResults.size() + " players"));
                 } else if (i - 1 < lastResults.size()) {
                     Result r = lastResults.get(i - 1);
@@ -637,9 +702,10 @@ public final class HungerGames {
             if (zp == null || zp.level() != lv) continue;
             double zd = Math.hypot(zp.getX(), zp.getZ());
             double ang = Math.atan2(zp.getZ(), zp.getX());
-            for (int k = -12; k <= 12; k++) {   // the wall of the zone, drawn near each player
-                double a = ang + k * (3.0 / Math.max(zr, 20));
-                for (int h = 0; h < 3; h++) lv.sendParticles(zp, ParticleTypes.SOUL_FIRE_FLAME, false, Math.cos(a) * zr, groundY + 0.5 + h * 1.5, Math.sin(a) * zr, 1, 0, 0.3, 0, 0);
+            for (int k = -26; k <= 26; k++) {   // the wall of the zone: a tall sheet of fire drawn near each player, so it is plainly there
+                double a = ang + k * (1.6 / Math.max(zr, 20));
+                for (int h = 0; h < 9; h++) lv.sendParticles(zp, ParticleTypes.SOUL_FIRE_FLAME, false, Math.cos(a) * zr, groundY + 0.4 + h * 1.4, Math.sin(a) * zr, 1, 0, 0.35, 0, 0);
+                if (k % 4 == 0) for (int h = 0; h < 5; h++) lv.sendParticles(zp, ParticleTypes.END_ROD, false, Math.cos(a) * zr, groundY + 0.6 + h * 2.6, Math.sin(a) * zr, 1, 0, 0.2, 0, 0);
             }
             if (zd > zr) {
                 float dmg = 1.5f + (float) Math.min(6.0, (zd - zr) / 40.0) + (float) Math.max(0, (el - ZONE_WAIT - ZONE_SHRINK) / 1200.0);   // worse the further out, and worse still once it has fully closed
@@ -678,6 +744,11 @@ public final class HungerGames {
         List<UUID> rank = new ArrayList<>(alive);
         for (int i = out.size() - 1; i >= 0; i--) rank.add(out.get(i));
         for (int i = 0; i < rank.size(); i++) lastResults.add(new Result(names.getOrDefault(rank.get(i), "?"), kills.getOrDefault(rank.get(i), 0), i + 1));
+        if (!lastResults.isEmpty()) {                                          // this game joins the list of past ones
+            Result win = lastResults.get(0);
+            history.add(0, new Past(win.name(), win.kills(), rank.size()));
+            while (history.size() > HISTORY) history.remove(history.size() - 1);
+        }
         saveBoard(s);
         updateBoards(s);
         for (ServerPlayer p : s.getPlayerList().getPlayers()) {
@@ -767,7 +838,42 @@ public final class HungerGames {
         clearMobs(lv);
     }
 
+    // ------------------------------------------------------------------ watching
+    /** Who is watching, and where they were standing when they started: {dimension, x, y, z, yaw, pitch, game mode}. */
+    private static final Map<UUID, Object[]> watchers = new HashMap<>();
+
+    /** True while this player is only watching, so the games never count them. */
+    public static boolean watching(UUID id) { return watchers.containsKey(id); }
+
+    private static int watch(ServerPlayer p) {
+        if (phase == Phase.OFF) { p.sendSystemMessage(Component.literal("No hunger games are running.").withStyle(ChatFormatting.GRAY)); return 0; }
+        if (players.contains(p.getUUID())) { p.sendSystemMessage(Component.literal("You are in this one.").withStyle(ChatFormatting.GRAY)); return 0; }
+        if (watchers.containsKey(p.getUUID())) { p.sendSystemMessage(Component.literal("You are already watching. /hungergames unspectate to go back.").withStyle(ChatFormatting.GRAY)); return 0; }
+        ServerLevel lv = p.getServer().getLevel(Cosmos.key("cosmos"));
+        if (lv == null) { p.sendSystemMessage(Component.literal("The arena is not there.").withStyle(ChatFormatting.RED)); return 0; }
+        watchers.put(p.getUUID(), new Object[]{p.level().dimension().location().toString(), p.getX(), p.getY(), p.getZ(), p.getYRot(), p.getXRot(), p.gameMode.getGameModeForPlayer()});
+        p.setGameMode(GameType.SPECTATOR);
+        p.teleportTo(lv, 0.5, groundY + 24, 0.5, 0f, 40f);
+        p.sendSystemMessage(Component.literal("You are watching the hunger games. /hungergames unspectate to go back.").withStyle(ChatFormatting.AQUA));
+        return 1;
+    }
+
+    /** Puts a watcher back where they were. Called when they ask, and for everyone when the games end. */
+    private static int unwatch(ServerPlayer p, boolean told) {
+        Object[] o = watchers.remove(p.getUUID());
+        if (o == null) { if (told) p.sendSystemMessage(Component.literal("You are not watching.").withStyle(ChatFormatting.GRAY)); return 0; }
+        ServerLevel back = p.getServer().getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse((String) o[0])));
+        p.setGameMode((GameType) o[6]);
+        if (back != null) p.teleportTo(back, (Double) o[1], (Double) o[2], (Double) o[3], (Float) o[4], (Float) o[5]);
+        p.sendSystemMessage(Component.literal("You stop watching.").withStyle(ChatFormatting.GRAY));
+        return 1;
+    }
+
     private static void finish(MinecraftServer s, String why) {
+        for (UUID u : new ArrayList<>(watchers.keySet())) {
+            ServerPlayer w = s.getPlayerList().getPlayer(u);
+            if (w != null) unwatch(w, false); else watchers.remove(u);
+        }
         ServerLevel lv = s.getLevel(Cosmos.key("cosmos"));
         if (why != null) for (ServerPlayer p : s.getPlayerList().getPlayers()) p.sendSystemMessage(Component.literal(why).withStyle(ChatFormatting.GOLD));
         for (UUID u : new ArrayList<>(saved.keySet())) {

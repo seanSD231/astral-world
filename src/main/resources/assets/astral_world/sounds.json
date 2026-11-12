@@ -39,6 +39,14 @@
    }
   ]
  },
+ "prayer.line_6": {
+  "sounds": [
+   {
+    "name": "astral_world:prayer/line_6",
+    "stream": true
+   }
+  ]
+ },
  "prayer.line_7": {
   "sounds": [
    {
