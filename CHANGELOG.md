@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.212
+- JEI hides the LOTM potion recipes whose formula you have not found yet. LOTM's own JEI plugin already hid the potion items, but the cauldron recipes are ordinary data-pack recipes every client knows, so the formulas were on show anyway. The server now tells each client which ones it has unlocked (LOTM keeps that only on its own side) and JEI hides the rest. Without JEI, without LOTM, or on a server without this mod, nothing is hidden and JEI behaves as before.
+- Untested in game.
+
 ## 0.2.211
 - Hunger games: the arena has cover again (pillars, broken walls and hollow mounds, never over the church), the shrinking border now shoves you back inside instead of letting you walk out, the countdown no longer flings you into space, a full heal happens after your sequence is applied rather than before, /hungergames spectate and unspectate, and the board keeps the last six games.
 - The Mother Tree's hitbox is measured off her own model now: twenty boxes, one per slice of height, each only as wide as the tree really is there, and they grow with her. The old hand-written boxes were up to three times too wide around the trunk, so swings at thin air connected.

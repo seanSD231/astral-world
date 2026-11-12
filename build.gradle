@@ -9,6 +9,18 @@ base { archivesName = mod_id }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+repositories {
+    maven {
+        name = 'BlameJared'                       // JEI's API, used only at compile time
+        url = 'https://maven.blamejared.com'
+    }
+}
+
+dependencies {
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+}
+
 neoForge {
     version = neo_version
     runs {

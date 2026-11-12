@@ -99,6 +99,14 @@ public final class Net {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -&gt; client: which LOTM potion recipes this player has unlocked, as "pathway:sequence". JEI hides the rest. */
+    public record RecipesPayload(java.util.List<String> keys) implements CustomPacketPayload {
+        public static final Type<RecipesPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "recipes"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, RecipesPayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list(4096)), RecipesPayload::keys, RecipesPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public record MimicPayload(String path, int seq) implements CustomPacketPayload {
         public static final Type<MimicPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "mimic"));
         public static final StreamCodec<RegistryFriendlyByteBuf, MimicPayload> CODEC = StreamCodec.composite(ByteBufCodecs.STRING_UTF8, MimicPayload::path, ByteBufCodecs.VAR_INT, MimicPayload::seq, MimicPayload::new);
@@ -308,6 +316,7 @@ public final class Net {
             if (payload.wide() == 1f && payload.tall() == 1f) FunItems.CLIENT_SHAPES.remove(payload.id());
             else FunItems.CLIENT_SHAPES.put(payload.id(), new float[]{payload.wide(), payload.tall()});
         }));
+        registrar.playToClient(RecipesPayload.TYPE, RecipesPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> PotionLock.arrived(payload.keys())));
         registrar.playToClient(WeeklyOpenPayload.TYPE, WeeklyOpenPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> WeeklyPackScreen.open(payload.total(), payload.rainbow(), payload.shiny(), payload.claimed())));
         registrar.playToServer(WeeklyClaimPayload.TYPE, WeeklyClaimPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) WeeklyPacks.claim(sp, payload.picks());

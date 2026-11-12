@@ -485,4 +485,70 @@ public final class Lotm {
         if (protectMark == null || protectSet == null) return;
         try { protectSet.invoke(protectMark, e, ticks); } catch (Throwable ignored) { }
     }
+
+    private static Method recipeGetAll;
+    private static boolean recipeTried;
+    private static java.util.Map<Object, String> pathwayNames;   // BeyonderClass -> its id, built once
+
+    /**
+     * Which potion recipes this player has unlocked, as "pathway:sequence" (for instance "sailor:7"), read out of LOTM's own
+     * potion-recipe capability. That capability is never sent to the client, so the server has to hand the list over itself
+     * ({@link PotionLock}) before JEI can hide what is still locked. An empty set means LOTM could not be asked.
+     */
+    public static java.util.Set<String> unlockedRecipes(ServerPlayer p) {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        if (!recipeTried) {
+            recipeTried = true;
+            try {
+                recipeGetAll = Class.forName("net.swimmingtuna.lotm.capabilities.potion_recipes_data.PotionRecipesUtil")
+                        .getMethod("getRecipes", net.minecraft.world.entity.LivingEntity.class);
+            } catch (Throwable t) {
+                LOGGER.info("[astral] LOTM has no potion-recipe capability here, so JEI hides nothing: {}", t.toString());
+            }
+            pathwayNames = new java.util.IdentityHashMap<>();
+            for (String id : PATH_IDS) { Object bc = pathwayById(id); if (bc != null) pathwayNames.put(bc, id); }
+        }
+        if (recipeGetAll == null) return out;
+        try {
+            Object map = recipeGetAll.invoke(null, p);
+            if (!(map instanceof java.util.Map<?, ?> m)) return out;
+            for (java.util.Map.Entry<?, ?> e : m.entrySet()) {
+                String id = pathwayNames.get(e.getKey());
+                if (id == null || !(e.getValue() instanceof Iterable<?> seqs)) continue;
+                for (Object s : seqs) out.add(id + ":" + s);
+            }
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not read {}'s potion recipes: {}", p.getGameProfile().getName(), t.toString());
+        }
+        return out;
+    }
+
+    /** The pathway and sequence written on a LOTM potion, as "pathway:sequence", or "" if the stack is not one. */
+    public static String potionKey(net.minecraft.world.item.ItemStack st) {
+        if (st.isEmpty()) return "";
+        CompoundTag t = itemTag(st);
+        if (t == null) return "";
+        String path = t.getString("pathway");
+        return path.isEmpty() || !t.contains("sequence") ? "" : path + ":" + t.getInt("sequence");
+    }
+
+    private static Method nbtGetTag, nbtHasTag;
+    private static boolean nbtTried;
+
+    /** LOTM keeps its own compound on a stack; this reads it the way LOTM does, whatever component it lives in. */
+    private static CompoundTag itemTag(net.minecraft.world.item.ItemStack st) {
+        if (!nbtTried) {
+            nbtTried = true;
+            try {
+                Class<?> c = Class.forName("net.swimmingtuna.lotm.util.ItemNbt");
+                nbtHasTag = c.getMethod("hasTag", net.minecraft.world.item.ItemStack.class);
+                nbtGetTag = c.getMethod("getTag", net.minecraft.world.item.ItemStack.class);
+            } catch (Throwable t) { nbtGetTag = null; }
+        }
+        if (nbtGetTag == null || nbtHasTag == null) return null;
+        try {
+            if (!((Boolean) nbtHasTag.invoke(null, st))) return null;
+            return (CompoundTag) nbtGetTag.invoke(null, st);
+        } catch (Throwable t) { return null; }
+    }
 }
