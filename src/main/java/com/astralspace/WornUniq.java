@@ -42,6 +42,7 @@ public class WornUniq extends Uniqueness {
         tip.add(Component.literal("Wear it in the Uniqueness curio slot.").withStyle(ChatFormatting.AQUA));
         tip.add(Component.literal("Press the Uniqueness key (G): " + blurb).withStyle(ChatFormatting.AQUA));
         tip.add(Component.literal("Costs " + UniqPower.cost(stack) + " spirituality. A Seq 1 or 0 of its pathway draws out its full power.").withStyle(ChatFormatting.DARK_AQUA));
+        tip.add(Component.literal("Use it without taking it in and it costs half your corruption limit as well.").withStyle(ChatFormatting.DARK_RED));
     }
 
     @Override
@@ -77,6 +78,7 @@ public class WornUniq extends Uniqueness {
         int cost = UniqPower.cost(st) / (quillEmp ? 2 : 1);
         if (!UniqPower.pay(sp, cost)) { sp.displayClientMessage(Component.literal("Not enough spirituality (" + cost + ").").withStyle(ChatFormatting.GRAY), true); return; }
         UniqAbilities.refund = false;
+        UniqPower.toll(sp, w.pathId());   // wielding a Uniqueness you never took in costs corruption
         try { w.ability.use(sp, st); } catch (Throwable t) { UniqPower.refund(sp, cost); com.mojang.logging.LogUtils.getLogger().warn("[astral] uniqueness ability failed: {}", t.toString()); return; }
         if (UniqAbilities.refund) { UniqPower.refund(sp, cost); return; }
         if (w.cooldown > 0) sp.getCooldowns().addCooldown(w, quillEmp ? w.cooldown / 2 : w.cooldown);

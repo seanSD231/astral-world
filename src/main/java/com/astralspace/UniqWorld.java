@@ -136,7 +136,7 @@ public final class UniqWorld {
 
     /** The shadow cage on one victim: a pool of shadow opens under them, black spears cross through them and tentacles rise round the rim. id2 = 1 is the Seq 1/0 form, half again as big. */
     private static void spikes(PoseStack ps, MultiBufferSource buf, Fx f, float t, Vec3 cam) {
-        float g = Math.min(ease(t / 5f), ease((f.dur - t) / 8f)), sz = f.id2 == 1 ? 1.5f : 1f;
+        float g = Math.min(ease(t / 5f), ease((f.dur - t) / 8f)), sz = (f.id2 == 1 || f.id2 == 3) ? 1.5f : 1f;   // 2 and 3 are the surge that drags someone down out of the air
         if (g <= .01f) return;
         ps.pushPose(); ps.translate(f.x - cam.x, f.y - cam.y + .03, f.z - cam.z); ps.scale(sz, sz, sz);
         UniqGfx.pool(ps, buf, 26f * ease(t / 3f) * Math.min(1f, (f.dur - t) / 6f), t, f.id, .95f);
@@ -147,7 +147,7 @@ public final class UniqWorld {
             float px = bx, py = 0, pz = bz;
             for (int j = 0; j < 6; j++) {   // a black spear, faceted, tapering to a violet point, with a barb near the tip
                 float l = len / 6, nx = px + dx * l, ny = py + dy * l, nz = pz + dz * l;
-                UniqGfx.seg(ps, buf, px, py, pz, nx, ny, nz, 5.2f - j * .85f, j == 5 ? 0xFFB070F0 : j == 4 ? 0xFF5A2890 : j % 2 == 0 ? 0xFF0A0410 : 0xFF140820);
+                UniqGfx.seg(ps, buf, px, py, pz, nx, ny, nz, 5.2f - j * .85f, j == 5 ? 0xFFFF6070 : j == 4 ? 0xFF901018 : j % 2 == 0 ? 0xFF100204 : 0xFF200408);
                 if (j == 3) UniqGfx.seg(ps, buf, nx, ny, nz, nx - dx * 5f + dz * 4f, ny - dy * 5f - 2f, nz - dz * 5f - dx * 4f, 1.4f, 0xFF0A0410);
                 px = nx; py = ny; pz = nz;
             }
@@ -155,7 +155,7 @@ public final class UniqWorld {
         for (int k = 0; k < 5; k++) {
             float a = k * (float) Math.PI * 2 / 5 + t * .02f;
             ps.pushPose(); UniqGfx.tr(ps, (float) Math.cos(a) * 22f, 0, (float) Math.sin(a) * 22f);
-            UniqGfx.tentacle(ps, buf, t, k + f.id, 30f * g, 3f, 0xFF0A0410, 0xFF6A30A8);
+            UniqGfx.tentacle(ps, buf, t, k + f.id, 30f * g, 3f, 0xFF100204, 0xFFC01820);
             ps.popPose();
         }
         ps.popPose();

@@ -2,6 +2,18 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.208
+- The Quill works. LOTM only accepts a told story while a Prophecy is in your main hand, so the screen opened but nothing was ever submitted. The Quill now lends you LOTM's own Prophecy item while the screen is up and takes it straight back (it cannot be dropped, and it is returned if you log out or wander off).
+- Writhing Shadows and the Bandaged Doll no longer fling you into the sky. Holding someone used Jump Boost at an amplifier that is sent to the client as a single byte, so it became an enormous upward jump; they are now held tick by tick instead.
+- Writhing Shadows: the violet spots, suckers and pool are red. The shadow stands for five seconds and takes anyone who walks into it. Anyone in the air is surged up at and dragged down rather than ignored.
+- The Ball of Lightning holds you in now (the old ring moved players with a teleport the client never heard about, so you rubber-banded straight back out), and it hits far harder: 56 a pulse at Seq 1/0, 26 otherwise.
+- The Eyes of the Door hold everyone inside the supernova while it runs.
+- The Bandaged Doll holds for four seconds instead of ten, and the plain version can be outrun: get far enough and the doll never arrives. The Seq 1/0 dolls still appear beside you.
+- The Sword of Twilight carries LOTM's Aura of Twilight while held: time crawls for anything near you, further when it is unsealed.
+- Using a Uniqueness you never took in costs half your corruption limit on its own pathway.
+- New costs and waits: Writhing Shadows 3000/35s, serpent 4000/60s, Wheel 1500/30s, Ball of Lightning 3000/50s, Eyes of the Door 4000/40s, Doll 3000/35s, Sun 3000/60s, sword right click 2500/20s.
+- Untested in game.
+
 ## 0.2.207
 - Demoness Seq 1 and 0: anyone standing inside the scene takes on LOTM's own Witch body (the Assassin Sequence 7 model), and gets their own back on leaving. (Found it in LOTM: AssassinWitchChestLayer.)
 - Goddess of Origin: the tree rebuilt after the two pictures together: a vast trunk plaited from strands wound both ways, veins of blue light climbing it, roots and limbs that end in curls, broad flat tiers of green canopy stacked to a crown with light breaking through, standing stones in the mist.

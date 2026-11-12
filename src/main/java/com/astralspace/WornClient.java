@@ -155,7 +155,7 @@ public final class WornClient {
                 float a = i * (360f / n) + t * 2.5f, r = (5f + 9f * night) + (2.5f + 3f * night) * (float) Math.sin(t * .13 + i * 1.9);
                 float hh = (6f + 5f * night + 4f * (float) Math.pow(Math.sin(t * .07 + i * 2.1), 2)) * k;
                 pose.pushPose(); pose.mulPose(Axis.YP.rotationDegrees(a)); UniqGfx.tr(pose, r, 0, 0);
-                UniqGfx.tentacle(pose, buf, t, i, hh * (i % 3 == 0 ? 1.5f : 1f), i % 3 == 0 ? 3.1f : 2.2f, 0xFF0A0410, 0xFF6A30A8);
+                UniqGfx.tentacle(pose, buf, t, i, hh * (i % 3 == 0 ? 1.5f : 1f), i % 3 == 0 ? 3.1f : 2.2f, 0xFF100204, 0xFFC01820);
                 pose.popPose();
             }
             float sp = since(p.getUUID(), SHADOW, pt);
@@ -166,7 +166,7 @@ public final class WornClient {
                 for (int i = 0; i < m; i++) {
                     float a = i * 2.39996f, rr = rad * (float) Math.sqrt((i + .5f) / m) * .95f;
                     pose.pushPose(); UniqGfx.tr(pose, (float) Math.cos(a) * rr, 0, (float) Math.sin(a) * rr);
-                    UniqGfx.tentacle(pose, buf, t, i + 30, (22f + 16f * UniqGfx.rnd(i + 5)) * g, 3.4f, 0xFF0A0410, 0xFF6A30A8);
+                    UniqGfx.tentacle(pose, buf, t, i + 30, (22f + 16f * UniqGfx.rnd(i + 5)) * g, 3.4f, 0xFF100204, 0xFFC01820);
                     pose.popPose();
                 }
             }

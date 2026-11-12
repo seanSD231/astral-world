@@ -101,7 +101,7 @@ public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it
         sp.getCooldowns().addCooldown(st.getItem(), BURST_COOLDOWN);
     }
 
-    private static final int BURST_COOLDOWN = 300, OPEN = 16, FILL = 80, CHAIN = 24, FINAL = FILL + CHAIN + 2, DOORS = 11, AFTER = 34, NODES = 170;
+    private static final int BURST_COOLDOWN = 800, OPEN = 16, FILL = 80, CHAIN = 24, FINAL = FILL + CHAIN + 2, DOORS = 11, AFTER = 34, NODES = 170;
     private static final double RING = 9.0, AREA = 16.0, DMG_RADIUS = 12.0;
     private static final float BURST_DAMAGE = 320f;
     private static final List<Burst> BURSTS = new java.util.ArrayList<>();
@@ -191,6 +191,8 @@ public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it
                 if (age % 5 == 0) lv.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.8f, 0.7f + (age - OPEN) * .012f);
             }
             if (age == SEED) seedStars();
+            if (age > OPEN && age < FINAL + 6)   // the doors are open all round: nobody walks out of what is coming
+                UniqPower.contain(lv, c, dmgR, lv.getServer().getPlayerList().getPlayer(owner));
             if (age > FILL && age <= FILL + CHAIN) chain(age - FILL);
             if (age >= FINAL - 7 && age < FINAL) implode(FINAL - age);
             if (age >= FINAL) sc = 2.2 * boost;

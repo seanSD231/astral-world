@@ -73,6 +73,28 @@ public final class TwilightSword extends WornUniq {
         sp.displayClientMessage(Component.literal("The seal on the Sword of Twilight breaks.").withStyle(ChatFormatting.DARK_RED), false);
     }
 
+    private static java.lang.reflect.Method slowTime; private static boolean auraLooked;
+
+    /** LOTM's Aura of Twilight, the thing holding the Sword of Twilight gives: everything near the holder has its time slowed. */
+    public static void aura(net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) {
+        if (e.getServer().getTickCount() % 10 != 0) return;
+        if (!auraLooked) {
+            auraLooked = true;
+            try { slowTime = Class.forName("net.swimmingtuna.lotm.pathway.warrior.abilities.AuraOfTwilight")
+                    .getMethod("slowTime", net.minecraft.world.entity.Entity.class, int.class); } catch (Throwable ignored) { }
+        }
+        if (slowTime == null) return;
+        for (net.minecraft.server.level.ServerPlayer p : e.getServer().getPlayerList().getPlayers()) {
+            ItemStack st = p.getMainHandItem();
+            if (!(st.getItem() instanceof TwilightSword)) st = p.getOffhandItem();
+            if (!(st.getItem() instanceof TwilightSword)) continue;
+            double r = unsealed(st) ? 10 : 7;
+            for (LivingEntity x : p.serverLevel().getEntitiesOfClass(LivingEntity.class, p.getBoundingBox().inflate(r), q -> UniqAbilities.foe(p, q)))
+                try { slowTime.invoke(null, x, 20); } catch (Throwable ignored) { }
+            p.serverLevel().sendParticles(net.minecraft.core.particles.ParticleTypes.END_ROD, p.getX(), p.getY() + 1, p.getZ(), 3, r * .4, .6, r * .4, 0.002);
+        }
+    }
+
     private static float mul(ItemStack st) { return unsealed(st) ? 1.25f : 1f; }
     private static int v(ItemStack st) { return unsealed(st) ? 8 : 0; }
 
@@ -173,7 +195,7 @@ public final class TwilightSword extends WornUniq {
                     }
                 });
             }
-            p.getCooldowns().addCooldown(this, emp ? 200 : 140);
+            p.getCooldowns().addCooldown(this, emp ? 500 : 400);
         }
         p.swing(hand);
         return InteractionResultHolder.sidedSuccess(st, level.isClientSide);

@@ -117,11 +117,11 @@ final class UniqGfx {
 
     // ---- models ----
 
-    /** A tentacle of shadow standing up from the origin: a thick root, bulges that travel up it, a row of dim violet suckers and a tip that curls over. */
+    /** A tentacle of shadow standing up from the origin: a thick root, bulges that travel up it, a row of dim red suckers and a tip that curls over. */
     static void tentacle(PoseStack p, MultiBufferSource b, float t, int seed, float height, float base, int argb, int tip) {
         int n = 18; float sg = height / n, x = 0, y = 0, z = 0, ax = 0, az = 0;
         float ox = (float) Math.cos(seed * 2.4f), oz = (float) Math.sin(seed * 2.4f);
-        int dark = rgba(0x05020A, (argb >>> 24) / 255f), glow = rgba(0x8A4AD8, .9f * (argb >>> 24) / 255f), aura = rgba(0x2A1048, .16f * (argb >>> 24) / 255f);
+        int dark = rgba(0x0A0204, (argb >>> 24) / 255f), glow = rgba(0xE02028, .9f * (argb >>> 24) / 255f), aura = rgba(0x480A12, .16f * (argb >>> 24) / 255f);
         for (int i = 0; i < n; i++) {
             float u = i / (float) n;
             ax += (float) Math.sin(t * .11f + seed * 1.7f + i * .45f) * .11f + u * u * u * .2f;
@@ -141,7 +141,7 @@ final class UniqGfx {
         p.pushPose(); p.mulPose(Axis.XP.rotationDegrees(90));
         int n = 30;
         for (int layer = 0; layer < 3; layer++) {
-            float rr = r * (1f - layer * .24f), zz = -(.25f + layer * .12f); int col = rgba(layer == 2 ? 0x020006 : 0x0A0418, alpha * (.4f + .22f * layer));
+            float rr = r * (1f - layer * .24f), zz = -(.25f + layer * .12f); int col = rgba(layer == 2 ? 0x060002 : 0x18040A, alpha * (.4f + .22f * layer));
             for (int k = 0; k < n; k++) {
                 float a0 = k * 6.2832f / n, a1 = (k + 1) * 6.2832f / n;
                 float e0 = rr * (1f + .07f * (float) Math.sin(a0 * 5 + t * .07f + seed + layer) + .05f * (float) Math.sin(a0 * 9 - t * .11f));

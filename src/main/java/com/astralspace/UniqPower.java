@@ -18,8 +18,8 @@ public final class UniqPower {
     private UniqPower() {}
 
     /** Spirituality per use, by item id. */
-    private static final Map<String, Integer> COST = Map.of("quill_of_alzuhod", 500, "chained_bow", 400, "snake_rifle", 300, "shadow_sword", 900, "starry_sniper", 1500,
-        "spear_of_sun", 900, "bone_greatsword", 700, "twilight_longsword", 800, "storm_katana", 1200);
+    private static final Map<String, Integer> COST = Map.of("quill_of_alzuhod", 500, "chained_bow", 3000, "snake_rifle", 1500, "shadow_sword", 3000, "starry_sniper", 4000,
+        "spear_of_sun", 3000, "bone_greatsword", 4000, "twilight_longsword", 2500, "storm_katana", 3000);
 
     public static int cost(ItemStack st) { return COST.getOrDefault(BuiltInRegistries.ITEM.getKey(st.getItem()).getPath(), 0); }
 
@@ -42,6 +42,39 @@ public final class UniqPower {
             return true;
         } catch (ClassNotFoundException e) { return true;
         } catch (Throwable t) { return true; }
+    }
+
+    /**
+     * The price of using a Uniqueness you have not taken in: half your corruption limit, on the item's own pathway.
+     * Someone who has accommodated it (a Seq 1/0 of that pathway, or anyone LOTM says holds it) pays nothing.
+     */
+    public static void toll(ServerPlayer sp, String pathId) {
+        if (sp.isCreative() || accommodated(sp, pathId)) return;
+        try { Lotm.addCorruptionPercent(sp, Lotm.pathwayById(pathId), 50); } catch (Throwable ignored) { return; }
+        sp.displayClientMessage(net.minecraft.network.chat.Component.literal("It is not yours to wield. The corruption takes its half.")
+            .withStyle(net.minecraft.ChatFormatting.DARK_RED), true);
+    }
+
+    /** Has this player taken this Uniqueness in? True when LOTM puts them on its pathway at all (the accommodation sets it). */
+    public static boolean accommodated(ServerPlayer sp, String pathId) {
+        try { return pathId.equals(Lotm.pathwayId(sp)); } catch (Throwable t) { return true; }   // without LOTM nothing is owed
+    }
+
+    /**
+     * Keeps players inside a circle: anyone at its edge is shoved back toward the middle, and anyone already outside is set back inside.
+     * Uses the ServerPlayer teleport so the client follows (a plain Entity teleport leaves them rubber-banding back out).
+     */
+    public static void contain(net.minecraft.server.level.ServerLevel lv, net.minecraft.world.phys.Vec3 c, double r, ServerPlayer except) {
+        for (ServerPlayer pl : lv.players()) {
+            if (pl == except || pl.isSpectator() || pl.isCreative()) continue;
+            double dx = pl.getX() - c.x, dz = pl.getZ() - c.z, d = Math.sqrt(dx * dx + dz * dz);
+            if (d > r + 24 || Math.abs(pl.getY() - c.y) > r + 12) continue;                      // far outside: it was never holding them
+            if (d < r - 1.5) continue;                                                           // comfortably inside
+            double ix = -dx / Math.max(d, 1e-3), iz = -dz / Math.max(d, 1e-3);
+            pl.setDeltaMovement(ix * .9, Math.max(pl.getDeltaMovement().y, .05), iz * .9);
+            pl.hurtMarked = true;
+            if (d > r) pl.teleportTo(lv, c.x + dx / d * (r - 2), pl.getY(), c.z + dz / d * (r - 2), pl.getYRot(), pl.getXRot());
+        }
     }
 
     public static void refund(ServerPlayer sp, int cost) {

@@ -63,16 +63,16 @@ public final class AstralFloor {
     static { for (String[] u : UNIQ) UNIQUENESSES.add(ITEMS.register(u[0], () -> switch (u[0]) {
         case "starry_sniper" -> new DoorEyes();
         case "quill_of_alzuhod" -> new WornUniq(u[1], u[3], 100, "open the Storytelling screen (the Seq 1 Spectator prophecy)", WornUniq.QUILL);
-        case "spear_of_sun" -> new WornUniq(u[1], u[3], 400, "three flaring suns, one ahead and one to either side (Seq 1/0: five larger suns, then six more around you)", UniqAbilities::suns);
-        case "bone_greatsword" -> new WornUniq(u[1], u[3], 300, "the serpent strikes everything near for 25, you and your allies too (Seq 1/0: only foes, 50 blocks, 30% of their health, slowed)", UniqAbilities::serpent);
-        case "snake_rifle" -> new WornUniq(u[1], u[3], 400, "spin the wheel for a boon or a bane (Seq 1/0: three times the luck)", UniqAbilities::wheel);
+        case "spear_of_sun" -> new WornUniq(u[1], u[3], 1200, "three flaring suns, one ahead and one to either side (Seq 1/0: five larger suns, then six more around you)", UniqAbilities::suns);
+        case "bone_greatsword" -> new WornUniq(u[1], u[3], 1200, "the serpent strikes everything near for 25, you and your allies too (Seq 1/0: only foes, 50 blocks, 30% of their health, slowed)", UniqAbilities::serpent);
+        case "snake_rifle" -> new WornUniq(u[1], u[3], 600, "spin the wheel for a boon or a bane (Seq 1/0: three times the luck)", UniqAbilities::wheel);
         case "twilight_longsword" -> new TwilightSword(u[1], u[3],
             new net.minecraft.world.item.Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)
                 .attributes(net.minecraft.world.item.SwordItem.createAttributes(net.minecraft.world.item.Tiers.NETHERITE, 6, -2.4f))
                 .component(net.minecraft.core.component.DataComponents.TOOL, net.minecraft.world.item.SwordItem.createToolProperties()));
-        case "shadow_sword" -> new WornUniq(u[1], u[3], 600, "the shadow spreads 20 blocks and cages everyone in it (Seq 1/0: 30 blocks, double damage, stun, then bleed, twilight, slowness and darkness)", UniqAbilities::cage);
-        case "storm_katana" -> new WornUniq(u[1], u[3], 500, "throw a ball of lightning that swells into a storm (no shields while carried; Seq 1/0: a vast storm nobody can leave, 9 seconds, blinding)", UniqAbilities::storm);
-        case "chained_bow" -> new WornUniq(u[1], u[3], 400, "the doll walks to the nearest foe and binds them (Seq 1/0: a doll for every foe near, each appears beside its target after a second and stuns for 5)", UniqAbilities::doll);
+        case "shadow_sword" -> new WornUniq(u[1], u[3], 700, "the shadow spreads 20 blocks and cages everyone in it (Seq 1/0: 30 blocks, double damage, stun, then bleed, twilight, slowness and darkness)", UniqAbilities::cage);
+        case "storm_katana" -> new WornUniq(u[1], u[3], 1000, "throw a ball of lightning that swells into a storm (no shields while carried; Seq 1/0: a vast storm nobody can leave, 9 seconds, blinding)", UniqAbilities::storm);
+        case "chained_bow" -> new WornUniq(u[1], u[3], 700, "the doll walks to the nearest foe and binds them (Seq 1/0: a doll for every foe near, each appears beside its target after a second and stuns for 5)", UniqAbilities::doll);
         default -> new Uniqueness(u[1], u[3], false);
     })); }
     /** The Sword of Shadow's own entry, and the shield that appears in the off hand while it is held. */

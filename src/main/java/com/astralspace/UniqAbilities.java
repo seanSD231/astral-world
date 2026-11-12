@@ -114,8 +114,67 @@ public final class UniqAbilities {
         });
     }
 
+    /** The Prophecy item lent to a player while the storytelling screen is open: {slot, the stack that was there}. */
+    private static final java.util.Map<java.util.UUID, Object[]> LENT = new java.util.HashMap<>();
+    private static final int LEND_TICKS = 20 * 120;
+    private static net.minecraft.world.item.Item prophecyItem;
+    private static boolean prophecyLooked;
+
+    /** LOTM's own Prophecy ability item, found by its class so the registry name does not matter. */
+    private static net.minecraft.world.item.Item prophecy() {
+        if (!prophecyLooked) {
+            prophecyLooked = true;
+            try {
+                Class<?> pc = Class.forName("net.swimmingtuna.lotm.pathway.spectator.abilities.Prophecy");
+                for (net.minecraft.world.item.Item it : BuiltInRegistries.ITEM) if (pc.isInstance(it)) { prophecyItem = it; break; }
+            } catch (Throwable ignored) { }
+        }
+        return prophecyItem;
+    }
+
+    /** True while this stack is the Prophecy we lent out (so it cannot be dropped or kept). */
+    public static boolean lent(ItemStack st) {
+        var d = st.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
+        return d != null && d.copyTag().contains("astral_lent");
+    }
+
+    /** Gives the player the Prophecy item in hand, remembering what was there, so LOTM will accept the story they tell. */
+    private static void lendProphecy(ServerPlayer sp) {
+        net.minecraft.world.item.Item pi = prophecy();
+        if (pi == null || LENT.containsKey(sp.getUUID())) return;
+        if (pi.getClass().isInstance(sp.getMainHandItem().getItem())) return;                 // they already hold one of their own
+        int slot = sp.getInventory().selected;
+        ItemStack lend = new ItemStack(pi);
+        net.minecraft.nbt.CompoundTag tag = new net.minecraft.nbt.CompoundTag(); tag.putBoolean("astral_lent", true);
+        lend.set(net.minecraft.core.component.DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(tag));
+        LENT.put(sp.getUUID(), new Object[]{slot, sp.getInventory().getItem(slot).copy(), sp.level().getGameTime() + LEND_TICKS});
+        sp.getInventory().setItem(slot, lend);
+    }
+
+    /** Takes the lent Prophecy back and returns what the player was holding. Any copy of it anywhere in their inventory goes too. */
+    public static void returnProphecy(ServerPlayer sp) {
+        Object[] o = LENT.remove(sp.getUUID());
+        if (o == null) return;
+        var inv = sp.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) if (lent(inv.getItem(i))) inv.setItem(i, ItemStack.EMPTY);
+        int slot = (int) o[0];
+        if (inv.getItem(slot).isEmpty()) inv.setItem(slot, (ItemStack) o[1]);
+        else sp.getInventory().placeItemBackInInventory((ItemStack) o[1]);
+    }
+
+    private static void tickQuills(net.minecraft.server.MinecraftServer server) {
+        if (LENT.isEmpty()) return;
+        for (java.util.UUID id : new java.util.ArrayList<>(LENT.keySet())) {
+            ServerPlayer sp = server.getPlayerList().getPlayer(id);
+            if (sp == null) { LENT.remove(id); continue; }
+            Object[] o = LENT.get(id);
+            if (o != null && sp.level().getGameTime() > (long) o[2]) returnProphecy(sp);        // they wandered off: give it back
+        }
+    }
+
     /** Spectator: the Quill opens the Storytelling screen (the Seq 1 prophecy ability), through LOTM's own packet. */
     public static void quill(ServerPlayer sp, ItemStack st) {
+        lendProphecy(sp);   // LOTM only listens to a story told with a Prophecy in hand
         try {
             Class<?> story = Class.forName("net.swimmingtuna.lotm.pathway.spectator.story.Storytelling");
             Class<?> pk = Class.forName("net.swimmingtuna.lotm.network.spectator.OpenStorytellingScreenS2C");
@@ -133,6 +192,7 @@ public final class UniqAbilities {
         } catch (Throwable t) {
             com.mojang.logging.LogUtils.getLogger().warn("[astral] storytelling failed: {}", t.toString());
             sp.displayClientMessage(Component.literal("The quill stays still.").withStyle(ChatFormatting.GRAY), true);
+            returnProphecy(sp);
         }
     }
 
@@ -140,6 +200,9 @@ public final class UniqAbilities {
     private static final java.util.List<Object[]> LATER = new java.util.ArrayList<>();   // {ticksLeft, Runnable}
 
     public static void tick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) {
+        tickPins(e.getServer());
+        tickQuills(e.getServer());
+        tickShadows(e.getServer());
         for (int i = LATER.size() - 1; i >= 0; i--) {
             Object[] o = LATER.get(i);
             int left = (int) o[0] - 1; o[0] = left;
@@ -152,11 +215,30 @@ public final class UniqAbilities {
 
     static void later(int ticks, Runnable r) { LATER.add(new Object[]{ticks, r}); }
 
-    /** Holds someone in place: no walking, no jumping, for this long. */
+    /** Who is held in place, and until when (server tick). */
+    private static final java.util.Map<java.util.UUID, long[]> PINNED = new java.util.HashMap<>();
+
+    /**
+     * Holds someone where they stand. Slowness does the walking; the holding itself is done tick by tick in {@link #tickPins},
+     * because Jump Boost with a huge amplifier is sent to the client as a byte and flings the player into the sky instead.
+     */
     private static void pin(LivingEntity e, int ticks) {
-        e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, ticks, 9, false, false));
-        e.addEffect(new MobEffectInstance(MobEffects.JUMP, ticks, 128, false, false));
+        e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, ticks, 6, false, false));
+        PINNED.put(e.getUUID(), new long[]{e.level().getGameTime() + ticks, e.getId()});
         e.setDeltaMovement(0, Math.min(0, e.getDeltaMovement().y), 0);
+    }
+
+    private static void tickPins(net.minecraft.server.MinecraftServer server) {
+        if (PINNED.isEmpty()) return;
+        for (var it = PINNED.entrySet().iterator(); it.hasNext(); ) {
+            var en = it.next();
+            LivingEntity e = null;
+            for (ServerLevel lv : server.getAllLevels()) { if (lv.getEntity((int) en.getValue()[1]) instanceof LivingEntity le) { e = le; break; } }
+            if (e == null || !e.isAlive() || e.level().getGameTime() > en.getValue()[0]) { it.remove(); continue; }
+            Vec3 m = e.getDeltaMovement();
+            e.setDeltaMovement(0, Math.min(0, m.y), 0);                 // they may fall, they may not walk or jump
+            if (e instanceof ServerPlayer sp) { sp.hurtMarked = true; sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(sp)); }
+        }
     }
 
     static boolean foe(ServerPlayer sp, LivingEntity e) {
@@ -172,10 +254,37 @@ public final class UniqAbilities {
         double r = emp ? 30 : 20;
         fx(sp, emp ? 5 : 3);
         lv.playSound(null, sp.blockPosition(), SoundEvents.WARDEN_EMERGE, SoundSource.PLAYERS, 1.5f, 0.5f);
-        for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, sp.getBoundingBox().inflate(r, 8, r), x -> foe(sp, x) && x.distanceToSqr(sp) <= r * r)) {
-            int delay = 8 + (int) (e.distanceTo(sp) * .6);   // the shadow reaches the near ones first
+        Shadow field = new Shadow(lv, sp, emp, r, lv.getGameTime() + SHADOW_LIFE);
+        SHADOWS.add(field);
+        for (LivingEntity e : field.caught()) field.take(e, 8 + (int) (e.distanceTo(sp) * .6));
+    }
+
+    /** The shadow left standing after the ability: for five seconds it keeps taking anyone who walks into it. */
+    private static final int SHADOW_LIFE = 20 * 5;
+    private static final List<Shadow> SHADOWS = new java.util.ArrayList<>();
+
+    private static final class Shadow {
+        final ServerLevel lv; final ServerPlayer owner; final boolean emp; final double r; final long until;
+        final Vec3 c; final java.util.Set<java.util.UUID> had = new java.util.HashSet<>();
+        Shadow(ServerLevel lv, ServerPlayer sp, boolean emp, double r, long until) {
+            this.lv = lv; this.owner = sp; this.emp = emp; this.r = r; this.until = until; this.c = sp.position();
+        }
+        /** Everyone standing in the shadow who has not been taken yet. It reaches well up, so nobody escapes by jumping. */
+        List<LivingEntity> caught() {
+            return lv.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(c, c).inflate(r, 24, r),
+                x -> foe(owner, x) && !had.contains(x.getUUID()) && (x.getX() - c.x) * (x.getX() - c.x) + (x.getZ() - c.z) * (x.getZ() - c.z) <= r * r);
+        }
+        void take(LivingEntity e, int delay) {
+            had.add(e.getUUID());
             later(delay, () -> {
                 if (!e.isAlive()) return;
+                double up = e.getY() - c.y;
+                if (up > 1.5) {                                        // in the air: the shadow surges up and drags them down to it
+                    world(lv, new DoorNet.World(2, e.getId(), emp ? 3 : 2, e.getX(), c.y, e.getZ(), 0, (float) up, 0, 30));
+                    e.setDeltaMovement(e.getDeltaMovement().x * .2, -Math.max(1.2, up * .25), e.getDeltaMovement().z * .2);
+                    e.hurtMarked = true;
+                    e.resetFallDistance();
+                }
                 pin(e, 20 * 12);
                 world(lv, new DoorNet.World(2, e.getId(), emp ? 1 : 0, e.getX(), e.getY(), e.getZ(), 0, 0, 0, 60));
                 lv.playSound(null, e.blockPosition(), SoundEvents.WITHER_BREAK_BLOCK, SoundSource.PLAYERS, .6f, 1.6f);
@@ -192,6 +301,14 @@ public final class UniqAbilities {
         }
     }
 
+    private static void tickShadows(net.minecraft.server.MinecraftServer server) {
+        for (int i = SHADOWS.size() - 1; i >= 0; i--) {
+            Shadow f = SHADOWS.get(i);
+            if (f.lv.getGameTime() > f.until || !f.owner.isAlive()) { SHADOWS.remove(i); continue; }
+            for (LivingEntity e : f.caught()) f.take(e, 4);
+        }
+    }
+
     /** Chained: the doll climbs down, walks to the nearest opponent and binds them where they stand.
      *  At Seq 1/0 a doll goes to every foe near: each waits a second, appears beside its target and stuns it for five seconds. */
     public static void doll(ServerPlayer sp, ItemStack st) {
@@ -204,7 +321,7 @@ public final class UniqAbilities {
                 world(lv, new DoorNet.World(3, sp.getId(), tgt.getId(), sp.getX(), sp.getY(), sp.getZ(), tgt.getX(), tgt.getY(), tgt.getZ(), -(20 + 100)));   // a negative time: the doll teleports after 20 ticks
                 later(20, () -> {
                     if (!tgt.isAlive()) return;
-                    pin(tgt, 100); UniqPower.stun(tgt, 100);
+                    pin(tgt, 100); UniqPower.stun(tgt, 100);   // it appears beside them: there is no outrunning this one
                     lv.playSound(null, tgt.blockPosition(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, .8f, 1.6f);
                     lv.playSound(null, tgt.blockPosition(), SoundEvents.CHAIN_PLACE, SoundSource.PLAYERS, 1.5f, 0.7f);
                     binding(lv, tgt);
@@ -216,9 +333,15 @@ public final class UniqAbilities {
         int walk = Math.max(14, (int) (sp.distanceTo(tgt) / .35));
         int total = walk + 16;
         world(lv, new DoorNet.World(3, sp.getId(), tgt.getId(), sp.getX(), sp.getY(), sp.getZ(), tgt.getX(), tgt.getY(), tgt.getZ(), total));
+        final Vec3 from = sp.position();
         later(walk, () -> {
             if (!tgt.isAlive()) return;
-            pin(tgt, 20 * 10);
+            if (tgt.position().distanceTo(from) > sp.distanceTo(tgt) + 10 || tgt.distanceTo(sp) > 34) {   // it walks: outrun it and it never arrives
+                lv.playSound(null, tgt.blockPosition(), SoundEvents.ITEM_BREAK, SoundSource.PLAYERS, .7f, 1.4f);
+                if (sp.isAlive()) sp.displayClientMessage(Component.literal("The doll could not keep up.").withStyle(ChatFormatting.GRAY), true);
+                return;
+            }
+            pin(tgt, 80); UniqPower.stun(tgt, 80);
             lv.playSound(null, tgt.blockPosition(), SoundEvents.CHAIN_PLACE, SoundSource.PLAYERS, 1.5f, 0.7f);
             binding(lv, tgt);
         });
@@ -244,7 +367,7 @@ public final class UniqAbilities {
         int fly = Math.max(4, (int) (eye.distanceTo(end) / 2.5));
         final double R = emp ? 44 : 14;                 // ten times the ground is about 3.16 times the radius
         final int life = emp ? 180 : 90;
-        final float dmg = emp ? 34f : 14f;
+        final float dmg = emp ? 56f : 26f;
         world(lv, new DoorNet.World(4, fly, (int) (R * 10), start.x, start.y, start.z, end.x, end.y, end.z, fly + 22 + (life - 20) + 16));
         lv.playSound(null, sp.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1f, 1.6f);
         later(fly, () -> {
@@ -253,12 +376,11 @@ public final class UniqAbilities {
                 final int tt = t;
                 later(t, () -> {
                     double r = Math.min(R, 2 + R * tt / 22.0);
-                    if (emp) for (ServerPlayer pl : lv.players()) {   // nobody walks out of it: anyone at the edge is thrown back in
-                        if (pl == sp || pl.isSpectator() || pl.isCreative()) continue;
-                        Vec3 off = pl.position().add(0, pl.getBbHeight() / 2, 0).subtract(end); double d = off.length();
-                        if (d > r - 1.5 && d < r + 6) { Vec3 in = off.scale(-1 / Math.max(d, .01)); pl.setDeltaMovement(in.scale(.9).add(0, .1, 0)); pl.hurtMarked = true;
-                            if (d > r) pl.teleportTo(end.x + off.x / d * (r - 2), pl.getY(), end.z + off.z / d * (r - 2)); }
-                        if (d <= r && tt % 60 == 6) pl.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 10, 0, false, false));
+                    if (emp) {   // nobody walks out of it
+                        UniqPower.contain(lv, end, r, sp);
+                        if (tt % 60 == 6) for (ServerPlayer pl : lv.players())
+                            if (pl != sp && pl.position().add(0, pl.getBbHeight() / 2, 0).distanceTo(end) <= r)
+                                pl.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 10, 0, false, false));
                     }
                     if (tt % 10 == 6) {
                         for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(end, end).inflate(r), x -> x != sp && x.isAlive() && x.position().add(0, x.getBbHeight() / 2, 0).distanceTo(end) <= r)) {
@@ -284,6 +406,16 @@ public final class UniqAbilities {
             e.setBlocked(false);
             sp.displayClientMessage(Component.literal("The lightning ball will not let you hold a shield.").withStyle(ChatFormatting.GRAY), true);
         }
+    }
+
+    /** The Prophecy the Quill lends is not theirs to drop. */
+    public static void onToss(net.neoforged.neoforge.event.entity.item.ItemTossEvent e) {
+        if (lent(e.getEntity().getItem())) { e.setCanceled(true); e.getEntity().discard(); if (e.getPlayer() instanceof ServerPlayer sp) returnProphecy(sp); }
+    }
+
+    /** Logging out mid-story: give them their own item back. */
+    public static void onLogout(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent e) {
+        if (e.getEntity() instanceof ServerPlayer sp) returnProphecy(sp);
     }
 
     /** Tells everyone who can see this player to play a worn-item effect (1 serpent strike, 2 wheel spin). */
