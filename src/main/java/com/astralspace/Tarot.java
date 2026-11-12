@@ -74,9 +74,24 @@ public final class Tarot {
     /** 0 common (Seq 9-8), 1 uncommon (7-6), 2 rare (5-4), 3 epic (3-2), 4 legendary (1), 5 mythic (0). */
     public static int rarityIndex(int seq) { return seq >= 8 ? 0 : seq >= 6 ? 1 : seq >= 4 ? 2 : seq >= 2 ? 3 : seq == 1 ? 4 : 5; }
 
+    /** The face a card wears: its own, or the one it is disguised as (a Seq 0 Marauder, or the Lord of Mysteries). */
+    private static String shownPath(CompoundTag t) {
+        return canMimic(t) && t.contains("mimicPath") && !t.getString("mimicPath").isEmpty() ? t.getString("mimicPath") : t.getString("pathway");
+    }
+    private static int shownSeq(CompoundTag t) {
+        return canMimic(t) && t.contains("mimicPath") && !t.getString("mimicPath").isEmpty() ? t.getInt("mimicSeq") : t.getInt("seq");
+    }
+
+    /** A Seq 1 or Seq 0 card, or a Great Old One, does not burn where it lies. */
+    public static void onItemJoin(net.neoforged.neoforge.event.entity.EntityJoinLevelEvent e) {
+        if (!(e.getEntity() instanceof net.minecraft.world.entity.item.ItemEntity ie) || !ie.getItem().is(CARD.get())) return;
+        CompoundTag t = ie.getItem().getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        if (gooIndex(t.getString("pathway")) >= 0 || t.contains("seq") && t.getInt("seq") <= 1) ie.setInvulnerable(true);
+    }
+
     public static int rarityOf(ItemStack s) {
         CompoundTag t = s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        return t.contains("pathway") || t.contains("seq") ? rarityIndex(t.getInt("seq")) : 0;
+        return t.contains("pathway") || t.contains("seq") ? rarityIndex(shownSeq(t)) : 0;
     }
 
     /** Which designed icon a card has: 0 for none (the plain rarity swatch), else pathway*10+seq+1. Has to match the overrides in tarot_card.json. */
@@ -87,7 +102,7 @@ public final class Tarot {
     public static int cardIndex(ItemStack s) {
         CompoundTag t = s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         if (!t.contains("pathway")) return 0;
-        String p = t.getString("pathway"); int q = t.getInt("seq");
+        String p = shownPath(t); int q = shownSeq(t);
         if (gooIndex(p) >= 0) return 3001 + gooIndex(p);
         if (!(q >= 0 && q <= 9 || hasAnim(p, q))) return 0;
         for (int i = 0; i < PATHWAYS.length; i++) if (PATHWAYS[i].equals(p)) return (t.getBoolean("shiny") ? 1000 : 0) + i * 10 + q + 1;   // shiny cards (Seq 9 to 3) have their own black and gold art
@@ -197,7 +212,7 @@ public final class Tarot {
                 if (!lv.getEntitiesOfClass(HoloCardEntity.class, new net.minecraft.world.phys.AABB(at, at).inflate(.45, .3, .45)).isEmpty()) return net.minecraft.world.InteractionResult.FAIL;
                 HoloCardEntity e = new HoloCardEntity(HoloCardEntity.TYPE.get(), lv);
                 int seq = Math.max(0, Math.min(9, t.getInt("seq")));
-                if (t.contains("mimicPath") && !t.getString("mimicPath").isEmpty()) { e.setCard(t.getString("mimicPath"), t.getInt("mimicSeq"), false); e.setReal(t.getString("pathway"), seq, t.getBoolean("shiny")); }
+                if (t.contains("mimicPath") && !t.getString("mimicPath").isEmpty()) { e.setCard(t.getString("mimicPath"), t.getInt("mimicSeq"), t.getBoolean("shiny")); e.setReal(t.getString("pathway"), seq, t.getBoolean("shiny")); }
                 else e.setCard(t.getString("pathway"), seq, t.getBoolean("shiny"));
                 e.setOwner(c.getPlayer());
                 e.setSymbolOnly(c.getPlayer().isShiftKeyDown());

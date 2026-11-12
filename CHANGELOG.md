@@ -2,6 +2,22 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.209
+- Cards cannot be hurt, burned or killed any more (Death's Pallor took them); a Seq 1, Seq 0 or Great Old One card lying on the ground does not burn either.
+- Shiny: the Apothecary's bats are gold (a very dark colour was mapping to near-black), the Marauder's black error lines are gone (they fought with the pillars of light), the Sailor's waterspouts use the model so they are gold too, and the Hanged Man Seq 0 floor is a gold swirl instead of a greyed rainbow.
+- A dark sphere is now solid from outside as well, so it hides the card and the particles inside it.
+- Prisoner Seq 4 uses the proper padlock. Bard Seq 0's symbol stands forward, clear of the sun. Wheel Seq 0 throws far fewer coins. The Arbiter's gavel is gone. The Demon of Knowledge keeps its books and loses the loose paper.
+- Father of Devils had the abyss symbol twice (the single symbol over its head was the same one); it is gone and the pair sits much higher. The glow behind a Great Old One's symbols no longer slides about with the camera, and God Almighty's rings stay inside its pillars.
+- Corpse Seq 0's graves keep clear of the throne and the way up to it. Chained Seq 0's cage hangs empty. Fool Seq 1 loses the eye. Spectator Seq 0 writes three lines a card at a third of the speed.
+- Hanged Man Seq 0: a taller cross, the ring on the ground centred under it, and the face on it is now whoever put the card down rather than whoever is looking.
+- Fool Seq 1: the round table leaves its middle open, so the card can be picked up. Fool Seq 0: the round room is centred on the card, and a sitter's symbol hangs over their chair instead of beside it.
+- Lord of Mysteries keeps court in the Fool's own hall: the same size, the same real seats (so sitters' symbols show), under a sphere of grey fog. Its doors teleport like the Door Seq 0 ring.
+- The Door ring sets you down in front of the door you come out of, facing away from it, instead of behind it.
+- The river bridge has a gentler arch, so you walk onto it instead of jumping; the rowboat has three places, bow, middle and stern.
+- A Marauder or Lord of Mysteries wearing another card's face now changes the held card's art too, and a shiny one mimics the shiny art.
+- Turning off the eye beside the Curios Uniqueness slot hides the worn Uniqueness; the ability still works.
+- Untested in game.
+
 ## 0.2.208
 - The Quill works. LOTM only accepts a told story while a Prophecy is in your main hand, so the screen opened but nothing was ever submitted. The Quill now lends you LOTM's own Prophecy item while the screen is up and takes it straight back (it cannot be dropped, and it is returned if you log out or wander off).
 - Writhing Shadows and the Bandaged Doll no longer fling you into the sky. Holding someone used Jump Boost at an amplifier that is sent to the client as a single byte, so it became an enormous upward jump; they are now held tick by tick instead.

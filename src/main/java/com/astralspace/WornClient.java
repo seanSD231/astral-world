@@ -39,7 +39,7 @@ public final class WornClient {
     public static void tick(Minecraft mc) {
         if (mc.level == null || mc.player == null) return;
         if (mc.player.tickCount % 10 == 0) for (net.minecraft.client.player.AbstractClientPlayer p : mc.level.players()) {
-            ItemStack st = WornUniq.findWorn(p);
+            ItemStack st = WornUniq.findShown(p);
             if (st.isEmpty()) WORN.remove(p.getUUID()); else WORN.put(p.getUUID(), BuiltInRegistries.ITEM.getKey(st.getItem()).getPath());
         }
         for (net.minecraft.client.player.AbstractClientPlayer p : mc.level.players()) {

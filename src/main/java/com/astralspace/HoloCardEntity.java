@@ -33,6 +33,7 @@ public class HoloCardEntity extends Entity {
     private static final EntityDataAccessor<Boolean> SHINY = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> GOO = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> SYMBOL = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<String> OWNERN = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.STRING);   // the one who put it down, so the scene can wear their face
     private UUID owner;
     private String realPath = ""; private int realSeq; private boolean realShiny;   // a disguised card (Marauder / Lord of Mysteries): what to give back
     public void setReal(String p, int sq, boolean sh) { realPath = p; realSeq = sq; realShiny = sh; }
@@ -54,7 +55,9 @@ public class HoloCardEntity extends Entity {
         for (int i = 0; i < Tarot.PATHWAYS.length; i++) if (Tarot.PATHWAYS[i].equals(pathway)) p = i;
         entityData.set(PATH, p); entityData.set(SEQ, seq); entityData.set(SHINY, shiny);
     }
-    public void setOwner(Player p) { owner = p.getUUID(); ownerName = p.getGameProfile().getName(); }
+    public void setOwner(Player p) { owner = p.getUUID(); ownerName = p.getGameProfile().getName(); entityData.set(OWNERN, ownerName); }
+    /** The name of whoever put this card down, on the client too ("" if it is not known). */
+    public String ownerName() { return entityData.get(OWNERN); }
     /** Index of the Great Old One this card is (0..8), or -1 for an ordinary card. */
     public int goo() { return entityData.get(GOO); }
     public String pathway() { if (goo() >= 0) return "goo_" + Tarot.GOO_IDS[goo()]; return Tarot.PATHWAYS[Math.max(0, Math.min(Tarot.PATHWAYS.length - 1, entityData.get(PATH)))]; }
@@ -70,7 +73,7 @@ public class HoloCardEntity extends Entity {
     @Override protected void readAdditionalSaveData(CompoundTag t) {
         setCard(t.getString("pathway"), t.getInt("seq"), t.getBoolean("shiny"));
         setSymbolOnly(t.getBoolean("symbolOnly"));
-        owner = t.hasUUID("owner") ? t.getUUID("owner") : null; ownerName = t.getString("ownerName");
+        owner = t.hasUUID("owner") ? t.getUUID("owner") : null; ownerName = t.getString("ownerName"); entityData.set(OWNERN, ownerName);
         realPath = t.getString("realPath"); realSeq = t.getInt("realSeq"); realShiny = t.getBoolean("realShiny");
     }
     @Override protected void addAdditionalSaveData(CompoundTag t) {
@@ -84,6 +87,8 @@ public class HoloCardEntity extends Entity {
     @Override public boolean isPushable() { return false; }
     @Override public boolean canBeCollidedWith() { return false; }
     @Override public boolean hurt(DamageSource source, float amount) { return false; }
+    @Override public boolean isInvulnerableTo(DamageSource source) { return true; }
+    @Override public void kill() { }                                          // not even an ability that kills outright takes a card
     /** The hologram reaches several blocks above the card, so the renderer must not be culled with the thin card box. */
     @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 300 : 48, goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 220 : 30, goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 300 : 48); }
     @Override public boolean shouldRenderAtSqrDistance(double d) { return d < 420.0 * 420.0; }
@@ -179,7 +184,7 @@ public class HoloCardEntity extends Entity {
         java.util.List<float[]> rows = new java.util.ArrayList<>();
         float rc = rivR(0), half = rivHW(0) * 1.3f; int n = (int) Math.ceil(2 * half / BRIDGE_ROW);
         for (int j = 0; j < n; j++) {
-            float x = rc - n * BRIDGE_ROW / 2f + (j + .5f) * BRIDGE_ROW, u = (x - rc) / (n * BRIDGE_ROW / 2f), top = .35f + (1f - u * u) * 1.6f, bot = Math.abs(u) < .62f ? top - .4f : 0f;
+            float x = rc - n * BRIDGE_ROW / 2f + (j + .5f) * BRIDGE_ROW, u = (x - rc) / (n * BRIDGE_ROW / 2f), top = .3f + (1f - u * u) * 1.0f, bot = Math.abs(u) < .62f ? top - .5f : 0f;
             for (int c = -1; c <= 1; c += 2) rows.add(new float[]{x, c * BRIDGE_ROW / 2, bot, top});
         }
         return rows;
@@ -197,33 +202,23 @@ public class HoloCardEntity extends Entity {
             tp.setPos(getX() + Math.cos(r[0]) * r[1], getY(), getZ() + Math.sin(r[0]) * r[1]);
             level().addFreshEntity(tp);
         }
-        ThronePart seat = new ThronePart(ThronePart.TYPE.get(), level());   // the rowboat's bench: a real seat that sails the river
-        seat.setup(getUUID(), .9f, .5f, true);
-        seat.setBoat(getX(), getY(), getZ());
-        level().addFreshEntity(seat);
+        for (float along : new float[]{1.25f, 0f, -1.25f}) {                   // the rowboat's three thwarts: real seats that sail with it
+            ThronePart seat = new ThronePart(ThronePart.TYPE.get(), level());
+            seat.setup(getUUID(), .8f, .5f, true);
+            seat.setBoat(getX(), getY(), getZ(), along);
+            level().addFreshEntity(seat);
+        }
     }
     private void spawnThrone() {
         if (goo() == 2) { spawnBridge(); return; }
-        if (goo() == 0) {   // the long table (walk on it, lay things on it) and its seven seats
-            int k = throneQuarter(); double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2)); float kc = LOM_CHAIR * LOM_S;
-            java.util.List<float[]> parts = new java.util.ArrayList<>();   // {x, z, side, height, kind (1 seat, 2 table)}
-            for (int i = 0; i < 4; i++) parts.add(new float[]{0, LOM_TZC - LOM_TL + LOM_TW + i * 2 * LOM_TW, 2 * LOM_TW, .8f * kc, 2});
-            for (int sd = -1; sd <= 1; sd += 2) for (int j = -1; j <= 1; j++) parts.add(new float[]{sd * LOM_SX, LOM_TZC + j * LOM_SZ, .8f * kc, .5f * kc, 1});
-            parts.add(new float[]{0, LOM_HEAD, .88f * kc, .55f * kc, 1});
-            for (float[] q : parts) {
-                ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
-                tp.setup(getUUID(), q[2], q[3], q[4] == 1); if (q[4] == 2) tp.setTable();
-                tp.setPos(getX() + q[0] * c + q[1] * sn, getY(), getZ() - q[0] * sn + q[1] * c);
-                level().addFreshEntity(tp);
-            }
-            return;
-        }
+        if (goo() == 0) { spawnHall(); return; }   // the Lord of Mysteries keeps court in the same hall as the Fool
         if (pathIndex() == 18 && seq() == 1) {   // the round table (HoloRenderer.foolTable: radius R * .42, chairs 1.7 k beyond it, k = S * .6) with its eight seats, and the table top itself to walk on and lay things on
             float k = F1_S * .6f, tr0 = F1_R * .42f, cell = tr0 * 2 / 6;
             spawnRing(8, tr0 + 1.7f * k, (float) Math.PI / 8, k);
             for (int ix = 0; ix < 6; ix++) for (int iz = 0; iz < 6; iz++) {
                 float x = -tr0 + cell * (ix + .5f), z = -tr0 + cell * (iz + .5f);
                 if (x * x + z * z > (tr0 + cell * .2f) * (tr0 + cell * .2f)) continue;
+                if (x * x + z * z < 1.3 * 1.3) continue;                       // the middle stays open: the card sits there
                 ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
                 tp.setup(getUUID(), cell, .84f * k, false); tp.setTable();
                 tp.setPos(getX() + x, getY(), getZ() + z);
@@ -250,19 +245,46 @@ public class HoloCardEntity extends Entity {
         }
     }
 
-    /** Door Seq 0: whoever walks into one of the six doors steps out of another, picked at random. */
-    private void doorways() {
-        double rr = 11.0 * DOOR_RING; long now = level().getGameTime();
-        for (Player pl : level().getEntitiesOfClass(Player.class, getBoundingBox().inflate(rr + 3, 4, rr + 3))) {
+    /** Door Seq 0: the six doors of the ring, as {x, z} around this card. */
+    private java.util.List<double[]> doorRing() {
+        java.util.List<double[]> l = new java.util.ArrayList<>();
+        double rr = 11.0 * DOOR_RING;
+        for (int i = 0; i < 6; i++) { double a = i * Math.PI / 3 + DOOR_PHASE; l.add(new double[]{Math.cos(a) * rr, Math.sin(a) * rr}); }
+        return l;
+    }
+
+    /** Lord of Mysteries: the ten doors standing in the fog, in the same places the scene draws them. */
+    private java.util.List<double[]> lomDoors() {
+        java.util.List<double[]> l = new java.util.ArrayList<>();
+        int k = throneQuarter(); double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));
+        double rr = 12.0 * 1.55;
+        for (int i = 0; i < 10; i++) {
+            double ang = (i % 2 == 0 ? 1 : -1) * (.42 + .58 * (i / 2)), lx = rr * Math.sin(ang), lz = -rr * Math.cos(ang);
+            l.add(new double[]{lx * c + lz * sn, -lx * sn + lz * c});
+        }
+        return l;
+    }
+
+    /**
+     * Walking into one of these doors brings you out of another, picked at random. You step out on the side you came from,
+     * facing away from the door, so you are never set down behind it.
+     */
+    private void doorways(java.util.List<double[]> doors, boolean ring) {
+        long now = level().getGameTime();
+        double reach = 1.0;
+        for (Player pl : level().getEntitiesOfClass(Player.class, getBoundingBox().inflate(40, 6, 40))) {
             Long cd = doorCd.get(pl.getUUID());
             if (cd != null && now < cd) continue;
-            for (int i = 0; i < 6; i++) {
-                double a = i * Math.PI / 3 + DOOR_PHASE, dx = getX() + Math.cos(a) * rr, dz = getZ() + Math.sin(a) * rr;
-                if (Math.abs(pl.getY() - getY()) > 3 || (pl.getX() - dx) * (pl.getX() - dx) + (pl.getZ() - dz) * (pl.getZ() - dz) > .8 * .8) continue;
-                int j = (i + 1 + random.nextInt(5)) % 6; double b = j * Math.PI / 3 + DOOR_PHASE;
-                boolean inward = (pl.getX() - getX()) * (pl.getX() - getX()) + (pl.getZ() - getZ()) * (pl.getZ() - getZ()) < rr * rr;   // going out: come out the far side of the other door, and the other way round
-                double er = rr + (inward ? 1.7 : -1.7), tx = getX() + Math.cos(b) * er, tz = getZ() + Math.sin(b) * er;
-                float yaw = (float) Math.toDegrees(Math.atan2(-(Math.cos(b) * (inward ? 1 : -1)), Math.sin(b) * (inward ? 1 : -1)));
+            for (int i = 0; i < doors.size(); i++) {
+                double dx = getX() + doors.get(i)[0], dz = getZ() + doors.get(i)[1];
+                if (Math.abs(pl.getY() - getY()) > 4 || (pl.getX() - dx) * (pl.getX() - dx) + (pl.getZ() - dz) * (pl.getZ() - dz) > reach * reach) continue;
+                int j = (i + 1 + random.nextInt(doors.size() - 1)) % doors.size();
+                double ox = doors.get(j)[0], oz = doors.get(j)[1], ol = Math.sqrt(ox * ox + oz * oz);
+                if (ol < 1e-3) continue;
+                double inward = (pl.getX() - getX()) * (pl.getX() - getX()) + (pl.getZ() - getZ()) * (pl.getZ() - getZ()) < (doors.get(i)[0] * doors.get(i)[0] + doors.get(i)[1] * doors.get(i)[1]) ? -1 : 1;
+                double sx = ox / ol * inward, sz = oz / ol * inward;            // the side of the far door you came from
+                double tx = getX() + ox + sx * 1.8, tz = getZ() + oz + sz * 1.8;
+                float yaw = (float) Math.toDegrees(Math.atan2(-sx, sz));         // looking away from the door you just stepped out of
                 if (pl instanceof net.minecraft.server.level.ServerPlayer sp) sp.teleportTo((net.minecraft.server.level.ServerLevel) level(), tx, getY(), tz, yaw, pl.getXRot());
                 level().playSound(null, tx, getY(), tz, net.minecraft.sounds.SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.PLAYERS, .7f, 1.5f);
                 doorCd.put(pl.getUUID(), now + 30);
@@ -275,7 +297,10 @@ public class HoloCardEntity extends Entity {
     public void tick() {
         super.tick();
         if (!level().isClientSide && tickCount == 2 && hasThrone()) spawnThrone();
-        if (!level().isClientSide && goo() < 0 && pathIndex() == 1 && seq() == 0 && !symbolOnly()) doorways();
+        if (!level().isClientSide && !symbolOnly()) {
+            if (goo() < 0 && pathIndex() == 1 && seq() == 0) doorways(doorRing(), true);
+            else if (goo() == 0) doorways(lomDoors(), false);
+        }
         // if the block under the card is broken, the card drops as an item instead of floating
         if (!level().isClientSide && tickCount % 10 == 0 && level().getBlockState(blockPosition().below()).isAir() && level().getBlockState(blockPosition()).isAir()) {
             level().addFreshEntity(new ItemEntity(level(), getX(), getY() + .2, getZ(), realPath.isEmpty() ? Tarot.makeCard(pathway(), seq(), shiny()) : Tarot.makeCard(realPath, realSeq, realShiny)));

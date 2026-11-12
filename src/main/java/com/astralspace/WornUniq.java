@@ -67,6 +67,35 @@ public class WornUniq extends Uniqueness {
         return ItemStack.EMPTY;
     }
 
+    /**
+     * The worn Uniqueness as it should be drawn on the body: the same item, unless Curios has been told not to render that slot
+     * (the little eye beside the slot in the Curios screen). A hidden one still works, it is just not shown.
+     */
+    public static ItemStack findShown(LivingEntity p) {
+        if (p.getMainHandItem().getItem() instanceof WornUniq || p.getMainHandItem().getItem() instanceof DoorEyes) return p.getMainHandItem();
+        if (p.getOffhandItem().getItem() instanceof WornUniq || p.getOffhandItem().getItem() instanceof DoorEyes) return p.getOffhandItem();
+        try {
+            Class<?> api = Class.forName("top.theillusivec4.curios.api.CuriosApi");
+            Object opt = api.getMethod("getCuriosInventory", LivingEntity.class).invoke(null, p);
+            if (!(opt instanceof java.util.Optional<?> o) || o.isEmpty()) return ItemStack.EMPTY;
+            Object h = o.get();
+            Object curios = h.getClass().getMethod("getCurios").invoke(h);
+            if (!(curios instanceof java.util.Map<?, ?> map)) return ItemStack.EMPTY;
+            for (Object sh : map.values()) {
+                Object stacks = sh.getClass().getMethod("getStacks").invoke(sh);
+                Object renders = sh.getClass().getMethod("getRenders").invoke(sh);
+                if (!(stacks instanceof net.neoforged.neoforge.items.IItemHandlerModifiable m)) continue;
+                for (int i = 0; i < m.getSlots(); i++) {
+                    Item it = m.getStackInSlot(i).getItem();
+                    if (!(it instanceof WornUniq || it instanceof DoorEyes)) continue;
+                    if (renders instanceof java.util.List<?> rl && i < rl.size() && Boolean.FALSE.equals(rl.get(i))) return ItemStack.EMPTY;   // the vanity eye is off
+                    return m.getStackInSlot(i);
+                }
+            }
+        } catch (Throwable ignored) { }
+        return findWorn(p);
+    }
+
     /** The Uniqueness key was pressed. */
     public static void press(ServerPlayer sp) {
         ItemStack st = findWorn(sp);
