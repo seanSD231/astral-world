@@ -47,13 +47,6 @@ public final class GuiCommands {
                 p.openMenu(new SimpleMenuProvider((id, inv, pl) -> new AnvilMenu(id, inv, new Access(p.level())), Component.translatable("container.repair")));
                 return 1;
             }));
-    }
-
-    @SubscribeEvent
-    public static void onEnchantLevel(EnchantmentLevelSetEvent event) {
-        if (event.getPos().getY() != MARKER_Y) return;
-        int row = event.getEnchantRow();
-        event.setEnchantLevel(row == 0 ? 10 : row == 1 ? 20 : 30);
         event.getDispatcher().register(Commands.literal("enderchest").requires(c -> allowed(c, "enderchest"))
             .executes(ctx -> {
                 ServerPlayer p = ctx.getSource().getPlayerOrException();
@@ -61,6 +54,13 @@ public final class GuiCommands {
                     Component.translatable("container.enderchest")));
                 return 1;
             }));
+    }
+
+    @SubscribeEvent
+    public static void onEnchantLevel(EnchantmentLevelSetEvent event) {
+        if (event.getPos().getY() != MARKER_Y) return;
+        int row = event.getEnchantRow();
+        event.setEnchantLevel(row == 0 ? 10 : row == 1 ? 20 : 30);
     }
 
     /** Ops always may; everyone else needs the rank node astral_world.cmd.&lt;name&gt;. */
