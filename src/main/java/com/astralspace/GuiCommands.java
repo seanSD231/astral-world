@@ -35,13 +35,13 @@ public final class GuiCommands {
 
     @SubscribeEvent
     public static void onCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("enchanting").requires(c -> c.hasPermission(2) && c.getEntity() instanceof ServerPlayer)
+        event.getDispatcher().register(Commands.literal("enchanting").requires(c -> allowed(c, "enchanting"))
             .executes(ctx -> {
                 ServerPlayer p = ctx.getSource().getPlayerOrException();
                 p.openMenu(new SimpleMenuProvider((id, inv, pl) -> new EnchantmentMenu(id, inv, new Access(p.level())), Component.translatable("container.enchant")));
                 return 1;
             }));
-        event.getDispatcher().register(Commands.literal("anvil").requires(c -> c.hasPermission(2) && c.getEntity() instanceof ServerPlayer)
+        event.getDispatcher().register(Commands.literal("anvil").requires(c -> allowed(c, "anvil"))
             .executes(ctx -> {
                 ServerPlayer p = ctx.getSource().getPlayerOrException();
                 p.openMenu(new SimpleMenuProvider((id, inv, pl) -> new AnvilMenu(id, inv, new Access(p.level())), Component.translatable("container.repair")));
@@ -54,5 +54,18 @@ public final class GuiCommands {
         if (event.getPos().getY() != MARKER_Y) return;
         int row = event.getEnchantRow();
         event.setEnchantLevel(row == 0 ? 10 : row == 1 ? 20 : 30);
+        event.getDispatcher().register(Commands.literal("enderchest").requires(c -> allowed(c, "enderchest"))
+            .executes(ctx -> {
+                ServerPlayer p = ctx.getSource().getPlayerOrException();
+                p.openMenu(new SimpleMenuProvider((id, inv, pl) -> net.minecraft.world.inventory.ChestMenu.threeRows(id, inv, p.getEnderChestInventory()),
+                    Component.translatable("container.enderchest")));
+                return 1;
+            }));
+    }
+
+    /** Ops always may; everyone else needs the rank node astral_world.cmd.&lt;name&gt;. */
+    private static boolean allowed(net.minecraft.commands.CommandSourceStack c, String name) {
+        if (!(c.getEntity() instanceof ServerPlayer p)) return false;
+        return c.hasPermission(2) || Ranks.flag(p, "astral_world.cmd." + name);
     }
 }

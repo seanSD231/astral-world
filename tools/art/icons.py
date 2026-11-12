@@ -238,3 +238,29 @@ def ball():
     disc(d, cx - 4.5, cy - 5, 2.6, rgb(0xFFFFFF, 200))
     return im
 save(ball(), 'storm_katana')
+
+# ---------------- the three fun shrooms: a glowing toadstool, squat / thin / broad ----------------
+def shroom(kind, cap, spot, stem):
+    """kind 0 shrink (small and squat), 1 slim (tall and narrow), 2 wide (low and broad)."""
+    im = new(); d = ImageDraw.Draw(im)
+    cw = [15, 11, 25][kind]            # cap half width
+    ch = [11, 13, 9][kind]             # cap height
+    sw = [4.5, 2.6, 6.5][kind]         # stem half width
+    sh = [15, 25, 11][kind]            # stem height
+    cx, base = 32, 54
+    capY = base - sh
+    poly(d, [(cx - sw, base), (cx - sw * .8, capY + 2), (cx + sw * .8, capY + 2), (cx + sw, base)], stem)
+    poly(d, [(cx - sw, base), (cx - sw * .4, base - 2), (cx - sw * .35, capY + 2), (cx - sw * .8, capY + 2)], mix(stem, (0, 0, 0), .3))
+    d.pieslice([P(cx - cw, capY - ch)[0], P(0, capY - ch)[1], P(cx + cw, 0)[0], P(0, capY + ch)[1]], 180, 360, fill=cap)
+    poly(d, [(cx - cw, capY), (cx + cw, capY), (cx + cw * .72, capY + 3.2), (cx - cw * .72, capY + 3.2)], mix(cap, (0, 0, 0), .45))
+    for k in range(6):                 # gills under the cap
+        line(d, [(cx - cw * .6 + k * cw * .24, capY + .6), (cx - cw * .55 + k * cw * .22, capY + 3.0)], .45, mix(cap, (0, 0, 0), .6))
+    for (ox, oy, r) in [(-.42, -.46, .20), (.30, -.56, .15), (.58, -.26, .12), (-.04, -.72, .13), (-.70, -.20, .11)]:
+        disc(d, cx + ox * cw, capY + oy * ch, r * cw, spot)
+    disc(d, cx - cw * .42, capY - ch * .46, .20 * cw * .5, mix(spot, (255, 255, 255), .5))
+    line(d, [(cx - sw * .2, base - 3), (cx - sw * .2, capY + 5)], .5, mix(stem, (255, 255, 255), .35))
+    return glow(outline(im, mix(cap, (0, 0, 0), .65), .5), cap, 2.4, .55)
+
+save(shroom(0, rgb(0xE03038), rgb(0xFFF0E0), rgb(0xF2E6D0)), 'shrink_shroom')
+save(shroom(1, rgb(0x2FD9B0), rgb(0xE8FFF8), rgb(0xDCF2E8)), 'slim_shroom')
+save(shroom(2, rgb(0xE86A20), rgb(0xFFE8C0), rgb(0xF0DCC0)), 'wide_shroom')

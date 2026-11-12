@@ -30,6 +30,7 @@ public class AstralMod {
         AstralFloor.register(modBus);
         Cosmos.register(modBus);
         PartyItems.register(modBus);
+        FunItems.register(modBus);
         HoloCardEntity.register(modBus);
         Tarot.register(modBus);
         AstralTab.register(modBus);
@@ -39,6 +40,8 @@ public class AstralMod {
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ShadowGear::drop);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqAbilities::shield);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(Tarot::onItemJoin);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(FunItems::tick);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(FunItems::commands);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(TwilightSword::chat);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(TwilightSword::aura);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqAbilities::onToss);

@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.210
+- Three fun shrooms: Mystic Shroom shrinks you (through the vanilla scale attribute, so your hitbox shrinks too), Slim Shroom makes you very thin and Wide Shroom very wide (those two change how you are drawn; the hitbox stays). Right click yourself or someone else; it lasts a minute.
+- /funitem lets a rank take one of the shrooms, the bubble wand or the confetti popper, as often as its rank allows: the node astral_world.fun_items is how many days between picks (7 for Supporter, 3 for Supporter+, 1 for VIP).
+- /enchanting and /anvil are no longer ops-only, and /enderchest is new. Each is opened to a rank with astral_world.cmd.enchanting, .anvil and .enderchest.
+- A rank's items and title are handed over the moment the server sees the rank, once each: astral_world.perks.credit_card gives the Supporter+ Credit Card, .bank_terminal the VIP Portable Bank Terminal (both marked astral_keep, so they survive death) and .title grants that title through the title mod's own command.
+- Titles no longer announce themselves in chat (hide_title_messages in settings.properties turns that back on).
+- Weekly pack counts need no code: astral_world.weekly_packs with .rainbow and .shiny per rank.
+- Untested in game.
+
 ## 0.2.209
 - Cards cannot be hurt, burned or killed any more (Death's Pallor took them); a Seq 1, Seq 0 or Great Old One card lying on the ground does not burn either.
 - Shiny: the Apothecary's bats are gold (a very dark colour was mapping to near-black), the Marauder's black error lines are gone (they fought with the pillars of light), the Sailor's waterspouts use the model so they are gold too, and the Hanged Man Seq 0 floor is a gold swirl instead of a greyed rainbow.

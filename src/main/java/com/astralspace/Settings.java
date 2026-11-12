@@ -43,6 +43,7 @@ public final class Settings {
         KEYS.put("chaos_destroys_blocks", new String[]{"false", "Stage 5 (the end): true = meteors and explosions also destroy blocks. The world is kept when the server resets,\n# so this is off by default."});
         KEYS.put("weekly_packs_default", new String[]{"1", "Weekly tarot packs (/weeklypacks): how many packs a player without an FTB Ranks node may pick each week. Ranks set their own number\n# with the permission node astral_world.weekly_packs, and allow Rainbow / Shiny packs with astral_world.weekly_packs.rainbow and .shiny\n# (a number = that many of the packs, true = any of them). Use 0 to give nothing to players without a rank."});
         KEYS.put("weekly_reset_day", new String[]{"1", "Weekly tarot packs: the day the week resets, 1 = Monday ... 7 = Sunday (server time)."});
+        KEYS.put("hide_title_messages", new String[]{"true", "Keep the title mod's \"you unlocked a title\" lines out of chat (titles are still granted)."});
         KEYS.put("nearby_radius", new String[]{"32", "Stage 2+: how close (blocks) players must be to someone who names an Outer God to be affected. Doubled in stage 3."});
     }
 
@@ -61,6 +62,7 @@ public final class Settings {
     public static volatile double recoveryDays = 10.0;
     public static volatile int weeklyPacksDefault = 1;
     public static volatile int weeklyResetDay = 1;
+    public static volatile boolean hideTitleMessages = true;
 
     private Settings() {}
 
@@ -109,6 +111,7 @@ public final class Settings {
             recoveryDays = Double.parseDouble(p.getProperty("recovery_days").trim());
             weeklyPacksDefault = Math.max(0, Integer.parseInt(p.getProperty("weekly_packs_default").trim()));
             weeklyResetDay = Math.max(1, Math.min(7, Integer.parseInt(p.getProperty("weekly_reset_day").trim())));
+            hideTitleMessages = Boolean.parseBoolean(p.getProperty("hide_title_messages").trim());
             LOGGER.info("[astral] settings: surface {} down to {}, astral_barrier_level {}, stage3_days {}, damage every {} min, nearby_radius {}",
                     surfaceTop, surfaceBottom, barrierY, stage3Days, barrierDamageMinutes, nearbyRadius);
         } catch (IOException | NumberFormatException e) {

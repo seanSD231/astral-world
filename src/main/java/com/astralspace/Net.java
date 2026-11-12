@@ -91,6 +91,14 @@ public final class Net {
     }
 
     /** Client -> server: the card the held Marauder / Lord of Mysteries card should wear ("" clears it). */
+    /** A player has been reshaped by a fun shroom: how wide and how tall they are drawn (1, 1 is normal). */
+    public record ShapePayload(int id, float wide, float tall) implements CustomPacketPayload {
+        public static final Type<ShapePayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "shape"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, ShapePayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_INT, ShapePayload::id, ByteBufCodecs.FLOAT, ShapePayload::wide, ByteBufCodecs.FLOAT, ShapePayload::tall, ShapePayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public record MimicPayload(String path, int seq) implements CustomPacketPayload {
         public static final Type<MimicPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "mimic"));
         public static final StreamCodec<RegistryFriendlyByteBuf, MimicPayload> CODEC = StreamCodec.composite(ByteBufCodecs.STRING_UTF8, MimicPayload::path, ByteBufCodecs.VAR_INT, MimicPayload::seq, MimicPayload::new);
@@ -295,6 +303,10 @@ public final class Net {
             ClientState.cutsceneKind = payload.kind();
             ClientState.cutsceneTicks = payload.ticks();
             ClientState.cutsceneStart = System.currentTimeMillis();
+        }));
+        registrar.playToClient(ShapePayload.TYPE, ShapePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            if (payload.wide() == 1f && payload.tall() == 1f) FunItems.CLIENT_SHAPES.remove(payload.id());
+            else FunItems.CLIENT_SHAPES.put(payload.id(), new float[]{payload.wide(), payload.tall()});
         }));
         registrar.playToClient(WeeklyOpenPayload.TYPE, WeeklyOpenPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> WeeklyPackScreen.open(payload.total(), payload.rainbow(), payload.shiny(), payload.claimed())));
         registrar.playToServer(WeeklyClaimPayload.TYPE, WeeklyClaimPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {

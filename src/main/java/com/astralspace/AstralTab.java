@@ -24,6 +24,9 @@ public final class AstralTab {
                         Tarot.ITEMS.getEntries().stream().filter(h -> h.getId().getPath().equals(p + mode)).findFirst().ifPresent(h -> out.accept(h.get()));
                 out.accept(PartyItems.POPPER.get());
                 out.accept(PartyItems.WAND.get());
+                out.accept(FunItems.SHRINK.get());
+                out.accept(FunItems.SLIM.get());
+                out.accept(FunItems.WIDE.get());
                 out.accept(AstralFloor.SMITER.get());
                 out.accept(AstralFloor.CABINET_ITEM.get());
             }).build());
