@@ -1,7 +1,8 @@
 """The three Numismatics coins this server does not use (cog, crown, sun) redrawn as amethyst, emerald and diamond.
 
-Drawn from scratch at 16x16, the size Numismatics uses, so none of its art is copied. The shapes keep the gear
-silhouette of the coin family (the GUI outline sprites are shape-only, so they still match and are left alone).
+Drawn from scratch at 16x16, the size Numismatics uses, so none of its art is copied. They are round struck coins,
+to sit beside the LOTM bronze, silver and gold coins rather than the Numismatics gears, each with its stone cut
+into the face. (Numismatics' GUI outline sprites are gear-shaped and are left alone; they are only slot hints.)
 
 Run: python3 tools/art/coins.py
 Writes into src/main/resources/assets/numismatics/textures/item/coin/ , which overrides Numismatics' own three
@@ -32,21 +33,17 @@ def coin(name):
         for x in range(N):
             dx, dy = x - c, y - c
             r = math.hypot(dx, dy)
-            th = math.atan2(dy, dx)
-            rout = 6.6 + 1.0 * math.cos(8 * th)          # eight teeth, like the rest of the family
-            gem = abs(dx) + abs(dy)                       # a cut stone in the middle
-            if gem <= 3.6:
-                if gem > 2.8: col = dark                  # the stone's own edge
-                elif dy < -0.6: col = lit if dx < 0.6 else mix(body, lit, .5)      # the table and the near crown facet
-                elif dy < 0.9: col = mix(body, lit, .35) if dx < 0 else body       # the girdle
-                else: col = mix(dark, body, .45 if dx < 0 else .15)                # the pavilion, in shadow
-                if -2.1 < dx < -0.4 and -2.1 < dy < -0.9: col = spark              # the glint
-                px[x, y] = col
-                continue
-            if r > rout or r < 4.1: continue
-            f = max(0.0, min(1.0, (-dx - dy) / (2 * rout) + 0.5))
-            col = mix(mix(dark, body, 0.5), lit, f * f)
-            if r > rout - 0.9 or r < 4.9: col = mix(col, dark, 0.62)   # rim and the setting round the stone
+            if r > 6.5: continue                          # a round blank with a little margin, as the LOTM coins have
+            f = max(0.0, min(1.0, (-dx - dy) / 11.0 + 0.5))
+            col = mix(mix(dark, body, .55), lit, f * f)
+            if (x + y) % 2 == 0: col = mix(col, lit, .14)             # a little dither, like a struck face
+            if r > 5.4: col = dark                                    # a hard rim all the way round
+            gem = abs(dx) + abs(dy)                       # the stone cut into the face
+            if gem <= 3.1:
+                if gem > 2.3: col = dark                                           # its own outline
+                elif dy < -0.7: col = spark if dx < 0.4 else lit                   # the table, catching the light
+                elif dy < 0.8: col = mix(body, lit, .55) if dx < 0 else mix(body, lit, .2)
+                else: col = mix(dark, body, .55 if dx < 0 else .25)                # the pavilion, in shadow
             px[x, y] = col
     return im
 

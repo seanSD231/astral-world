@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.214
+- The amethyst, emerald and diamond coins are round struck coins now, not gears: same size, margin, hard dark rim and bright centre as the LOTM bronze, silver and gold coins, with the stone cut into the face.
+- Untested in game.
+
 ## 0.2.213
 - The three Numismatics coins this server does not trade in are now amethyst, emerald and diamond: cog, crown and sun are redrawn as gem coins and renamed. The sprites are drawn from scratch (tools/art/coins.py), not copied, and the mod now loads after Numismatics so its own art and names win. Values are untouched, so nothing in the coin bridge changes.
 - Untested in game.
