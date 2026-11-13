@@ -145,7 +145,8 @@ public final class HungerGames {
                     finish(ctx.getSource().getServer(), "The hunger games were stopped.");
                     return 1;
                 }))
-                .then(Commands.literal("board").requires(s -> s.hasPermission(2)).executes(ctx -> placeBoard(ctx.getSource().getPlayerOrException())))
+                .then(Commands.literal("board").requires(s -> s.hasPermission(2)).executes(ctx -> placeBoard(ctx.getSource().getPlayerOrException()))
+                    .then(Commands.literal("remove").executes(ctx -> removeBoard(ctx.getSource().getPlayerOrException()))))
                 .then(Commands.literal("spectate").executes(ctx -> watch(ctx.getSource().getPlayerOrException())))
                 .then(Commands.literal("unspectate").executes(ctx -> unwatch(ctx.getSource().getPlayerOrException(), true)))
                 .then(Commands.literal("status").executes(ctx -> {
@@ -635,25 +636,37 @@ public final class HungerGames {
         } catch (Throwable t) { LOGGER.warn("[hungergames] could not read the leaderboard: {}", t.toString()); }
     }
 
-    /** A row of signs in front of the player: a title and the first seven places of the last game. Kept up to date after every game. */
+    /**
+     * What every leaderboard monument shows, as lines: "R|place|name|kills" for the last game, best first, then
+     * "P|name|kills|players" for the champions of the games before it, newest first.
+     */
+    public static String boardText() {
+        StringBuilder b = new StringBuilder();
+        for (Result r : lastResults) b.append("R|").append(r.place()).append('|').append(r.name()).append('|').append(r.kills()).append('\n');
+        for (int i = lastResults.isEmpty() ? 0 : 1; i < history.size(); i++) { Past h = history.get(i); b.append("P|").append(h.name()).append('|').append(h.kills()).append('|').append(h.players()).append('\n'); }
+        return b.toString();
+    }
+
+    /** Sets a leaderboard monument down a few blocks in front of the operator, facing them. */
     private static int placeBoard(ServerPlayer p) {
         ServerLevel lv = p.serverLevel();
-        Direction facing = p.getDirection(), right = facing.getClockWise();
-        int rot = Mth.floor((p.getYRot() + 180f) * 16f / 360f + 0.5f) & 15;
-        BlockPos origin = p.blockPosition().relative(facing, 3);
-        int count = 15;
-        List<BoardPos> row = new ArrayList<>();
-        String dim = lv.dimension().location().toString();
-        for (int i = 0; i < count; i++) {
-            BlockPos pos = origin.relative(right, i - count / 2);
-            lv.setBlock(pos.below(), Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState(), 3);
-            lv.setBlock(pos, Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, rot), 3);
-            row.add(new BoardPos(dim, pos.asLong()));
-        }
-        boards.add(row);
-        saveBoard(p.server);
-        updateBoards(p.server);
-        p.sendSystemMessage(Component.literal("Leaderboard placed. It shows the last hunger games and updates after every game.").withStyle(ChatFormatting.GREEN));
+        float yaw = Math.round(p.getYRot() / 22.5f) * 22.5f;
+        net.minecraft.world.phys.Vec3 look = net.minecraft.world.phys.Vec3.directionFromRotation(0, yaw);
+        BlockPos at = BlockPos.containing(p.getX() + look.x * 5, p.getY(), p.getZ() + look.z * 5);
+        while (at.getY() > lv.getMinBuildHeight() && lv.getBlockState(at.below()).isAir()) at = at.below();
+        HgBoard b = new HgBoard(HgBoard.TYPE.get(), lv);
+        b.moveTo(at.getX() + .5, at.getY(), at.getZ() + .5, yaw, 0);
+        lv.addFreshEntity(b);
+        p.sendSystemMessage(Component.literal("Leaderboard set down. It follows the hunger games by itself; /hungergames board remove takes the nearest one away.").withStyle(ChatFormatting.GREEN));
+        return 1;
+    }
+
+    private static int removeBoard(ServerPlayer p) {
+        HgBoard best = null;
+        for (HgBoard b : p.serverLevel().getEntitiesOfClass(HgBoard.class, p.getBoundingBox().inflate(16))) if (best == null || b.distanceToSqr(p) < best.distanceToSqr(p)) best = b;
+        if (best == null) { p.sendSystemMessage(Component.literal("There is no leaderboard within 16 blocks.").withStyle(ChatFormatting.RED)); return 0; }
+        best.discard();
+        p.sendSystemMessage(Component.literal("Leaderboard removed.").withStyle(ChatFormatting.GREEN));
         return 1;
     }
 

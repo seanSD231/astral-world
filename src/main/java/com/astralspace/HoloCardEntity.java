@@ -43,7 +43,7 @@ public class HoloCardEntity extends Entity {
     public static final DeferredHolder<EntityType<?>, EntityType<HoloCardEntity>> TYPE = ENTITIES.register("holo_card", () ->
         EntityType.Builder.<HoloCardEntity>of(HoloCardEntity::new, MobCategory.MISC).sized(0.8f, 0.3f).fireImmune().clientTrackingRange(10).updateInterval(1000).build("holo_card"));
 
-    public static void register(IEventBus bus) { ENTITIES.register(bus); ThronePart.register(bus); }
+    public static void register(IEventBus bus) { ENTITIES.register(bus); ThronePart.register(bus); HgBoard.register(bus); }
 
     public HoloCardEntity(EntityType<?> type, Level level) { super(type, level); this.noPhysics = true; }
 

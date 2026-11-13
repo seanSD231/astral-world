@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.223
+- The hunger games leaderboard is a monument now, not a row of signs: /hungergames board sets down one entity drawn as a six-block slab of dark stone in a gold frame on a stepped plinth, a pillar each side with a burning brazier, and a turning gold emblem on the pediment. Cut into the front: the last game's champion with their face, kills and the field size, places two to nine behind them, and on the right the champions of up to six earlier games. It follows the games by itself, cannot be hurt or walked into, and /hungergames board remove takes the nearest one away. Old sign boards stay where they are and still update.
+- Untested in game.
+
 ## 0.2.222
 - Holograms. River of Eternal Darkness: the symbols stand in one straight row (each used to face the placer's exact heading while the row followed the quarter-turn frame). Lord of Mysteries: the ring of doors is centred on the middle of the table instead of on the card, a little wider, and the real doorways moved with it. Corpse Collector 0: the symbol is square to the throne. Shiny cards: every pathway symbol gets a dark edge, so a gold symbol no longer vanishes into a gold scene (the Criminal's worst of all). Monster 0: 18 coins in the air, down from 170. Shiny Sailor 0: the waterspouts are rebuilt as a smooth swaying funnel with bright strands winding up it, a churning foot, a spreading crown and spray.
 - Untested in game.
