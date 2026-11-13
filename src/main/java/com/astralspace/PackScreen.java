@@ -138,9 +138,16 @@ public final class PackScreen extends Screen {
     private int[] cardRect(int i) {
         int ch = (int) Math.min(height * 0.62, width / 3.3 * 1.5), cw = ch * 2 / 3;
         int cx = width / 2 + (int) ((i - (path.length - 1) / 2.0) * cw * 1.22), cy = height / 2;
-        long t0 = tornAt < 0 ? Long.MAX_VALUE : tornAt + 350 + i * 170L;
-        float p = ease((System.currentTimeMillis() - t0) / 520f);
-        return new int[]{cx - cw / 2, cy - ch / 2 + (int) ((1 - p) * ch * 0.45), cw, ch, (int) (p * 255)};
+        long t0 = tornAt < 0 ? Long.MAX_VALUE : tornAt + 260 + i * 150L;
+        float lin = (System.currentTimeMillis() - t0) / 620f, p = ease(lin);
+        if (pack.equals("view") || lin >= 1f) return new int[]{cx - cw / 2, cy - ch / 2, cw, ch, 255};
+        if (lin <= 0f) return new int[]{cx, cy, cw, ch, 0};
+        // out of the mouth of the pack: small and straight up at first, then swinging out to its place with a little overshoot
+        float over = 1f + .12f * (float) Math.sin(Math.PI * Math.min(1f, lin * 1.15f)), sc = (.3f + .7f * p) * over;
+        double mx0 = width / 2.0, my0 = tearY() - ch * .1, rise = Math.sin(Math.PI * Math.min(1f, lin)) * ch * .18;
+        int w = (int) (cw * sc), h = (int) (ch * sc);
+        int x = (int) (mx0 + (cx - mx0) * p), y = (int) (my0 + (cy - my0) * p - rise);
+        return new int[]{x - w / 2, y - h / 2, w, h, (int) (Math.min(1f, lin * 4f) * 255)};
     }
 
     private void drawShine(GuiGraphics g, int rar, int x, int y, int w, int h) {
@@ -200,7 +207,7 @@ public final class PackScreen extends Screen {
         long now = System.currentTimeMillis();
         g.fill(0, 0, width, height, 0xD0080810);
         RenderSystem.enableBlend(); RenderSystem.defaultBlendFunc();
-        if (tornAt < 0 || now - tornAt < 900) renderPack(g, now);
+        if (tornAt < 0 || now - tornAt < 900) renderPack(g, now, mx, my);
         if (tornAt >= 0) {
             for (int i = 0; i < path.length; i++) {
                 int[] r = cardRect(i);
@@ -340,16 +347,51 @@ public final class PackScreen extends Screen {
         g.setColor(1, 1, 1, 1);
     }
 
-    private void renderPack(GuiGraphics g, long now) {
+    private static final int[] PACK_GLOW = {0xFFE8A0, 0xFFF4D0, 0xC8F0FF};   // gold, pale gold, a cool white: the light inside a pack
+
+    /** A soft-edged spot of light: a stack of translucent squares, small and bright in the middle. */
+    private void spot(GuiGraphics g, float cx, float cy, float r, int rgb, float a) {
+        for (int k = 5; k >= 1; k--) { float rr = r * k / 5f; int al = (int) (a * 46 * (6 - k) / 5f); if (al <= 0) continue;
+            g.fill((int) (cx - rr), (int) (cy - rr * .7f), (int) (cx + rr), (int) (cy + rr * .7f), (Math.min(255, al) << 24) | rgb); }
+    }
+
+    /**
+     * The pack itself. Before it is torn it hangs in the air like a real foil pouch: it bobs, leans toward the mouse
+     * (the far edge showing its thickness), casts a shadow, and a sheen runs across it. As the strip is torn it trembles
+     * harder the further you get, light pours out of the open part of the seam and sparks fly from the tearing point.
+     * When it gives, there is a flash and a burst of rays, the strip spins away, and the pouch drops as the cards
+     * come up out of its mouth ({@link #cardRect}).
+     */
+    private void renderPack(GuiGraphics g, long now, int mx, int my) {
         int S = S(), px = PX(), py = PY();
         ResourceLocation t = tex("pack_" + pack);
         int cutPx = (int) (tearY() - py);                 // pixels of the pack above the tear line
         float cutV = cutPx * 188f / S;
-        float age = tornAt < 0 ? 0 : (now - tornAt) / 900f;
+        float age = tornAt < 0 ? 0 : (now - tornAt) / 900f, life = (now - born) / 1000f;
         float fade = tornAt < 0 ? 1 : Math.max(0, 1 - Math.max(0, age - 0.15f) / 0.55f);
+        float pcx = px + S / 2f, pcy = py + S / 2f;
+        // how the pouch hangs: a slow bob, a lean toward the mouse, and a tremble that grows with the tear
+        float lean = tornAt >= 0 ? 0 : Math.max(-1f, Math.min(1f, (mx - pcx) / (width * .5f))), tilt = tornAt >= 0 ? 0 : Math.max(-1f, Math.min(1f, (my - pcy) / (height * .5f)));
+        float bob = tornAt >= 0 ? 0 : (float) Math.sin(life * 1.7f) * S * .012f;
+        float shake = tornAt >= 0 ? 0 : (float) (tear * tear) * S * .006f * (dragging ? 1.6f : .6f);
+        float jx = shake * (float) Math.sin(now * .09), jy = shake * (float) Math.cos(now * .123);
+        float squeeze = 1f - .07f * Math.abs(lean);       // turned a little away: narrower, and the far side shows an edge
+        // its shadow on the "ground"
+        if (tornAt < 0) for (int k = 0; k < 4; k++) { int w = (int) (cW() * (.42f - k * .06f)); g.fill((int) (pcx - w + lean * S * .03f), py + S + 2 + k, (int) (pcx + w + lean * S * .03f), py + S + 5 + k * 2, ((26 - k * 5) << 24)); }
+        g.pose().pushPose();
+        g.pose().translate(pcx + jx, pcy + bob + jy, 0);
+        g.pose().mulPose(Axis.ZP.rotationDegrees(lean * 2.5f + (float) Math.sin(life * 1.1f) * (tornAt < 0 ? 1.2f : 0)));
+        g.pose().scale(squeeze, 1f - .03f * Math.abs(tilt), 1);
+        g.pose().translate(-pcx, -pcy, 0);
+        if (tornAt < 0 && Math.abs(lean) > .04f) {        // the edge of the pouch on the side turned toward you
+            int ew = (int) (Math.abs(lean) * S * .028f) + 1, ex = lean > 0 ? (int) left() - ew : (int) (left() + cW());
+            g.fill(ex, py + (int) (S * .05f), ex + ew, py + (int) (S * .95f), 0xC0101018);
+            g.fill(lean > 0 ? ex : ex + ew - 1, py + (int) (S * .05f), lean > 0 ? ex + 1 : ex + ew, py + (int) (S * .95f), 0x60FFFFFF);
+        }
+        blend();
         g.setColor(1, 1, 1, fade);
         // body, sliding down once torn
-        int bodyDy = tornAt < 0 ? 0 : (int) (ease(age) * S * 0.18);
+        int bodyDy = tornAt < 0 ? 0 : (int) (ease(age) * S * 0.22);
         g.blit(t, px, py + cutPx + bodyDy, S, S - cutPx, 0, cutV, 188, 188 - (int) cutV, 188, 188);
         if (tornAt < 0) {
             int tipX = (int) (left() + cW() * tear);
@@ -357,16 +399,39 @@ public final class PackScreen extends Screen {
             // the torn-off left part of the strip lifts and curls a little
             if (tear > 0.02) {
                 int uTip = (int) ((tipX - px) * 188f / S);
+                // light pours out of the open part of the seam, brightest at the tearing point
+                g.setColor(1, 1, 1, 1);
+                for (int x = (int) left(); x < tipX; x += 4) {
+                    float u = (x - (float) left()) / Math.max(1f, tipX - (float) left()), fl = .75f + .25f * (float) Math.sin(now * .012 + x * .21);
+                    int hgt = (int) (S * (.05f + .16f * u) * fl), a0 = (int) (150 * (.35f + .65f * u) * fl);
+                    g.fillGradient(x, (int) tearY() - hgt, x + 4, (int) tearY() + 2, 0x00FFF0C0, (a0 << 24) | PACK_GLOW[(x / 4) % 3]);
+                }
+                spot(g, tipX, (float) tearY(), S * .07f, 0xFFF4D0, .9f);
+                for (int k = 0; k < 14; k++) {            // sparks flying off the tear
+                    float u = ((now * .0016f) + k * .0714f) % 1f, ang = -1.9f + k * .47f + (float) Math.sin(k * 3.1) * .4f, d = u * S * .16f;
+                    int sx = (int) (tipX + Math.cos(ang) * d), sy = (int) (tearY() + Math.sin(ang) * d * .8f + u * u * S * .05f), sz = u < .5f ? 2 : 1;
+                    g.fill(sx, sy, sx + sz, sy + sz, ((int) (255 * (1 - u)) << 24) | PACK_GLOW[k % 3]);
+                }
+                g.flush(); blend();
+                g.setColor(1, 1, 1, fade);
                 g.pose().pushPose();
-                g.pose().translate(lx, (int) tearY(), 0); g.pose().mulPose(Axis.ZP.rotationDegrees((float) (-7 * Math.min(1, tear * 2)))); g.pose().translate(-lx, -(int) tearY(), 0);
+                g.pose().translate(lx, (int) tearY(), 0); g.pose().mulPose(Axis.ZP.rotationDegrees((float) (-9 * Math.min(1, tear * 2) - 3 * Math.sin(now * .01) * tear))); g.pose().translate(-lx, -(int) tearY(), 0);
                 g.blit(t, px, py - 2, tipX - px, cutPx, 0, 0, uTip, (int) cutV, 188, 188);
                 g.pose().popPose();
                 g.blit(t, tipX, py, px + S - tipX, cutPx, uTip, 0, 188 - uTip, (int) cutV, 188, 188);
                 // the torn edge
                 for (int x = lx + 6; x < tipX; x += 3) g.fill(x, (int) tearY() + ((x / 3) % 2 == 0 ? 0 : 1), x + 3, (int) tearY() + 3 + ((x / 3) % 2 == 0 ? 0 : 1), 0xE0FFFFFF);
             } else g.blit(t, px, py, S, cutPx, 0, 0, 188, (int) cutV, 188, 188);
+            // a sheen running across the foil, over and over
+            g.flush();
+            goldSweep(g, (int) left(), py + (int) (S * .06f), (int) cW(), (int) (S * .88f), 0, 240, .22f + .1f * (float) Math.sin(life * 2.3f), 1f);
+            g.setColor(1, 1, 1, 1);
             // a dashed guide along the top, with a marker where the drag begins
-            if (tear < 0.02) for (int x = (int) left(); x < left() + cW(); x += 12) g.fill(x, (int) tearY(), x + 6, (int) tearY() + 2, 0x90FFFFFF);
+            if (tear < 0.02) {
+                for (int x = (int) left(); x < left() + cW(); x += 12) g.fill(x, (int) tearY(), x + 6, (int) tearY() + 2, 0x90FFFFFF);
+                float pulse = .5f + .5f * (float) Math.sin(life * 5f);
+                spot(g, (float) left() + 4, (float) tearY(), S * (.03f + .012f * pulse), 0xFFE080, .7f + .3f * pulse);   // "start here"
+            }
             g.fill(tipX - 2, (int) tearY() - 6, tipX + 2, (int) tearY() + 8, 0xFFFFE080);
         } else {
             // the strip flies off up and to the right, spinning
@@ -374,12 +439,43 @@ public final class PackScreen extends Screen {
             g.pose().pushPose();
             float cxs = px + S / 2f, cys = py + cutPx / 2f;
             g.pose().translate(cxs + e * S * 0.55f, cys - e * S * 0.35f + e * e * S * 0.25f, 0);
-            g.pose().mulPose(Axis.ZP.rotationDegrees(e * 35f));
+            g.pose().mulPose(Axis.ZP.rotationDegrees(e * 140f));
             g.pose().translate(-cxs, -cys, 0);
             g.setColor(1, 1, 1, Math.max(0, 1 - e * 0.9f));
             g.blit(t, px, py, S, cutPx, 0, 0, 188, (int) cutV, 188, 188);
             g.pose().popPose();
         }
+        g.pose().popPose();
         g.setColor(1, 1, 1, 1);
+        if (tornAt >= 0) {
+            g.flush();
+            // light standing in the open mouth while the cards come up out of it
+            float glow = Math.max(0, 1 - age * 1.1f);
+            for (int x = (int) left(); x < left() + cW(); x += 4) {
+                float u = (float) Math.abs((x - pcx) / (cW() * .5)), fl = .8f + .2f * (float) Math.sin(now * .015 + x * .3);
+                int hgt = (int) (S * .34f * (1 - u * u * .6f) * fl * (.4f + .6f * glow)), a0 = (int) (190 * glow * (1 - u * .5f));
+                if (a0 > 0) g.fillGradient(x, (int) tearY() + (int) (ease(age) * S * .22f) - hgt, x + 4, (int) tearY() + (int) (ease(age) * S * .22f) + 3, 0x00FFF0C0, (a0 << 24) | PACK_GLOW[(x / 4) % 3]);
+            }
+            // a burst of rays turning slowly behind everything
+            float burst = Math.max(0, 1 - age * 1.25f);
+            if (burst > 0) for (int k = 0; k < 16; k++) {
+                g.pose().pushPose();
+                g.pose().translate(pcx, (float) tearY(), 0); g.pose().mulPose(Axis.ZP.rotationDegrees(k * 22.5f + age * 50f));
+                int len = (int) (S * (.35f + .5f * ease(age * 2f)) * (k % 2 == 0 ? 1f : .62f)), wd = k % 2 == 0 ? 3 : 2;
+                g.fillGradient(-wd, -len, wd, 0, 0x00FFFFFF, ((int) (150 * burst) << 24) | PACK_GLOW[k % 3]);
+                g.pose().popPose();
+            }
+            // confetti of light thrown out of the mouth
+            for (int k = 0; k < 40; k++) {
+                float sp = .5f + .5f * (float) Math.abs(Math.sin(k * 12.9898)), ang = -(float) Math.PI * (.12f + .76f * ((k * 0.6180339f) % 1f)), u = Math.min(1f, age * 1.3f) * sp;
+                int cx2 = (int) (pcx + Math.cos(ang) * u * S * .75f), cy2 = (int) (tearY() + Math.sin(ang) * u * S * .6f + u * u * S * .35f), sz = k % 3 == 0 ? 3 : 2;
+                int al = (int) (255 * Math.max(0, 1 - age * 1.15f));
+                if (al > 0) g.fill(cx2, cy2, cx2 + sz, cy2 + sz, (al << 24) | (k % 4 == 0 ? 0xFFFFFF : PACK_GLOW[k % 3]));
+            }
+            // the flash as it gives
+            int fl = (int) (200 * Math.max(0, 1 - age * 4.5f));
+            if (fl > 0) g.fill(0, 0, width, height, (fl << 24) | 0xFFF8E0);
+            g.flush(); blend();
+        }
     }
 }

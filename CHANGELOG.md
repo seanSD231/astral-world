@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.230
+- Opening a card pack. The pack hangs in the air like a foil pouch instead of sitting flat: it bobs, leans toward the mouse with its far edge showing, casts a shadow, and a sheen runs across it; the place to start tearing pulses. As you tear, it trembles harder the further you get, light pours out of the open part of the seam and sparks fly off the tearing point. When it gives there is a flash, a burst of turning rays and a spray of light, the strip spins away, light stands in the open mouth, and the cards come up out of the mouth small, rise, and swing out to their places with a little overshoot (they used to fade in where they stood).
+- Untested in game.
+
 ## 0.2.229
 - Arbiter's scales: the heart is one smooth surface now (the real heart outline, bulging front and back, shaded in the cleft, with a sheen and the stubs of the great vessels) instead of two balls and a wedge; the feather has a bending quill, two vanes of separate barbs, a notch and down at the root instead of nine stacked bars.
 - Paragon train: the wheels were bugged. The tyres were laid flat like plates while the spokes stood upright, and the coupling rods went round the opposite way to the wheels. Rebuilt: upright tyre with a flange and gilt rim, tapered spokes into a hub, counterweights and crank pins on the driving wheels, and the rods now ride the pins. The carriage wheels get a tyre and flange too.
