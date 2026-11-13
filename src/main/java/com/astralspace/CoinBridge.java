@@ -48,7 +48,8 @@ public final class CoinBridge {
     private static final String[] NUM_IDS = {"numismatics:sun", "numismatics:crown", "numismatics:cog",
             "numismatics:sprocket", "numismatics:bevel", "numismatics:spur"};
     private static final String[] NUM_ENUM = {"SUN", "CROWN", "COG", "SPROCKET", "BEVEL", "SPUR"};
-    /** What Numismatics' coins are worth in LOTM terms: spur = bronze, bevel = silver, sprocket = gold, then the unused three above. */
+    /** What Numismatics' coins are worth in LOTM terms: spur = bronze, bevel = silver, sprocket = gold, then the three
+     *  this server does not trade in, which are drawn and named as amethyst (cog), emerald (crown) and diamond (sun). */
     private static final int[] WANT_VALUE = {100000, 10000, 1000, 100, 10, 1};
     private static final String COIN_CLASS = "dev.ithundxr.createnumismatics.content.backend.Coin";
     private static int[] NUM_VALUE = {4096, 512, 64, 16, 8, 1};

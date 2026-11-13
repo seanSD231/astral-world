@@ -28,3 +28,12 @@ type = "optional"
 versionRange = "[2.5,)"
 ordering = "AFTER"
 side = "BOTH"
+
+# Loaded after Numismatics so this mod's resources win: the three unused coins are redrawn and renamed
+# as amethyst, emerald and diamond (assets/numismatics/).
+[[dependencies.${mod_id}]]
+modId = "numismatics"
+type = "optional"
+versionRange = "[1.0,)"
+ordering = "AFTER"
+side = "BOTH"

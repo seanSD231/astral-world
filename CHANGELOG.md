@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.213
+- The three Numismatics coins this server does not trade in are now amethyst, emerald and diamond: cog, crown and sun are redrawn as gem coins and renamed. The sprites are drawn from scratch (tools/art/coins.py), not copied, and the mod now loads after Numismatics so its own art and names win. Values are untouched, so nothing in the coin bridge changes.
+- Untested in game.
+
 ## 0.2.212
 - JEI hides the LOTM potion recipes whose formula you have not found yet. LOTM's own JEI plugin already hid the potion items, but the cauldron recipes are ordinary data-pack recipes every client knows, so the formulas were on show anyway. The server now tells each client which ones it has unlocked (LOTM keeps that only on its own side) and JEI hides the rest. Without JEI, without LOTM, or on a server without this mod, nothing is hidden and JEI behaves as before.
 - Untested in game.
