@@ -33,7 +33,7 @@ import java.util.List;
 public final class TwilightSword extends WornUniq {
     private static final String BLESSER = "seanSD2311", BLESSING = "i bless this sword to release its power", TAG = "tw_unsealed";
 
-    public TwilightSword(String pathId, String title, Item.Properties props) { super(pathId, title, 0, "right click calls down a twilight verdict", (sp, st) -> { }, props); }
+    public TwilightSword(String pathId, String title, Item.Properties props) { super(pathId, title, 0, "right click calls down a colossal blade (100, aged, slowed) and leaves a 15 second hurricane of twilight; swing at the air to strike a foe up to 48 blocks away from the void (70); every blow ages and slows; holding it you take a quarter less damage", (sp, st) -> { }, props); }
 
     public static boolean unsealed(ItemStack st) {
         CustomData d = st.get(DataComponents.CUSTOM_DATA);
@@ -95,6 +95,59 @@ public final class TwilightSword extends WornUniq {
         }
     }
 
+    /** Slows a thing's time through LOTM's Aura of Twilight; nothing happens without LOTM. */
+    private static void slow(net.minecraft.world.entity.Entity x, int ticks) {
+        if (slowTime != null) try { slowTime.invoke(null, x, ticks); } catch (Throwable ignored) { }
+    }
+
+    private static final java.util.Map<java.util.UUID, Long> STRUCK = new java.util.HashMap<>();
+
+    /**
+     * Swinging the sword at the air strikes the foe you are looking at, up to 48 blocks away, with a blade out of the
+     * void: 70 damage (LOTM's own sword does 54), aged and slowed. Once every second and a half. The client says when
+     * the sword was swung at nothing ({@link Net.TwSwingPayload}); everything else is decided here.
+     */
+    public static void voidStrike(ServerPlayer sp) {
+        ItemStack st = sp.getMainHandItem();
+        if (!(st.getItem() instanceof TwilightSword) || !sp.isAlive() || sp.isSpectator()) return;
+        long now = sp.level().getGameTime(); Long last = STRUCK.get(sp.getUUID());
+        if (last != null && now - last < 30) return;
+        ServerLevel lv = sp.serverLevel();
+        Vec3 eye = sp.getEyePosition(), look = sp.getLookAngle();
+        LivingEntity best = null; double bestDot = .985;
+        for (LivingEntity x : lv.getEntitiesOfClass(LivingEntity.class, sp.getBoundingBox().inflate(48), q -> UniqAbilities.foe(sp, q))) {
+            Vec3 to = x.position().add(0, x.getBbHeight() * .5, 0).subtract(eye); double d = to.length();
+            if (d < 3.5 || d > 48) continue;
+            double dot = to.scale(1 / d).dot(look);
+            if (dot > bestDot && sp.hasLineOfSight(x)) { bestDot = dot; best = x; }
+        }
+        if (best == null) return;
+        STRUCK.put(sp.getUUID(), now);
+        final LivingEntity tg = best; final int vr = v(st); final float mul = mul(st);
+        boolean emp = UniqPower.emp(sp, "warrior");
+        Vec3 to = tg.position().add(0, tg.getBbHeight() * .5, 0), from = to.add(-look.x * 6 + (lv.random.nextDouble() - .5) * 4, 7, -look.z * 6 + (lv.random.nextDouble() - .5) * 4);
+        UniqAbilities.fxPath(lv, 5, vr, from, to, 6);
+        lv.playSound(null, sp.blockPosition(), SoundEvents.TRIDENT_THROW.value(), SoundSource.PLAYERS, 1f, .7f);
+        UniqAbilities.later(6, () -> {
+            if (!tg.isAlive()) return;
+            tg.invulnerableTime = 0;
+            tg.hurt(lv.damageSources().playerAttack(sp), (emp ? 110f : 70f) * mul);
+            UniqPower.age(tg, emp ? .15f : .08f); slow(tg, 80);
+            UniqAbilities.fxPoint(lv, emp ? 6 : 0, vr, to.x, to.y, to.z, 1.2f, 14);
+            lv.playSound(null, tg.blockPosition(), SoundEvents.TRIDENT_HIT, SoundSource.PLAYERS, 1.2f, .8f);
+        });
+    }
+
+    /** Walls of light: whoever holds the sword takes a quarter less from everything (35% less once it is unsealed), and allies within six blocks an eighth less. */
+    public static void shelter(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) {
+        if (!(e.getEntity() instanceof Player p) || p.level().isClientSide) return;
+        ItemStack st = p.getMainHandItem();
+        if (!(st.getItem() instanceof TwilightSword)) st = p.getOffhandItem();
+        if (st.getItem() instanceof TwilightSword) { e.setAmount(e.getAmount() * (unsealed(st) ? .65f : .75f)); return; }
+        for (Player o : p.level().getEntitiesOfClass(Player.class, p.getBoundingBox().inflate(6), q -> q != p && q.isAlliedTo(p)))
+            if (o.getMainHandItem().getItem() instanceof TwilightSword || o.getOffhandItem().getItem() instanceof TwilightSword) { e.setAmount(e.getAmount() * .875f); return; }
+    }
+
     private static float mul(ItemStack st) { return unsealed(st) ? 1.25f : 1f; }
     private static int v(ItemStack st) { return unsealed(st) ? 8 : 0; }
 
@@ -110,6 +163,7 @@ public final class TwilightSword extends WornUniq {
             float base = (float) p.getAttributeValue(Attributes.ATTACK_DAMAGE);
             double x = target.getX(), y = target.getY() + target.getBbHeight() * .5, z = target.getZ();
             if (unsealed(stack)) extra(target, p, base * .25f);
+            UniqPower.age(target, emp ? .12f : .06f); slow(target, 60);   // like LOTM's own sword, every blow ages and slows what it strikes (and this one does it harder)
             if (emp) {   // a Seq 1/0 Warrior: every blow is a cross of light that bursts, cuts whoever stands close and leaves twilight on them
                 UniqAbilities.fxPoint(lv, 6, v(stack), x, y, z, 1.3f, 16);
                 lv.playSound(null, target.blockPosition(), SoundEvents.TRIDENT_RETURN, SoundSource.PLAYERS, 1.2f, .7f);
@@ -180,22 +234,26 @@ public final class TwilightSword extends WornUniq {
                 lv.playSound(null, BlockPos.containing(ctr), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, emp ? 3f : 1.6f, .6f);
                 for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(ctr, ctr).inflate(rad), x -> x != p && x.isAlive() && x.position().distanceTo(ctr) <= rad + 1)) {
                     e.invulnerableTime = 0;
-                    e.hurt(lv.damageSources().playerAttack(p), (emp ? 120f : 24f) * mul); e.knockback(1.3, ctr.x - e.getX(), ctr.z - e.getZ());
-                    if (emp) UniqPower.age(e, .25f);
+                    e.hurt(lv.damageSources().playerAttack(p), (emp ? 220f : 100f) * mul); e.knockback(1.3, ctr.x - e.getX(), ctr.z - e.getZ());   // LOTM's greatsword lands for 80
+                    UniqPower.age(e, emp ? .4f : .2f); slow(e, 100);
                     UniqAbilities.fxPoint(lv, 0, vr, e.getX(), e.getY() + e.getBbHeight() * .5, e.getZ(), 1f, 14);
                 }
             });
-            for (int w = 1; w <= (emp ? 8 : 6); w++) {   // the lingering field: pulses every half second
+            for (int w = 1; w <= (emp ? 34 : 25); w++) {   // the hurricane of twilight the blade leaves: 15 seconds (20 for a Seq 1/0), a pulse every 12 ticks, dragging everything in
+                final int ww = w;
                 UniqAbilities.later(land + w * 12, () -> {
                     UniqAbilities.fxPoint(lv, 3, vr, ctr.x, ctr.y + .3, ctr.z, emp ? 7f : 3.2f, 14);
-                    for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(ctr, ctr).inflate(rad), x -> x != p && x.isAlive())) {
-                        e.hurt(lv.damageSources().playerAttack(p), (emp ? 9f : 4f) * mul);
-                        e.push((ctr.x - e.getX()) * .08, .05, (ctr.z - e.getZ()) * .08); e.hurtMarked = true;
+                    if (ww % 2 == 0) for (int k = 0; k < 3; k++) { double a = ww * .9 + k * 2.094; UniqAbilities.fxPath(lv, 1, vr, ctr.add(Math.cos(a) * rad, 1.4, Math.sin(a) * rad), ctr.add(Math.cos(a + 1.9) * rad * .35, 1.0, Math.sin(a + 1.9) * rad * .35), 10); }   // crescents wheeling round it
+                    if (ww % 5 == 0) lv.playSound(null, BlockPos.containing(ctr), SoundEvents.ELYTRA_FLYING, SoundSource.PLAYERS, .8f, .6f);
+                    for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new AABB(ctr, ctr).inflate(rad), x -> x != p && x.isAlive() && !x.isAlliedTo(p))) {
+                        e.hurt(lv.damageSources().playerAttack(p), (emp ? 20f : 10f) * mul);
+                        e.push((ctr.x - e.getX()) * .1, .05, (ctr.z - e.getZ()) * .1); e.hurtMarked = true;
                         e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 2));
+                        slow(e, 30);
                     }
                 });
             }
-            p.getCooldowns().addCooldown(this, emp ? 500 : 400);
+            p.getCooldowns().addCooldown(this, 400);
         }
         p.swing(hand);
         return InteractionResultHolder.sidedSuccess(st, level.isClientSide);

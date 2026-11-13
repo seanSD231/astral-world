@@ -108,6 +108,13 @@ public final class Net {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Client -&gt; server: the Sword of Twilight was swung at the air (the server finds who, if anyone, it strikes). */
+    public record TwSwingPayload() implements CustomPacketPayload {
+        public static final Type<TwSwingPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "tw_swing"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, TwSwingPayload> CODEC = StreamCodec.unit(new TwSwingPayload());
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** Client -&gt; server: the fun item the player picked. */
     public record FunPickPayload(String id) implements CustomPacketPayload {
         public static final Type<FunPickPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "fun_pick"));
@@ -335,6 +342,9 @@ public final class Net {
         }));
         registrar.playToClient(RecipesPayload.TYPE, RecipesPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> PotionLock.arrived(payload.keys())));
         registrar.playToClient(FunOpenPayload.TYPE, FunOpenPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> FunItemScreen.open(payload.ids(), payload.days(), payload.left())));
+        registrar.playToServer(TwSwingPayload.TYPE, TwSwingPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) TwilightSword.voidStrike(sp);
+        }));
         registrar.playToServer(FunPickPayload.TYPE, FunPickPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) FunItems.pick(sp, payload.id());
         }));

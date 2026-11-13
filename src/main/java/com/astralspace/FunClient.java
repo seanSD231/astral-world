@@ -56,6 +56,12 @@ public final class FunClient {
         if (PUSHED.remove(e.getEntity().getId())) e.getPoseStack().popPose();
     }
 
+    /** A swing of the Sword of Twilight at the air reaches out to whoever you are looking at: the server is told, and works out the rest. */
+    @SubscribeEvent
+    public static void swing(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickEmpty e) {
+        if (e.getItemStack().getItem() instanceof TwilightSword) net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Net.TwSwingPayload());
+    }
+
     /** Faction and milestone titles announce themselves in chat; this keeps them out of it. */
     @SubscribeEvent
     public static void chat(net.neoforged.neoforge.client.event.ClientChatReceivedEvent e) {

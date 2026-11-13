@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.228
+- The Sword of Twilight now outdoes LOTM's own on every count. Swing it at the air and a blade out of the void strikes the foe you are looking at, up to 48 blocks away, for 70 (LOTM: 54), once every second and a half. Right click: the colossal blade lands for 100 (LOTM's greatsword: 80; was 24) and leaves a hurricane of twilight for 15 seconds that drags foes in for 10 a pulse (was a 3.6 second field for 4). Every blow, strike and pulse ages and slows what it touches. Holding it you take a quarter less damage (35% less once unsealed), and allies within six blocks an eighth less. A Seq 1/0 Warrior gets 110, 220 and a 20 second hurricane at 20 a pulse. Cost 2500, cooldown 20 seconds for everyone.
+- Untested in game.
+
 ## 0.2.227
 - The Feathered Serpent is now the Book of Feathered Serpents: an illusory book hanging open by your hand, held together by two small feathered serpents that run up the edges of its boards and curl their heads over the top, with a page that turns by itself. New inventory icon to match.
 - Its ability gives you the Hands of Death for five seconds. LOTM's own Hands of Life and Death is switched on for you as a system cast (no cost, no cooldown, any pathway) and off again when the time is up, so a bare-fisted punch does exactly what a Death's does; a hit with something in your hand lays the same decay on through LOTM's trait. If LOTM cannot be reached the hit takes 12% of their health and withers them. Seq 1/0 Death: every hit also catches each foe within four blocks. Cost and cooldown unchanged (4000, 60 s).
