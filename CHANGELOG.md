@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.218
+- The Quill tells its story now. LOTM drops a story unless the teller holds a Prophecy and deletes a Prophecy from anyone who should not have one, so lending the item could never work. The mod now watches for LOTM's "tell this story" packet from whoever has the Quill's screen open and tells it itself: Prophecy into the hand, LOTM's own tell(), hand put back, all in one server step with nothing in between.
+- Untested in game.
+
 ## 0.2.217
 - Rainbow and Shiny weekly packs share one allowance: rainbow 2 and shiny 2 on a rank now means two of either (two Rainbow, two Shiny, or one of each), not two of each. No change to ranks.snbt is needed. The menu says how many you may take.
 - Untested in game.
