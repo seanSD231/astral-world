@@ -143,7 +143,44 @@ def serpent():
     poly(d, [(hx + 9.5, hy + 1.6), (hx + 10.3, hy + 4.4), (hx + 11, hy + 1.6)], WH); line(d, [(hx + 12, hy + 1.2), (hx + 15.5, hy + 2.4), (hx + 17, hy + 1.2)], .5, RED); line(d, [(hx + 15.5, hy + 2.4), (hx + 17, hy + 3.6)], .5, RED)
     line(d, [(hx + 8, hy + 2.4), (hx + 10, hy + 7), (hx + 8.5, hy + 10)], .45, GOLD)
     return glow(outline(im, rgb(0x062A20), .5), rgb(0x40FFC0), 2.2, .5)
-save(serpent(), 'bone_greatsword')
+def serpent_book():
+    """The Book of Feathered Serpents: an open book whose two outer edges are feathered serpents, heads curled over the top toward each other."""
+    im = new(); d = ImageDraw.Draw(im)
+    G0, G1, G2, GOLD, WH, RED, PAGE, INK = rgb(0x0C4A3A), rgb(0x14785C), rgb(0x26B48A), rgb(0xE8C860), rgb(0xF2FFF8), rgb(0xD83A3A), rgb(0xE4FFF4), rgb(0x1FA67C)
+    # the boards, a little larger than the pages, and the pages on them
+    poly(d, [(32, 22), (7, 16), (5, 50), (32, 58)], G0); poly(d, [(32, 22), (57, 16), (59, 50), (32, 58)], G0)
+    poly(d, [(32, 24), (10, 19), (8.5, 47), (32, 54.5)], PAGE); poly(d, [(32, 24), (54, 19), (55.5, 47), (32, 54.5)], mix(PAGE, (150, 200, 180), .25))
+    for k in range(4):   # the page block showing at the bottom
+        line(d, [(9 + k * .4, 47.5 + k * .9), (32, 55 + k * .8), (55 - k * .4, 47.5 + k * .9)], .45, mix(PAGE, (90, 140, 120), .2 + k * .12))
+    for sd in (-1, 1):   # lines of writing
+        for k in range(6):
+            y = 27.5 + k * 3.7; x0 = 32 + sd * 3.2; x1 = 32 + sd * (19 - (k % 3) * 2.5)
+            line(d, [(x0, y + 1.0), (x1, y - abs(x1 - 32) * .2 + 1.0)], .55, INK)
+    line(d, [(32, 23), (32, 57)], 1.1, G0)                                                              # the gutter
+    for (cx, cy) in ((8, 18), (56, 18), (7, 48), (57, 48)): disc(d, cx, cy, 2.0, GOLD)                 # gilt corners
+    for sd in (-1, 1):   # a serpent up each outer edge, over the top, head toward the middle
+        raw = [(32 + sd * 25, 54), (32 + sd * 28, 44), (32 + sd * 26, 33), (32 + sd * 27.5, 23), (32 + sd * 23, 13), (32 + sd * 15, 8), (32 + sd * 8, 10)]
+        sp = curve(raw, 30); n = len(sp)
+        for i, (x, y) in enumerate(sp): u = i / (n - 1); disc(d, x, y, 1.5 + 2.6 * math.sin(math.pi * min(1, .15 + u * .85)) + .8, G0)
+        for i, (x, y) in enumerate(sp):
+            u = i / (n - 1); r = 1.5 + 2.6 * math.sin(math.pi * min(1, .15 + u * .85))
+            disc(d, x, y, r, G1 if (i // 8) % 2 == 0 else mix(G1, G2, .5))
+        for i in range(2, n - 2):
+            (x0, y0), (x1, y1) = sp[i - 1], sp[i + 1]; tx, ty = x1 - x0, y1 - y0; l = math.hypot(tx, ty) + 1e-6; nx, ny = -ty / l * sd, tx / l * sd
+            u = i / (n - 1); r = 1.5 + 2.6 * math.sin(math.pi * min(1, .15 + u * .85)); x, y = sp[i]
+            disc(d, x - nx * r * .45, y - ny * r * .45, r * .38, GOLD if (i // 6) % 2 == 0 else mix(GOLD, (120, 90, 20), .35))    # gold belly, toward the book
+            if i % 13 == 6 and u < .8: feather(d, x + nx * r * .8, y + ny * r * .8, math.atan2(ny, nx) + sd * .9, 6.5, 1.5, rgb(0x22C89C), tip=WH if (i // 13) % 2 else RED)   # plumes sweeping outward
+        hx, hy = sp[-1]
+        for k in range(4): feather(d, hx + sd * 2, hy - 1, math.radians(-90 + sd * (20 + k * 24)), 9 - k, 1.6, [rgb(0x22C89C), rgb(0x7EF0D0), rgb(0x18A07A)][k % 3], tip=RED if k % 2 == 0 else WH)   # crest
+        poly(d, [(hx + sd * 3.5, hy - 3.6), (hx - sd * 3, hy - 3.2), (hx - sd * 7.5, hy + .4), (hx - sd * 3, hy + 3.6), (hx + sd * 3.5, hy + 3.4)], G0)   # head
+        poly(d, [(hx + sd * 2.8, hy - 2.8), (hx - sd * 3, hy - 2.4), (hx - sd * 6.5, hy + .2), (hx - sd * 3, hy + 1.4), (hx + sd * 2.8, hy + 1.6)], G1)
+        poly(d, [(hx + sd * 2.6, hy + 1.6), (hx - sd * 3, hy + 1.6), (hx - sd * 6, hy + .8), (hx - sd * 3, hy + 3), (hx + sd * 2.6, hy + 2.8)], GOLD)
+        disc(d, hx - sd * 1.6, hy - .7, 1.15, rgb(0xFFD040)); disc(d, hx - sd * 1.7, hy - .7, .45, rgb(0x140808))
+        poly(d, [(hx + sd * 1.2, hy - 3), (hx + sd * 4.5, hy - 7.5), (hx + sd * 2.8, hy - 2.8)], rgb(0xFFF0B0))                                         # horn
+    line(d, [(26.5, 11.5), (32, 13.5), (37.5, 11.5)], .5, RED)                                             # their tongues meet
+    for k in range(5): disc(d, 22 + k * 5, 17 - (k % 2) * 3 - k * .4, .8, rgb(0x7EF0D0))                  # motes of writing lifting off
+    return glow(outline(im, rgb(0x062A20), .5), rgb(0x40FFC0), 2.4, .55)
+save(serpent_book(), 'bone_greatsword')
 
 # ---------------- Bandaged Doll ----------------
 def doll():

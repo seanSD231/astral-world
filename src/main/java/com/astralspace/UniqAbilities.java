@@ -43,6 +43,93 @@ public final class UniqAbilities {
         fx(sp, 1);
     }
 
+    // ---- the Book of Feathered Serpents: Hands of Death, for five seconds
+
+    /** Who has the book's hands on: {the game time they end, 1 if LOTM's own Hands of Life and Death is what is running, 1 if this code switched it on}. */
+    private static final java.util.Map<java.util.UUID, long[]> HANDS = new java.util.HashMap<>();
+    private static final int HANDS_TICKS = 100;
+
+    private static Object handsAbility() throws Exception {
+        return Class.forName("net.swimmingtuna.lotm.pathway.corpsecollector.abilities.HandsOfLifeAndDeath").getMethod("ability").invoke(null);
+    }
+    private static boolean handsOn(Object ab, ServerPlayer sp) throws Exception {
+        return (Boolean) ab.getClass().getMethod("isOn", LivingEntity.class).invoke(ab, sp);
+    }
+
+    /**
+     * Death: the book opens and for five seconds your hands are the Hands of Death. LOTM's own ability is switched on
+     * for you (as a system cast: no cost, no cooldown, whatever your pathway) and off again when the time is up, so a
+     * bare-fisted punch does exactly what a Death's does. A hit with something in your hand lays the same decay on
+     * through LOTM's trait; if LOTM cannot be reached at all, the hit takes 12% of their health and withers them instead.
+     * At Seq 1/0 Death each hit also catches every foe within four blocks of the one you struck.
+     */
+    public static void hands(ServerPlayer sp, ItemStack st) {
+        boolean lotm = false, mine = false;
+        try {
+            Object ab = handsAbility();
+            if (!handsOn(ab, sp)) {
+                Class<?> caster = Class.forName("net.swimmingtuna.lotm.ability.AbilityCaster");
+                Class<?> srcC = Class.forName("net.swimmingtuna.lotm.ability.AbilityCaster$CastSource"), optC = Class.forName("net.swimmingtuna.lotm.ability.AbilityCaster$CastOptions");
+                Object src = srcC.getField("HELD_ITEM").get(null), opt = optC.getField("SYSTEM").get(null);
+                for (var m : caster.getMethods()) if (m.getName().equals("cast") && m.getParameterCount() == 7 && m.getParameterTypes()[6] == optC) {
+                    m.invoke(null, sp, ab, src, net.minecraft.world.InteractionHand.MAIN_HAND, null, null, opt); break;
+                }
+                mine = handsOn(ab, sp);
+            }
+            lotm = handsOn(ab, sp);
+        } catch (Throwable t) {
+            com.mojang.logging.LogUtils.getLogger().info("[astral] book: LOTM's Hands of Death could not be switched on ({}); using the mod's own", t.toString());
+        }
+        HANDS.put(sp.getUUID(), new long[]{sp.level().getGameTime() + HANDS_TICKS, lotm ? 1 : 0, mine ? 1 : 0});
+        ServerLevel lv = sp.serverLevel();
+        lv.playSound(null, sp.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 2f, .6f);
+        lv.playSound(null, sp.blockPosition(), SoundEvents.WARDEN_SONIC_CHARGE, SoundSource.PLAYERS, 1f, 1.6f);
+        lv.sendParticles(ParticleTypes.SOUL, sp.getX(), sp.getY() + 1, sp.getZ(), 30, .5, .7, .5, .04);
+        over(sp, 5, () -> lv.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, sp.getX(), sp.getY() + 1, sp.getZ(), 10, .45, .5, .45, .01));
+        sp.displayClientMessage(Component.literal("The book opens. For five seconds your hands are the Hands of Death.").withStyle(ChatFormatting.DARK_GREEN), true);
+        fx(sp, 1);
+        later(HANDS_TICKS, () -> handsEnd(sp));
+    }
+
+    private static void handsEnd(ServerPlayer sp) {
+        long[] h = HANDS.get(sp.getUUID());
+        if (h == null || sp.level().getGameTime() < h[0] - 1) return;   // used again since: that later call will end it
+        HANDS.remove(sp.getUUID());
+        if (h[2] == 1) try { Object ab = handsAbility(); ab.getClass().getMethod("turnOff", LivingEntity.class).invoke(ab, sp); } catch (Throwable ignored) { }
+        sp.displayClientMessage(Component.literal("The book closes.").withStyle(ChatFormatting.GRAY), true);
+    }
+
+    /** One touch of the book's hands on one target. */
+    private static void handsTouch(ServerPlayer sp, LivingEntity target, boolean lotm) {
+        if (lotm) try {
+            Object ab = handsAbility();
+            Object inst = Class.forName("net.swimmingtuna.lotm.ability.ActiveCasts").getMethod("get", LivingEntity.class, Class.forName("net.swimmingtuna.lotm.item.BeyonderAbilities.SimpleAbilityItem")).invoke(null, sp, ab);
+            Object snap = inst.getClass().getMethod("snap").invoke(inst);
+            Class<?> valueC = Class.forName("net.swimmingtuna.lotm.ability.Value");
+            int decay = Math.max(1, (int) (float) (Float) snap.getClass().getMethod("value", valueC).invoke(snap, ab.getClass().getField("decayTime").get(ab)));
+            Object trait = ((net.neoforged.neoforge.registries.DeferredHolder<?, ?>) Class.forName("net.swimmingtuna.lotm.pathway.corpsecollector.CorpseCollectorTraits").getField("HANDS_OF_DEATH").get(null)).get();
+            for (var m : Class.forName("net.swimmingtuna.lotm.ability.trait.Traits").getMethods()) if (m.getName().equals("grant") && m.getParameterCount() == 5) { m.invoke(null, target, trait, decay, 1f, snap); return; }
+        } catch (Throwable ignored) { }
+        target.hurt(sp.damageSources().indirectMagic(sp, sp), Math.max(10f, target.getMaxHealth() * .12f));
+        target.addEffect(new MobEffectInstance(MobEffects.WITHER, 100, 2));
+    }
+
+    /** While the book's hands are on, every hit carries them. A bare-fisted punch with LOTM's ability running is left to LOTM. */
+    public static void onHandsAttack(net.neoforged.neoforge.event.entity.player.AttackEntityEvent e) {
+        if (!(e.getEntity() instanceof ServerPlayer sp) || !(e.getTarget() instanceof LivingEntity target) || !target.isAlive()) return;
+        long[] h = HANDS.get(sp.getUUID());
+        if (h == null) return;
+        if (sp.level().getGameTime() > h[0]) { HANDS.remove(sp.getUUID()); return; }
+        boolean lotm = h[1] == 1, emp = UniqPower.emp(sp, "corpse_collector");
+        if (!(lotm && sp.getMainHandItem().isEmpty())) handsTouch(sp, target, lotm);
+        ServerLevel lv = sp.serverLevel();
+        lv.sendParticles(ParticleTypes.SCULK_SOUL, target.getX(), target.getY() + target.getBbHeight() * .5, target.getZ(), 12, .3, .4, .3, .03);
+        if (emp) for (LivingEntity o : lv.getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(4), x -> x != target && foe(sp, x))) {
+            handsTouch(sp, o, lotm);
+            lv.sendParticles(ParticleTypes.SCULK_SOUL, o.getX(), o.getY() + o.getBbHeight() * .5, o.getZ(), 8, .3, .4, .3, .03);
+        }
+    }
+
     /** A Photon effect at a spot (0 twilight hit, 2 storm ball), played for this many ticks. */
     public static void fxPoint(ServerLevel lv, int idx, double x, double y, double z, float scale, int life) { fxPoint(lv, idx, 0, x, y, z, scale, life); }
     public static void fxPoint(ServerLevel lv, int idx, int variant, double x, double y, double z, float scale, int life) {

@@ -98,9 +98,10 @@ public final class WornClient {
             switch (id) {
                 case "spear_of_sun" -> { if ("none".equals(SUNFX.get(p.getUUID()))) sunFallback(pose, buf, t); }
                 case "bone_greatsword" -> {
-                    float s = since(p.getUUID(), STRIKE, pt); float k = s < 12 ? 1 - s / 12f : 0;
+                    float s = since(p.getUUID(), STRIKE, pt); float k = s < 8 ? s / 8f : s < 100 ? 1f : s < 112 ? 1 - (s - 100) / 12f : 0;   // open for the five seconds the hands last
                     pose.pushPose(); body(pose); UniqGfx.tr(pose, 0, 24f, 0); pose.mulPose(Axis.XP.rotationDegrees(180));
-                    UniqGfx.serpentCoil(pose, buf, t, k); pose.popPose();
+                    UniqGfx.tr(pose, -11f, 17f, 9f); pose.scale(.62f, .62f, .62f);   // hanging in the air by the right hand, a little ahead
+                    UniqGfx.serpentBook(pose, buf, t, k); pose.popPose();
                 }
                 case "snake_rifle" -> wheel(pose, buf, p, t, pt);
                 case "chained_bow" -> {

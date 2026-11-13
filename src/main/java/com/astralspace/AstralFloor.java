@@ -55,7 +55,7 @@ public final class AstralFloor {
         {"shadow_sword", "secrets_supplicant", "Sword of Shadow", "Hanged Man", "3d"},
         {"spear_of_sun", "bard", "Spear of Sun and Justice", "Sun", "3d"},
         {"storm_katana", "sailor", "Storm Katana", "Tyrant", "3d"},
-        {"bone_greatsword", "corpse_collector", "Great Bone Sword", "Death", "3d"},
+        {"bone_greatsword", "corpse_collector", "Book of Feathered Serpents", "Death", "3d"},
         {"twilight_longsword", "warrior", "Longsword of Twilight", "Warrior", "3d"},
         {"snake_rifle", "monster", "Wheel of Fortune Rifle", "Monster", "3d"},
         {"chained_bow", "prisoner", "Chained Bow", "Chained", "3d"}};
@@ -64,7 +64,7 @@ public final class AstralFloor {
         case "starry_sniper" -> new DoorEyes();
         case "quill_of_alzuhod" -> new WornUniq(u[1], u[3], 100, "open the Storytelling screen (the Seq 1 Spectator prophecy)", WornUniq.QUILL);
         case "spear_of_sun" -> new WornUniq(u[1], u[3], 1200, "three flaring suns, one ahead and one to either side (Seq 1/0: five larger suns, then six more around you)", UniqAbilities::suns);
-        case "bone_greatsword" -> new WornUniq(u[1], u[3], 1200, "the serpent strikes everything near for 25, you and your allies too (Seq 1/0: only foes, 50 blocks, 30% of their health, slowed)", UniqAbilities::serpent);
+        case "bone_greatsword" -> new WornUniq(u[1], u[3], 1200, "the book opens: for 5 seconds your hands are the Hands of Death, bare or armed (Seq 1/0: every hit also catches each foe within 4 blocks)", UniqAbilities::hands);
         case "snake_rifle" -> new WornUniq(u[1], u[3], 600, "spin the wheel: 7 in 10 a strong boon (spirituality pouring back, +40 health with regeneration, Strength IV, Resistance III, Speed IV and Luck V, or the jackpot: all of them), else a short bane (Seq 1/0: 9 in 10, and two spins)", UniqAbilities::wheel);
         case "twilight_longsword" -> new TwilightSword(u[1], u[3],
             new net.minecraft.world.item.Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)

@@ -263,6 +263,55 @@ final class UniqGfx {
         p.popPose();
     }
 
+    /**
+     * The Book of Feathered Serpents: an illusory book hanging open in the air. Its boards and pages are half there;
+     * what holds it together are two small feathered serpents, one down the outer edge of each board with its head
+     * curled over the top toward the other. A page turns by itself. `open` (0..1) is the ability going off: the
+     * boards swing wide, the pages blaze and a third serpent rears up out of the gutter.
+     * Drawn y up, about 20 pixels across, the open pages toward +z.
+     */
+    static void serpentBook(PoseStack p, MultiBufferSource b, float t, float open) {
+        float half = 28f - open * 16f + (float) Math.sin(t * .05f) * 2f;      // how far each board leans toward the reader
+        int board = 0xC00C4A3A, edge = 0xE0E8C860, page = open > .05f ? 0xD0F4FFF0 : 0x9CDFFFF0, ink = 0xB01FA67C;
+        p.pushPose();
+        tr(p, 0, (float) Math.sin(t * .07f) * 1.2f, 0);
+        p.mulPose(Axis.YP.rotationDegrees((float) Math.sin(t * .045f) * 10f));
+        p.mulPose(Axis.XP.rotationDegrees(-18));
+        for (int sd = -1; sd <= 1; sd += 2) {
+            p.pushPose(); p.mulPose(Axis.YP.rotationDegrees(sd > 0 ? -half : -(180 - half)));
+            p.pushPose(); tr(p, 4.6f, 0, -.45f); box(p, b, 9.2f, 12.4f, .7f, board);                                   // the board
+            for (int c = -1; c <= 1; c += 2) { p.pushPose(); tr(p, 3.7f, c * 5.3f, -.05f); box(p, b, 1.8f, 1.8f, .9f, edge); p.popPose(); }   // gilt corners
+            p.popPose();
+            for (int i = 0; i < 5; i++) {                                                                               // the block of pages, fanned
+                p.pushPose(); p.mulPose(Axis.YP.rotationDegrees(-(4f + i * 3.2f) * (sd > 0 ? 1 : -1)));
+                tr(p, 4.3f, 0, 0); box(p, b, 8.4f, 11.4f, .14f, page);
+                if (i == 4) for (int ln = 0; ln < 6; ln++) { p.pushPose(); tr(p, (rnd(ln * 7 + sd) - .5f) * 1.2f, 4f - ln * 1.6f, sd > 0 ? .1f : -.1f); box(p, b, 5.2f + rnd(ln + sd * 3) * 1.6f, .35f, .06f, ink); p.popPose(); }   // lines of writing on the top page
+                p.popPose();
+            }
+            // the serpent that is this board's edge: up the outside, over the top, its head toward the gutter
+            float[][] raw = {{9.3f, -6.6f, .5f}, {9.7f, -3.5f, .9f}, {9.4f, 0, .5f}, {9.7f, 3.4f, .9f}, {9.2f, 6.3f, .6f}, {7.6f, 8.3f, 1.0f + open * 1.5f}, {5.2f, 9.2f, 1.6f + open * 2.5f}, {3.0f, 8.6f + open * 2f, 2.4f + open * 3f}};
+            float sc = .17f; float[][] pts = new float[raw.length][3];
+            for (int i = 0; i < raw.length; i++) { float w = (float) Math.sin(t * .09f + i * .8f + sd) * .25f; pts[i] = new float[]{raw[i][0] / sc, (raw[i][1] + (i > 4 ? w : 0)) / sc, (raw[i][2] + w * .6f) / sc}; }
+            p.pushPose(); p.scale(sc, sc, sc); serpent(p, b, pts, 8f + open * 30f + (float) Math.sin(t * .2f + sd) * 5f, t); p.popPose();
+            p.popPose();
+        }
+        // a page turning by itself, right to left, over and over
+        float turn = (t / 64f) % 1f, sm = turn * turn * (3 - 2 * turn);
+        p.pushPose(); p.mulPose(Axis.YP.rotationDegrees(-(half + 10f + (160f - 2 * half) * sm))); tr(p, 4.2f, 0, 0); box(p, b, 8.2f, 11.2f, .12f, 0xC0FFFFFF); p.popPose();
+        p.pushPose(); tr(p, 0, 0, -.3f); box(p, b, 1.2f, 12.6f, 1.1f, 0xE00E5A46); p.popPose();                       // the spine
+        if (open > .05f) {                                                                                             // the third serpent, out of the gutter
+            float sc = .26f * open; int n = 9; float[][] pts = new float[n][3];
+            for (int i = 0; i < n; i++) { float u = i / (n - 1f); pts[i] = new float[]{(float) Math.sin(u * 5f + t * .25f) * 2.2f * u / sc, (-4f + u * 20f * open) / sc, (1f + u * 9f * open) / sc}; }
+            p.pushPose(); p.scale(sc, sc, sc); serpent(p, b, pts, 34f, t); p.popPose();
+        }
+        for (int k = 0; k < 7; k++) {                                                                                  // motes of the writing lifting off the pages
+            float u = (t * .012f + rnd(k * 13)) % 1f;
+            p.pushPose(); tr(p, (rnd(k * 5) - .5f) * 14f, -3f + u * 16f, 2f + rnd(k * 9) * 3f); p.mulPose(Axis.YP.rotationDegrees(t * 3 + k * 40));
+            box(p, b, .7f, .7f, .7f, ((int) (200 * Math.sin(u * Math.PI)) << 24) | 0x7EF0D0); p.popPose();
+        }
+        p.popPose();
+    }
+
     /** The coiled serpent at someone's feet, y up. */
     static void serpentCoil(PoseStack p, MultiBufferSource b, float t, float strike) {
         int n = 26; float[][] pts = new float[n][3];

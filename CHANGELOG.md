@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.227
+- The Feathered Serpent is now the Book of Feathered Serpents: an illusory book hanging open by your hand, held together by two small feathered serpents that run up the edges of its boards and curl their heads over the top, with a page that turns by itself. New inventory icon to match.
+- Its ability gives you the Hands of Death for five seconds. LOTM's own Hands of Life and Death is switched on for you as a system cast (no cost, no cooldown, any pathway) and off again when the time is up, so a bare-fisted punch does exactly what a Death's does; a hit with something in your hand lays the same decay on through LOTM's trait. If LOTM cannot be reached the hit takes 12% of their health and withers them. Seq 1/0 Death: every hit also catches each foe within four blocks. Cost and cooldown unchanged (4000, 60 s).
+- Untested in game.
+
 ## 0.2.226
 - The Wheel of Fortune pays out properly. Seven spins in ten land on a boon (nine in ten, and two spins, for a Seq 1/0 Monster): Wellspring (a third of your spirituality back at once, then 4% of your maximum every second for 30 seconds), Vigor (+40 maximum health for a minute, a full heal, then 5% of maximum health every second for 30 seconds), Lucky Strike (Strength IV, Haste III), Charmed Life (Resistance III, fire resistance, twenty absorption), Fair Wind (Speed IV, Luck V, jump, slow falling), or one spin in twelve the Jackpot: all five at once. The banes are short and never deadly.
 - Untested in game.
