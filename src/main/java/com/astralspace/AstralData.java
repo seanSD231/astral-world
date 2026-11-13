@@ -28,6 +28,9 @@ public class AstralData extends SavedData {
     public boolean stage5Seen = false;
     /** After the barrier broke: "" = the plain end, "evac" = RUN countdown, "bosses", "raid", "recover" (see EndGame). */
     public String endPhase = "";
+    /** The casino vault: where everything staked in a MineVegas machine is put instead of being deleted. "" = off. */
+    public String vaultDim = "";
+    public long vaultPos = 0;
     /** Real time (epoch millis) when the current end phase runs out. */
     public long endUntil = 0L;
     public boolean earthGone = false;
@@ -71,6 +74,7 @@ public class AstralData extends SavedData {
         d.stage3Text = tag.getString("stage3Text");
         d.stage5Seen = tag.getBoolean("stage5Seen");
         d.endPhase = tag.getString("endPhase");
+        d.vaultDim = tag.getString("vaultDim"); d.vaultPos = tag.getLong("vaultPos");
         d.endUntil = tag.getLong("endUntil");
         d.earthGone = tag.getBoolean("earthGone");
         d.evacOffered = tag.getBoolean("evacOffered");
@@ -115,6 +119,7 @@ public class AstralData extends SavedData {
         tag.putString("stage3Text", stage3Text);
         tag.putBoolean("stage5Seen", stage5Seen);
         tag.putString("endPhase", endPhase);
+        tag.putString("vaultDim", vaultDim); tag.putLong("vaultPos", vaultPos);
         tag.putLong("endUntil", endUntil);
         tag.putBoolean("earthGone", earthGone);
         tag.putBoolean("evacOffered", evacOffered);

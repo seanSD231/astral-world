@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.234
+- A casino vault: everything staked in a MineVegas machine goes into one chest instead of being deleted. /casinovault set (ops) while looking at a chest sets it, /casinovault shows what it is watching, /casinovault clear turns it off. MineVegas has no house vault and fires no event, so the five machines that take bets (roulette, slot machine, plinko, fortune wheel, duck derby) are polled by reflection while a player is near them, and the moment one starts, what was in its bet container goes to the chest. Winnings are not affected: MineVegas makes those fresh rather than handing the staked items back, so what the vault collects is everything wagered. Blackjack and poker tables hold their stakes per seat and expose no container, so they are not covered. Anything that will not fit waits for room rather than being lost.
+- Untested in game.
+
 ## 0.2.233
 - Card rates. Mythic 0.3%, Legendary 1%, Epic 2% per card (were 0.5 / 1.5 / 3). The rest of the hundred goes to Common, Uncommon and Rare in the same 50 : 25 : 20 ratio they always had, so those three keep their relative weights: 50.89 / 25.45 / 20.36.
 - Rainbow packs are half as generous: Legendary 10% and Mythic 2.5% per card (were 20 and 5), with Epic taking the rest at 87.5%, and the Great Old One chance halved to 0.25%. They still never roll below Epic.
