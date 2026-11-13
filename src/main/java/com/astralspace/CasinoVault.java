@@ -48,7 +48,10 @@ import java.util.Map;
  * idle to running, the contents noted the tick before are put in the vault. Blackjack and poker tables keep their
  * stakes per seat and expose no container, so they are not covered.
  *
- * The vault is one chest (or any container block), set with /casinovault set while looking at it.
+ * A vault is one chest (or any container block), set with /casinovault set while looking at it. It takes only from
+ * the machines within casino_vault_radius blocks of it in the same dimension, so a casino keeps its own chest and a
+ * machine somewhere else on the server is not drained into it. Several vaults can stand at once, one per casino;
+ * a machine in range of more than one goes to the nearest.
  */
 @EventBusSubscriber(modid = AstralMod.MOD_ID)
 public final class CasinoVault {
@@ -64,9 +67,10 @@ public final class CasinoVault {
         long seen;
     }
     private static final Map<String, Watch> WATCHED = new HashMap<>();
+    /** Vault id ("dimension@pos") -> what is waiting for room in it. */
+    private static final Map<String, List<ItemStack>> PENDING_BY_VAULT = new HashMap<>();
     private static final Map<Class<?>, Method[]> SHAPE = new HashMap<>();   // machine class -> {bets(), running()}
     private static final Map<Class<?>, java.lang.reflect.Field[]> STATE = new HashMap<>();   // machine class -> {payouts, result}
-    private static final List<ItemStack> PENDING = new ArrayList<>();        // waiting for room in the vault
 
     /** {@code bets()} and the "is it running" method of a MineVegas machine, or null if this is not one. */
     private static Method[] shape(Class<?> c) {
@@ -94,7 +98,7 @@ public final class CasinoVault {
         MinecraftServer server = e.getServer();
         AstralData d = AstralData.get(server);
         long now = server.getTickCount();
-        if (now % 40 == 0) find(server, now);          // every two seconds, look for machines near the players
+        if (now % 40 == 0) find(server, d, now);       // every two seconds, look for machines standing near a vault
         if (WATCHED.isEmpty()) return;
         for (Iterator<Watch> it = WATCHED.values().iterator(); it.hasNext();) {
             Watch w = it.next();
@@ -110,11 +114,15 @@ public final class CasinoVault {
                 if (!running) w.stake = copyOf((Container) sh[0].invoke(be));
             } catch (Throwable t) { it.remove(); }
         }
-        if (!PENDING.isEmpty() && now % 20 == 0) deposit(server, d, null);
+        if (now % 20 == 0) for (String id : new ArrayList<>(PENDING_BY_VAULT.keySet())) deposit(server, id, null);
     }
 
-    /** Casino machines within 24 blocks of any player, added to the watch list. */
-    private static void find(MinecraftServer server, long now) {
+    /**
+     * The machines worth watching: near a player (so the chunks are there and someone is playing) and inside some
+     * vault's range. A machine with no vault near it is left alone entirely, so the rest of the server costs nothing.
+     */
+    private static void find(MinecraftServer server, AstralData d, long now) {
+        if (d.vaults.isEmpty()) return;
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             ServerLevel lv = p.serverLevel();
             BlockPos at = p.blockPosition();
@@ -124,11 +132,25 @@ public final class CasinoVault {
                 if (ch == null) continue;
                 for (BlockEntity be : ch.getBlockEntities().values()) {
                     if (shape(be.getClass()) == null || be.getBlockPos().distSqr(at) > 24 * 24) continue;
+                    if (nearestVault(d, lv, be.getBlockPos()) == null) continue;
                     Watch w = WATCHED.computeIfAbsent(lv.dimension().location() + "@" + be.getBlockPos().asLong(), k -> new Watch());
                     w.level = lv; w.pos = be.getBlockPos().immutable(); w.seen = now;
                 }
             }
         }
+    }
+
+    /** The id of the closest vault to this spot within casino_vault_radius, or null if there is none. */
+    private static String nearestVault(AstralData d, ServerLevel lv, BlockPos pos) {
+        String dim = lv.dimension().location().toString(), best = null;
+        double bestD = (double) Settings.casinoVaultRadius * Settings.casinoVaultRadius;
+        for (String id : d.vaults) {
+            int at = id.indexOf('@');
+            if (at < 0 || !id.substring(0, at).equals(dim)) continue;
+            double dd = BlockPos.of(Long.parseLong(id.substring(at + 1))).distSqr(pos);
+            if (dd <= bestD) { bestD = dd; best = id; }
+        }
+        return best;
     }
 
     /** The stake, slot by slot, so a machine that bets per slot can have its losing slots picked out. */
@@ -168,7 +190,8 @@ public final class CasinoVault {
      * See the note on this class for the three cases.
      */
     private static void bank(MinecraftServer server, AstralData d, List<ItemStack> stake, BlockEntity be) {
-        if (d.vaultDim.isEmpty()) return;
+        String vault = be.getLevel() instanceof ServerLevel lv ? nearestVault(d, lv, be.getBlockPos()) : null;
+        if (vault == null) return;   // no vault near this machine: its stakes are lost as MineVegas loses them
         boolean any = false;
         for (ItemStack st : stake) if (!st.isEmpty()) { any = true; break; }
         if (!any) return;
@@ -187,17 +210,18 @@ public final class CasinoVault {
             }
         } else why = paid < 0 ? "the payout list could not be read, so nothing banked" : "the play paid out, so nothing banked";
         if (lost.isEmpty()) { LOGGER.info("[astral] casino vault: {} at {} - {}", be.getClass().getSimpleName(), be.getBlockPos().toShortString(), why); return; }
-        PENDING.addAll(lost);
-        LOGGER.info("[astral] casino vault: {} lost stack(s) from {} at {} - {}", lost.size(), be.getClass().getSimpleName(), be.getBlockPos().toShortString(), why);
-        deposit(server, d, null);
+        PENDING_BY_VAULT.computeIfAbsent(vault, k -> new ArrayList<>()).addAll(lost);
+        LOGGER.info("[astral] casino vault: {} lost stack(s) from {} at {} -> {} - {}", lost.size(), be.getClass().getSimpleName(), be.getBlockPos().toShortString(), vault, why);
+        deposit(server, vault, null);
     }
 
-    /** Moves what is pending into the vault. Anything that will not fit stays pending and is tried again. */
-    private static void deposit(MinecraftServer server, AstralData d, ServerPlayer tell) {
-        if (PENDING.isEmpty() || d.vaultDim.isEmpty()) return;
-        Container box = vault(server, d);
-        if (box == null) { if (tell != null) tell.sendSystemMessage(Component.literal("The casino vault is not there any more.").withStyle(ChatFormatting.RED)); return; }
-        for (Iterator<ItemStack> it = PENDING.iterator(); it.hasNext();) {
+    /** Moves what is pending into one vault. Anything that will not fit stays pending and is tried again. */
+    private static void deposit(MinecraftServer server, String vaultId, ServerPlayer tell) {
+        List<ItemStack> pending = PENDING_BY_VAULT.get(vaultId);
+        if (pending == null || pending.isEmpty()) return;
+        Container box = container(server, vaultId);
+        if (box == null) { if (tell != null) tell.sendSystemMessage(Component.literal("That casino vault is not loaded, or is no longer a container.").withStyle(ChatFormatting.RED)); return; }
+        for (Iterator<ItemStack> it = pending.iterator(); it.hasNext();) {
             ItemStack st = it.next();
             for (int i = 0; i < box.getContainerSize() && !st.isEmpty(); i++) {
                 ItemStack in = box.getItem(i);
@@ -209,18 +233,19 @@ public final class CasinoVault {
                 }
             }
             if (st.isEmpty()) it.remove();
-            else { box.setChanged(); LOGGER.warn("[astral] casino vault is full: {} x{} is still waiting", st.getItem(), st.getCount()); return; }
+            else { box.setChanged(); LOGGER.warn("[astral] casino vault {} is full: {} x{} is still waiting", vaultId, st.getItem(), st.getCount()); return; }
         }
         box.setChanged();
     }
 
-    private static Container vault(MinecraftServer server, AstralData d) {
-        if (d.vaultDim.isEmpty()) return null;
+    /** The container a vault id points at, or null when it is unloaded or no longer a container. */
+    private static Container container(MinecraftServer server, String vaultId) {
+        int at = vaultId.indexOf('@');
+        if (at < 0) return null;
         for (ServerLevel lv : server.getAllLevels()) {
-            if (!lv.dimension().location().toString().equals(d.vaultDim)) continue;
-            BlockPos pos = BlockPos.of(d.vaultPos);
-            if (!lv.isLoaded(pos)) return null;
-            return lv.getBlockEntity(pos) instanceof Container c ? c : null;
+            if (!lv.dimension().location().toString().equals(vaultId.substring(0, at))) continue;
+            BlockPos pos = BlockPos.of(Long.parseLong(vaultId.substring(at + 1)));
+            return lv.isLoaded(pos) && lv.getBlockEntity(pos) instanceof Container c ? c : null;
         }
         return null;
     }
@@ -230,42 +255,64 @@ public final class CasinoVault {
         event.getDispatcher().register(Commands.literal("casinovault").requires(c -> c.hasPermission(2))
             .executes(c -> status(c.getSource().getPlayerOrException()))
             .then(Commands.literal("set").executes(c -> set(c.getSource().getPlayerOrException())))
+            .then(Commands.literal("remove").executes(c -> remove(c.getSource().getPlayerOrException())))
             .then(Commands.literal("clear").executes(c -> {
                 ServerPlayer p = c.getSource().getPlayerOrException();
                 AstralData d = AstralData.get(p.server);
-                d.vaultDim = ""; d.vaultPos = 0; d.setDirty();
-                p.sendSystemMessage(Component.literal("Casino vault cleared. Lost stakes are deleted again, as MineVegas does by itself.").withStyle(ChatFormatting.YELLOW));
+                int n = d.vaults.size();
+                d.vaults.clear(); d.setDirty(); PENDING_BY_VAULT.clear(); WATCHED.clear();
+                p.sendSystemMessage(Component.literal(n + " casino vault(s) cleared. Lost stakes are deleted again, as MineVegas does by itself.").withStyle(ChatFormatting.YELLOW));
                 return 1;
             })));
     }
 
-    private static int set(ServerPlayer p) {
+    /** The container block the player is looking at, or null. */
+    private static BlockPos lookingAtContainer(ServerPlayer p) {
         HitResult hr = p.pick(6, 0f, false);
+        return hr instanceof BlockHitResult bh && p.serverLevel().getBlockEntity(bh.getBlockPos()) instanceof Container ? bh.getBlockPos().immutable() : null;
+    }
+
+    private static int set(ServerPlayer p) {
+        BlockPos pos = lookingAtContainer(p);
+        if (pos == null) { p.sendSystemMessage(Component.literal("Look at a chest (or any container) within six blocks and run it again.").withStyle(ChatFormatting.RED)); return 0; }
         AstralData d = AstralData.get(p.server);
-        if (!(hr instanceof BlockHitResult bh) || !(p.serverLevel().getBlockEntity(bh.getBlockPos()) instanceof Container)) {
-            p.sendSystemMessage(Component.literal("Look at a chest (or any container) within six blocks and run it again.").withStyle(ChatFormatting.RED));
-            return 0;
-        }
-        d.vaultDim = p.serverLevel().dimension().location().toString();
-        d.vaultPos = bh.getBlockPos().asLong();
-        d.setDirty();
-        p.sendSystemMessage(Component.literal("Casino vault set at " + bh.getBlockPos().toShortString() + ". Everything staked in a casino machine is put here instead of being deleted.")
-            .withStyle(ChatFormatting.GREEN));
-        deposit(p.server, d, p);
+        String id = p.serverLevel().dimension().location() + "@" + pos.asLong();
+        if (d.vaults.contains(id)) { p.sendSystemMessage(Component.literal("That chest is already a casino vault.").withStyle(ChatFormatting.GRAY)); return 0; }
+        d.vaults.add(id); d.setDirty();
+        WATCHED.clear();   // the machines in range have changed
+        p.sendSystemMessage(Component.literal("Casino vault set at " + pos.toShortString() + ". The lost stakes of every casino machine within "
+            + Settings.casinoVaultRadius + " blocks of it come here; machines further off are not touched.").withStyle(ChatFormatting.GREEN));
+        deposit(p.server, id, p);
+        return 1;
+    }
+
+    private static int remove(ServerPlayer p) {
+        AstralData d = AstralData.get(p.server);
+        BlockPos pos = lookingAtContainer(p);
+        String id = pos == null ? null : p.serverLevel().dimension().location() + "@" + pos.asLong();
+        if (id == null || !d.vaults.remove(id)) { p.sendSystemMessage(Component.literal("Look at a chest that is a casino vault and run it again.").withStyle(ChatFormatting.RED)); return 0; }
+        d.setDirty(); PENDING_BY_VAULT.remove(id); WATCHED.clear();
+        p.sendSystemMessage(Component.literal("That chest is no longer a casino vault.").withStyle(ChatFormatting.YELLOW));
         return 1;
     }
 
     private static int status(ServerPlayer p) {
         AstralData d = AstralData.get(p.server);
-        if (d.vaultDim.isEmpty()) {
-            p.sendSystemMessage(Component.literal("No casino vault. Look at a chest and run /casinovault set.").withStyle(ChatFormatting.GRAY));
+        if (d.vaults.isEmpty()) {
+            p.sendSystemMessage(Component.literal("No casino vaults. Look at a chest and run /casinovault set.").withStyle(ChatFormatting.GRAY));
             return 0;
         }
-        BlockPos pos = BlockPos.of(d.vaultPos);
-        boolean there = vault(p.server, d) != null;
-        p.sendSystemMessage(Component.literal("Casino vault: " + pos.toShortString() + " in " + d.vaultDim
-            + (there ? "" : " (not loaded, or no longer a container)") + ". Watching " + WATCHED.size() + " machine(s), " + PENDING.size() + " stack(s) waiting for room.")
-            .withStyle(there ? ChatFormatting.GREEN : ChatFormatting.YELLOW));
+        p.sendSystemMessage(Component.literal(d.vaults.size() + " casino vault(s), each taking from machines within " + Settings.casinoVaultRadius
+            + " blocks. Watching " + WATCHED.size() + " machine(s).").withStyle(ChatFormatting.GREEN));
+        for (String id : d.vaults) {
+            int at = id.indexOf('@');
+            BlockPos pos = BlockPos.of(Long.parseLong(id.substring(at + 1)));
+            boolean there = container(p.server, id) != null;
+            List<ItemStack> wait = PENDING_BY_VAULT.get(id);
+            p.sendSystemMessage(Component.literal("  " + pos.toShortString() + " in " + id.substring(0, at)
+                + (there ? "" : " (not loaded, or no longer a container)")
+                + (wait == null || wait.isEmpty() ? "" : " - " + wait.size() + " stack(s) waiting for room")).withStyle(there ? ChatFormatting.GRAY : ChatFormatting.YELLOW));
+        }
         return 1;
     }
 }

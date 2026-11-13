@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.236
+- A casino vault only takes from the machines near it: within casino_vault_radius blocks (settings.properties, default 48) and in the same dimension. A machine with no vault in range is left alone entirely, loses its stakes the way MineVegas loses them, and is not even watched, so the rest of the server costs nothing.
+- Several vaults can stand at once, one per casino, and a machine in range of more than one goes to the nearest. /casinovault set adds the chest you are looking at, /casinovault remove takes that one away, /casinovault clear removes them all, and /casinovault lists them with anything waiting for room. A vault set on 0.2.234 or 0.2.235 is carried over.
+- Untested in game.
+
 ## 0.2.235
 - The casino vault keeps only the stakes that lost. It reads the machine's own payout list the tick it starts: nothing paid out means the whole stake lost and all of it is banked; on roulette a slot wins when its index mod 3 is the wheel's result, so only the slots that missed are banked; any other machine that paid something out is left alone, because there is no way to tell a winning bet from a losing one in the same play. Set casino_vault_losses_only to false in settings.properties to go back to banking every stake. Each decision is written to the log with its reason.
 - Untested in game.
