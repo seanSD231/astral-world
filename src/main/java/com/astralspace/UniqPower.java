@@ -11,8 +11,9 @@ import net.minecraft.world.item.ItemStack;
 import java.util.Map;
 
 /**
- * What every Uniqueness ability shares: its spirituality cost, and the Seq 1 / Seq 0 form it takes for someone who is on that item's own pathway.
- * LOTM is reached by reflection; without it abilities are free and never empowered.
+ * What every Uniqueness ability shares: its spirituality cost, the Seq 1 / Seq 0 form it takes for someone who is on that item's own
+ * pathway, and what it costs in corruption to carry and to use one (they are sealed artifacts: nobody takes one in any more).
+ * LOTM is reached by reflection; without it abilities are free, never empowered, and the corruption is simply not applied.
  */
 public final class UniqPower {
     private UniqPower() {}
@@ -45,19 +46,68 @@ public final class UniqPower {
     }
 
     /**
-     * The price of using a Uniqueness you have not taken in: half your corruption limit, on the item's own pathway.
-     * Someone who has accommodated it (a Seq 1/0 of that pathway, or anyone LOTM says holds it) pays nothing.
+     * The price of using a Uniqueness. They are sealed artifacts now, so nobody accommodates one and nobody is exempt:
+     * every use costs {@link Settings#uniqUseCorruption} percent of the corruption limit on the item's own pathway.
+     * That used to be half the limit, and only for someone who had not taken the thing in.
      */
     public static void toll(ServerPlayer sp, String pathId) {
-        if (sp.isCreative() || accommodated(sp, pathId)) return;
-        try { Lotm.addCorruptionPercent(sp, Lotm.pathwayById(pathId), 50); } catch (Throwable ignored) { return; }
-        sp.displayClientMessage(net.minecraft.network.chat.Component.literal("It is not yours to wield. The corruption takes its half.")
+        int pc = Settings.uniqUseCorruption;
+        if (pc <= 0 || sp.isCreative()) return;
+        try { Lotm.addCorruptionPercent(sp, Lotm.pathwayById(pathId), pc); } catch (Throwable ignored) { return; }
+        sp.displayClientMessage(net.minecraft.network.chat.Component.literal("The seal gives, and the corruption takes its share.")
             .withStyle(net.minecraft.ChatFormatting.DARK_RED), true);
     }
 
-    /** Has this player taken this Uniqueness in? True when LOTM puts them on its pathway at all (the accommodation sets it). */
-    public static boolean accommodated(ServerPlayer sp, String pathId) {
-        try { return pathId.equals(Lotm.pathwayId(sp)); } catch (Throwable t) { return true; }   // without LOTM nothing is owed
+    // ---- what simply carrying a sealed artifact costs
+
+    private static final ResourceLocation BURDEN = ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "uniqueness_burden");
+    private static final java.util.Set<java.util.UUID> BURDENED = new java.util.HashSet<>();
+
+    /** The Uniqueness this player is carrying anywhere at all: hand, Curios slot or pack. Empty if there is none. */
+    private static ItemStack carried(ServerPlayer sp) {
+        ItemStack worn = WornUniq.findWorn(sp);
+        if (!worn.isEmpty()) return worn;
+        var inv = sp.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) { ItemStack st = inv.getItem(i); if (st.getItem() instanceof Uniqueness) return st; }
+        return ItemStack.EMPTY;
+    }
+
+    /**
+     * Carrying one of these is its own price, wielded or not: two hearts off your maximum health, slow hands, and a
+     * drip of corruption on the artifact's own pathway every ten seconds. It all lifts the moment the thing leaves you.
+     */
+    public static void carryTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) {
+        if (e.getServer().getTickCount() % 20 != 0) return;
+        boolean drip = e.getServer().getTickCount() % 200 == 0 && Settings.uniqCarryCorruption > 0;
+        for (ServerPlayer sp : e.getServer().getPlayerList().getPlayers()) {
+            ItemStack st = sp.isCreative() || sp.isSpectator() ? ItemStack.EMPTY : carried(sp);
+            var mh = sp.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH);
+            if (st.isEmpty()) {
+                if (BURDENED.remove(sp.getUUID()) && mh != null) {
+                    mh.removeModifier(BURDEN);
+                    if (sp.getHealth() > sp.getMaxHealth()) sp.setHealth(sp.getMaxHealth());
+                }
+                continue;
+            }
+            if (BURDENED.add(sp.getUUID()) && mh != null) {
+                mh.removeModifier(BURDEN);
+                mh.addTransientModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(BURDEN, -4, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE));
+                if (sp.getHealth() > sp.getMaxHealth()) sp.setHealth(sp.getMaxHealth());
+                sp.displayClientMessage(net.minecraft.network.chat.Component.literal("The sealed artifact weighs on you.").withStyle(net.minecraft.ChatFormatting.DARK_GRAY), true);
+            }
+            sp.addEffect(new MobEffectInstance(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN, 60, 0, true, false, false));
+            if (drip && st.getItem() instanceof Uniqueness u)
+                try { Lotm.addCorruptionPercent(sp, Lotm.pathwayById(u.pathId()), Settings.uniqCarryCorruption); } catch (Throwable ignored) { }
+        }
+    }
+
+    /** Dropped on logout, so the burden never outlives the carrying. */
+    public static void onLogout(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent e) {
+        if (e.getEntity() instanceof ServerPlayer sp) {
+            BURDENED.remove(sp.getUUID());
+            var mh = sp.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH);
+            if (mh != null) mh.removeModifier(BURDEN);
+        }
     }
 
     /**

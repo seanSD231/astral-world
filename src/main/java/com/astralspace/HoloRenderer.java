@@ -214,10 +214,15 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         int tint = gold ? 0xFFDD66 : 0xFFFFFF, al = Math.max(0, Math.min(255, (int) (alpha * 255))) << 24;
         ResourceLocation tex = ResourceLocation.fromNamespaceAndPath("astral_world", "textures/gui/tarot/sym_" + Tarot.PATHWAYS[path] + ".png");
         eqSolid = true;
-        if (gold) {   // a shiny scene is gold all over, and a gold symbol on it vanished (the Abyss worst of all): a dark edge all round keeps it readable
+        if (gold) {
+            // A shiny scene is gold all over and a symbol on it was hard to pick out, so it gets an edge. It has to be two
+            // toned: the Criminal's symbol is black, and a dark edge alone simply swallowed it. A pale halo further out
+            // separates a dark symbol from the scene, and a thin dark line right against the edge separates a bright one,
+            // so whatever the symbol's own colour, one of the two is doing the work.
             float d = size * .035f, ux = (float) Math.cos(yaw) * d, uz = (float) Math.sin(yaw) * d;
             float[][] o = {{ux, 0, uz}, {-ux, 0, -uz}, {0, d, 0}, {0, -d, 0}, {ux * .7f, d * .7f, uz * .7f}, {-ux * .7f, d * .7f, -uz * .7f}, {ux * .7f, -d * .7f, uz * .7f}, {-ux * .7f, -d * .7f, -uz * .7f}};
-            for (float[] k : o) eq(tex, x + k[0], y + k[1], z + k[2], c, 0, s, 0, size / 2, 0, al | 0x120A00, 0, 0, 1, 1);
+            for (float[] k : o) eq(tex, x + k[0] * 2.1f, y + k[1] * 2.1f, z + k[2] * 2.1f, c, 0, s, 0, size / 2, 0, al | 0xFFF0C8, 0, 0, 1, 1);   // the pale halo
+            for (float[] k : o) eq(tex, x + k[0] * .75f, y + k[1] * .75f, z + k[2] * .75f, c, 0, s, 0, size / 2, 0, al | 0x120A00, 0, 0, 1, 1);   // the dark line
         }
         eq(tex, x, y, z, c, 0, s, 0, size / 2, 0, al | tint, 0, 0, 1, 1);
         eqSolid = false;

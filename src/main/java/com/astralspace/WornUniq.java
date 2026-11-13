@@ -16,7 +16,7 @@ import java.util.List;
 
 /**
  * A Uniqueness you wear in the Uniqueness curio slot (or hold). It shows on your body (see {@link WornClient}) and the Uniqueness key (G)
- * fires its ability. Taking it in (sneak and hold right click) still works like every other Uniqueness.
+ * fires its ability. Like every Uniqueness it is a sealed artifact: it can never be taken in.
  */
 public class WornUniq extends Uniqueness {
     public interface Ability { void use(ServerPlayer sp, ItemStack stack); }
@@ -107,7 +107,7 @@ public class WornUniq extends Uniqueness {
         int cost = UniqPower.cost(st) / (quillEmp ? 2 : 1);
         if (!UniqPower.pay(sp, cost)) { sp.displayClientMessage(Component.literal("Not enough spirituality (" + cost + ").").withStyle(ChatFormatting.GRAY), true); return; }
         UniqAbilities.refund = false;
-        UniqPower.toll(sp, w.pathId());   // wielding a Uniqueness you never took in costs corruption
+        UniqPower.toll(sp, w.pathId());   // every use of a sealed artifact costs corruption, whoever you are
         try { w.ability.use(sp, st); } catch (Throwable t) { UniqPower.refund(sp, cost); com.mojang.logging.LogUtils.getLogger().warn("[astral] uniqueness ability failed: {}", t.toString()); return; }
         if (UniqAbilities.refund) { UniqPower.refund(sp, cost); return; }
         if (w.cooldown > 0) sp.getCooldowns().addCooldown(w, quillEmp ? w.cooldown / 2 : w.cooldown);

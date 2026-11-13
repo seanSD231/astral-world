@@ -48,7 +48,7 @@ public final class AstralFloor {
                 @Override public boolean isFoil(net.minecraft.world.item.ItemStack stack) { return true; }
             });
 
-    /** Uniquenesses: hold right click for 5 seconds to take one in (through LOTM's own accommodation). {item id, LOTM pathway id, name, pathway title} */
+    /** Uniquenesses: sealed artifacts, wielded but never taken in. {item id, LOTM pathway id, name, pathway title} */
     public static final String[][] UNIQ = {
         {"starry_sniper", "apprentice", "Eyes of the Door", "Door", ""},
         {"quill_of_alzuhod", "spectator", "Quill of Alzuhod", "Visionary", ""},

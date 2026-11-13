@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.232
+- Uniquenesses are sealed artifacts. The five second sneak and hold that took one in as that pathway's Sequence 0 characteristic is gone, so no Uniqueness makes anyone a Beyonder any more.
+- Their price is corruption instead, and nobody is exempt now that nobody accommodates them. Using one costs 12% of the corruption limit on its own pathway (settings: uniqueness_use_corruption), down from the 50% that only an unaccommodated wielder paid. Simply carrying one — hand, Curios slot or pack — takes two hearts off your maximum health, slows your hands, and adds 1% corruption every ten seconds (uniqueness_carry_corruption; 0 turns it off). All of it lifts the moment the thing leaves you.
+- The Criminal's symbol is black, so the dark edge added to shiny scenes last build swallowed it whole. Symbols now get both a pale halo further out and a thin dark line against the edge, so a dark symbol and a bright one are each separated from the scene by one of the two.
+- Untested in game.
+
 ## 0.2.231
 - The Mother Tree fight in Photon. Fifteen new particle effects (assets/astral_world/fx/mtod/, written by tools/fx/gen_fx.py) are played beside every attack: fire, smoke and cinders trailing each meteor on its way down; a flash, fire, thrown sparks, a skirt of dust and a smoke column where it lands (in petals for the thorn spike, in flesh colours after she changes); earth and sparks thrown up along the rolling ground rings; lightning, glare and leaves on the ring in the air; a thick pollen haze that drifts with the cloud and goes when it is dispelled; light streaming into the Purge and the supernova, then a blast; violet wisps and black smoke in the curse bubbles; sheet lightning and sparks across the arena for the storms; petals and pollen off the flowers; red mist on her death puddle. The exact warning shapes drawn before (where a ring is, how far a blast reaches) are kept, since those are what you dodge by. Without LOTM's Photon bridge the fight looks as it did.
 - Untested in game.

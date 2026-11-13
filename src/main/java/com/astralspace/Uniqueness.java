@@ -21,9 +21,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * A Uniqueness item for one LOTM pathway. Hold right click for 5 seconds and it is accommodated as that pathway's
- * sequence 0 characteristic, through LOTM's own accommodation, so LOTM's rules still decide whether it takes.
- * LOTM is called by reflection like everything else in {@link Lotm}.
+ * A Uniqueness item for one LOTM pathway. These are sealed artifacts: they can be wielded but never taken in, so
+ * holding one no longer makes anyone a Beyonder of that pathway (it used to, on a five second sneak and hold).
+ * What they cost instead is corruption, in {@link UniqPower}: a little for carrying one, more for every use.
  */
 public class Uniqueness extends Item {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -47,54 +47,14 @@ public class Uniqueness extends Item {
     }
 
     @Override public UseAnim getUseAnimation(ItemStack stack) { return UseAnim.BOW; }
-    @Override public int getUseDuration(ItemStack stack, LivingEntity entity) { return HOLD_TICKS; }
+    @Override public int getUseDuration(ItemStack stack, LivingEntity entity) { return HOLD_TICKS; }   // for the few that still hold (the Rapier's lunge); UniqClient animates moving parts against it
     @Override public boolean isFoil(ItemStack stack) { return false; }
 
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext ctx, List<Component> tip, net.minecraft.world.item.TooltipFlag flag) {
         tip.add(Component.literal(title + " Uniqueness").withStyle(ChatFormatting.GOLD));
-        tip.add(Component.literal("Sneak and hold right click for 5 seconds to take it in.").withStyle(ChatFormatting.GRAY));
+        tip.add(Component.literal("A sealed artifact. It cannot be taken in.").withStyle(ChatFormatting.DARK_GRAY));
+        tip.add(Component.literal("Carrying it corrupts you a little, and using it more.").withStyle(ChatFormatting.DARK_RED));
     }
 
-    @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        if (!player.isShiftKeyDown()) return InteractionResultHolder.pass(player.getItemInHand(hand));   // normal use stays normal
-        player.startUsingItem(hand);
-        return InteractionResultHolder.consume(player.getItemInHand(hand));
-    }
-
-    @Override
-    public void onUseTick(Level level, LivingEntity who, ItemStack stack, int remaining) {
-        if (level.isClientSide || !(who instanceof ServerPlayer sp)) return;
-        int done = HOLD_TICKS - remaining;
-        if (done % 20 == 0 && done > 0) sp.displayClientMessage(Component.literal("Taking in the Uniqueness... " + (HOLD_TICKS - done) / 20 + "s").withStyle(ChatFormatting.DARK_PURPLE), true);
-    }
-
-    @Override
-    public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity who) {
-        if (!level.isClientSide && who instanceof ServerPlayer sp) accommodate(sp);
-        return stack;
-    }
-
-    private static void say(ServerPlayer p, String s, ChatFormatting c) { p.sendSystemMessage(Component.literal(s).withStyle(c)); }
-
-    private void accommodate(ServerPlayer p) {
-        try {
-            Object path = Lotm.pathwayById(pathId);
-            if (path == null) { say(p, "Can't find the " + title + " pathway (is LOTM loaded?).", ChatFormatting.RED); return; }
-            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse("lotm:beyondercharacteristics"));
-            if (item == null || item == net.minecraft.world.item.Items.AIR) { say(p, "LOTM's characteristic item was not found.", ChatFormatting.RED); return; }
-            ItemStack st = new ItemStack(item);
-            Class<?> bc = Class.forName("net.swimmingtuna.lotm.item.BeyonderPotions.BeyonderCharacteristic");
-            Class<?> bcl = Class.forName("net.swimmingtuna.lotm.beyonder.api.BeyonderClass");
-            bc.getMethod("setData", ItemStack.class, bcl, int.class, UUID.class, String.class).invoke(null, st, path, 0, UUID.randomUUID(), title);
-            Object res = bc.getMethod("takeIn", Player.class, ItemStack.class, boolean.class).invoke(item, p, st, true);
-            boolean ok = res instanceof InteractionResultHolder<?> h && h.getResult().consumesAction();
-            LOGGER.info("[astral] {} uniqueness for {} -> {}", pathId, p.getGameProfile().getName(), res instanceof InteractionResultHolder<?> h2 ? h2.getResult() : res);
-            if (!ok) say(p, "The " + title + " Uniqueness was refused (LOTM decides who can take it in).", ChatFormatting.GRAY);
-        } catch (Throwable t) {
-            LOGGER.warn("[astral] uniqueness accommodation failed: {}", t.toString());
-            say(p, "It failed: " + t.getClass().getSimpleName(), ChatFormatting.RED);
-        }
-    }
 }
