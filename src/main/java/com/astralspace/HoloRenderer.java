@@ -85,9 +85,22 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             try (var in = res.get().open()) { img = com.mojang.blaze3d.platform.NativeImage.read(in); }
             boolean sym = rl.getPath().contains("/sym_");   // a pathway symbol: its soft halo becomes a black disc, so the gold emblem sits on black like the gold cards
             int w = img.getWidth(), hgt = img.getHeight();
+            // Symbols are not all drawn at the same brightness: the Abyss (Criminal) tops out around a third of the
+            // Monster's, so on a shiny scene its gold came out almost black. Every symbol is levelled to its own
+            // brightest pixel first, and then they all turn the same gold.
+            float boost = 1f;
+            if (sym) {
+                int top = 1;
+                for (int y = 0; y < hgt; y++) for (int x = 0; x < w; x++) {
+                    int c = img.getPixelRGBA(x, y);
+                    if (((c >>> 24) & 255) < 8) continue;
+                    top = Math.max(top, (int) (.3f * (c & 255) + .59f * ((c >> 8) & 255) + .11f * ((c >> 16) & 255)));
+                }
+                boost = Math.min(3.2f, 232f / top);
+            }
             for (int y = 0; y < hgt; y++) for (int x = 0; x < w; x++) {
                 int c = img.getPixelRGBA(x, y), a = (c >>> 24) & 255, b = (c >> 16) & 255, g = (c >> 8) & 255, rr = c & 255;
-                int l = Math.min(255, (int) ((.3f * rr + .59f * g + .11f * b) * 1.25f));
+                int l = Math.min(255, (int) ((.3f * rr + .59f * g + .11f * b) * (sym ? boost : 1.25f)));
                 if (sym) {
                     float dx = (x + .5f) / w - .5f, dy = (y + .5f) / hgt - .5f, d = (float) Math.sqrt(dx * dx + dy * dy);
                     float in = Math.max(0f, Math.min(1f, (.47f - d) / .012f));                    // inside the disc
@@ -214,16 +227,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         int tint = gold ? 0xFFDD66 : 0xFFFFFF, al = Math.max(0, Math.min(255, (int) (alpha * 255))) << 24;
         ResourceLocation tex = ResourceLocation.fromNamespaceAndPath("astral_world", "textures/gui/tarot/sym_" + Tarot.PATHWAYS[path] + ".png");
         eqSolid = true;
-        if (gold) {
-            // A shiny scene is gold all over and a symbol on it was hard to pick out, so it gets an edge. It has to be two
-            // toned: the Criminal's symbol is black, and a dark edge alone simply swallowed it. A pale halo further out
-            // separates a dark symbol from the scene, and a thin dark line right against the edge separates a bright one,
-            // so whatever the symbol's own colour, one of the two is doing the work.
-            float d = size * .035f, ux = (float) Math.cos(yaw) * d, uz = (float) Math.sin(yaw) * d;
-            float[][] o = {{ux, 0, uz}, {-ux, 0, -uz}, {0, d, 0}, {0, -d, 0}, {ux * .7f, d * .7f, uz * .7f}, {-ux * .7f, d * .7f, -uz * .7f}, {ux * .7f, -d * .7f, uz * .7f}, {-ux * .7f, -d * .7f, -uz * .7f}};
-            for (float[] k : o) eq(tex, x + k[0] * 2.1f, y + k[1] * 2.1f, z + k[2] * 2.1f, c, 0, s, 0, size / 2, 0, al | 0xFFF0C8, 0, 0, 1, 1);   // the pale halo
-            for (float[] k : o) eq(tex, x + k[0] * .75f, y + k[1] * .75f, z + k[2] * .75f, c, 0, s, 0, size / 2, 0, al | 0x120A00, 0, 0, 1, 1);   // the dark line
-        }
         eq(tex, x, y, z, c, 0, s, 0, size / 2, 0, al | tint, 0, 0, 1, 1);
         eqSolid = false;
     }
@@ -2443,8 +2446,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             box(-.1f * s + cx, .5f * s + cy, sd * .7f * s, 1.0f * s, .035f * s, .02f * s, brass, 255);                         // coupling rod
             box(.75f * s + cx * .5f, .55f * s + cy * .5f, sd * .72f * s, .5f * s, .03f * s, .02f * s, brass, 255);             // connecting rod
         }
-        for (int k = 0; k < 3; k++) wheelPair(s, (-1.1f + k * 1.0f) * s, .5f * s, roll, red);
-        wheelPair(s, 1.55f * s, .28f * s, roll, red); wheelPair(s, 2.05f * s, .28f * s, roll, red);                             // leading bogie
+        for (int k = 0; k < 3; k++) wheelPair(s, (-1.1f + k * 1.0f) * s, .46f * s, roll, red);           // 1.0 apart, so the tyres must stay under .5 across
+        wheelPair(s, 1.52f * s, .23f * s, roll, red); wheelPair(s, 2.08f * s, .23f * s, roll, red);        // leading bogie, .56 apart                             // leading bogie
         box(2.38f * s, .62f * s, 0, .05f * s, .12f * s, .62f * s, red, 255); box(2.42f * s, .62f * s, 0, .012f * s, .05f * s, .62f * s, gold, 255);   // buffer beam
         for (int k = 0; k < 7; k++) { push(); tr(2.42f * s, .5f * s, (k - 3) * .19f * s); rZ(-.75f); rY((k - 3) * .08f); box(.22f * s, 0, 0, .28f * s, .02f * s, .02f * s, blk, 255); pop(); }   // cowcatcher
         box(2.78f * s, .1f * s, 0, .03f * s, .03f * s, .5f * s, gold, 255);
@@ -2463,7 +2466,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 box(0, 1.2f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); box(0, 1.63f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); box(0, .82f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); }
         }
         box(0, .7f * s, 0, 1.4f * s, .06f * s, .5f * s, blk, 255);
-        wheelPair(s, -.9f * s, .3f * s, roll, red); wheelPair(s, -.45f * s, .3f * s, roll, red); wheelPair(s, .45f * s, .3f * s, roll, red); wheelPair(s, .9f * s, .3f * s, roll, red);
+        for (float wx : new float[]{-.95f, -.5f, .5f, .95f}) wheelPair(s, wx * s, .21f * s, roll, red);   // two bogies of two, .45 apart within a bogie
     }
     private void railRing(float rad, float s) {
         for (int sd = -1; sd <= 1; sd += 2) tube(ring(0, .14f * s, 0, rad + sd * .5f * s, 72), .045f * s, .045f * s, metal(.6f));

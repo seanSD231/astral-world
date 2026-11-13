@@ -19,6 +19,7 @@ public final class PackScreen extends Screen {
     private static final String[] RARITY = {"common", "uncommon", "rare", "epic", "legendary", "mythic"};
     private static final int[] RCOL = {0xAAAAB4, 0x6EDC78, 0x5ABEFF, 0xAA5AE6, 0xFFBE3C, 0xFF6EC8};
     private static final int MYTHIC_FRAMES = 40, MYTHIC_MS = 150;
+    private static final int PT = 564;   // the pack textures are 564 square (they were 188, which was a blur at the size the pack is drawn)
 
     private final String pack;
     private final String[] path;
@@ -366,7 +367,7 @@ public final class PackScreen extends Screen {
         int S = S(), px = PX(), py = PY();
         ResourceLocation t = tex("pack_" + pack);
         int cutPx = (int) (tearY() - py);                 // pixels of the pack above the tear line
-        float cutV = cutPx * 188f / S;
+        float cutV = cutPx * PT / (float) S;
         float age = tornAt < 0 ? 0 : (now - tornAt) / 900f, life = (now - born) / 1000f;
         float fade = tornAt < 0 ? 1 : Math.max(0, 1 - Math.max(0, age - 0.15f) / 0.55f);
         float pcx = px + S / 2f, pcy = py + S / 2f;
@@ -392,13 +393,13 @@ public final class PackScreen extends Screen {
         g.setColor(1, 1, 1, fade);
         // body, sliding down once torn
         int bodyDy = tornAt < 0 ? 0 : (int) (ease(age) * S * 0.22);
-        g.blit(t, px, py + cutPx + bodyDy, S, S - cutPx, 0, cutV, 188, 188 - (int) cutV, 188, 188);
+        g.blit(t, px, py + cutPx + bodyDy, S, S - cutPx, 0, cutV, PT, PT - (int) cutV, PT, PT);
         if (tornAt < 0) {
             int tipX = (int) (left() + cW() * tear);
             int lx = (int) left() - 6;
             // the torn-off left part of the strip lifts and curls a little
             if (tear > 0.02) {
-                int uTip = (int) ((tipX - px) * 188f / S);
+                int uTip = (int) ((tipX - px) * PT / (float) S);
                 // light pours out of the open part of the seam, brightest at the tearing point
                 g.setColor(1, 1, 1, 1);
                 for (int x = (int) left(); x < tipX; x += 4) {
@@ -416,12 +417,12 @@ public final class PackScreen extends Screen {
                 g.setColor(1, 1, 1, fade);
                 g.pose().pushPose();
                 g.pose().translate(lx, (int) tearY(), 0); g.pose().mulPose(Axis.ZP.rotationDegrees((float) (-9 * Math.min(1, tear * 2) - 3 * Math.sin(now * .01) * tear))); g.pose().translate(-lx, -(int) tearY(), 0);
-                g.blit(t, px, py - 2, tipX - px, cutPx, 0, 0, uTip, (int) cutV, 188, 188);
+                g.blit(t, px, py - 2, tipX - px, cutPx, 0, 0, uTip, (int) cutV, PT, PT);
                 g.pose().popPose();
-                g.blit(t, tipX, py, px + S - tipX, cutPx, uTip, 0, 188 - uTip, (int) cutV, 188, 188);
+                g.blit(t, tipX, py, px + S - tipX, cutPx, uTip, 0, PT - uTip, (int) cutV, PT, PT);
                 // the torn edge
                 for (int x = lx + 6; x < tipX; x += 3) g.fill(x, (int) tearY() + ((x / 3) % 2 == 0 ? 0 : 1), x + 3, (int) tearY() + 3 + ((x / 3) % 2 == 0 ? 0 : 1), 0xE0FFFFFF);
-            } else g.blit(t, px, py, S, cutPx, 0, 0, 188, (int) cutV, 188, 188);
+            } else g.blit(t, px, py, S, cutPx, 0, 0, PT, (int) cutV, PT, PT);
             // a sheen running across the foil, over and over
             g.flush();
             goldSweep(g, (int) left(), py + (int) (S * .06f), (int) cW(), (int) (S * .88f), 0, 240, .22f + .1f * (float) Math.sin(life * 2.3f), 1f);
@@ -442,7 +443,7 @@ public final class PackScreen extends Screen {
             g.pose().mulPose(Axis.ZP.rotationDegrees(e * 140f));
             g.pose().translate(-cxs, -cys, 0);
             g.setColor(1, 1, 1, Math.max(0, 1 - e * 0.9f));
-            g.blit(t, px, py, S, cutPx, 0, 0, 188, (int) cutV, 188, 188);
+            g.blit(t, px, py, S, cutPx, 0, 0, PT, (int) cutV, PT, PT);
             g.pose().popPose();
         }
         g.pose().popPose();

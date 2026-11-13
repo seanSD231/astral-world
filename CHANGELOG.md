@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.237
+- A sealed Uniqueness is the Sequence 1 version for everyone. There is no taking one in any more, so there is no lesser form either: what used to need a Seq 1 or 0 of that pathway is simply what the artifact does.
+- The pack art is three times the resolution (188 to 564 square). It was being blown up nearly five times on a 1080p screen while you tore it open, which is where the pixelation came from. Jar grows by under a megabyte.
+- The outline round pathway symbols on shiny scenes is gone. Instead, the gold copy of a symbol is levelled to its own brightest pixel before it is tinted, so the Abyss (whose art tops out around a third of the Monster's brightness, which is why it vanished) comes out the same gold as every other symbol.
+- The Paragon's wheels no longer grow into one another. Once the tyres stood upright their full diameter counted, and the driving wheels were exactly as far apart as they were wide while the bogies overlapped outright: driving wheels .46 wide on a 1.0 spacing, leading bogie .23 on .56, carriage bogies .21 on .45.
+- Untested in game.
+
 ## 0.2.236
 - A casino vault only takes from the machines near it: within casino_vault_radius blocks (settings.properties, default 48) and in the same dimension. A machine with no vault in range is left alone entirely, loses its stakes the way MineVegas loses them, and is not even watched, so the rest of the server costs nothing.
 - Several vaults can stand at once, one per casino, and a machine in range of more than one goes to the nearest. /casinovault set adds the chest you are looking at, /casinovault remove takes that one away, /casinovault clear removes them all, and /casinovault lists them with anything waiting for room. A vault set on 0.2.234 or 0.2.235 is carried over.

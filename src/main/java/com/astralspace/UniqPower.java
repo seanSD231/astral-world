@@ -24,11 +24,11 @@ public final class UniqPower {
 
     public static int cost(ItemStack st) { return COST.getOrDefault(BuiltInRegistries.ITEM.getKey(st.getItem()).getPath(), 0); }
 
-    /** True for a Seq 1 or Seq 0 of this pathway: the Uniqueness answers them fully. */
-    public static boolean emp(LivingEntity e, String pathId) {
-        if (!(e instanceof ServerPlayer sp)) return false;
-        try { int s = Lotm.sequence(sp); return s >= 0 && s <= 1 && pathId.equals(Lotm.pathwayId(sp)); } catch (Throwable t) { return false; }
-    }
+    /**
+     * The full form of a Uniqueness. These are sealed artifacts: there is no taking one in and no lesser form any
+     * more, so what used to be the Sequence 1/0 version is simply what the artifact does for whoever holds it.
+     */
+    public static boolean emp(LivingEntity e, String pathId) { return true; }
 
     private static Class<?> spirit() throws ClassNotFoundException { return Class.forName("net.swimmingtuna.lotm.beyonder.Spirituality"); }
 
