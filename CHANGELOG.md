@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.229
+- Arbiter's scales: the heart is one smooth surface now (the real heart outline, bulging front and back, shaded in the cleft, with a sheen and the stubs of the great vessels) instead of two balls and a wedge; the feather has a bending quill, two vanes of separate barbs, a notch and down at the root instead of nine stacked bars.
+- Paragon train: the wheels were bugged. The tyres were laid flat like plates while the spokes stood upright, and the coupling rods went round the opposite way to the wheels. Rebuilt: upright tyre with a flange and gilt rim, tapered spokes into a hub, counterweights and crank pins on the driving wheels, and the rods now ride the pins. The carriage wheels get a tyre and flange too.
+- Untested in game.
+
 ## 0.2.228
 - The Sword of Twilight now outdoes LOTM's own on every count. Swing it at the air and a blade out of the void strikes the foe you are looking at, up to 48 blocks away, for 70 (LOTM: 54), once every second and a half. Right click: the colossal blade lands for 100 (LOTM's greatsword: 80; was 24) and leaves a hurricane of twilight for 15 seconds that drags foes in for 10 a pulse (was a 3.6 second field for 4). Every blow, strike and pulse ages and slows what it touches. Holding it you take a quarter less damage (35% less once unsealed), and allies within six blocks an eighth less. A Seq 1/0 Warrior gets 110, 220 and a 20 second hurricane at 20 a pulse. Cost 2500, cooldown 20 seconds for everyone.
 - Untested in game.

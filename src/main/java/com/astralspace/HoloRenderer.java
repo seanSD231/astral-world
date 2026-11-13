@@ -760,13 +760,63 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             push(); rX(PI / 2); torus(0, 0, 0, .26f * L, .26f * L, .014f * L, 16, 4, 0, TAU, lt, 255); pop();   // the rim runs round the pan, not up and down
             for (int k = 0; k < 3; k++) { float a = k * TAU / 3 + .5f; sphere((float) Math.cos(a) * .24f * L, -.004f * L, (float) Math.sin(a) * .24f * L, .02f * L, .02f * L, .02f * L, 4, 6, lt, 255); }
             if (s < 0) { float beat = 1f + .12f * Math.max(0f, gs(t * 5f)); push(); tr(0, .2f * L, 0); cur.scale(beat); heartModel(.17f * L, 0xD02030); pop(); bb("glow", 0, .2f * L, 0, .75f * L, .75f * L, 0, rgba(0xFF2030, .55f)); }   // a heart, weighed against the feather of truth
-            else { bb("glow", 0, .2f * L, 0, .7f * L, .7f * L, 0, rgba(0xFFFFFF, .4f)); push(); tr(0, .04f * L, 0); rZ(.5f); cur.scale(1.9f); frustum(-.02f * L, .2f * L, .008f * L, .005f * L, 5, 1, 1, 0xF4F4F0, 255, false); for (int fk = 0; fk < 9; fk++) { float fy = .02f * L + fk * .016f * L, fw = (.06f - Math.abs(fk - 4) * .008f) * L; box(fw * .5f, fy, 0, fw * .5f, .012f * L, .003f * L, 0xFFFFFF, 255); box(-fw * .5f, fy, 0, fw * .5f, .012f * L, .003f * L, 0xF0F0F8, 255); } pop(); bb("glow", 0, .08f * L, 0, .3f * L, .3f * L, 0, rgba(0xFFFFFF, .35f)); }   // a feather
+            else { bb("glow", 0, .2f * L, 0, .7f * L, .7f * L, 0, rgba(0xFFFFFF, .4f)); push(); tr(-.05f * L, .03f * L, 0); rZ(.42f); rY(t * .25f); featherModel(.42f * L, 0xFFFFFF, 0xC8D0E0); pop(); bb("glow", 0, .08f * L, 0, .3f * L, .3f * L, 0, rgba(0xFFFFFF, .35f)); }   // a feather
             pop(); }
         pop();
     }
-    private void heartModel(float r, int rgb) {   // two lobes and a point
-        sphere(-.5f * r, .3f * r, 0, .6f * r, .6f * r, .5f * r, 6, 10, rgb, 255); sphere(.5f * r, .3f * r, 0, .6f * r, .6f * r, .5f * r, 6, 10, rgb, 255);
-        push(); tr(0, -.1f * r, 0); rZ(PI); taper(0, 1.1f * r, 1.0f * r, .5f * r, 0, 0, rgb, 255); pop();
+    /**
+     * A heart, built as one smooth surface: the classic heart outline, swept in toward its middle while it bulges out
+     * to the front and to the back, so it is rounded like a real thing and has the cleft and the point. It is lighter
+     * where it bulges and darker in the cleft, with a small bright sheen high on one lobe and the stubs of the two
+     * great vessels at the top. About 2r across, centred on the origin. (It was two balls and a wedge.)
+     */
+    private void heartModel(float r, int rgb) {
+        int n = 28, rings = 6; float k = r / 15f, yc = 2.5f * k, depth = .62f * r;
+        float[][][] g = new float[rings + 1][n][];
+        for (int j = 0; j <= rings; j++) {
+            float ph = j * (PI / 2) / rings, sc = gc(ph), z = depth * gs(ph);
+            for (int i = 0; i < n; i++) {
+                float u = i * TAU / n, su = gs(u), hx = 16f * su * su * su, hy = 13f * gc(u) - 5f * gc(2 * u) - 2f * gc(3 * u) - gc(4 * u);
+                g[j][i] = v3(hx * k * sc, yc + (hy * k - yc) * sc, z);
+            }
+        }
+        float[] hint = v3(0, yc, 0);
+        for (int side = -1; side <= 1; side += 2) for (int j = 0; j < rings; j++) {
+            int col = mix(rgb, 0xFF98A0, .06f + .3f * (j + .5f) / rings);
+            for (int i = 0; i < n; i++) {
+                float[] p0 = g[j][i], p1 = g[j][(i + 1) % n], p2 = g[j + 1][(i + 1) % n], p3 = g[j + 1][i];
+                boolean cleft = Math.abs(p0[0]) < 2.2f * k && p0[1] > yc;   // the crease between the lobes sits in shadow
+                sq(v3(p0[0], p0[1], p0[2] * side), v3(p1[0], p1[1], p1[2] * side), v3(p2[0], p2[1], p2[2] * side), v3(p3[0], p3[1], p3[2] * side), hint, cleft ? mix(col, 0x400008, .45f) : col, 255);
+            }
+        }
+        sphere(-6.5f * k, 9f * k, depth * .78f, 2.6f * k, 1.7f * k, .5f * k, 4, 6, mix(rgb, 0xFFFFFF, .7f), 255);     // the sheen
+        int vessel = mix(rgb, 0x500010, .35f);
+        push(); tr(-2.5f * k, 11.5f * k, 0); rZ(.25f); frustum(0, 5.5f * k, 2.6f * k, 2.2f * k, 8, 1, 1, vessel, 255, true); tr(0, 5.5f * k, 0); rZ(.9f); frustum(0, 3.5f * k, 2.2f * k, 1.9f * k, 8, 1, 1, vessel, 255, true); pop();   // the aorta, arching over
+        push(); tr(3.5f * k, 11f * k, 0); rZ(-.3f); frustum(0, 4.2f * k, 2.0f * k, 1.7f * k, 8, 1, 1, mix(rgb, 0x3040A0, .45f), 255, true); pop();                                                                             // a vein, bluish
+    }
+    /**
+     * A feather: a quill that bends, bare at the root, with two vanes of separate barbs sweeping forward along it,
+     * the outer vane narrower than the inner, a notch where the barbs have parted, and a tuft of down at the base.
+     * It stands up +y from the origin, `len` long, lying in the xy plane. (It was nine stacked bars.)
+     */
+    private void featherModel(float len, int white, int shade) {
+        int n = 34;
+        float[][] quill = new float[12][];
+        for (int i = 0; i < 12; i++) { float u = i / 11f; quill[i] = v3(.1f * len * u * u, u * len, 0); }
+        tube(quill, .022f * len, .004f * len, mix(shade, 0xE8D8B0, .5f));
+        for (int sd = -1; sd <= 1; sd += 2) for (int i = 0; i < n; i++) {
+            float u = .16f + .84f * i / (n - 1f);
+            if (sd > 0 && i > 19 && i < 23) continue;                                              // the notch
+            float env = (float) Math.pow(Math.sin(Math.PI * Math.min(1f, (u - .12f) / .88f * .93f + .05f)), .55f);
+            float bl = len * (sd < 0 ? .2f : .13f) * env * (1f + .1f * h(i, 77 + sd)), ang = (.95f - .5f * u) * sd, curl = (h(i, 79) - .5f) * .12f;
+            push(); tr(.1f * len * u * u, u * len, 0); rZ(-ang + curl * sd); rY(sd * .18f);
+            box(0, bl * .5f, 0, .011f * len, bl * .5f, .0022f * len, i % 2 == 0 ? white : mix(white, shade, .55f), 255);
+            pop();
+        }
+        for (int i = 0; i < 9; i++) {                                                               // down at the root
+            push(); tr(.002f * len, (.07f + .012f * i) * len, 0); rZ((h(i, 81) - .5f) * 2.6f); rY(h(i, 82) * TAU);
+            box(0, .035f * len, 0, .006f * len, .035f * len, .002f * len, mix(white, shade, .3f), 255); pop();
+        }
     }
     private void lockModel(float s, int body, int shackle) {   // a proper padlock: boxy body with a trim plate, a U shackle whose top is at 1.0 s (where the chain hangs), a keyhole
         int dk = mix(body, 0x000000, .35f), lt = mix(body, 0xFFFFFF, .3f);
@@ -2323,17 +2373,30 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     // ---- Savant: a steam train on a ring of track, and an airship ----
     private void trainWheels(float s, float x, float roll, int col, int brass) {
         for (int sd = -1; sd <= 1; sd += 2) { push(); tr(x, .45f * s, sd * .62f * s); rZ(-roll);
-            push(); rX(PI / 2); frustum(-.04f * s, .04f * s, .45f * s, .45f * s, 14, 1, 1, col, 255, true); pop();
-            for (int k = 0; k < 4; k++) { push(); rZ(k * PI / 4); box(0, 0, sd * .05f * s, .43f * s, .03f * s, .015f * s, brass, 255); pop(); }
+            push(); rX(PI / 2); frustum(-.04f * s, .04f * s, .42f * s, .42f * s, 16, 1, 1, col, 255, true); pop();
+            torus(0, 0, 0, .43f * s, .43f * s, .035f * s, 18, 4, 0, TAU, 0x121316, 255); torus(0, 0, -sd * .03f * s, .47f * s, .47f * s, .014f * s, 18, 3, 0, TAU, 0x8A8E96, 255);   // tyre and flange
+            for (int k = 0; k < 4; k++) { push(); rZ(k * PI / 4); box(0, 0, sd * .05f * s, .4f * s, .03f * s, .015f * s, brass, 255); pop(); }
             sphere(0, 0, sd * .05f * s, .09f * s, .09f * s, .06f * s, 4, 6, brass, 255); pop(); }
     }
-    /** A pair of spoked wheels on one axle: radius r, an iron tyre with a gilt rim and red spokes. */
+    /**
+     * A pair of spoked wheels on one axle, radius r: an iron tyre with a flange on the inside, a gilt rim, tapered red
+     * spokes into a hub, and on the big driving wheels a counterweight and the crank pin the rods turn on.
+     * (The tyres used to be laid flat like plates while the spokes stood upright, and the rods went round the other way.)
+     */
     private void wheelPair(float s, float x, float r, float roll, int spoke) {
-        int tyre = 0x121316, gold = 0xD8B050;
+        int tyre = 0x121316, steel = 0x8A8E96, gold = 0xD8B050; boolean drive = r > .4f * s; int ns = drive ? 10 : 6;
         for (int sd = -1; sd <= 1; sd += 2) { push(); tr(x, r, sd * .62f * s); rZ(-roll * .45f * s / r);
-            push(); rX(PI / 2); torus(0, 0, 0, r * .93f, r * .93f, .07f * r, 16, 4, 0, TAU, tyre, 255); torus(0, 0, 0, r * .8f, r * .8f, .03f * r, 16, 3, 0, TAU, gold, 255); pop();
-            for (int k = 0; k < 6; k++) { push(); rZ(k * PI / 6); box(0, 0, 0, r * .86f, .04f * r, .02f * s, spoke, 255); pop(); }
-            sphere(0, 0, sd * .03f * s, .16f * r, .16f * r, .1f * r, 4, 8, gold, 255); pop(); }
+            torus(0, 0, 0, r * .92f, r * .92f, .08f * r, 20, 5, 0, TAU, tyre, 255);                          // the tyre, upright
+            torus(0, 0, -sd * .06f * r, r * 1.0f, r * 1.0f, .03f * r, 20, 3, 0, TAU, steel, 255);            // its flange, on the inside of the rail
+            torus(0, 0, sd * .03f * r, r * .8f, r * .8f, .035f * r, 20, 3, 0, TAU, gold, 255);               // gilt rim
+            for (int k = 0; k < ns; k++) { push(); rZ(k * TAU / ns); taper(.13f * r, .82f * r, .055f * r, .035f * r, .032f * r, .022f * r, spoke, 255); pop(); }
+            push(); rX(PI / 2); frustum(-.08f * r, .08f * r, .16f * r, .16f * r, 10, 1, 1, gold, 255, true); pop();   // hub
+            sphere(0, 0, sd * .09f * r, .07f * r, .07f * r, .04f * r, 4, 6, steel, 255);
+            if (drive) {
+                torus(0, 0, sd * .02f * r, r * .6f, r * .6f, .13f * r, 8, 4, PI * .72f, PI * 1.28f, tyre, 255);      // counterweight, opposite the pin
+                push(); tr(.44f * r, 0, sd * .1f * r); rX(PI / 2); frustum(-.07f * r, .07f * r, .055f * r, .055f * r, 8, 1, 1, steel, 255, true); pop();   // crank pin
+            }
+            pop(); }
         push(); tr(x, r, 0); rX(PI / 2); frustum(-.6f * s, .6f * s, .05f * r, .05f * r, 6, 1, 1, tyre, 255, false); pop();
     }
     /** A gilt scroll on a flat side (in the xy plane at z): two curls back to back. */
@@ -2371,7 +2434,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         // cylinders, rods and wheels
         for (int sd = -1; sd <= 1; sd += 2) {
             push(); tr(1.35f * s, .6f * s, sd * .66f * s); rZ(-PI / 2); frustum(-.3f * s, .3f * s, .17f * s, .17f * s, 10, 1, 1, blk, 255, true); frustum(-.32f * s, -.28f * s, .185f * s, .185f * s, 10, 1, 1, gold, 255, false); frustum(.28f * s, .32f * s, .185f * s, .185f * s, 10, 1, 1, gold, 255, false); pop();
-            float cx = .22f * s * (float) Math.cos(roll * .9f), cy = .22f * s * (float) Math.sin(roll * .9f);
+            float cx = .22f * s * (float) Math.cos(roll * .9f), cy = -.22f * s * (float) Math.sin(roll * .9f);   // where the crank pin is: the wheels turn clockwise seen from this side, so the rods must too
             box(-.1f * s + cx, .5f * s + cy, sd * .7f * s, 1.0f * s, .035f * s, .02f * s, brass, 255);                         // coupling rod
             box(.75f * s + cx * .5f, .55f * s + cy * .5f, sd * .72f * s, .5f * s, .03f * s, .02f * s, brass, 255);             // connecting rod
         }
