@@ -71,6 +71,7 @@ public final class AstralClient {
         RootClick.init();
         TelegraphRenderer.init();
         AttackFx.init();
+        AttackPhoton.init();
         AstralSymbols.init();
         modBus.addListener((net.neoforged.fml.event.lifecycle.FMLClientSetupEvent e) -> e.enqueueWork(() -> {
             for (var u : AstralFloor.UNIQUENESSES) if (u.get() instanceof TwilightSword)   // the Sword of Twilight wears its black and red once it is unsealed

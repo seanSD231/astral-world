@@ -260,6 +260,101 @@ write('waterspout', [
     emitter('foot foam #area', PUFF, (0xEAF6FF, .45), (.15, .28), (30, 50), rate=3, maxp=120, radius=.4, sscale=(1, .2, 1), speed=(.003, .01), pos=(0, .03, 0)),
 ])
 
+# ================= the Mother Tree fight (AttackPhoton plays these beside AttackFx's warning shapes) =================
+STREAK = LT + 'streak.png'
+# a meteor on its way down (unit = the rock's radius): a white-hot head, fire torn off behind it, smoke and falling cinders
+write('mtod/fireball', [
+    light('fire light', 0xFF8A30, 4.0, 9),
+    emitter('head #hold', FLARE, (0xFFE8B0, 1.0), 2.6, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, .5, 1, 1, 1), hold=True, mode='Billboard'),
+    emitter('fire #area', WISP, ((0xFFB040, .95), (0xFF5010, .95)), (.7, 1.5), (8, 16), rate=9, maxp=140, radius=.7, speed=(.01, .05), lin=(0, .25, 0), noise=(.08, .4), add=True, grow=.3, hold=True),
+    emitter('smoke #area', PUFF, ((0x241A16, .7), (0x3A2A20, .6)), (1.2, 2.4), (24, 44), rate=5, maxp=160, radius=.8, speed=(.005, .02), lin=(0, .12, 0), noise=(.06, .3), grow=1.8, hold=True),
+    emitter('cinders #area', EMBER, ((0xFFD070, 1.0), (0xFF7020, 1.0)), (.06, .16), (16, 34), rate=8, maxp=180, radius=.9, speed=(.02, .08), lin=(0, -.05, 0), noise=(.06, .5), add=True, hold=True),
+])
+# something heavy landing (unit = the blast radius): a flash, fire and stone thrown up and out, a rolling skirt of dust
+write('mtod/impact', [
+    light('flash', 0xFFB050, 1.6, 12),
+    emitter('flare #hold', FLARE, (0xFFF0C0, 1.0), .9, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, .35, 0), hold=True, mode='Billboard'),
+    emitter('fire #area', WISP, ((0xFFC050, .95), (0xFF5A10, .95)), (.12, .3), (10, 22), burst=40, maxp=70, radius=.25, speed=(.02, .07), lin=(0, .03, 0), noise=(.03, .4), add=True),
+    emitter('thrown sparks #area', STREAK, ((0xFFE0A0, 1.0), (0xFF8030, 1.0)), (.012, .03), (10, 22), burst=60, maxp=90, radius=.12, speed=(.03, .09), noise=(0, 0), add=True, mode='StretchedBillboard'),
+    emitter('dust skirt #area', PUFF, ((0x6A5A48, .55), (0x4A3E34, .5)), (.16, .34), (22, 38), burst=46, maxp=80, radius=.5, thick=.3, sscale=(1, .12, 1), speed=(.012, .03), noise=(.02, .3), grow=1.6),
+    emitter('smoke column #area', PUFF, ((0x2A2220, .6), (0x40342C, .5)), (.14, .3), (26, 40), burst=18, maxp=40, radius=.2, speed=(.002, .01), lin=(0, .035, 0), noise=(.03, .3), grow=1.5),
+    emitter('embers #area', EMBER, ((0xFFD070, 1.0), (0xFF6020, 1.0)), (.012, .03), (20, 38), burst=50, maxp=90, radius=.4, speed=(.01, .04), lin=(0, .02, 0), noise=(.04, .5), add=True),
+])
+# the thorn spike's landing: the same blow, in petals and green light
+for name, pa, pb, glowc in (('mtod/impact_bloom', 0xFFB7D5, 0xFFFFFF, 0xFFD0E8), ('mtod/impact_flesh', 0xC0103A, 0x7A1FA0, 0xFF4060)):
+    write(name, [
+        light('flash', glowc, 1.4, 9),
+        emitter('flare #hold', FLARE, (glowc, 1.0), .8, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, .35, 0), hold=True, mode='Billboard'),
+        emitter('petals #area', HT + 'petal.png', ((pa, 1.0), (pb, 1.0)), (.03, .07), (22, 38), burst=70, maxp=110, radius=.3, speed=(.02, .06), lin=(0, .01, 0), noise=(.06, .5)),
+        emitter('splinters #area', STREAK, ((0x9A7A50, 1.0), (0x5A4028, 1.0)), (.012, .028), (10, 20), burst=40, maxp=60, radius=.12, speed=(.03, .08), noise=(0, 0), mode='StretchedBillboard'),
+        emitter('dust skirt #area', PUFF, ((0x5A4A38, .5), (0x3A3028, .45)), (.16, .32), (22, 36), burst=40, maxp=70, radius=.5, thick=.3, sscale=(1, .12, 1), speed=(.012, .03), noise=(.02, .3), grow=1.6),
+        emitter('motes #area', EMBER, ((glowc, 1.0), (pa, 1.0)), (.012, .028), (22, 40), burst=40, maxp=70, radius=.5, speed=(.008, .03), lin=(0, .02, 0), noise=(.05, .5), add=True),
+    ])
+# a ring rolling out along the ground (unit = the ring's radius; AttackPhoton replays it at each new radius): earth thrown up along the line
+write('mtod/ring_dust', [
+    emitter('ridge dust #area', PUFF, ((0x6A5440, .55), (0x3E3024, .5)), (.035, .07), (6, 11), rate=38, maxp=420, radius=1.0, thick=.03, sscale=(1, .02, 1), speed=(.0, .004), lin=(0, .012, 0), noise=(.01, .4), grow=1.5, hold=True),
+    emitter('sparks #area', EMBER, ((0xFFD890, 1.0), (0xFF9040, 1.0)), (.006, .014), (5, 10), rate=30, maxp=320, radius=1.0, thick=.02, sscale=(1, .03, 1), speed=(0, .004), lin=(0, .02, 0), noise=(.01, .5), add=True, hold=True),
+])
+# the ring in the air: lightning and leaves (same unit)
+write('mtod/ring_storm', [
+    emitter('glare #area', GLOW, ((0xC8E0FF, .7), (0xFFFFFF, .7)), (.03, .06), (4, 8), rate=30, maxp=300, radius=1.0, thick=.02, sscale=(1, .06, 1), speed=(0, .003), noise=(.02, .6), add=True, hold=True),
+    emitter('arcs #area', HT + 'bolt.png', ((0xDCEBFF, 1.0), (0x9CC0FF, 1.0)), (.05, .11), (3, 6), rate=22, maxp=180, radius=1.0, thick=.02, sscale=(1, .08, 1), speed=(0, .002), noise=(0, 0), add=True, hold=True),
+    emitter('leaves #area', HT + 'leaf.png', ((0x58C24A, 1.0), (0xE0B84A, 1.0)), (.02, .04), (8, 14), rate=26, maxp=300, radius=1.0, thick=.05, sscale=(1, .08, 1), speed=(0, .006), noise=(.03, .5), hold=True),
+])
+# pollen (unit = the cloud's radius): a thick yellow-green haze with bright grains turning in it
+write('mtod/pollen', [
+    emitter('haze #area', PUFF, ((0xD8D060, .3), (0xA8C050, .26)), (.3, .6), (30, 50), rate=6, maxp=220, radius=.9, sscale=(1, .3, 1), speed=(.001, .006), noise=(.04, .25), grow=1.3, hold=True, pos=(0, .15, 0)),
+    emitter('grains #area', EMBER, ((0xFFF080, 1.0), (0xE8FF90, 1.0)), (.01, .025), (24, 46), rate=10, maxp=320, radius=.95, sscale=(1, .32, 1), speed=(.002, .01), lin=(0, .004, 0), noise=(.06, .4), add=True, hold=True, pos=(0, .15, 0)),
+])
+# one great wave thrown out from a point (unit = half the blast's reach)
+write('mtod/blast', [
+    light('flash', 0xFFE8B0, 2.0, 14),
+    emitter('flare #hold', FLARE, (0xFFFFFF, 1.0), 1.4, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, .4, 0), hold=True, mode='Billboard'),
+    emitter('shock #area', GLOW, ((0xFFE8B0, .8), (0xFFFFFF, .8)), (.1, .22), (12, 22), burst=80, maxp=120, radius=.2, thick=.1, sscale=(1, .1, 1), speed=(.07, .1), noise=(0, 0), add=True),
+    emitter('streaks #area', STREAK, ((0xFFF0C8, 1.0), (0xFFC060, 1.0)), (.012, .03), (12, 24), burst=90, maxp=130, radius=.1, speed=(.05, .11), noise=(0, 0), add=True, mode='StretchedBillboard'),
+    emitter('dust #area', PUFF, ((0x70604C, .45), (0x4C4034, .4)), (.14, .3), (24, 40), burst=50, maxp=80, radius=.4, thick=.3, sscale=(1, .08, 1), speed=(.03, .06), noise=(.02, .3), grow=1.7),
+])
+# the Purge and the supernova gathering (unit = the ball's reach): light streaming in to a growing core
+write('mtod/gather', [
+    light('core light', 0xFFE6A0, 3.0, 10),
+    emitter('core #hold', FLARE, (0xFFF4D0, 1.0), .9, 36000, burst=1, maxp=2, shape='dot', add=True, noise=(0, 0), rot=0, alpha=(0, 1, 1, 1), hold=True, mode='Billboard'),
+    emitter('inflow #area', STREAK, ((0xFFF0C0, 1.0), (0xFFC860, 1.0)), (.012, .03), (12, 20), rate=22, maxp=320, radius=1.0, thick=.05, speed=(-.07, -.04), noise=(0, 0), add=True, hold=True, mode='StretchedBillboard'),
+    emitter('motes #area', EMBER, ((0xFFF4C0, 1.0), (0xFFD070, 1.0)), (.012, .03), (14, 24), rate=16, maxp=280, radius=.9, thick=.2, speed=(-.05, -.025), noise=(.02, .4), add=True, hold=True),
+    emitter('halo #area', GLOW, (0xFFE8B0, .35), (.4, .7), (10, 18), rate=5, maxp=60, radius=.1, speed=(0, .002), noise=(.01, .3), add=True, hold=True),
+])
+# the curse (unit = the bubble's radius): violet wisps winding up, black smoke, cold sparks
+write('mtod/curse', [
+    light('curse light', 0x9030D0, 2.0, 6),
+    emitter('wisps #area', WISP, ((0xA040E0, .85), (0x5A1A90, .85)), (.18, .4), (10, 20), rate=10, maxp=160, radius=.9, thick=.25, speed=(.002, .01), lin=(0, .05, 0), noise=(.08, .5), add=True, hold=True),
+    emitter('smoke #area', PUFF, ((0x12081C, .6), (0x241038, .5)), (.3, .6), (16, 30), rate=5, maxp=120, radius=.8, speed=(.002, .008), lin=(0, .02, 0), noise=(.04, .3), grow=1.4, hold=True),
+    emitter('sparks #area', EMBER, ((0xE0A0FF, 1.0), (0xFFFFFF, 1.0)), (.015, .035), (10, 22), rate=10, maxp=180, radius=1.0, thick=.1, speed=(-.02, -.005), noise=(.05, .6), add=True, hold=True),
+])
+# lightning all over a place (unit = its radius): white flashes, hanging sparks, a little smoke where it struck
+write('mtod/storm_air', [
+    light('sheet lightning', 0xC8DCFF, 1.5, 10, pos=(0, .3, 0)),
+    emitter('flashes #area', GLOW, ((0xDCEBFF, .8), (0xFFFFFF, .8)), (.08, .2), (2, 5), rate=10, maxp=60, radius=1.0, sscale=(1, .25, 1), speed=(0, 0), noise=(0, 0), add=True, hold=True, pos=(0, .2, 0)),
+    emitter('arcs #area', HT + 'bolt.png', ((0xDCEBFF, 1.0), (0xA8C8FF, 1.0)), (.06, .16), (2, 5), rate=14, maxp=90, radius=1.0, sscale=(1, .3, 1), speed=(0, 0), noise=(0, 0), add=True, hold=True, pos=(0, .25, 0)),
+    emitter('sparks #area', EMBER, ((0xE8F2FF, 1.0), (0x9CC0FF, 1.0)), (.006, .016), (10, 22), rate=20, maxp=320, radius=1.0, sscale=(1, .1, 1), speed=(.002, .01), lin=(0, .01, 0), noise=(.04, .5), add=True, hold=True, pos=(0, .05, 0)),
+    emitter('ground smoke #area', PUFF, ((0x2A2C34, .35), (0x40444C, .3)), (.06, .12), (20, 36), rate=6, maxp=140, radius=1.0, sscale=(1, .03, 1), speed=(.001, .004), lin=(0, .006, 0), noise=(.02, .3), grow=1.5, hold=True),
+])
+# a flower standing in the arena (unit = a block): petals let go, pollen climbing its beam
+for name, pa, pb, glowc in (('mtod/flower', 0xFFB7D5, 0xFFFFFF, 0xFFE8F4), ('mtod/flower_flesh', 0xC0103A, 0x7A1FA0, 0xFF5070)):
+    write(name, [
+        light('flower light', glowc, 4.0, 5, pos=(0, 2, 0)),
+        emitter('petals #area', HT + 'petal.png', ((pa, 1.0), (pb, 1.0)), (.1, .22), (40, 70), rate=1.6, maxp=80, radius=1.4, sscale=(1, .4, 1), speed=(.004, .015), lin=(0, -.01, 0), noise=(.08, .35), hold=True, pos=(0, 2.6, 0)),
+        emitter('pollen #area', EMBER, ((glowc, 1.0), (pa, 1.0)), (.04, .1), (30, 60), rate=3, maxp=140, radius=.5, sscale=(1, 3, 1), speed=(.002, .008), lin=(0, .06, 0), noise=(.05, .4), add=True, hold=True, pos=(0, 3, 0)),
+        emitter('halo #area', GLOW, (glowc, .3), (1.6, 2.6), (16, 28), rate=1, maxp=12, radius=.2, speed=(0, .002), noise=(.01, .3), add=True, hold=True, pos=(0, 2.2, 0)),
+    ])
+# her death puddle (unit = its radius): a red mist lying on it and drops jumping
+write('mtod/puddle', [
+    emitter('mist #area', PUFF, ((0x7A0A14, .4), (0x4A060C, .35)), (.1, .2), (30, 50), rate=6, maxp=220, radius=.95, sscale=(1, .02, 1), speed=(.001, .004), lin=(0, .004, 0), noise=(.02, .25), grow=1.4, hold=True),
+    emitter('drops #area', HT + 'drop.png', ((0xC01020, 1.0), (0x800A14, 1.0)), (.01, .025), (10, 20), rate=8, maxp=140, radius=.95, sscale=(1, .01, 1), speed=(0, .002), lin=(0, .02, 0), noise=(.01, .4), hold=True),
+])
+# a fruit of the tree (unit = a block): a slow sparkle round it
+write('mtod/fruit', [
+    emitter('sparkle #area', HT + 'star.png', ((0xFFF0A0, 1.0), (0xFFFFFF, 1.0)), (.06, .14), (10, 22), rate=1.6, maxp=30, radius=.7, speed=(.001, .005), lin=(0, .01, 0), noise=(.03, .4), add=True, hold=True, pos=(0, .6, 0)),
+])
+
 # ================= every sprites(...) call of the hologram renderer as a Photon effect =================
 # HoloRenderer.sprites() asks for "astral_world:sp/<p|g><index>_<texture>_<mode>_<seed>[_g]" (unit = the call's radius, origin at its y0) and only draws its
 # own sprites when that effect is missing. This reads the calls straight out of the Java source, so the two never drift apart: rerun after changing a call.

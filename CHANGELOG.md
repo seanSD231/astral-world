@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.231
+- The Mother Tree fight in Photon. Fifteen new particle effects (assets/astral_world/fx/mtod/, written by tools/fx/gen_fx.py) are played beside every attack: fire, smoke and cinders trailing each meteor on its way down; a flash, fire, thrown sparks, a skirt of dust and a smoke column where it lands (in petals for the thorn spike, in flesh colours after she changes); earth and sparks thrown up along the rolling ground rings; lightning, glare and leaves on the ring in the air; a thick pollen haze that drifts with the cloud and goes when it is dispelled; light streaming into the Purge and the supernova, then a blast; violet wisps and black smoke in the curse bubbles; sheet lightning and sparks across the arena for the storms; petals and pollen off the flowers; red mist on her death puddle. The exact warning shapes drawn before (where a ring is, how far a blast reaches) are kept, since those are what you dodge by. Without LOTM's Photon bridge the fight looks as it did.
+- Untested in game.
+
 ## 0.2.230
 - Opening a card pack. The pack hangs in the air like a foil pouch instead of sitting flat: it bobs, leans toward the mouse with its far edge showing, casts a shadow, and a sheen runs across it; the place to start tearing pulses. As you tear, it trembles harder the further you get, light pours out of the open part of the seam and sparks fly off the tearing point. When it gives there is a flash, a burst of turning rays and a spray of light, the strip spins away, light stands in the open mouth, and the cards come up out of the mouth small, rise, and swing out to their places with a little overshoot (they used to fade in where they stood).
 - Untested in game.

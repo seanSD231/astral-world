@@ -390,6 +390,7 @@ public final class Net {
                         double t = (nowMs - f[8]) / 50.0;
                         return Math.hypot(f[1] + f[4] * t - payload.x(), f[3] + f[5] * t - payload.z()) < payload.a() + 8;
                     });
+                    AttackPhoton.dispel(payload.x(), payload.z(), payload.a() + 8);
                     return;
                 }
                 if (payload.kind() == 12) {   // a counter touched a pollen cloud: it takes on the colour of the counter, so everyone can see it was done
@@ -403,10 +404,13 @@ public final class Net {
                 }
                 if (payload.kind() == 11) {   // a fruit was taken (or rotted into a werewolf): its model and beam go
                     ClientState.fx.removeIf(f -> ((int) f[0] == 10 || (int) f[0] == 17) && Math.hypot(f[1] - payload.x(), f[3] - payload.z()) < 1.0);
+                    AttackPhoton.clearNear(payload.x(), payload.z(), 1.0);
                     return;
                 }
-                if (ClientState.fx.size() < 600)
+                if (ClientState.fx.size() < 600) {
                     ClientState.fx.add(new double[]{payload.kind(), payload.x(), payload.y(), payload.z(), payload.a(), payload.b(), payload.c(), payload.color(), System.currentTimeMillis(), payload.life()});
+                    AttackPhoton.onFx(payload.kind(), payload.x(), payload.y(), payload.z(), payload.a(), payload.b(), payload.c(), payload.color(), payload.life());
+                }
             }
         }));
         registrar.playToClient(MutePayload.TYPE, MutePayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> ClientState.muted = payload.mute()));
