@@ -32,7 +32,15 @@ import java.util.Map;
  * MineVegas has no house vault and fires no event: when a machine starts, it empties its bet container with
  * removeItemNoUpdate and the losing stacks are simply dropped on the floor of the method. Winnings are not those
  * items coming back — they are minted fresh by CasinoExchange.payout and thrown out of the machine. So everything
- * that is in the bet container the moment a machine starts is gone for good, and that is what this collects.
+ * in the bet container the moment a machine starts is gone for good, win or lose, and only the chest decides
+ * whether it can be got back.
+ *
+ * Which of it was actually lost is worked out from the machine's own payout list, read the same tick it starts:
+ *   nothing paid out  -> the whole stake was lost, and all of it is banked.
+ *   roulette          -> a slot wins when its index mod 3 is the wheel's result, so only the other slots are banked.
+ *   anything else that paid out -> the play won something and no part of it can be told apart, so nothing is banked
+ *                        and those items are lost exactly as MineVegas loses them.
+ * Set casino_vault_losses_only to false in settings.properties to bank every stake instead, win or lose.
  *
  * Nothing of MineVegas is compiled against: the five machines that take bets (roulette, slot machine, plinko,
  * fortune wheel, duck derby) all expose a public bets() and a public boolean for "running", so both are found by
@@ -57,6 +65,7 @@ public final class CasinoVault {
     }
     private static final Map<String, Watch> WATCHED = new HashMap<>();
     private static final Map<Class<?>, Method[]> SHAPE = new HashMap<>();   // machine class -> {bets(), running()}
+    private static final Map<Class<?>, java.lang.reflect.Field[]> STATE = new HashMap<>();   // machine class -> {payouts, result}
     private static final List<ItemStack> PENDING = new ArrayList<>();        // waiting for room in the vault
 
     /** {@code bets()} and the "is it running" method of a MineVegas machine, or null if this is not one. */
@@ -96,7 +105,7 @@ public final class CasinoVault {
             if (sh == null) { it.remove(); continue; }
             try {
                 boolean running = (Boolean) sh[1].invoke(be);
-                if (running && !w.running) bank(server, d, w.stake, be);   // it just started: last tick's bets are the house's
+                if (running && !w.running) bank(server, d, w.stake, be);   // it just started: last tick's bets have been taken
                 w.running = running;
                 if (!running) w.stake = copyOf((Container) sh[0].invoke(be));
             } catch (Throwable t) { it.remove(); }
@@ -122,17 +131,64 @@ public final class CasinoVault {
         }
     }
 
+    /** The stake, slot by slot, so a machine that bets per slot can have its losing slots picked out. */
     private static List<ItemStack> copyOf(Container c) {
         List<ItemStack> out = new ArrayList<>();
-        for (int i = 0; i < c.getContainerSize(); i++) { ItemStack st = c.getItem(i); if (!st.isEmpty()) out.add(st.copy()); }
+        for (int i = 0; i < c.getContainerSize(); i++) out.add(c.getItem(i).copy());
         return out;
     }
 
-    /** A machine has started: what was staked goes to the vault. */
+    /** {payouts, result} of a machine, either of them null when it has no such field. */
+    private static java.lang.reflect.Field[] state(Class<?> c) {
+        java.lang.reflect.Field[] f = STATE.get(c);
+        if (f != null) return f;
+        f = new java.lang.reflect.Field[2];
+        for (int i = 0; i < 2; i++) try {
+            f[i] = c.getDeclaredField(i == 0 ? "payouts" : "result");
+            f[i].setAccessible(true);
+        } catch (Throwable t) { f[i] = null; }
+        STATE.put(c, f);
+        return f;
+    }
+
+    /** How many stacks this machine is about to pay out. -1 when it could not be read at all. */
+    private static int paidOut(BlockEntity be) {
+        java.lang.reflect.Field pf = state(be.getClass())[0];
+        if (pf == null) return -1;
+        try {
+            Object v = pf.get(be);
+            if (v instanceof Object[] arr) { int n = 0; for (Object o : arr) if (o instanceof List<?> l) n += count(l); return n; }
+            return v instanceof List<?> l ? count(l) : -1;
+        } catch (Throwable t) { return -1; }
+    }
+    private static int count(List<?> l) { int n = 0; for (Object o : l) if (o instanceof ItemStack st && !st.isEmpty()) n++; return n; }
+
+    /**
+     * A machine has started, so its bets have just been taken. Works out which of them lost and banks those.
+     * See the note on this class for the three cases.
+     */
     private static void bank(MinecraftServer server, AstralData d, List<ItemStack> stake, BlockEntity be) {
-        if (stake.isEmpty() || d.vaultDim.isEmpty()) return;
-        PENDING.addAll(stake);
-        LOGGER.info("[astral] casino vault: {} stack(s) staked at {} go to the vault", stake.size(), be.getBlockPos().toShortString());
+        if (d.vaultDim.isEmpty()) return;
+        boolean any = false;
+        for (ItemStack st : stake) if (!st.isEmpty()) { any = true; break; }
+        if (!any) return;
+        String why;
+        List<ItemStack> lost = new ArrayList<>();
+        int paid = paidOut(be);
+        if (!Settings.casinoVaultLossesOnly) { for (ItemStack st : stake) if (!st.isEmpty()) lost.add(st); why = "every stake (losses_only is off)"; }
+        else if (paid == 0) { for (ItemStack st : stake) if (!st.isEmpty()) lost.add(st); why = "nothing was paid out, so the whole stake lost"; }
+        else if (paid > 0 && be.getClass().getSimpleName().startsWith("Roulette") && state(be.getClass())[1] != null) {
+            int result = -1;
+            try { result = state(be.getClass())[1].getInt(be); } catch (Throwable ignored) { }
+            if (result < 0) { why = "roulette paid out but its result could not be read, so nothing banked"; }
+            else {
+                for (int i = 0; i < stake.size(); i++) if (!stake.get(i).isEmpty() && i % 3 != result) lost.add(stake.get(i));
+                why = "roulette landed on " + result + ", so the slots that missed it lost";
+            }
+        } else why = paid < 0 ? "the payout list could not be read, so nothing banked" : "the play paid out, so nothing banked";
+        if (lost.isEmpty()) { LOGGER.info("[astral] casino vault: {} at {} - {}", be.getClass().getSimpleName(), be.getBlockPos().toShortString(), why); return; }
+        PENDING.addAll(lost);
+        LOGGER.info("[astral] casino vault: {} lost stack(s) from {} at {} - {}", lost.size(), be.getClass().getSimpleName(), be.getBlockPos().toShortString(), why);
         deposit(server, d, null);
     }
 

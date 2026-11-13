@@ -44,6 +44,7 @@ public final class Settings {
         KEYS.put("weekly_packs_default", new String[]{"1", "Weekly tarot packs (/weeklypacks): how many packs a player without an FTB Ranks node may pick each week. Ranks set their own number\n# with the permission node astral_world.weekly_packs, and allow Rainbow / Shiny packs with astral_world.weekly_packs.rainbow and .shiny\n# (a number = that many of the packs, true = any of them). Use 0 to give nothing to players without a rank."});
         KEYS.put("weekly_reset_day", new String[]{"1", "Weekly tarot packs: the day the week resets, 1 = Monday ... 7 = Sunday (server time)."});
         KEYS.put("raid_full_damage_players", new String[]{"3", "The Mother Tree raid: up to this many fighters hurt her at full strength. Past it, every hit is scaled down so that any\n# number of fighters together do what this many would: the fight stays as long with thirty as it is with three."});
+        KEYS.put("casino_vault_losses_only", new String[]{"true", "The casino vault (/casinovault): true = only stakes that lost are kept, false = every stake, won or lost. A MineVegas\n# machine takes the staked items either way and makes the winnings fresh, so with false the vault holds everything wagered."});
         KEYS.put("uniqueness_use_corruption", new String[]{"12", "Uniquenesses are sealed artifacts: nobody can take one in. Percent of the corruption limit each use costs, on that\n# item's own pathway (it used to be 50, and only for someone who had not accommodated it)."});
         KEYS.put("uniqueness_carry_corruption", new String[]{"1", "Percent of the corruption limit that simply carrying a Uniqueness costs, every ten seconds. While one is on you,\n# you also lose two hearts of maximum health and mine slowly. 0 turns the carrying price off."});
         KEYS.put("hide_title_messages", new String[]{"true", "Keep the title mod's \"you unlocked a title\" lines out of chat (titles are still granted)."});
@@ -67,6 +68,7 @@ public final class Settings {
     public static volatile int weeklyResetDay = 1;
     public static volatile boolean hideTitleMessages = true;
     public static volatile int raidFullDamagePlayers = 3;
+    public static volatile boolean casinoVaultLossesOnly = true;
     public static volatile int uniqUseCorruption = 12;
     public static volatile int uniqCarryCorruption = 1;
 
@@ -119,6 +121,7 @@ public final class Settings {
             weeklyResetDay = Math.max(1, Math.min(7, Integer.parseInt(p.getProperty("weekly_reset_day").trim())));
             hideTitleMessages = Boolean.parseBoolean(p.getProperty("hide_title_messages").trim());
             raidFullDamagePlayers = Math.max(1, Integer.parseInt(p.getProperty("raid_full_damage_players").trim()));
+            casinoVaultLossesOnly = Boolean.parseBoolean(p.getProperty("casino_vault_losses_only").trim());
             uniqUseCorruption = Math.max(0, Integer.parseInt(p.getProperty("uniqueness_use_corruption").trim()));
             uniqCarryCorruption = Math.max(0, Integer.parseInt(p.getProperty("uniqueness_carry_corruption").trim()));
             LOGGER.info("[astral] settings: surface {} down to {}, astral_barrier_level {}, stage3_days {}, damage every {} min, nearby_radius {}",

@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.235
+- The casino vault keeps only the stakes that lost. It reads the machine's own payout list the tick it starts: nothing paid out means the whole stake lost and all of it is banked; on roulette a slot wins when its index mod 3 is the wheel's result, so only the slots that missed are banked; any other machine that paid something out is left alone, because there is no way to tell a winning bet from a losing one in the same play. Set casino_vault_losses_only to false in settings.properties to go back to banking every stake. Each decision is written to the log with its reason.
+- Untested in game.
+
 ## 0.2.234
 - A casino vault: everything staked in a MineVegas machine goes into one chest instead of being deleted. /casinovault set (ops) while looking at a chest sets it, /casinovault shows what it is watching, /casinovault clear turns it off. MineVegas has no house vault and fires no event, so the five machines that take bets (roulette, slot machine, plinko, fortune wheel, duck derby) are polled by reflection while a player is near them, and the moment one starts, what was in its bet container goes to the chest. Winnings are not affected: MineVegas makes those fresh rather than handing the staked items back, so what the vault collects is everything wagered. Blackjack and poker tables hold their stakes per seat and expose no container, so they are not covered. Anything that will not fit waits for room rather than being lost.
 - Untested in game.
