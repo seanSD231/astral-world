@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.215
+- Rank numbers work again. FTB Ranks returns an OptionalInt from asInteger, not an Optional, so every numeric node was read as missing: weekly_packs fell back to the default, fun_items read as none, and perks.title never fired. Only the true/false nodes (the commands, the credit card, the terminal) ever worked. Node reading is now one tolerant helper that takes OptionalInt, OptionalLong, OptionalDouble, Optional or a bare value, finds getPermissionValue by name rather than by exact signature, and falls back to the string and decimal readers.
+- /astralranks [player] (ops) prints what the server actually reads for every node this mod uses, plus the pack and fun-item totals it works out from them.
+- Fun items are a menu now, like the packs: /funitem opens a grid of the five items, click one, confirm, take it. Logging in with one waiting prints a clickable message the same way the weekly packs do. /funitem reset <player> clears someone's wait.
+- The weekly-pack login message now waits a moment before it is sent, so FTB Ranks has the player's rank first; before this a player could log in and be told they had none.
+- Untested in game.
+
 ## 0.2.214
 - The amethyst, emerald and diamond coins are round struck coins now, not gears: same size, margin, hard dark rim and bright centre as the LOTM bronze, silver and gold coins, with the stone cut into the face.
 - Untested in game.

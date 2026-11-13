@@ -99,6 +99,23 @@ public final class Net {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server -&gt; client: open the fun-item menu. `days` is how long a rank waits between picks, `left` the days still to wait (0 = ready now). */
+    public record FunOpenPayload(java.util.List<String> ids, int days, int left) implements CustomPacketPayload {
+        public static final Type<FunOpenPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "fun_open"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, FunOpenPayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list(32)), FunOpenPayload::ids,
+            ByteBufCodecs.VAR_INT, FunOpenPayload::days, ByteBufCodecs.VAR_INT, FunOpenPayload::left, FunOpenPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    /** Client -&gt; server: the fun item the player picked. */
+    public record FunPickPayload(String id) implements CustomPacketPayload {
+        public static final Type<FunPickPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "fun_pick"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, FunPickPayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.STRING_UTF8, FunPickPayload::id, FunPickPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     /** Server -&gt; client: which LOTM potion recipes this player has unlocked, as "pathway:sequence". JEI hides the rest. */
     public record RecipesPayload(java.util.List<String> keys) implements CustomPacketPayload {
         public static final Type<RecipesPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "recipes"));
@@ -317,6 +334,10 @@ public final class Net {
             else FunItems.CLIENT_SHAPES.put(payload.id(), new float[]{payload.wide(), payload.tall()});
         }));
         registrar.playToClient(RecipesPayload.TYPE, RecipesPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> PotionLock.arrived(payload.keys())));
+        registrar.playToClient(FunOpenPayload.TYPE, FunOpenPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> FunItemScreen.open(payload.ids(), payload.days(), payload.left())));
+        registrar.playToServer(FunPickPayload.TYPE, FunPickPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) FunItems.pick(sp, payload.id());
+        }));
         registrar.playToClient(WeeklyOpenPayload.TYPE, WeeklyOpenPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> WeeklyPackScreen.open(payload.total(), payload.rainbow(), payload.shiny(), payload.claimed())));
         registrar.playToServer(WeeklyClaimPayload.TYPE, WeeklyClaimPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) WeeklyPacks.claim(sp, payload.picks());

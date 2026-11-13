@@ -130,6 +130,32 @@ public final class FunItems {
     /** How many days a rank waits between picks (7, 3 or 1); 0 means the rank gets none. */
     public static int period(ServerPlayer p) { return Math.max(0, Ranks.integer(p, "astral_world.fun_items", 0)); }
 
+    /** Days still to wait before this player may pick again; 0 means now. */
+    public static int waitLeft(ServerPlayer p) {
+        int days = period(p);
+        if (days <= 0) return 0;
+        long now = java.time.LocalDate.now().toEpochDay(), last = p.getPersistentData().getLong(TAG);
+        return last > 0 && now - last < days ? (int) (days - (now - last)) : 0;
+    }
+
+    /** Opens the pick menu, the same way the weekly packs do. */
+    public static void open(ServerPlayer p) {
+        int days = period(p);
+        if (days <= 0) { p.sendSystemMessage(Component.literal("Your rank does not get fun items.").withStyle(ChatFormatting.GRAY)); return; }
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.FunOpenPayload(java.util.List.of(PICKS), days, waitLeft(p)));
+    }
+
+    /** Tells a player who logs in that a fun item is waiting (click the message to open the menu), like the weekly packs do. */
+    public static void onLogin(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer p)) return;
+        UniqAbilities.later(45, () -> {           // a moment, so FTB Ranks has the player
+            if (period(p) <= 0 || waitLeft(p) > 0 || !p.isAlive()) return;
+            p.sendSystemMessage(Component.literal("You have a fun item to pick. ").withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("[Click here or use /funitem]").withStyle(s -> s.withColor(ChatFormatting.YELLOW).withUnderlined(true)
+                    .withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/funitem")))));
+        });
+    }
+
     public static void pick(ServerPlayer p, String id) {
         int days = period(p);
         if (days <= 0) { p.sendSystemMessage(Component.literal("Your rank does not get fun items.").withStyle(ChatFormatting.GRAY)); return; }
@@ -154,13 +180,14 @@ public final class FunItems {
 
     public static void commands(net.neoforged.neoforge.event.RegisterCommandsEvent e) {
         var root = net.minecraft.commands.Commands.literal("funitem").requires(c -> c.getEntity() instanceof ServerPlayer)
-            .executes(c -> {
-                ServerPlayer p = (ServerPlayer) c.getSource().getEntity();
-                int days = period(p);
-                if (days <= 0) { p.sendSystemMessage(Component.literal("Your rank does not get fun items.").withStyle(ChatFormatting.GRAY)); return 0; }
-                p.sendSystemMessage(Component.literal("Pick one with /funitem <name>: shrink_shroom, slim_shroom, wide_shroom, bubble_wand, confetti_popper.").withStyle(ChatFormatting.YELLOW));
-                return 1;
-            });
+            .executes(c -> { open((ServerPlayer) c.getSource().getEntity()); return 1; })
+            .then(net.minecraft.commands.Commands.literal("reset").requires(c -> c.hasPermission(2))
+                .then(net.minecraft.commands.Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player()).executes(c -> {
+                    ServerPlayer t = net.minecraft.commands.arguments.EntityArgument.getPlayer(c, "player");
+                    t.getPersistentData().remove(TAG);
+                    c.getSource().sendSuccess(() -> Component.literal(t.getGameProfile().getName() + " can pick a fun item again."), true);
+                    return 1;
+                })));
         for (String s : PICKS) {
             String name = s.substring(s.indexOf(':') + 1);
             root = root.then(net.minecraft.commands.Commands.literal(name).executes(c -> { pick((ServerPlayer) c.getSource().getEntity(), s); return 1; }));

@@ -15,9 +15,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.lang.reflect.Method;
 import java.time.LocalDate;
-import java.util.Optional;
 
 /**
  * Weekly tarot packs. A player opens a menu (/weeklypacks) and picks their packs for the week. How many, and whether they may take
@@ -42,36 +40,9 @@ public final class WeeklyPacks {
         return day - since;
     }
 
-    // ---- FTB Ranks, by reflection (the mod works without it)
-    private static Object permissionValue(ServerPlayer p, String node) {
-        try {
-            Class<?> api = Class.forName("dev.ftb.mods.ftbranks.api.FTBRanksAPI");
-            Method m = api.getMethod("getPermissionValue", ServerPlayer.class, String.class);
-            return m.invoke(null, p, node);
-        } catch (Throwable t) { return null; }
-    }
-    private static Optional<?> read(Object value, String getter) {
-        if (value == null) return Optional.empty();
-        try {
-            Class<?> pv = Class.forName("dev.ftb.mods.ftbranks.api.PermissionValue");
-            Object r = pv.getMethod(getter).invoke(value);
-            return r instanceof Optional<?> o ? o : Optional.empty();
-        } catch (Throwable t) { return Optional.empty(); }
-    }
-    private static int intNode(ServerPlayer p, String node, int def) {
-        Optional<?> o = read(permissionValue(p, node), "asInteger");
-        return o.isPresent() ? Math.max(0, (Integer) o.get()) : def;
-    }
-    /** A cap node: a number = that many, true = as many as the rank gets in total, otherwise none. */
-    private static int capNode(ServerPlayer p, String node, int total) {
-        Object v = permissionValue(p, node);
-        Optional<?> i = read(v, "asInteger");
-        if (i.isPresent()) return Math.min(total, Math.max(0, (Integer) i.get()));
-        Optional<?> b = read(v, "asBoolean");
-        return b.isPresent() && Boolean.TRUE.equals(b.get()) ? total : 0;
-    }
-    static int total(ServerPlayer p) { return intNode(p, NODE, Settings.weeklyPacksDefault); }
-    static int[] caps(ServerPlayer p, int total) { return new int[]{total, capNode(p, NODE + ".rainbow", total), capNode(p, NODE + ".shiny", total)}; }
+    // ---- the rank's numbers ({@link Ranks} does the reflection; without FTB Ranks everyone gets the default)
+    static int total(ServerPlayer p) { return Math.max(0, Ranks.integer(p, NODE, Settings.weeklyPacksDefault)); }
+    static int[] caps(ServerPlayer p, int total) { return new int[]{total, Ranks.cap(p, NODE + ".rainbow", total), Ranks.cap(p, NODE + ".shiny", total)}; }
     static boolean claimed(ServerPlayer p) { return p.getPersistentData().contains(TAG) && p.getPersistentData().getLong(TAG) == weekStart(); }
 
     // ---- open the menu / claim
@@ -109,14 +80,42 @@ public final class WeeklyPacks {
     /** Tell a player who logs in that they still have their weekly packs to pick (click the message to open the menu). */
     @SubscribeEvent
     public static void onLogin(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer p) || total(p) <= 0 || claimed(p)) return;
-        p.sendSystemMessage(Component.literal("You have " + total(p) + " weekly tarot pack" + (total(p) == 1 ? "" : "s") + " to pick. ").withStyle(ChatFormatting.GOLD)
-            .append(Component.literal("[Click here or use /weeklypacks]").withStyle(s -> s.withColor(ChatFormatting.YELLOW).withUnderlined(true)
-                .withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/weeklypacks")))));
+        if (!(event.getEntity() instanceof ServerPlayer p)) return;
+        UniqAbilities.later(45, () -> {           // a moment, so FTB Ranks has the player and their rank
+            int n = total(p);
+            if (n <= 0 || claimed(p) || !p.isAlive()) return;
+            p.sendSystemMessage(Component.literal("You have " + n + " weekly tarot pack" + (n == 1 ? "" : "s") + " to pick. ").withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("[Click here or use /weeklypacks]").withStyle(s -> s.withColor(ChatFormatting.YELLOW).withUnderlined(true)
+                    .withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/weeklypacks")))));
+        });
     }
+
+    private static int report(net.minecraft.commands.CommandSourceStack src, ServerPlayer who) {
+        src.sendSuccess(() -> Component.literal("FTB Ranks: " + (Ranks.present() ? "found" : "NOT found, so every rank perk is off"))
+            .withStyle(Ranks.present() ? ChatFormatting.GREEN : ChatFormatting.RED), false);
+        for (String n : ALL_NODES) {
+            String line = "  " + n + "  ->  " + Ranks.describe(who, n);
+            src.sendSuccess(() -> Component.literal(line).withStyle(ChatFormatting.GRAY), false);
+        }
+        int t = total(who); int[] c = caps(who, t);
+        src.sendSuccess(() -> Component.literal(who.getGameProfile().getName() + ": " + t + " packs (" + c[1] + " rainbow, " + c[2] + " shiny), "
+            + (claimed(who) ? "already taken this week" : "not taken yet") + "; fun items every "
+            + FunItems.period(who) + " day(s), " + FunItems.waitLeft(who) + " to wait").withStyle(ChatFormatting.YELLOW), false);
+        return 1;
+    }
+
+    /** Every node this mod reads, for the /astralranks report. */
+    private static final String[] ALL_NODES = {NODE, NODE + ".rainbow", NODE + ".shiny", "astral_world.fun_items",
+        "astral_world.cmd.enchanting", "astral_world.cmd.anvil", "astral_world.cmd.enderchest",
+        "astral_world.perks.credit_card", "astral_world.perks.bank_terminal", "astral_world.perks.title"};
 
     @SubscribeEvent
     public static void onCommands(RegisterCommandsEvent event) {
+        // /astralranks [player]: what this server actually reads out of FTB Ranks for that player, node by node.
+        event.getDispatcher().register(Commands.literal("astralranks").requires(c -> c.hasPermission(2))
+            .executes(c -> report(c.getSource(), c.getSource().getPlayerOrException()))
+            .then(Commands.argument("player", EntityArgument.player())
+                .executes(c -> report(c.getSource(), EntityArgument.getPlayer(c, "player")))));
         for (String name : new String[]{"weeklypacks", "packs"}) {
             event.getDispatcher().register(Commands.literal(name).requires(c -> c.getEntity() instanceof ServerPlayer)
                 .executes(c -> { open((ServerPlayer) c.getSource().getEntity()); return 1; })

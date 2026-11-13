@@ -42,6 +42,7 @@ public class AstralMod {
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(Tarot::onItemJoin);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(FunItems::tick);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(FunItems::commands);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(FunItems::onLogin);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(TwilightSword::chat);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(TwilightSword::aura);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(PotionLock::tick);
