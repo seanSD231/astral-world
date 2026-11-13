@@ -399,6 +399,27 @@ public final class EndGame {
         if (event.getEntity() instanceof ServerPlayer p && p.getServer() != null && !AstralData.get(p.getServer()).endPhase.equals("raid")) removeBlessing(p);   // a blessing never outlasts the fight
     }
 
+    /**
+     * Back to day one. Stops the pending close (so nobody else is kicked and the server no longer halts), lets the
+     * fallen back in, undoes the end game, and puts the stage, the barrier and every per-server record of the story
+     * back to their starting values. Players keep their own things: items, sequences, where they were.
+     */
+    static void fullReset(MinecraftServer server) {
+        closeAt = -1; closeMessage = "";
+        AstralData d = AstralData.get(server);
+        if (d.endPhase.isEmpty() && !d.earthGone && d.bossesDead.isEmpty()) d.endPhase = "reset";   // so resetAll does its work even from a clean-looking state
+        resetAll(server);
+        d.endPhase = ""; d.endUntil = 0; d.evacOffered = false; d.earthGone = false; d.resumeStage = 1;
+        d.bossesDead.clear(); d.stats.clear(); d.raidLives.clear(); d.raidBoss = ""; d.allyPairs.clear();
+        d.stage3Text = ""; d.stage5Seen = false; d.damageAccum = 0; d.seenStage.clear();
+        Stage.set(server, 0);              // also unmutes everyone and clears the list of the fallen
+        EndChaos.unmuteAll(server);
+        d.hp = AstralBarrier.getMax(server);
+        d.setDirty();
+        server.overworld().getDataStorage().save();
+        LOGGER.info("[astral] full reset: the story is back at stage 0 and the server is open again");
+    }
+
     /** Puts everything back as it was: Earth, the overworld, the bosses. Does not touch the stage. */
     static void resetAll(MinecraftServer server) {
         woken.clear();
@@ -3591,6 +3612,16 @@ public final class EndGame {
                     resetAll(s);
                     Stage.set(s, 0);
                     return 1;
-                })));
+                }))
+                // Everything back to day one, from the console too: for opening the server again after it has ended.
+                .then(Commands.literal("fullreset").executes(ctx -> {
+                    ctx.getSource().sendSuccess(() -> Component.literal("This puts the whole Astral World story back to the start: stage 0, barrier, Earth, bosses, raid, stats, and the closing of the server. Run /endgame fullreset confirm to do it.").withStyle(ChatFormatting.YELLOW), false);
+                    return 1;
+                }).then(Commands.literal("confirm").executes(ctx -> {
+                    MinecraftServer s = ctx.getSource().getServer();
+                    fullReset(s);
+                    ctx.getSource().sendSuccess(() -> Component.literal("Astral World is back at the start. Players who are not operators can join again.").withStyle(ChatFormatting.GREEN), true);
+                    return 1;
+                }))));
     }
 }

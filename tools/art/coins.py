@@ -48,6 +48,9 @@ def coin(name):
     return im
 
 os.makedirs(OUT, exist_ok=True)
+OUT2 = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../src/main/resources/resourcepacks/gem_coins/assets/numismatics/textures/item/coin/')
+os.makedirs(OUT2, exist_ok=True)
 for n in PALETTES:
     coin(n).save(os.path.join(OUT, n + '.png'))
+    coin(n).save(os.path.join(OUT2, n + '.png'))   # the always-on-top built-in pack (AstralMod registers it)
     print('wrote', n + '.png')

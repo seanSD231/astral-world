@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.221
+- /endgame fullreset confirm (ops, or the console) puts the whole story back to day one so the server can open again after it has ended: it stops the pending close and its kicks, lets the fallen back in, restores Earth and the bosses, clears the raid, the stats and the allies, and sets the stage to 0 with a full barrier. Players keep their own items and sequences.
+- Untested in game.
+
+## 0.2.220
+- The amethyst, emerald and diamond coins now come from a built-in resource pack that is always on and always on top, so they replace Numismatics' cog, crown and sun whatever order the mods load in. Relying on load order alone left the old coins showing.
+- Untested in game.
+
 ## 0.2.219
 - The shrooms no longer touch the hitbox, the Mystic Shroom included: all three only change how you are drawn. They are more extreme (a quarter size; a beanpole; a pancake over three times as wide), spring into shape with a bounce, wobble like jelly while they last, and come with a run of notes, a puff of particles and a pop when they wear off.
 - The confetti popper throws two and a half times the confetti with a flash and a bang; the bubble wand blows three times the bubbles.

@@ -25,6 +25,13 @@ public class AstralMod {
     public AstralMod(IEventBus modBus) {
         liftHealthCap();
         modBus.addListener(Net::register);
+        // The gem coins: a built-in pack that is always on and always on top, so Numismatics' own cog, crown and sun
+        // art and names lose to ours whatever order the mods load in (relying on load order alone did not work).
+        modBus.addListener((net.neoforged.neoforge.event.AddPackFindersEvent e) -> {
+            if (e.getPackType() == net.minecraft.server.packs.PackType.CLIENT_RESOURCES)
+                e.addPackFinders(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "resourcepacks/gem_coins"), net.minecraft.server.packs.PackType.CLIENT_RESOURCES,
+                    net.minecraft.network.chat.Component.literal("Astral World gem coins"), net.minecraft.server.packs.repository.PackSource.BUILT_IN, true, net.minecraft.server.packs.repository.Pack.Position.TOP);
+        });
         modBus.addListener(CoinStacks::modify);
         modBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent e) -> e.enqueueWork(() -> { CoinBridge.patchValues(); CoinStacks.patchLotmList(); }));
         AstralFloor.register(modBus);
