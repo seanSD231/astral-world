@@ -12,6 +12,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
@@ -20,6 +21,7 @@ import java.util.List;
 
 /** What the G key does for each worn Uniqueness. LOTM is reached by reflection, like everywhere else. */
 public final class UniqAbilities {
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
     private UniqAbilities() {}
 
     /** Death: the feathered serpent strikes everything nearby for 25, you and your allies included. At Seq 1/0 it reaches 50 blocks, strikes only foes, takes 30% of their health and slows them. */
@@ -272,18 +274,30 @@ public final class UniqAbilities {
 
     /** Who has the Quill's storytelling screen open, and until when: only their stories are told on the Quill's authority. */
     private static final java.util.Map<java.util.UUID, Long> QUILLING = new java.util.HashMap<>();
+    /** Who was handed a Prophecy in an empty hotbar slot for it, and which slot was selected before. */
+    private static final java.util.Map<java.util.UUID, int[]> LENT_SLOT = new java.util.HashMap<>();
     private static final int QUILL_TICKS = 20 * 180;
     private static net.minecraft.world.item.Item prophecyItem;
     private static boolean prophecyLooked;
 
-    /** LOTM's own Prophecy ability item, found by its class so the registry name does not matter. */
+    /**
+     * LOTM's Prophecy ability item. Storytelling.tell drops the story on the floor unless the teller's main hand holds
+     * one of these (or a ProphecyForm), and that is the whole reason the Quill never worked.
+     */
     private static net.minecraft.world.item.Item prophecy() {
         if (!prophecyLooked) {
             prophecyLooked = true;
-            try {
-                Class<?> pc = Class.forName("net.swimmingtuna.lotm.pathway.spectator.abilities.Prophecy");
-                for (net.minecraft.world.item.Item it : BuiltInRegistries.ITEM) if (pc.isInstance(it)) { prophecyItem = it; break; }
-            } catch (Throwable ignored) { }
+            for (String n : new String[]{"net.swimmingtuna.lotm.pathway.spectator.abilities.Prophecy", "net.swimmingtuna.lotm.pathway.spectator.abilities.Prophecy$ProphecyForm"}) {
+                try {
+                    Class<?> pc = Class.forName(n);
+                    for (var e : BuiltInRegistries.ITEM.entrySet()) if (pc.isInstance(e.getValue())) {
+                        prophecyItem = e.getValue();
+                        LOGGER.info("[astral] quill: using {} ({}) to satisfy LOTM's storytelling check", e.getKey().location(), n.substring(n.lastIndexOf('.') + 1));
+                        return prophecyItem;
+                    }
+                } catch (Throwable ignored) { }
+            }
+            LOGGER.warn("[astral] quill: no Prophecy item is registered, so LOTM will refuse every story");
         }
         return prophecyItem;
     }
@@ -294,76 +308,126 @@ public final class UniqAbilities {
         return d != null && d.copyTag().contains("astral_lent");
     }
 
+    /**
+     * Puts a Prophecy in an empty hotbar slot and selects it, so LOTM's own handler sees it when the story comes in.
+     * Nothing of the player's is moved or replaced: with no empty hotbar slot this does nothing and the story is told
+     * by {@link #tellByQuill} instead. The slot is cleared again by {@link #returnProphecy}.
+     */
+    private static void lendProphecy(ServerPlayer sp) {
+        net.minecraft.world.item.Item pi = prophecy();
+        if (pi == null || LENT_SLOT.containsKey(sp.getUUID())) return;
+        var inv = sp.getInventory();
+        for (int i = 0; i < 9; i++) {
+            if (!inv.getItem(i).isEmpty()) continue;
+            ItemStack give = new ItemStack(pi);
+            CustomData.update(net.minecraft.core.component.DataComponents.CUSTOM_DATA, give, t -> t.putBoolean("astral_lent", true));
+            inv.setItem(i, give);
+            LENT_SLOT.put(sp.getUUID(), new int[]{i, inv.selected});
+            inv.selected = i;
+            sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(i));
+            return;
+        }
+        LOGGER.info("[astral] quill: {} has no empty hotbar slot, so the story goes the long way round", sp.getGameProfile().getName());
+    }
+
+    /** Takes back anything the Quill lent, wherever it ended up, and puts the player's old slot back. */
     public static void returnProphecy(ServerPlayer sp) {
         QUILLING.remove(sp.getUUID());
+        int[] slot = LENT_SLOT.remove(sp.getUUID());
         var inv = sp.getInventory();
         for (int i = 0; i < inv.getContainerSize(); i++) if (lent(inv.getItem(i))) inv.setItem(i, ItemStack.EMPTY);
+        if (slot != null && slot[1] >= 0 && slot[1] < 9) {
+            inv.selected = slot[1];
+            sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(slot[1]));
+        }
     }
 
     private static void tickQuills(net.minecraft.server.MinecraftServer server) {
-        if (QUILLING.isEmpty()) return;
+        if (QUILLING.isEmpty() && LENT_SLOT.isEmpty()) return;
         long now = server.overworld().getGameTime();
-        QUILLING.values().removeIf(until -> now > until);
+        for (var e : new java.util.ArrayList<>(QUILLING.entrySet())) {
+            if (now <= e.getValue()) continue;
+            ServerPlayer sp = server.getPlayerList().getPlayer(e.getKey());
+            if (sp != null) returnProphecy(sp); else { QUILLING.remove(e.getKey()); LENT_SLOT.remove(e.getKey()); }
+        }
+        if (server.getTickCount() % 20 == 0) for (ServerPlayer sp : server.getPlayerList().getPlayers()) watch(sp);   // anyone who joined before this was loaded, and anyone whose pipeline was rebuilt
+    }
+
+    /** True if this player is allowed to tell a story on the Quill's authority: the screen is open, or the Quill is on them. */
+    private static boolean mayTell(ServerPlayer sp) {
+        if (QUILLING.containsKey(sp.getUUID())) return true;
+        ItemStack worn = WornUniq.findWorn(sp);
+        return !worn.isEmpty() && "quill_of_alzuhod".equals(BuiltInRegistries.ITEM.getKey(worn.getItem()).getPath());
     }
 
     /**
-     * Watches this player's connection for LOTM's "tell this story" packet. LOTM throws the story away unless the teller
-     * holds a Prophecy, and deletes a Prophecy from anyone who should not have one, so lending the item never worked.
-     * Instead, when the packet comes from someone with the Quill's screen open, the story is told here: the Prophecy is
-     * put in their hand, LOTM's own tell() is called, and their hand is put back, all inside one server task so nothing
-     * of LOTM's can run in between. LOTM's own handler then sees no Prophecy and does nothing, as before.
+     * Watches this player's connection for LOTM's "tell this story" packet. LOTM throws the story away unless the
+     * teller holds a Prophecy, and it takes a Prophecy off anyone who should not have one, so lending the item alone
+     * was never enough. When the packet comes from someone the Quill speaks for, the story is told here: the Prophecy
+     * goes into their hand, LOTM's own tell() runs, and their hand is put back, all inside one server task so nothing
+     * of LOTM's can run in between. If the lent Prophecy did survive, LOTM's own handler tells it and this does nothing.
      */
     public static void watchStories(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent e) {
-        if (!(e.getEntity() instanceof ServerPlayer sp)) return;
+        if (e.getEntity() instanceof ServerPlayer sp) watch(sp);
+    }
+
+    private static void watch(ServerPlayer sp) {
         try {
             var pipe = sp.connection.getConnection().channel().pipeline();
-            if (pipe.get("astral_quill") != null || pipe.get("packet_handler") == null) return;
+            if (pipe.get("astral_quill") != null) return;
+            if (pipe.get("packet_handler") == null) { LOGGER.warn("[astral] quill: no packet_handler on {}'s pipeline: {}", sp.getGameProfile().getName(), pipe.names()); return; }
             final java.util.UUID id = sp.getUUID();
             final net.minecraft.server.MinecraftServer server = sp.server;
             pipe.addBefore("packet_handler", "astral_quill", new io.netty.channel.ChannelInboundHandlerAdapter() {
                 @Override public void channelRead(io.netty.channel.ChannelHandlerContext ctx, Object msg) throws Exception {
                     try {
-                        if (msg instanceof net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket pk
-                                && pk.payload().getClass().getName().endsWith(".TellStoryC2S") && QUILLING.containsKey(id)) {
+                        if (msg instanceof net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket pk && pk.payload() != null
+                                && pk.payload().getClass().getName().endsWith(".TellStoryC2S")) {
                             Object words = pk.payload().getClass().getMethod("words").invoke(pk.payload());
+                            LOGGER.info("[astral] quill: a story packet arrived from {}", id);
                             if (words instanceof java.util.List<?> w) {
                                 java.util.List<String> copy = new java.util.ArrayList<>();
                                 for (Object o : w) copy.add(String.valueOf(o));
                                 server.execute(() -> { ServerPlayer p = server.getPlayerList().getPlayer(id); if (p != null) tellByQuill(p, copy); });
                             }
                         }
-                    } catch (Throwable t) { com.mojang.logging.LogUtils.getLogger().warn("[astral] quill: could not read the story packet: {}", t.toString()); }
+                    } catch (Throwable t) { LOGGER.warn("[astral] quill: could not read the story packet: {}", t.toString()); }
                     super.channelRead(ctx, msg);
                 }
             });
+            LOGGER.info("[astral] quill: watching {}'s stories", sp.getGameProfile().getName());
         } catch (Throwable t) {
-            com.mojang.logging.LogUtils.getLogger().warn("[astral] quill: could not watch {}'s connection: {}", sp.getGameProfile().getName(), t.toString());
+            LOGGER.warn("[astral] quill: could not watch {}'s connection: {}", sp.getGameProfile().getName(), t.toString());
         }
     }
 
     /** Tells the story with a Prophecy in hand for exactly as long as LOTM's tell() takes. */
     private static void tellByQuill(ServerPlayer sp, java.util.List<String> words) {
-        if (QUILLING.remove(sp.getUUID()) == null) return;
+        if (!mayTell(sp)) { LOGGER.info("[astral] quill: {} told a story but the quill does not speak for them", sp.getGameProfile().getName()); return; }
         net.minecraft.world.item.Item pi = prophecy();
-        if (pi == null) { sp.displayClientMessage(Component.literal("The quill stays still.").withStyle(ChatFormatting.GRAY), true); return; }
-        if (pi.getClass().isInstance(sp.getMainHandItem().getItem())) return;   // their own Prophecy: LOTM tells it itself
+        if (pi == null) { sp.displayClientMessage(Component.literal("The quill stays still.").withStyle(ChatFormatting.GRAY), true); returnProphecy(sp); return; }
         int slot = sp.getInventory().selected;
         ItemStack held = sp.getInventory().getItem(slot);
+        boolean already = pi.getClass().isInstance(held.getItem());   // the lent one survived: LOTM's own handler will tell it
         try {
-            sp.getInventory().setItem(slot, new ItemStack(pi));
-            Class.forName("net.swimmingtuna.lotm.pathway.spectator.story.Storytelling").getMethod("tell", ServerPlayer.class, java.util.List.class).invoke(null, sp, words);
-            com.mojang.logging.LogUtils.getLogger().info("[astral] quill: {} told a story of {} words", sp.getGameProfile().getName(), words.size());
+            if (!already) sp.getInventory().setItem(slot, new ItemStack(pi));
+            Class.forName("net.swimmingtuna.lotm.pathway.spectator.story.Storytelling")
+                .getMethod("tell", ServerPlayer.class, java.util.List.class).invoke(null, sp, words);
+            LOGGER.info("[astral] quill: told {}'s story of {} words{}", sp.getGameProfile().getName(), words.size(), already ? " (LOTM had the item already)" : "");
         } catch (Throwable t) {
-            com.mojang.logging.LogUtils.getLogger().warn("[astral] quill: the story could not be told: {}", t.toString());
+            LOGGER.warn("[astral] quill: the story could not be told: {}", t.toString());
             sp.displayClientMessage(Component.literal("The quill stays still.").withStyle(ChatFormatting.GRAY), true);
         } finally {
-            sp.getInventory().setItem(slot, held);
+            if (!already) sp.getInventory().setItem(slot, held);
+            returnProphecy(sp);
         }
     }
 
     /** Spectator: the Quill opens the Storytelling screen (the Seq 1 prophecy ability), through LOTM's own packet. */
     public static void quill(ServerPlayer sp, ItemStack st) {
         QUILLING.put(sp.getUUID(), sp.level().getGameTime() + QUILL_TICKS);   // their next story is told on the Quill's authority (see watchStories)
+        watch(sp);
+        lendProphecy(sp);   // if LOTM lets them keep it, LOTM's own handler does the work and nothing else is needed
         try {
             Class<?> story = Class.forName("net.swimmingtuna.lotm.pathway.spectator.story.Storytelling");
             Class<?> pk = Class.forName("net.swimmingtuna.lotm.network.spectator.OpenStorytellingScreenS2C");

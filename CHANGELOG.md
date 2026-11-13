@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.238
+- The Quill, third attempt, now by two routes at once. When you open its screen it puts a Prophecy in an empty hotbar slot and selects it, so if LOTM lets you keep it for those few seconds its own handler tells the story and nothing else is needed; the slot is emptied and your old one reselected afterwards, and nothing of yours is ever moved or replaced (with no empty hotbar slot it simply skips this). If LOTM takes the Prophecy away, the story is still caught on its way in and told here with a Prophecy in hand for exactly that call, as before.
+- What went wrong before should now be visible: the watcher is reinstalled every second for everyone online rather than only on login, it says in the log which Prophecy item it found and whose stories it is watching, and it logs every story packet it sees and what became of it.
+- Untested in game.
+
 ## 0.2.237
 - A sealed Uniqueness is the Sequence 1 version for everyone. There is no taking one in any more, so there is no lesser form either: what used to need a Seq 1 or 0 of that pathway is simply what the artifact does.
 - The pack art is three times the resolution (188 to 564 square). It was being blown up nearly five times on a 1080p screen while you tore it open, which is where the pixelation came from. Jar grows by under a megabyte.
