@@ -880,7 +880,7 @@ public final class EndGame {
         introChat.clear(); introQueue = true;
         rt = 0; aggro = false; graceUntil = INTRO_TICKS + GRACE_TICKS; cutscene = false; nextTreeCast = 0; nextPattern = 100; lastPattern = 3; nextTempest = 0; lastHit.clear(); rootsActive = false; rootStage = 0; roots.clear(); seeds.clear(); activeKind = 0; ultimateDone = false; nextUltimate = 0; ultCutsceneUntil = 0; clouds.clear(); fruits.clear(); summonSeals.clear(); summonMobs.clear(); globes.clear(); pendingUse.clear(); dazedUntil = 0; temptUntil = 0; bloomTrue = null; kingdomDone = false; kingdomEnd = 0; ultFallUntil = 0; ultImmuneUntil = 0; treeFleshy = false; lineBucket = 20;
         traitor = null; offered = null; offerDone = false; echo = null; resetGrowth(); noHeal.clear(); bloomNoHeal.clear(); sanityLock.clear(); lifeDamage.clear(); desire.clear(); thrallHitAt.clear();
-        novaDone = false;
+        novaDone = false; raidPeak = 0;
         Mob boss = makeMob(lv, RAID_PATHWAY, RAID_NAME, 0.5, groundY + 2, 0.5);
         if (boss != null) {
             boss.addTag(TAG_BOSS);
@@ -2467,6 +2467,7 @@ public final class EndGame {
     // ---- the supernova: at 5% she spends everything left on one star
 
     private static boolean novaDone = false;
+    private static int raidPeak = 0;   // the most fighters this raid has had at once: her damage scaling goes by it
     private static final int NOVA_WIND = 200;   // ten seconds of warning
 
     /**
@@ -3256,6 +3257,10 @@ public final class EndGame {
                 m.setHealth(hp);
             }
             Float last = lastHp.get(m.getUUID());
+            if (m.getTags().contains(TAG_RAID) && last != null && hp < last - 0.5f && hp > 0f) {   // health that went without a hit this code passed: Depravity and its like set it directly and were deleting her. Put back.
+                if (gt % 20 == 0) LOGGER.info("[astral] the tree lost {} health to something that was not a hit: restored", last - hp);
+                hp = last; m.setHealth(hp);
+            }
             if (m.getTags().contains(TAG_RAID) && last != null && hp > last + 0.5f && gt > healOkUntil) { hp = last; m.setHealth(hp); }   // no natural regeneration, no healing from anything else: she only heals when the fight says so
             if (last != null && hp < last - max * MAX_DROP) { hp = Math.max(1f, last - max * MAX_HIT); m.setHealth(hp); }
             lastHp.put(m.getUUID(), hp);
@@ -3382,7 +3387,7 @@ public final class EndGame {
         }
         float hp = tree.getHealth(), bound = rootStage < THRESHOLDS.length ? THRESHOLDS[rootStage] * RAID_HP : 0f;
         float next = Math.max(bound, hp - RAID_HP * 0.10f);
-        tree.setHealth(next);
+        tree.setHealth(next); lastHp.put(tree.getUUID(), next);
         p.displayClientMessage(Component.literal("Smite: " + String.format("%.1f", next / RAID_HP * 100) + "% left").withStyle(ChatFormatting.GOLD), true);
     }
 
@@ -3440,7 +3445,9 @@ public final class EndGame {
             float res = (zap ? 0.4f : 1f) * (sailor ? 0.6f : 1f);   // she resists lightning: 60% less; a Tyrant's storms and calamities (and all else a Tyrant does) do 40% less on top
             float raw = Math.max(1f, event.getAmount());
             float comp = (float) (100.0 * Math.pow(raw, 0.45));   // weak hits now count (a 5 does 0.02%) while huge hits are squeezed (a 100,000 does 1.8%), and a bigger hit is always worth more
-            float a = rateLimit(le, Math.min(comp * RAID_DAMAGE * res * (rt < dazedUntil ? 1.25f : 1f), le.getMaxHealth() * RAID_HIT * res), RAID_RATE);
+            if (e.level() instanceof ServerLevel cl) raidPeak = Math.max(raidPeak, fighters(cl).size());
+            float crowdScale = Math.min(1f, Settings.raidFullDamagePlayers / (float) Math.max(1, raidPeak));   // thirty fighters together do what three would: she is as hard for a crowd as for a few (the most there have been this fight counts, so she does not soften as they fall)
+            float a = rateLimit(le, Math.min(comp * RAID_DAMAGE * res * crowdScale * (rt < dazedUntil ? 1.25f : 1f), le.getMaxHealth() * RAID_HIT * res), RAID_RATE);
             if (zap) a = rateLimit(le, new UUID(le.getUUID().getMostSignificantBits() ^ 0x5A5AL, le.getUUID().getLeastSignificantBits()), a, 0.0008f);   // Ocean of Lightning only drains her: 0.08% of her health a second at most   // dazed: 25% more, still under her caps
             if (rootStage < THRESHOLDS.length) {
                 float line = THRESHOLDS[rootStage] * RAID_HP, room = Math.max(0f, le.getHealth() - line);

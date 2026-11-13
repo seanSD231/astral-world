@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.224
+- The Mother Tree scales with the crowd: up to raid_full_damage_players fighters (settings.properties, default 3) hurt her at full strength, and past that every hit is scaled so any number together do what that many would. The count is the most fighters the raid has had at once, so she does not soften as they fall.
+- Depravity can no longer delete her health. Her health now only falls by hits the raid's own damage rules passed: anything that sets it directly (the Hanged Man's Depravity, and whatever else does the same) is put back on the next tick and logged.
+- Untested in game.
+
 ## 0.2.223
 - The hunger games leaderboard is a monument now, not a row of signs: /hungergames board sets down one entity drawn as a six-block slab of dark stone in a gold frame on a stepped plinth, a pillar each side with a burning brazier, and a turning gold emblem on the pediment. Cut into the front: the last game's champion with their face, kills and the field size, places two to nine behind them, and on the right the champions of up to six earlier games. It follows the games by itself, cannot be hurt or walked into, and /hungergames board remove takes the nearest one away. Old sign boards stay where they are and still update.
 - Untested in game.
