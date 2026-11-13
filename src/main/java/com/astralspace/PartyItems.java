@@ -61,11 +61,14 @@ public final class PartyItems {
                 java.util.Random r = new java.util.Random();
                 level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.FIREWORK_ROCKET_BLAST, SoundSource.PLAYERS, 1.0f, 1.3f);
                 level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.FIREWORK_ROCKET_TWINKLE, SoundSource.PLAYERS, 0.8f, 1.0f);
-                for (int i = 0; i < 260; i++) {
-                    Vec3 d = inCone(look, .6, r);
+                for (int i = 0; i < 650; i++) {
+                    Vec3 d = inCone(look, .75, r);
                     lv.sendParticles(CONFETTI.get(), from.x, from.y, from.z, 0, d.x, d.y, d.z, .35 + r.nextDouble() * .55);
                 }
-                lv.sendParticles(ParticleTypes.FIREWORK, from.x, from.y, from.z, 20, .1, .1, .1, .12);
+                lv.sendParticles(ParticleTypes.FIREWORK, from.x, from.y, from.z, 60, .1, .1, .1, .22);
+                lv.sendParticles(ParticleTypes.FLASH, from.x, from.y, from.z, 1, 0, 0, 0, 0);
+                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, .5f, 1.9f);
+                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, .6f, 1.5f);
             }
             player.getCooldowns().addCooldown(this, 20);
             player.swing(hand);
@@ -97,8 +100,8 @@ public final class PartyItems {
             if (t % 2 != 0) return;
             Vec3 look = user.getLookAngle(), from = user.getEyePosition().add(look.scale(.9)).add(0, -.25, 0);
             java.util.Random r = new java.util.Random();
-            for (int i = 0; i < 2; i++) {
-                Vec3 d = inCone(look, .18, r).add(0, .08, 0);
+            for (int i = 0; i < 6; i++) {
+                Vec3 d = inCone(look, .3, r).add(0, .08, 0);
                 lv.sendParticles(BUBBLE.get(), from.x, from.y, from.z, 0, d.x, d.y, d.z, .14 + r.nextDouble() * .12);
             }
             if (t % 6 == 0) {

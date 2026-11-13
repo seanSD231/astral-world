@@ -30,8 +30,8 @@ import java.util.UUID;
 
 /**
  * Fun items: three shrooms that reshape whoever is right clicked (or yourself) for a minute.
- * Shrinking uses the vanilla scale attribute, so the hitbox shrinks with you. Thin and wide have no vanilla equivalent,
- * so they are a squash and a stretch of how the player is drawn ({@link WornClient} is not involved): the hitbox stays as it was.
+ * All three only change how the player is drawn ({@link FunClient} springs them into the new shape and wobbles them):
+ * the hitbox, reach and eye height stay exactly as they were.
  */
 public final class FunItems {
     private FunItems() {}
@@ -74,18 +74,9 @@ public final class FunItems {
             ServerPlayer p = null;
             for (ServerPlayer q : e.getServer().getPlayerList().getPlayers()) if (q.getId() == en.getKey()) { p = q; break; }
             if (p == null) { it.remove(); continue; }
-            if (now >= en.getValue()[2]) { it.remove(); send(p, 1f, 1f); p.displayClientMessage(Component.literal("You are yourself again.").withStyle(ChatFormatting.GRAY), true); continue; }
+            if (now >= en.getValue()[2]) { it.remove(); send(p, 1f, 1f); p.level().playSound(null, p.blockPosition(), SoundEvents.BUBBLE_COLUMN_BUBBLE_POP, SoundSource.PLAYERS, 1.3f, .7f); p.displayClientMessage(Component.literal("You are yourself again.").withStyle(ChatFormatting.GRAY), true); continue; }
             if (now % 40 == 0) send(p, en.getValue()[0], en.getValue()[1]);
         }
-    }
-
-    /** Takes the shrink back off when the minute is up. */
-    private static void shrink(LivingEntity who, double to) {
-        AttributeInstance a = who.getAttribute(Attributes.SCALE);
-        if (a == null) return;
-        a.removeModifier(SHRINK_ID);
-        if (to != 1.0) a.addTransientModifier(new AttributeModifier(SHRINK_ID, to - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
-        UniqAbilities.later(MINUTE, () -> { AttributeInstance b = who.getAttribute(Attributes.SCALE); if (b != null) b.removeModifier(SHRINK_ID); });
     }
 
     // ------------------------------------------------------------------ the item
@@ -116,12 +107,28 @@ public final class FunItems {
         }
     }
 
-    /** Reshapes a player for a minute. A second shroom simply replaces the first. */
+    /** {wide, tall} for each shroom: tiny all over, a beanpole, a pancake. Only how the player is drawn changes, never the hitbox. */
+    private static final float[][] SHAPE = {{.25f, .25f}, {.16f, 1.3f}, {3.4f, .7f}};
+
+    /** Reshapes a player for a minute, with a noise and a puff. A second shroom simply replaces the first. */
     public static void apply(ServerPlayer p, int kind) {
-        shrink(p, kind == 0 ? .45 : 1.0);
-        setShape(p, kind == 1 ? .45f : kind == 2 ? 2.1f : 1f, kind == 1 ? 1.05f : kind == 2 ? .92f : 1f, MINUTE);
-        p.level().playSound(null, p.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1f, kind == 0 ? 1.8f : kind == 1 ? 1.4f : .6f);
-        p.displayClientMessage(Component.literal(kind == 0 ? "You shrink." : kind == 1 ? "You go very thin." : "You go very wide.").withStyle(ChatFormatting.LIGHT_PURPLE), true);
+        AttributeInstance old = p.getAttribute(Attributes.SCALE);
+        if (old != null) old.removeModifier(SHRINK_ID);   // the shrink used to be a real scale change: clear any left over
+        setShape(p, SHAPE[kind][0], SHAPE[kind][1], MINUTE);
+        if (p.level() instanceof net.minecraft.server.level.ServerLevel lv) {
+            lv.sendParticles(net.minecraft.core.particles.ParticleTypes.POOF, p.getX(), p.getY() + 1, p.getZ(), 40, .4, .8, .4, .08);
+            lv.sendParticles(kind == 0 ? net.minecraft.core.particles.ParticleTypes.END_ROD : kind == 1 ? net.minecraft.core.particles.ParticleTypes.GLOW : net.minecraft.core.particles.ParticleTypes.ITEM_SLIME,
+                p.getX(), p.getY() + 1, p.getZ(), 30, .5, .9, .5, .05);
+            // a run of notes: up the scale for getting small or thin, down it for getting wide
+            for (int i = 0; i < 8; i++) {
+                final float pitch = kind == 2 ? 1.6f - i * .15f : .6f + i * .19f;
+                UniqAbilities.later(i * 2, () -> lv.playSound(null, p.getX(), p.getY(), p.getZ(),
+                    (kind == 2 ? SoundEvents.NOTE_BLOCK_DIDGERIDOO : kind == 1 ? SoundEvents.NOTE_BLOCK_FLUTE : SoundEvents.NOTE_BLOCK_CHIME).value(), SoundSource.PLAYERS, 1.2f, pitch));
+            }
+            UniqAbilities.later(16, () -> lv.playSound(null, p.getX(), p.getY(), p.getZ(),
+                kind == 2 ? SoundEvents.SLIME_SQUISH : kind == 1 ? SoundEvents.FISHING_BOBBER_RETRIEVE : SoundEvents.BUBBLE_COLUMN_BUBBLE_POP, SoundSource.PLAYERS, 1.4f, kind == 2 ? .5f : 1.6f));
+        }
+        p.displayClientMessage(Component.literal(kind == 0 ? "You shrink to almost nothing." : kind == 1 ? "You stretch into a beanpole." : "You flatten out like a pancake.").withStyle(ChatFormatting.LIGHT_PURPLE), true);
     }
 
     // ------------------------------------------------------------------ the rank pick

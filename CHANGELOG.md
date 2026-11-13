@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.219
+- The shrooms no longer touch the hitbox, the Mystic Shroom included: all three only change how you are drawn. They are more extreme (a quarter size; a beanpole; a pancake over three times as wide), spring into shape with a bounce, wobble like jelly while they last, and come with a run of notes, a puff of particles and a pop when they wear off.
+- The confetti popper throws two and a half times the confetti with a flash and a bang; the bubble wand blows three times the bubbles.
+- Untested in game.
+
 ## 0.2.218
 - The Quill tells its story now. LOTM drops a story unless the teller holds a Prophecy and deletes a Prophecy from anyone who should not have one, so lending the item could never work. The mod now watches for LOTM's "tell this story" packet from whoever has the Quill's screen open and tells it itself: Prophecy into the hand, LOTM's own tell(), hand put back, all in one server step with nothing in between.
 - Untested in game.
