@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.239
+- The Quill: the missing piece. LOTM asks a teller for two things, and the Quill only ever answered one of them. Besides a Prophecy in the main hand, Storytelling builds its context from Pathways.getSequence, and the grammar refuses every story told from below Sequence 1 of the Spectator, which is why nothing happened and no reason was given. For the length of the one call that tells the story the Quill now writes Spectator Sequence 1 onto LOTM's own holder and puts the real pathway and sequence straight back, inside the same server task, so no tick of LOTM's runs while they are borrowed and a story that throws still leaves you exactly as you were.
+- The Prophecy is taken from SpectatorItems.PROPHECY_STORYTELLING, the item tell() itself looks for, rather than hunted for in the registry. Lending one into a hotbar slot is gone: with the sequence check it could never have worked on its own, and it risked the story being told twice.
+- Untested in game.
+
 ## 0.2.238
 - The Quill, third attempt, now by two routes at once. When you open its screen it puts a Prophecy in an empty hotbar slot and selects it, so if LOTM lets you keep it for those few seconds its own handler tells the story and nothing else is needed; the slot is emptied and your old one reselected afterwards, and nothing of yours is ever moved or replaced (with no empty hotbar slot it simply skips this). If LOTM takes the Prophecy away, the story is still caught on its way in and told here with a Prophecy in hand for exactly that call, as before.
 - What went wrong before should now be visible: the watcher is reinstalled every second for everyone online rather than only on login, it says in the log which Prophecy item it found and whose stories it is watching, and it logs every story packet it sees and what became of it.

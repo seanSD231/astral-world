@@ -274,7 +274,7 @@ public final class UniqAbilities {
 
     /** Who has the Quill's storytelling screen open, and until when: only their stories are told on the Quill's authority. */
     private static final java.util.Map<java.util.UUID, Long> QUILLING = new java.util.HashMap<>();
-    /** Who was handed a Prophecy in an empty hotbar slot for it, and which slot was selected before. */
+    /** Left from the old way of lending the item out: a slot to clear and the slot that was selected before it. */
     private static final java.util.Map<java.util.UUID, int[]> LENT_SLOT = new java.util.HashMap<>();
     private static final int QUILL_TICKS = 20 * 180;
     private static net.minecraft.world.item.Item prophecyItem;
@@ -287,6 +287,15 @@ public final class UniqAbilities {
     private static net.minecraft.world.item.Item prophecy() {
         if (!prophecyLooked) {
             prophecyLooked = true;
+            for (String f : new String[]{"PROPHECY_STORYTELLING", "PROPHECY"}) try {   // the very items tell() looks for
+                Object dh = Class.forName("net.swimmingtuna.lotm.pathway.spectator.SpectatorItems").getField(f).get(null);
+                Object it = dh.getClass().getMethod("get").invoke(dh);
+                if (it instanceof net.minecraft.world.item.Item item) {
+                    prophecyItem = item;
+                    LOGGER.info("[astral] quill: using SpectatorItems.{} for LOTM's storytelling check", f);
+                    return prophecyItem;
+                }
+            } catch (Throwable ignored) { }
             for (String n : new String[]{"net.swimmingtuna.lotm.pathway.spectator.abilities.Prophecy", "net.swimmingtuna.lotm.pathway.spectator.abilities.Prophecy$ProphecyForm"}) {
                 try {
                     Class<?> pc = Class.forName(n);
@@ -306,28 +315,6 @@ public final class UniqAbilities {
     public static boolean lent(ItemStack st) {
         var d = st.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
         return d != null && d.copyTag().contains("astral_lent");
-    }
-
-    /**
-     * Puts a Prophecy in an empty hotbar slot and selects it, so LOTM's own handler sees it when the story comes in.
-     * Nothing of the player's is moved or replaced: with no empty hotbar slot this does nothing and the story is told
-     * by {@link #tellByQuill} instead. The slot is cleared again by {@link #returnProphecy}.
-     */
-    private static void lendProphecy(ServerPlayer sp) {
-        net.minecraft.world.item.Item pi = prophecy();
-        if (pi == null || LENT_SLOT.containsKey(sp.getUUID())) return;
-        var inv = sp.getInventory();
-        for (int i = 0; i < 9; i++) {
-            if (!inv.getItem(i).isEmpty()) continue;
-            ItemStack give = new ItemStack(pi);
-            CustomData.update(net.minecraft.core.component.DataComponents.CUSTOM_DATA, give, t -> t.putBoolean("astral_lent", true));
-            inv.setItem(i, give);
-            LENT_SLOT.put(sp.getUUID(), new int[]{i, inv.selected});
-            inv.selected = i;
-            sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(i));
-            return;
-        }
-        LOGGER.info("[astral] quill: {} has no empty hotbar slot, so the story goes the long way round", sp.getGameProfile().getName());
     }
 
     /** Takes back anything the Quill lent, wherever it ended up, and puts the player's old slot back. */
@@ -401,33 +388,64 @@ public final class UniqAbilities {
         }
     }
 
-    /** Tells the story with a Prophecy in hand for exactly as long as LOTM's tell() takes. */
+    /**
+     * Tells the story on the Quill's authority. LOTM asks two things of a teller and the Quill answers both for the
+     * length of one call: a Prophecy in the main hand (Storytelling.tell drops the story outright without one), and a
+     * Sequence 1 Spectator registration (contextFor reads Pathways.getSequence, and the grammar refuses every story
+     * told from a lower one — this is the part that was missing, and why nothing happened).
+     *
+     * The pathway and sequence are written straight onto LOTM's own holder and put back in the same server task, so
+     * no tick of LOTM's runs while they are borrowed and nothing else can see the change. Both are restored in a
+     * finally, so a story that throws still leaves the player exactly as they were.
+     */
     private static void tellByQuill(ServerPlayer sp, java.util.List<String> words) {
         if (!mayTell(sp)) { LOGGER.info("[astral] quill: {} told a story but the quill does not speak for them", sp.getGameProfile().getName()); return; }
         net.minecraft.world.item.Item pi = prophecy();
         if (pi == null) { sp.displayClientMessage(Component.literal("The quill stays still.").withStyle(ChatFormatting.GRAY), true); returnProphecy(sp); return; }
         int slot = sp.getInventory().selected;
         ItemStack held = sp.getInventory().getItem(slot);
-        boolean already = pi.getClass().isInstance(held.getItem());   // the lent one survived: LOTM's own handler will tell it
+        Object holder = null, oldPath = null;
+        int oldSeq = -1;
         try {
-            if (!already) sp.getInventory().setItem(slot, new ItemStack(pi));
+            holder = Class.forName("net.swimmingtuna.lotm.caps.BeyonderHolderAttacher")
+                .getMethod("getHolderUnwrap", net.minecraft.world.entity.player.Player.class).invoke(null, sp);
+        } catch (Throwable t) { LOGGER.warn("[astral] quill: LOTM's beyonder holder could not be reached: {}", t.toString()); }
+        try {
+            sp.getInventory().setItem(slot, new ItemStack(pi));
+            if (holder != null) {
+                oldPath = call(holder, "getCurrentClass");
+                oldSeq = (int) call(holder, "getSequence");
+                set(holder, "setPathway", Lotm.pathwayById("spectator"));
+                set(holder, "setSequence", 1);
+            }
             Class.forName("net.swimmingtuna.lotm.pathway.spectator.story.Storytelling")
                 .getMethod("tell", ServerPlayer.class, java.util.List.class).invoke(null, sp, words);
-            LOGGER.info("[astral] quill: told {}'s story of {} words{}", sp.getGameProfile().getName(), words.size(), already ? " (LOTM had the item already)" : "");
+            LOGGER.info("[astral] quill: told {}'s story of {} words (was {} seq {})", sp.getGameProfile().getName(), words.size(), oldPath, oldSeq);
         } catch (Throwable t) {
             LOGGER.warn("[astral] quill: the story could not be told: {}", t.toString());
             sp.displayClientMessage(Component.literal("The quill stays still.").withStyle(ChatFormatting.GRAY), true);
         } finally {
-            if (!already) sp.getInventory().setItem(slot, held);
+            sp.getInventory().setItem(slot, held);
+            if (holder != null && oldSeq >= 0) { set(holder, "setPathway", oldPath); set(holder, "setSequence", oldSeq); }
             returnProphecy(sp);
         }
+    }
+
+    private static Object call(Object o, String name) throws Exception { return o.getClass().getMethod(name).invoke(o); }
+
+    /** Calls a one-argument setter on LOTM's holder without needing its parameter type at compile time. */
+    private static void set(Object o, String name, Object value) {
+        for (var m : o.getClass().getMethods()) if (m.getName().equals(name) && m.getParameterCount() == 1) {
+            try { m.invoke(o, value); } catch (Throwable t) { LOGGER.warn("[astral] quill: {} failed: {}", name, t.toString()); }
+            return;
+        }
+        LOGGER.warn("[astral] quill: LOTM's holder has no {}", name);
     }
 
     /** Spectator: the Quill opens the Storytelling screen (the Seq 1 prophecy ability), through LOTM's own packet. */
     public static void quill(ServerPlayer sp, ItemStack st) {
         QUILLING.put(sp.getUUID(), sp.level().getGameTime() + QUILL_TICKS);   // their next story is told on the Quill's authority (see watchStories)
         watch(sp);
-        lendProphecy(sp);   // if LOTM lets them keep it, LOTM's own handler does the work and nothing else is needed
         try {
             Class<?> story = Class.forName("net.swimmingtuna.lotm.pathway.spectator.story.Storytelling");
             Class<?> pk = Class.forName("net.swimmingtuna.lotm.network.spectator.OpenStorytellingScreenS2C");
