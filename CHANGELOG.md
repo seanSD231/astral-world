@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.222
+- Holograms. River of Eternal Darkness: the symbols stand in one straight row (each used to face the placer's exact heading while the row followed the quarter-turn frame). Lord of Mysteries: the ring of doors is centred on the middle of the table instead of on the card, a little wider, and the real doorways moved with it. Corpse Collector 0: the symbol is square to the throne. Shiny cards: every pathway symbol gets a dark edge, so a gold symbol no longer vanishes into a gold scene (the Criminal's worst of all). Monster 0: 18 coins in the air, down from 170. Shiny Sailor 0: the waterspouts are rebuilt as a smooth swaying funnel with bright strands winding up it, a churning foot, a spreading crown and spray.
+- Untested in game.
+
 ## 0.2.221
 - /endgame fullreset confirm (ops, or the console) puts the whole story back to day one so the server can open again after it has ended: it stops the pending close and its kicks, lets the fallen back in, restores Earth and the bosses, clears the raid, the stats and the allies, and sets the stage to 0 with a full barrier. Players keep their own items and sequences.
 - Untested in game.

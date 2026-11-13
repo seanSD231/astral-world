@@ -257,9 +257,9 @@ public class HoloCardEntity extends Entity {
     private java.util.List<double[]> lomDoors() {
         java.util.List<double[]> l = new java.util.ArrayList<>();
         int k = throneQuarter(); double c = Math.round(Math.cos(k * Math.PI / 2)), sn = Math.round(Math.sin(k * Math.PI / 2));
-        double rr = 12.0 * 1.55;
+        double rr = 12.0 * 1.7;
         for (int i = 0; i < 10; i++) {
-            double ang = (i % 2 == 0 ? 1 : -1) * (.42 + .58 * (i / 2)), lx = rr * Math.sin(ang), lz = -rr * Math.cos(ang);
+            double ang = (i % 2 == 0 ? 1 : -1) * (.42 + .58 * (i / 2)), lx = rr * Math.sin(ang), lz = -rr * Math.cos(ang) + HALL_ZC * HALL_K;   // round the middle of the table
             l.add(new double[]{lx * c + lz * sn, -lx * sn + lz * c});
         }
         return l;

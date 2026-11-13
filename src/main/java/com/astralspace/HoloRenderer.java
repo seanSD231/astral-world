@@ -211,10 +211,15 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     /** The pathway symbol: one solid, bright plane, turned by yaw. */
     private void symPlane(int path, float x, float y, float z, float size, float yaw, float alpha) {
         float c = (float) Math.cos(yaw) * size / 2, s = (float) Math.sin(yaw) * size / 2;
-        int tint = gold ? 0xFFDD66 : 0xFFFFFF;
+        int tint = gold ? 0xFFDD66 : 0xFFFFFF, al = Math.max(0, Math.min(255, (int) (alpha * 255))) << 24;
+        ResourceLocation tex = ResourceLocation.fromNamespaceAndPath("astral_world", "textures/gui/tarot/sym_" + Tarot.PATHWAYS[path] + ".png");
         eqSolid = true;
-        eq(ResourceLocation.fromNamespaceAndPath("astral_world", "textures/gui/tarot/sym_" + Tarot.PATHWAYS[path] + ".png"), x, y, z, c, 0, s, 0, size / 2, 0,
-           (Math.max(0, Math.min(255, (int) (alpha * 255))) << 24) | tint, 0, 0, 1, 1);
+        if (gold) {   // a shiny scene is gold all over, and a gold symbol on it vanished (the Abyss worst of all): a dark edge all round keeps it readable
+            float d = size * .035f, ux = (float) Math.cos(yaw) * d, uz = (float) Math.sin(yaw) * d;
+            float[][] o = {{ux, 0, uz}, {-ux, 0, -uz}, {0, d, 0}, {0, -d, 0}, {ux * .7f, d * .7f, uz * .7f}, {-ux * .7f, d * .7f, -uz * .7f}, {ux * .7f, -d * .7f, uz * .7f}, {-ux * .7f, -d * .7f, -uz * .7f}};
+            for (float[] k : o) eq(tex, x + k[0], y + k[1], z + k[2], c, 0, s, 0, size / 2, 0, al | 0x120A00, 0, 0, 1, 1);
+        }
+        eq(tex, x, y, z, c, 0, s, 0, size / 2, 0, al | tint, 0, 0, 1, 1);
         eqSolid = false;
     }
     /** Solid glowing panel using one of the holo textures. */
@@ -1083,11 +1088,12 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
         dome(R * 3.4f, 0x0E1A1E, 244); mcStars(140, R * 3.2f, 0xC8F0FF, 0x78D0D4, .5f * S);   // the grey fog closes over it
         lomHall = true; foolHall(); lomHall = false;
-        // the doors of the mysteries stand all round in the fog, each its own colour, every one facing the table
+        // the doors of the mysteries stand all round in the fog, each its own colour, every one facing the middle of the table (the ring is centred on the table, not on the card)
+        float tcz = HoloCardEntity.HALL_ZC * HK;
         for (int i = 0; i < 10; i++) {
-            float ang = (i % 2 == 0 ? 1f : -1f) * (.42f + .58f * (i / 2)), lx = R * 1.55f * gs(ang), lz = -R * 1.55f * gc(ang);
+            float ang = (i % 2 == 0 ? 1f : -1f) * (.42f + .58f * (i / 2)), lx = R * 1.7f * gs(ang), lz = -R * 1.7f * gc(ang);
             int c = gl ? hsv(h(fb, 50 + i), .9f) : mix(hsv(h(i, 23), .55f), 0xFFFFFF, .5f);
-            lomDoor(lx, lz, 2.6f * S, (4.4f + 1.4f * h(i, 22)) * S, c, gl ? (h(fb, 60 + i) - .5f) * 1.2f * S : 0f);
+            lomDoor(lx, lz, tcz, 2.6f * S, (4.4f + 1.4f * h(i, 22)) * S, c, gl ? (h(fb, 60 + i) - .5f) * 1.2f * S : 0f);
         }
         glitchSym(0, CY + 2.6f * S, 0, 3.6f * S, -face);
         gooSymbols(0, CY + 5.6f * S, R * .55f, 2.4f * S);
@@ -1098,8 +1104,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         t = t0; curPath = cp;
     }
     private int pathCount() { return Tarot.PATHWAYS.length; }
-    private void lomDoor(float lx, float lz, float w, float dh, int c, float jit) {   // a stone pointed-arch doorway with a glowing panel, standing clear of the table
-        float wx = gx(lx, lz), wz = gz(lx, lz), a = (float) Math.atan2(wz, wx);
+    private void lomDoor(float lx, float lz, float tcz, float w, float dh, int c, float jit) {   // a stone pointed-arch doorway with a glowing panel, standing clear of the table; (lx, lz) is from the table's middle, in the hall's own frame
+        float a = (float) Math.atan2(hz(lx, lz), hx(lx, lz)), wx = hx(lx, lz + tcz), wz = hz(lx, lz + tcz);
         push(); tr(wx + jit, 0, wz); rY(-a + PI / 2);
         int stone = 0x6A665C, dk = 0x2A2824;
         boolean hi = ((int) Math.abs(lx)) % 2 == 0; boolean okd = drawGeo(hi ? "high_sequence_door" : "mid_sequence_door", "lotm", "textures/entity/" + (hi ? "high" : "mid") + "_sequence_door.png", dh * 1.05f);   // its front toward the middle
@@ -1170,9 +1176,10 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     /** Eternal Darkness: a wide black river winding out of the dark where the dead rest, lit by a pale moon: glimmers sliding down the water, pale banks lined with leaning gravestones, bare dead trees and black reeds. */
     private void gooDarkness() {
         // the scene is drawn in the throne's quarter-turn frame, so the real blocks of the bridge line up exactly with what you see
-        float q = thQ * PI / 2, oSx = sx0, oSz = sz0, oFx = fx, oFz = fz; sx0 = gc(q); sz0 = -gs(q); fx = -gs(q); fz = -gc(q);
+        float q = thQ * PI / 2, oSx = sx0, oSz = sz0, oFx = fx, oFz = fz, oFace = face; sx0 = gc(q); sz0 = -gs(q); fx = -gs(q); fz = -gc(q);
+        face = q;   // the symbols turn with the same frame they are placed in: before, they stood in the quarter-turn row but each faced the placer's exact heading, so the row looked crooked
         gooDarkness2();
-        sx0 = oSx; sz0 = oSz; fx = oFx; fz = oFz;
+        sx0 = oSx; sz0 = oSz; fx = oFx; fz = oFz; face = oFace;
     }
     private void gooDarkness2() {
         final float RR = HoloCardEntity.RIV_R; int seg = 180; float[] dn = v3(0, -60, 0);
@@ -2005,7 +2012,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         pushThrone(); throneModel(s, mix(P1, 0x203024, .6f), mix(P1, 0xFFFFFF, .2f)); pop();
         float[] w = thW(.78f * s, .32f * s);
         flameAt(w[0], 3.75f * s, w[1], 1.6f * S, 3, P2, P1, P3, .95f);
-        sym(4.8f * s + 1.8f * S, 3.2f * S, 0);
+        symPlane(curPath, 0, 4.8f * s + 1.8f * S, 0, 3.2f * S, -thQ * PI / 2, 1f);   // square to the throne (which sits in quarter turns), not to the placer's exact heading
         for (int i = 0; i < 4 * N; i++) { float a = i * TAU / (4 * N) + .2f, rr = R * .9f;
             push(); tr((float) Math.cos(a) * rr, 0, (float) Math.sin(a) * rr); rY(PI - a + PI / 2);
             box(0, 1.0f * S, 0, .65f * S, 1.0f * S, .18f * S, 0x707878, 255); sphere(0, 2.0f * S, 0, .65f * S, .5f * S, .18f * S, 5, 10, 0x707878, 255);
@@ -2171,7 +2178,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         flat("fortune", 0, .1f, 0, 1.9f * R, t * .2f, rgba(P2, .45f));
         if (N == 2) {   // Seq 0: the house always wins: huge dice tumbling round the wheel and a fountain of coins
             // (no giant dice: a cloud of small ones tumbles round the wheel instead, below)
-            sprites("disc", 90, FALLM, R, 0, top * 1.1f, .6f * S, 0xFFD040, 1f, .35f, 71, true);
+            sprites("disc", 10, FALLM, R, 0, top * 1.1f, .6f * S, 0xFFD040, 1f, .35f, 71, true);   // a few coins, not a storm of them
             // (and no extra wheels)
             for (int i = 0; i < 6; i++) { float pw = fract(t * .3f + i / 6f); flat("ring", 0, .12f, 0, pw * R * 1.8f, 0, rgba(0xFFD040, fd(pw))); }
         }
@@ -2217,7 +2224,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             float a = t * (.25f + .3f * h(i, 81)) * (i % 2 == 0 ? 1 : -1) + i * TAU / nd, r = N == 2 ? R * (.45f + .5f * h(i, 82)) : R * .85f, y = (N == 2 ? 1.2f + 5.5f * h(i, 83) : 1.4f) * S + (float) Math.sin(a * 2 + i) * .8f * S;
             push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(t * 1.3f + i); rX(t * 1.7f + i); die((N == 2 ? .2f + .1f * h(i, 84) : .28f) * S); pop();
         }
-        sprites("disc", 40 * N, FALLM, R, 0, top, .6f * S, 0xFFD040, 1f, .25f, 25, true);
+        sprites("disc", N == 2 ? 8 : 40, FALLM, R, 0, top, .6f * S, 0xFFD040, 1f, .25f, 25, true);   // Seq 0 had 170 coins in the air between this and the fountain: now 18
         sprites("leaf", 30 * N, SPIRALM, R, 0, top, .7f * S, 0x50D060, 1f, .18f, 26, true);
         sprites("spark", 70 * N, RADIALM, R * 1.2f, wy, 0, .5f * S, 0xFFFFFF, 1f, .3f, 22, true);
         sprites("diamond", 18 * N, RISEM, R, 0, top, .5f * S, P1, 1f, .2f, 23, true);
@@ -3084,6 +3091,33 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         return v3((float) Math.cos(a) * rr, pr[1] * H, (float) Math.sin(a) * rr);
     }
 
+    /**
+     * A waterspout built from geometry (the shiny scene's, and the fallback when Photon is missing): a smooth funnel that
+     * leans and sways, three bright strands winding up it, a churning foot, a spreading crown and spray thrown off the top.
+     * The old one was a single ten-point wiggly pipe.
+     */
+    private void spout(float x, float z, float hgt, int seed) {
+        int n = 28; float[][] core = new float[n][];
+        int body = mix(P1, 0x80C0FF, .45f), deep = mix(P2, 0x102040, .4f), lite = mix(P3, 0xFFFFFF, .7f);
+        for (int k = 0; k < n; k++) { float u = k / (n - 1f), sw = (.15f + 1.1f * u * u) * S;
+            core[k] = v3(x + gs(u * 3.2f + t * .7f + seed * 2.1f) * sw, u * hgt, z + gc(u * 2.6f + t * .6f + seed * 1.3f) * sw); }
+        solid(true);
+        tube(core, .34f * S, 1.9f * S, deep);                                    // the funnel: narrow at the sea, wide in the cloud
+        for (int st = 0; st < 3; st++) {                                        // strands of bright water winding up it
+            float[][] pts = new float[n][];
+            for (int k = 0; k < n; k++) { float u = k / (n - 1f), r = (.4f + 1.62f * u) * S, an = u * 11f - t * 3.2f + st * TAU / 3 + seed;
+                pts[k] = v3(core[k][0] + gc(an) * r, core[k][1], core[k][2] + gs(an) * r); }
+            tube(pts, .09f * S, .2f * S, st == 0 ? lite : body);
+        }
+        solid(false);
+        flat("whirl", x, .16f, z, 4.2f * S, -t * 2.2f + seed, rgba(lite, .85f));  // the churned sea at its foot
+        for (int k = 0; k < 3; k++) { float pw = fract(t * .8f + k / 3f + seed * .3f); flat("ring", x, .18f, z, (1f + pw * 4f) * S, 0, rgba(lite, fd(pw) * .8f)); }
+        flat("whirl", core[n - 1][0], hgt, core[n - 1][2], 7f * S, t * 1.4f + seed, rgba(body, .8f));   // where it opens into the cloud
+        for (int k = 0; k < 14; k++) {                                          // spray climbing the outside and flung off the top
+            float p = fract(t * (.35f + .2f * h(k, 61 + seed)) + h(k, 62 + seed)), an = p * 9f + k * 1.7f + seed, r = (.6f + 2.0f * p) * S; int ci = Math.min(n - 1, (int) (p * (n - 1)));
+            bb("mote", core[ci][0] + gc(an) * r, p * hgt, core[ci][2] + gs(an) * r, .32f * S, .32f * S, 0, rgba(lite, fd(p)));
+        }
+    }
     private void sailor(int N, boolean m) {
         dims(m);
         sigil(R);
@@ -3100,8 +3134,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         strikes(3 * N, R, top, P1);
         if (m) {   // Seq 0: the sea itself rises: three waterspouts and a great whirlpool in the floor
             for (int i = 0; i < 3; i++) { float a = i * TAU / 3 + .4f, rr = R * .7f; if (gold || !LotmFx.hold(curId + 1000 * (i + 1), "astral_world:waterspout", ex + gc(a) * rr, ey, ez + gs(a) * rr, top * 1.15f)) {   // Photon waterspouts; a plain column only if Photon is missing
-                    float[][] pts = new float[10][]; for (int k = 0; k < 10; k++) { float u = k / 9f; pts[k] = v3(gc(a) * rr + gs(u * 9f + t * 2f + i) * (.3f + u) * S, u * top * 1.1f, gs(a) * rr + gc(u * 9f + t * 2f + i) * (.3f + u) * S); }
-                    solid(true); tube(pts, .4f * S, 1.3f * S, mix(P1, 0x80C0FF, .4f)); solid(false); }
+                    spout(gc(a) * rr, gs(a) * rr, top * 1.1f, i); }
                 bb("glow", gc(a) * rr, top * .5f, gs(a) * rr, 4f * S, 8f * S, 0, rgba(P3, .2f)); }
             flat("whirl", 0, .14f, 0, R * 2.4f, -t * .5f, rgba(P2, .8f)); flat("whirl", 0, .15f, 0, R * 1.6f, t * .8f, rgba(P1, .8f));
         }
