@@ -65,7 +65,7 @@ public final class AstralFloor {
         case "quill_of_alzuhod" -> new WornUniq(u[1], u[3], 100, "open the Storytelling screen (the Seq 1 Spectator prophecy)", WornUniq.QUILL);
         case "spear_of_sun" -> new WornUniq(u[1], u[3], 1200, "three flaring suns, one ahead and one to either side (Seq 1/0: five larger suns, then six more around you)", UniqAbilities::suns);
         case "bone_greatsword" -> new WornUniq(u[1], u[3], 1200, "the serpent strikes everything near for 25, you and your allies too (Seq 1/0: only foes, 50 blocks, 30% of their health, slowed)", UniqAbilities::serpent);
-        case "snake_rifle" -> new WornUniq(u[1], u[3], 600, "spin the wheel for a boon or a bane (Seq 1/0: three times the luck)", UniqAbilities::wheel);
+        case "snake_rifle" -> new WornUniq(u[1], u[3], 600, "spin the wheel: 7 in 10 a strong boon (spirituality pouring back, +40 health with regeneration, Strength IV, Resistance III, Speed IV and Luck V, or the jackpot: all of them), else a short bane (Seq 1/0: 9 in 10, and two spins)", UniqAbilities::wheel);
         case "twilight_longsword" -> new TwilightSword(u[1], u[3],
             new net.minecraft.world.item.Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)
                 .attributes(net.minecraft.world.item.SwordItem.createAttributes(net.minecraft.world.item.Tiers.NETHERITE, 6, -2.4f))

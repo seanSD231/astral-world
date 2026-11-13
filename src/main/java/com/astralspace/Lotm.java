@@ -551,4 +551,61 @@ public final class Lotm {
             return (CompoundTag) nbtGetTag.invoke(null, st);
         } catch (Throwable t) { return null; }
     }
+
+    // ---- what a Beyonder carries that is not an item: grazed souls, scribed abilities, enslaved spirits
+
+    /** {the field on LOTM's AttachmentInit, the class that holds the data}. */
+    private static final String[][] CARRIED = {
+        {"GRAZED_ABILITIES", "net.swimmingtuna.lotm.capabilities.grazed_abilities.GrazedAbilitiesCapability"},
+        {"SCRIBED_ABILITIES", "net.swimmingtuna.lotm.capabilities.scribed_abilities.ScribedAbilitiesCapability"},
+        {"SPIRIT_HOLDER", "net.swimmingtuna.lotm.capabilities.spirit_data.SpiritHolderCapability"}};
+
+    /** One of the three, off this player: {the data object, its attachment id}, or null when LOTM (or the data) is not there. */
+    private static Object[] carried(ServerPlayer p, String field) {
+        try {
+            Object scoped = Class.forName("net.swimmingtuna.lotm.init.AttachmentInit").getField(field).get(null);
+            Object opt = scoped.getClass().getMethod("getFrom", Object.class).invoke(scoped, p);
+            if (!(opt instanceof java.util.Optional<?> o) || o.isEmpty()) return null;
+            Object type = scoped.getClass().getMethod("getType").invoke(scoped);
+            var key = net.neoforged.neoforge.registries.NeoForgeRegistries.ATTACHMENT_TYPES.getKey((net.neoforged.neoforge.attachment.AttachmentType<?>) type);
+            return new Object[]{o.get(), key == null ? "" : key.toString()};
+        } catch (Throwable t) { return null; }
+    }
+
+    /** Empties one of them by copying a brand new one over it, and then, if `tag` is given, loads that into it. */
+    private static boolean refill(ServerPlayer p, Object cap, String impl, CompoundTag tag) {
+        try {
+            Object fresh = Class.forName(impl).getDeclaredConstructor().newInstance();
+            for (Method m : cap.getClass().getMethods()) if (m.getName().equals("copyFrom") && m.getParameterCount() == 1 && m.getParameterTypes()[0].isInstance(fresh)) { m.invoke(cap, fresh); break; }
+            Method de = cap.getClass().getMethod("deserializeNBT", net.minecraft.core.HolderLookup.Provider.class, CompoundTag.class);
+            if (tag == null) tag = (CompoundTag) fresh.getClass().getMethod("serializeNBT", net.minecraft.core.HolderLookup.Provider.class).invoke(fresh, p.registryAccess());
+            de.invoke(cap, p.registryAccess(), tag);
+            return true;
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not reset {} on {}: {}", impl.substring(impl.lastIndexOf('.') + 1), p.getGameProfile().getName(), t.toString());
+            return false;
+        }
+    }
+
+    /** Takes a player's grazed souls, scribed abilities and enslaved spirits away (the hunger games: nothing is carried in). Returns how many of the three were emptied. */
+    public static int stripCarried(ServerPlayer p) {
+        int n = 0;
+        for (String[] c : CARRIED) { Object[] got = carried(p, c[0]); if (got != null && refill(p, got[0], c[1], null)) n++; }
+        return n;
+    }
+
+    /**
+     * Puts those three back exactly as they are in a saved copy of the player's attachments (what {@code neoforge:attachments}
+     * held before the games). Whatever was picked up since is gone, because each is emptied first; one that is not in
+     * the saved copy at all is simply left empty.
+     */
+    public static void restoreCarried(ServerPlayer p, CompoundTag attachments) {
+        for (String[] c : CARRIED) {
+            Object[] got = carried(p, c[0]);
+            if (got == null) continue;
+            String key = (String) got[1];
+            CompoundTag saved = attachments != null && !key.isEmpty() && attachments.contains(key, 10) ? attachments.getCompound(key) : null;
+            refill(p, got[0], c[1], saved);
+        }
+    }
 }

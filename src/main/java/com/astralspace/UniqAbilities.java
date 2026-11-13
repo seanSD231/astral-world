@@ -65,17 +65,86 @@ public final class UniqAbilities {
         MobEffects.DIG_SLOWDOWN, MobEffects.UNLUCK, MobEffects.CONFUSION, MobEffects.BLINDNESS, MobEffects.HUNGER);
 
     /** Monster: the wheel spins (3 seconds) and only then lands on a boon or a bane. */
+    private static final net.minecraft.resources.ResourceLocation WHEEL_HP = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "wheel_vigor");
+
+    /** Adds spirituality through LOTM (a share of the player's maximum), quietly doing nothing without LOTM. */
+    private static void spirit(ServerPlayer sp, double shareOfMax) {
+        try {
+            Class<?> c = Class.forName("net.swimmingtuna.lotm.beyonder.Spirituality");
+            int max = (int) c.getMethod("getMaxSpirituality", LivingEntity.class).invoke(null, sp);
+            int amt = (int) Math.round(max * shareOfMax);
+            if (amt > 0) c.getMethod("addSpirituality", LivingEntity.class, int.class).invoke(null, sp, amt);
+            else if (amt < 0) c.getMethod("useSpirituality", LivingEntity.class, int.class).invoke(null, sp, -amt);
+        } catch (Throwable ignored) { }
+    }
+
+    /** Runs `each` once a second for `seconds` seconds, while the player lives. */
+    private static void over(ServerPlayer sp, int seconds, Runnable each) {
+        if (seconds <= 0 || !sp.isAlive() || sp.hasDisconnected()) return;
+        each.run();
+        later(20, () -> over(sp, seconds - 1, each));
+    }
+
+    private static void eff(ServerPlayer sp, Holder<MobEffect> e, int seconds, int amp) { sp.addEffect(new MobEffectInstance(e, seconds * 20, amp)); }
+
+    /** One of the wheel's boons. Each is strong on its own; the jackpot is all of them at once. */
+    private static String boon(ServerPlayer sp, int which) {
+        switch (which) {
+            case 0 -> {   // spirit: a third back at once, then 4% of the maximum every second for half a minute
+                spirit(sp, .34); over(sp, 30, () -> spirit(sp, .04));
+                return "Wellspring: your spirituality pours back";
+            }
+            case 1 -> {   // life: 40 more health, full heal, then 5% of maximum health every second for half a minute
+                var mh = sp.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH);
+                if (mh != null) { mh.removeModifier(WHEEL_HP); mh.addTransientModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(WHEEL_HP, 40, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE)); }
+                sp.setHealth(sp.getMaxHealth());
+                over(sp, 30, () -> sp.heal(sp.getMaxHealth() * .05f));
+                later(20 * 60, () -> { var m2 = sp.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH); if (m2 != null) m2.removeModifier(WHEEL_HP); if (sp.getHealth() > sp.getMaxHealth()) sp.setHealth(sp.getMaxHealth()); });
+                return "Vigor: forty more health, and it keeps coming back";
+            }
+            case 2 -> { eff(sp, MobEffects.DAMAGE_BOOST, 45, 3); eff(sp, MobEffects.DIG_SPEED, 45, 2); return "Lucky Strike: Strength IV and Haste III"; }
+            case 3 -> { eff(sp, MobEffects.DAMAGE_RESISTANCE, 45, 2); eff(sp, MobEffects.FIRE_RESISTANCE, 45, 0); eff(sp, MobEffects.ABSORPTION, 45, 4); return "Charmed Life: Resistance III and twenty absorption"; }
+            case 4 -> { eff(sp, MobEffects.MOVEMENT_SPEED, 60, 3); eff(sp, MobEffects.JUMP, 60, 2); eff(sp, MobEffects.SLOW_FALLING, 60, 0); eff(sp, MobEffects.LUCK, 60, 4); return "Fair Wind: Speed IV, Luck V, and you fall like a feather"; }
+            default -> {  // the jackpot
+                for (int k = 0; k < 5; k++) boon(sp, k);
+                sp.level().playSound(null, sp.blockPosition(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.2f, 1f);
+                return "JACKPOT: every boon on the wheel";
+            }
+        }
+    }
+
+    /** One of the wheel's banes: short, and none of them deadly. */
+    private static String bane(ServerPlayer sp, int which) {
+        switch (which) {
+            case 0 -> { eff(sp, MobEffects.MOVEMENT_SLOWDOWN, 15, 1); eff(sp, MobEffects.UNLUCK, 30, 2); return "Lead Feet: slowed and unlucky"; }
+            case 1 -> { eff(sp, MobEffects.WEAKNESS, 15, 1); return "Butterfingers: weakened"; }
+            case 2 -> { spirit(sp, -.2); return "The House's Cut: a fifth of your spirituality is gone"; }
+            default -> { eff(sp, MobEffects.BLINDNESS, 6, 0); eff(sp, MobEffects.CONFUSION, 8, 0); return "Snake Eyes: the world spins"; }
+        }
+    }
+
+    /**
+     * Monster: spin the wheel. Seven times in ten it lands on a boon (nine in ten for a Seq 1/0 Monster, who also spins twice):
+     * spirituality pouring back, forty more health with strong regeneration, Strength IV, Resistance III with absorption,
+     * Speed IV with Luck V, or, one spin in twelve, all of them at once. Otherwise a short bane.
+     */
     public static void wheel(ServerPlayer sp, ItemStack st) {
         fx(sp, 2);
+        boolean emp = UniqPower.emp(sp, "monster");
         sp.level().playSound(null, sp.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.5f, .8f);
-        boolean good = sp.getRandom().nextInt(UniqPower.emp(sp, "monster") ? 4 : 2) != 0;   // even odds; three to one for a Seq 1/0 Monster
-        Holder<MobEffect> eff = good ? GOOD.get(sp.getRandom().nextInt(GOOD.size())) : BAD.get(sp.getRandom().nextInt(BAD.size()));
-        later(60, () -> {
-            if (!sp.isAlive()) return;
-            sp.addEffect(new MobEffectInstance(eff, good ? 20 * 45 : 20 * 20, good ? 1 : 0));
-            sp.level().playSound(null, sp.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.5f, good ? 1.4f : 0.5f);
-            sp.displayClientMessage(Component.literal("The wheel lands on " + eff.value().getDisplayName().getString()).withStyle(good ? ChatFormatting.GOLD : ChatFormatting.DARK_RED), true);
-        });
+        for (int i = 1; i <= 5; i++) { final float pitch = .7f + i * .15f; later(i * 9, () -> sp.level().playSound(null, sp.blockPosition(), SoundEvents.NOTE_BLOCK_HAT.value(), SoundSource.PLAYERS, 1f, pitch)); }   // the wheel ticking down
+        for (int spinN = 0; spinN < (emp ? 2 : 1); spinN++) {
+            boolean good = sp.getRandom().nextInt(10) < (emp ? 9 : 7);
+            int pick = good ? (sp.getRandom().nextInt(12) == 0 ? 5 : sp.getRandom().nextInt(5)) : sp.getRandom().nextInt(4);
+            later(60 + spinN * 30, () -> {
+                if (!sp.isAlive()) return;
+                String what = good ? boon(sp, pick) : bane(sp, pick);
+                sp.level().playSound(null, sp.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.5f, good ? 1.4f : 0.5f);
+                if (good && sp.level() instanceof net.minecraft.server.level.ServerLevel lv) lv.sendParticles(net.minecraft.core.particles.ParticleTypes.TOTEM_OF_UNDYING, sp.getX(), sp.getY() + 1, sp.getZ(), pick == 5 ? 120 : 40, .5, .8, .5, .3);
+                sp.sendSystemMessage(Component.literal("The wheel lands on " + what + ".").withStyle(good ? ChatFormatting.GOLD : ChatFormatting.DARK_RED));
+                sp.displayClientMessage(Component.literal(what).withStyle(good ? ChatFormatting.GOLD : ChatFormatting.DARK_RED), true);
+            });
+        }
     }
 
     /** Sun: three flaring suns, one ahead and one to either side of it. At Seq 1/0: five larger suns in a wider fan, and when they have burst six more rise around you and burst too; each sun hits less hard. */

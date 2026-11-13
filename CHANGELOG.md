@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.226
+- The Wheel of Fortune pays out properly. Seven spins in ten land on a boon (nine in ten, and two spins, for a Seq 1/0 Monster): Wellspring (a third of your spirituality back at once, then 4% of your maximum every second for 30 seconds), Vigor (+40 maximum health for a minute, a full heal, then 5% of maximum health every second for 30 seconds), Lucky Strike (Strength IV, Haste III), Charmed Life (Resistance III, fire resistance, twenty absorption), Fair Wind (Speed IV, Luck V, jump, slow falling), or one spin in twelve the Jackpot: all five at once. The banes are short and never deadly.
+- Untested in game.
+
+## 0.2.225
+- Hunger games: grazed souls, scribed abilities and enslaved spirits are taken away on the way in (before, they were only restored on the way out, so they could be used inside), given back exactly as they were on the way out, and anything grazed, scribed or enslaved inside the arena is dropped.
+- Untested in game.
+
 ## 0.2.224
 - The Mother Tree scales with the crowd: up to raid_full_damage_players fighters (settings.properties, default 3) hurt her at full strength, and past that every hit is scaled so any number together do what that many would. The count is the most fighters the raid has had at once, so she does not soften as they fall.
 - Depravity can no longer delete her health. Her health now only falls by hits the raid's own damage rules passed: anything that sets it directly (the Hanged Man's Depravity, and whatever else does the same) is put back on the next tick and logged.

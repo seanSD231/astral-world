@@ -407,6 +407,8 @@ public final class HungerGames {
             p.experienceProgress = 0f; p.totalExperience = 0;
             p.connection.send(new ClientboundSetExperiencePacket(0f, 0, 0));
             applySeq(p);
+            int stripped = Lotm.stripCarried(p);   // grazed souls, scribed abilities and enslaved spirits stay outside: they come back with everything else (see restore)
+            if (stripped > 0) LOGGER.info("[hungergames] {} enters without souls, scribed abilities or spirits ({} of 3 emptied)", p.getGameProfile().getName(), stripped);
             p.setHealth(p.getMaxHealth());   // after the sequence: that is what decides how much health they have
             p.setAbsorptionAmount(0f);
             double ang = Math.PI * 2 * i / n, cr = Math.max(3.5, n * 0.9);   // everyone starts in a circle in the middle, facing the others
@@ -836,6 +838,7 @@ public final class HungerGames {
         p.connection.send(new ClientboundSetExperiencePacket(sv.xpProg(), sv.xpTotal(), sv.xpLevel()));
         if (sv.seq() >= 0 && Lotm.sequence(p) != sv.seq()) Lotm.setSequence(p, sv.seq());
         restoreAttachments(p, sv.attach());   // enslaved spirits, grazed souls, personas ... everything that was not in the inventory
+        Lotm.restoreCarried(p, sv.attach());    // and those three once more by hand: emptied first, so nothing grazed, scribed or enslaved inside the arena is kept
         ServerLevel to = p.server.getLevel(sv.dim());
         if (to != null) p.teleportTo(to, sv.x(), sv.y(), sv.z(), sv.yaw(), sv.pitch());
         p.inventoryMenu.broadcastChanges();
