@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.233
+- Card rates. Mythic 0.3%, Legendary 1%, Epic 2% per card (were 0.5 / 1.5 / 3). The rest of the hundred goes to Common, Uncommon and Rare in the same 50 : 25 : 20 ratio they always had, so those three keep their relative weights: 50.89 / 25.45 / 20.36.
+- Rainbow packs are half as generous: Legendary 10% and Mythic 2.5% per card (were 20 and 5), with Epic taking the rest at 87.5%, and the Great Old One chance halved to 0.25%. They still never roll below Epic.
+- Untested in game.
+
 ## 0.2.232
 - Uniquenesses are sealed artifacts. The five second sneak and hold that took one in as that pathway's Sequence 0 characteristic is gone, so no Uniqueness makes anyone a Beyonder any more.
 - Their price is corruption instead, and nobody is exempt now that nobody accommodates them. Using one costs 12% of the corruption limit on its own pathway (settings: uniqueness_use_corruption), down from the 50% that only an unaccommodated wielder paid. Simply carrying one — hand, Curios slot or pack — takes two hearts off your maximum health, slows your hands, and adds 1% corruption every ten seconds (uniqueness_carry_corruption; 0 turns it off). All of it lifts the moment the thing leaves you.

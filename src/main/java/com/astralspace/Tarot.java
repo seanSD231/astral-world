@@ -25,17 +25,21 @@ import java.util.Random;
 /**
  * Tarot cards and the 22 pathway packs (/give only for now).
  * One card item, `astral_world:tarot_card`, carries its pathway and sequence in custom_data: {pathway:"seer",seq:9}. With no data it is the temp test card.
- * A pack gives 3 cards: rarity is rolled first (50/25/20/3/1.5/0.5 %), then the pathway (the pack's own counts 5x), then the shiny roll (2.5/5/5/7.5/10/20 % by rarity); rainbow packs roll Epic/Legendary/Mythic at 75/20/5 %.
+ * A pack gives 3 cards: rarity is rolled first (50.89/25.45/20.36/2/1/0.3 %), then the pathway (the pack's own counts 5x), then the shiny roll (2.5/5/5/7.5/10/20 % by rarity); rainbow packs roll Epic/Legendary/Mythic at 87.5/10/2.5 %.
  */
 public final class Tarot {
     private Tarot() {}
 
     public static final String[] PATHWAYS = {"apothecary","apprentice","arbiter","assassin","bard","corpse_collector","criminal","hunter","lawyer","marauder","monster","mystery_pryer","planter","prisoner","reader","sailor","savant","secrets_supplicant","seer","sleepless","spectator","warrior"};
     /** Weight of each sequence, index = sequence 0..9. Seq 9 is the most common, Seq 0 the rarest. */
-    /** Chance of each rarity per card (common, uncommon, rare, epic, legendary, mythic), percent. */
-    private static final double[] RARITY_CHANCE = {50, 25, 20, 3, 1.5, 0.5};
-    /** Rainbow packs: rarity chances instead of the normal ones (Epic, Legendary, Mythic only), percent. */
-    private static final double[] RAINBOW_CHANCE = {0, 0, 0, 75, 20, 5};
+    /**
+     * Chance of each rarity per card (common, uncommon, rare, epic, legendary, mythic), percent. Epic, Legendary and
+     * Mythic are set by hand (2 / 1 / 0.3); what is left of the hundred is shared by the lower three in the ratio they
+     * have always had (50 : 25 : 20), so their relative weights are untouched.
+     */
+    private static final double[] RARITY_CHANCE = {50.8947, 25.4474, 20.3579, 2, 1, 0.3};
+    /** Rainbow packs: rarity chances instead of the normal ones (Epic, Legendary, Mythic only), percent. Legendary and Mythic are half what they were; Epic takes the rest. */
+    private static final double[] RAINBOW_CHANCE = {0, 0, 0, 87.5, 10, 2.5};
     /** Chance that a card of that rarity is shiny, rolled after its rarity, percent. */
     private static final double[] SHINY_CHANCE = {2.5, 5, 5, 7.5, 10, 20};
     /** The sequences each rarity covers. */
@@ -48,7 +52,7 @@ public final class Tarot {
     /** The pathways under each Great Old One. */
     public static final String[][] GOO_PATHS = {{"seer", "marauder", "apprentice"}, {"spectator", "bard", "sailor", "reader", "secrets_supplicant"}, {"sleepless", "corpse_collector", "warrior"}, {"assassin", "hunter"}, {"mystery_pryer", "savant"}, {"monster"}, {"planter", "apothecary"}, {"criminal", "prisoner"}, {"lawyer", "arbiter"}};
     /** Chance per card of a Great Old One, percent: normal and shiny packs, rainbow packs. */
-    private static final double GOO_CHANCE = 0.1, GOO_CHANCE_RAINBOW = 0.5;
+    private static final double GOO_CHANCE = 0.1, GOO_CHANCE_RAINBOW = 0.25;
     public static int gooIndex(String pathway) {
         if (pathway == null || !pathway.startsWith("goo_")) return -1;
         for (int i = 0; i < GOO_IDS.length; i++) if (pathway.equals("goo_" + GOO_IDS[i])) return i;
