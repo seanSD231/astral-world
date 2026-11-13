@@ -68,7 +68,7 @@ public class HoloCardEntity extends Entity {
     public boolean symbolOnly() { return entityData.get(SYMBOL); }
     public void setSymbolOnly(boolean b) { entityData.set(SYMBOL, b); }
 
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); b.define(SYMBOL, false); b.define(GOO, -1); }
+    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); b.define(SYMBOL, false); b.define(GOO, -1); b.define(OWNERN, ""); }
 
     @Override protected void readAdditionalSaveData(CompoundTag t) {
         setCard(t.getString("pathway"), t.getInt("seq"), t.getBoolean("shiny"));

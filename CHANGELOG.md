@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.216
+- Cards can be placed again. 0.2.209 added the synched "who put this down" value to the card entity but never defined it, so building the entity threw and every placement failed on the server with "has not defined synched data value 13". Nothing else was wrong; the card and the item were fine.
+- Untested in game.
+
 ## 0.2.215
 - Rank numbers work again. FTB Ranks returns an OptionalInt from asInteger, not an Optional, so every numeric node was read as missing: weekly_packs fell back to the default, fun_items read as none, and perks.title never fired. Only the true/false nodes (the commands, the credit card, the terminal) ever worked. Node reading is now one tolerant helper that takes OptionalInt, OptionalLong, OptionalDouble, Optional or a bare value, finds getPermissionValue by name rather than by exact signature, and falls back to the string and decimal readers.
 - /astralranks [player] (ops) prints what the server actually reads for every node this mod uses, plus the pack and fun-item totals it works out from them.
