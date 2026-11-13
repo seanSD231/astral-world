@@ -71,7 +71,7 @@ public final class WeeklyPacks {
                 for (int left = n; left > 0; ) { int k = Math.min(left, 16); give.add(new ItemStack(item, k)); left -= k; }
             }
         } catch (RuntimeException e) { p.sendSystemMessage(Component.literal("That pick was not valid.").withStyle(ChatFormatting.RED)); return; }
-        if (sum != total || byType[1] > caps[1] || byType[2] > caps[2]) { p.sendSystemMessage(Component.literal("That pick is not allowed for your rank.").withStyle(ChatFormatting.RED)); return; }
+        if (sum != total || byType[1] > caps[1] || byType[2] > caps[2] || byType[1] + byType[2] > Math.max(caps[1], caps[2])) { p.sendSystemMessage(Component.literal("That pick is not allowed for your rank.").withStyle(ChatFormatting.RED)); return; }
         for (ItemStack st : give) if (!p.getInventory().add(st)) p.drop(st, false);
         p.getPersistentData().putLong(TAG, weekStart());
         p.sendSystemMessage(Component.literal("You took your " + total + " weekly tarot pack" + (total == 1 ? "" : "s") + ". The next ones are ready when the week resets.").withStyle(ChatFormatting.GOLD));

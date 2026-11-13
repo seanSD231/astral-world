@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.217
+- Rainbow and Shiny weekly packs share one allowance: rainbow 2 and shiny 2 on a rank now means two of either (two Rainbow, two Shiny, or one of each), not two of each. No change to ranks.snbt is needed. The menu says how many you may take.
+- Untested in game.
+
 ## 0.2.216
 - Cards can be placed again. 0.2.209 added the synched "who put this down" value to the card entity but never defined it, so building the entity threw and every placement failed on the server with "has not defined synched data value 13". Nothing else was wrong; the card and the item were fine.
 - Untested in game.

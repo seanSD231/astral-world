@@ -75,7 +75,7 @@ public final class WeeklyPackScreen extends Screen {
         if (super.mouseClicked(mx, my, button)) return true;
         int i = cellAt(mx, my);
         if (i < 0 || claimed) return false;
-        if (button == 0 && picks() < total && picksOf(tab) < cap[tab]) picked[tab][i]++;
+        if (button == 0 && picks() < total && picksOf(tab) < cap[tab] && (tab == 0 || picksOf(1) + picksOf(2) < Math.max(cap[1], cap[2]))) picked[tab][i]++;   // rainbow and shiny share one allowance: 2 means two of either, not two of each
         else if (button == 1 && picked[tab][i] > 0) picked[tab][i]--;
         return true;
     }
@@ -89,7 +89,7 @@ public final class WeeklyPackScreen extends Screen {
         int cx = width / 2;
         g.drawCenteredString(font, "Weekly Tarot Packs", cx, 6, 0xFFFFD870);
         String info = claimed ? "You already took your packs this week. They reset on the next reset day."
-            : "Pick " + total + " pack" + (total == 1 ? "" : "s") + ":  " + picks() + " / " + total + "     (left click adds, right click removes)";
+            : "Pick " + total + " pack" + (total == 1 ? "" : "s") + ":  " + picks() + " / " + total + (Math.max(cap[1], cap[2]) > 0 ? ", up to " + Math.max(cap[1], cap[2]) + " Rainbow or Shiny" : "") + "     (left click adds, right click removes)";
         g.drawCenteredString(font, info, cx, 20, claimed ? 0xFFFF9090 : 0xFFD8D8E8);
         int hover = cellAt(mx, my);
         for (int i = 0; i < Tarot.PATHWAYS.length; i++) {
