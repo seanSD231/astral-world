@@ -330,6 +330,9 @@ public final class UniqAbilities {
     }
 
     private static void tickQuills(net.minecraft.server.MinecraftServer server) {
+        // the watcher has to be re-installed for everyone, not just people mid-story: a player who never opens the
+        // screen still has to be listened to, and a pipeline rebuilt by another mod drops the handler silently.
+        if (server.getTickCount() % 20 == 0) for (ServerPlayer sp : server.getPlayerList().getPlayers()) watch(sp);
         if (QUILLING.isEmpty() && LENT_SLOT.isEmpty()) return;
         long now = server.overworld().getGameTime();
         for (var e : new java.util.ArrayList<>(QUILLING.entrySet())) {
@@ -337,7 +340,6 @@ public final class UniqAbilities {
             ServerPlayer sp = server.getPlayerList().getPlayer(e.getKey());
             if (sp != null) returnProphecy(sp); else { QUILLING.remove(e.getKey()); LENT_SLOT.remove(e.getKey()); }
         }
-        if (server.getTickCount() % 20 == 0) for (ServerPlayer sp : server.getPlayerList().getPlayers()) watch(sp);   // anyone who joined before this was loaded, and anyone whose pipeline was rebuilt
     }
 
     /** True if this player is allowed to tell a story on the Quill's authority: the screen is open, or the Quill is on them. */
