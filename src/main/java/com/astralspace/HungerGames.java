@@ -128,6 +128,45 @@ public final class HungerGames {
     /** True while this player is a living contestant in a running game (the arena's no-damage rule does not apply to them). */
     public static boolean fighting(ServerPlayer p) { return (phase == Phase.RUNNING || phase == Phase.ENDING) && alive.contains(p.getUUID()); }
 
+    // ---- the countdown lockdown: standing in the middle before GO, a contestant may look and nothing else.
+    // Slowness 7 still leaves them able to drift a little, and that was enough to reach a chest or hoover up
+    // whatever was lying in the circle before the games had begun.
+
+    /** True for a contestant during the 15-second countdown, before everyone is sent to the edge. */
+    private static boolean frozen(net.minecraft.world.entity.player.Player pl) {
+        return phase == Phase.COUNTDOWN && pl instanceof ServerPlayer p && alive.contains(p.getUUID());
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownPickup(net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent.Pre event) {
+        if (frozen(event.getPlayer())) event.setCanPickup(net.neoforged.neoforge.common.util.TriState.FALSE);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownUseBlock(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) {
+        if (frozen(event.getEntity())) event.setCanceled(true);   // no opening the chests in the middle early
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownUseItem(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickItem event) {
+        if (frozen(event.getEntity())) event.setCanceled(true);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownHitBlock(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock event) {
+        if (frozen(event.getEntity())) event.setCanceled(true);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownBreak(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent event) {
+        if (frozen(event.getPlayer())) event.setCanceled(true);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownAttack(net.neoforged.neoforge.event.entity.player.AttackEntityEvent event) {
+        if (frozen(event.getEntity())) event.setCanceled(true);
+    }
+
     // ------------------------------------------------------------------ commands
 
     @SubscribeEvent
