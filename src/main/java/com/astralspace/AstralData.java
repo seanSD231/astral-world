@@ -59,6 +59,8 @@ public class AstralData extends SavedData {
     public final Map<UUID, Long> weeklyClaim = new HashMap<>();
     /** Fun items: the day (epoch day) each player last took one. */
     public final Map<UUID, Long> funClaim = new HashMap<>();
+    /** Rank perks already handed to each player, comma-separated ("card", "terminal", "title=68"). */
+    public final Map<UUID, String> perksGiven = new HashMap<>();
     /** Where each player left from when they entered the Astral World. */
     public final Map<UUID, Return> returns = new HashMap<>();
 
@@ -109,6 +111,8 @@ public class AstralData extends SavedData {
         for (String k : wc.getAllKeys()) d.weeklyClaim.put(UUID.fromString(k), wc.getLong(k));
         CompoundTag fc = tag.getCompound("funClaim");
         for (String k : fc.getAllKeys()) d.funClaim.put(UUID.fromString(k), fc.getLong(k));
+        CompoundTag pg = tag.getCompound("perksGiven");
+        for (String k : pg.getAllKeys()) d.perksGiven.put(UUID.fromString(k), pg.getString(k));
         CompoundTag r = tag.getCompound("returns");
         for (String k : r.getAllKeys()) {
             CompoundTag e = r.getCompound(k);
@@ -166,6 +170,9 @@ public class AstralData extends SavedData {
         CompoundTag fc = new CompoundTag();
         funClaim.forEach((k, v) -> fc.putLong(k.toString(), v));
         tag.put("funClaim", fc);
+        CompoundTag pg = new CompoundTag();
+        perksGiven.forEach((k, v) -> pg.putString(k.toString(), v));
+        tag.put("perksGiven", pg);
         CompoundTag r = new CompoundTag();
         returns.forEach((k, v) -> {
             CompoundTag e = new CompoundTag();

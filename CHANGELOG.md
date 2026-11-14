@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.243
+
+- Rank perks (credit card, bank terminal, title) are now re-checked every 20 seconds for everyone online, not only once at login. A node set on a rank while its players were already connected did nothing at all until they relogged.
+- New `/astralperks [player]`, `/astralperks all` and `/astralperks reset <player>` (ops) to run the check now and to see what a player has already been handed.
+- The record of what a player was given moved to the world's saved data, so it survives a respawn. On the player it was wiped by death, which would have handed out a second card.
+- The grant path now logs: a missing item id, a missing /sol command and a failed title grant each say so in the server log instead of failing silently.
+
 ## 0.2.242
 
 - Hunger Games: contestants are fully locked down during the 15-second countdown. Picking items up, opening chests, breaking or hitting blocks, using items and attacking are all blocked until GO. Slowness 7 still let people drift far enough to loot the middle before the games had started.
