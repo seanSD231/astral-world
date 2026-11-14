@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.241
+
+- Weekly tarot packs and fun items now record their claim in the world's saved data instead of on the player. Player persistent data does not survive a respawn and travels in the player's .dat file, so a claim could be lost on death or when a server was killed rather than stopped cleanly, letting everyone claim again. Existing claims are migrated on first read.
+
 ## 0.2.240
 
 - Quill: the story watcher is now re-installed for every online player each second. It was behind an early return that only ran while somebody was mid-story, so a player who had never opened the Quill screen was never listened to.

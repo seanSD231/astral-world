@@ -55,6 +55,10 @@ public class AstralData extends SavedData {
     public final Map<UUID, String> seq0Paths = new HashMap<>();
     /** The last Sequence seen for each player, to notice when someone reaches Seq 0. */
     public final Map<UUID, Integer> lastSeq = new HashMap<>();
+    /** Weekly tarot packs: the week (epoch day of its first day) each player last took theirs. */
+    public final Map<UUID, Long> weeklyClaim = new HashMap<>();
+    /** Fun items: the day (epoch day) each player last took one. */
+    public final Map<UUID, Long> funClaim = new HashMap<>();
     /** Where each player left from when they entered the Astral World. */
     public final Map<UUID, Return> returns = new HashMap<>();
 
@@ -101,6 +105,10 @@ public class AstralData extends SavedData {
         for (String k : sp.getAllKeys()) d.seq0Paths.put(UUID.fromString(k), sp.getString(k));
         CompoundTag l = tag.getCompound("lastSeq");
         for (String k : l.getAllKeys()) d.lastSeq.put(UUID.fromString(k), l.getInt(k));
+        CompoundTag wc = tag.getCompound("weeklyClaim");
+        for (String k : wc.getAllKeys()) d.weeklyClaim.put(UUID.fromString(k), wc.getLong(k));
+        CompoundTag fc = tag.getCompound("funClaim");
+        for (String k : fc.getAllKeys()) d.funClaim.put(UUID.fromString(k), fc.getLong(k));
         CompoundTag r = tag.getCompound("returns");
         for (String k : r.getAllKeys()) {
             CompoundTag e = r.getCompound(k);
@@ -152,6 +160,12 @@ public class AstralData extends SavedData {
         CompoundTag l = new CompoundTag();
         lastSeq.forEach((k, v) -> l.putInt(k.toString(), v));
         tag.put("lastSeq", l);
+        CompoundTag wc = new CompoundTag();
+        weeklyClaim.forEach((k, v) -> wc.putLong(k.toString(), v));
+        tag.put("weeklyClaim", wc);
+        CompoundTag fc = new CompoundTag();
+        funClaim.forEach((k, v) -> fc.putLong(k.toString(), v));
+        tag.put("funClaim", fc);
         CompoundTag r = new CompoundTag();
         returns.forEach((k, v) -> {
             CompoundTag e = new CompoundTag();

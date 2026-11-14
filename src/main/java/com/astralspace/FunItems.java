@@ -137,11 +137,24 @@ public final class FunItems {
     /** How many days a rank waits between picks (7, 3 or 1); 0 means the rank gets none. */
     public static int period(ServerPlayer p) { return Math.max(0, Ranks.integer(p, "astral_world.fun_items", 0)); }
 
+    /**
+     * The day a player last took a fun item. Kept in {@link AstralData}, not on the player: persistent data on a
+     * player does not survive a respawn, and goes with the .dat file when a server is killed rather than stopped.
+     */
+    static long lastTaken(ServerPlayer p) {
+        AstralData d = AstralData.get(p.server);
+        Long v = d.funClaim.get(p.getUUID());
+        if (v != null) return v;
+        long old = p.getPersistentData().getLong(TAG);      // migrate a pick made before 0.2.241, once
+        if (old > 0) { d.funClaim.put(p.getUUID(), old); d.setDirty(); }
+        return old;
+    }
+
     /** Days still to wait before this player may pick again; 0 means now. */
     public static int waitLeft(ServerPlayer p) {
         int days = period(p);
         if (days <= 0) return 0;
-        long now = java.time.LocalDate.now().toEpochDay(), last = p.getPersistentData().getLong(TAG);
+        long now = java.time.LocalDate.now().toEpochDay(), last = lastTaken(p);
         return last > 0 && now - last < days ? (int) (days - (now - last)) : 0;
     }
 
@@ -166,7 +179,7 @@ public final class FunItems {
     public static void pick(ServerPlayer p, String id) {
         int days = period(p);
         if (days <= 0) { p.sendSystemMessage(Component.literal("Your rank does not get fun items.").withStyle(ChatFormatting.GRAY)); return; }
-        long now = java.time.LocalDate.now().toEpochDay(), last = p.getPersistentData().getLong(TAG);
+        long now = java.time.LocalDate.now().toEpochDay(), last = lastTaken(p);
         if (last > 0 && now - last < days) {
             long left = days - (now - last);
             p.sendSystemMessage(Component.literal("You can pick again in " + left + " day" + (left == 1 ? "" : "s") + ".").withStyle(ChatFormatting.GRAY));
@@ -181,7 +194,9 @@ public final class FunItems {
         }
         ItemStack st = new ItemStack(item);
         if (!p.getInventory().add(st)) p.drop(st, false);
-        p.getPersistentData().putLong(TAG, now);
+        AstralData fd = AstralData.get(p.server);
+        fd.funClaim.put(p.getUUID(), now); fd.setDirty();
+        p.getPersistentData().putLong(TAG, now);   // kept in step so an older build still reads it
         p.sendSystemMessage(Component.literal("Taken. Your next fun item is ready in " + days + " day" + (days == 1 ? "" : "s") + ".").withStyle(ChatFormatting.GOLD));
     }
 
@@ -192,6 +207,8 @@ public final class FunItems {
                 .then(net.minecraft.commands.Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player()).executes(c -> {
                     ServerPlayer t = net.minecraft.commands.arguments.EntityArgument.getPlayer(c, "player");
                     t.getPersistentData().remove(TAG);
+                    AstralData rd = AstralData.get(t.server);
+                    rd.funClaim.remove(t.getUUID()); rd.setDirty();
                     c.getSource().sendSuccess(() -> Component.literal(t.getGameProfile().getName() + " can pick a fun item again."), true);
                     return 1;
                 })));

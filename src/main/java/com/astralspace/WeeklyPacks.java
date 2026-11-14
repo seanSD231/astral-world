@@ -43,7 +43,25 @@ public final class WeeklyPacks {
     // ---- the rank's numbers ({@link Ranks} does the reflection; without FTB Ranks everyone gets the default)
     static int total(ServerPlayer p) { return Math.max(0, Ranks.integer(p, NODE, Settings.weeklyPacksDefault)); }
     static int[] caps(ServerPlayer p, int total) { return new int[]{total, Ranks.cap(p, NODE + ".rainbow", total), Ranks.cap(p, NODE + ".shiny", total)}; }
-    static boolean claimed(ServerPlayer p) { return p.getPersistentData().contains(TAG) && p.getPersistentData().getLong(TAG) == weekStart(); }
+    /**
+     * The week a player last took their packs. This lives in {@link AstralData} and not in the player's persistent
+     * data: NeoForge keeps only the PlayerPersisted sub-tag across a respawn, so a claim stored on the player was
+     * lost every time its owner died, and it went with the player's .dat file if the server was killed rather than
+     * stopped. The world's saved data survives both.
+     */
+    static long claimedWeek(ServerPlayer p) {
+        AstralData d = AstralData.get(p.server);
+        Long w = d.weeklyClaim.get(p.getUUID());
+        if (w != null) return w;
+        if (p.getPersistentData().contains(TAG)) {          // migrate a claim made before 0.2.241, once
+            long old = p.getPersistentData().getLong(TAG);
+            d.weeklyClaim.put(p.getUUID(), old); d.setDirty();
+            return old;
+        }
+        return Long.MIN_VALUE;
+    }
+
+    static boolean claimed(ServerPlayer p) { return claimedWeek(p) == weekStart(); }
 
     // ---- open the menu / claim
     static void open(ServerPlayer p) {
@@ -73,7 +91,9 @@ public final class WeeklyPacks {
         } catch (RuntimeException e) { p.sendSystemMessage(Component.literal("That pick was not valid.").withStyle(ChatFormatting.RED)); return; }
         if (sum != total || byType[1] > caps[1] || byType[2] > caps[2] || byType[1] + byType[2] > Math.max(caps[1], caps[2])) { p.sendSystemMessage(Component.literal("That pick is not allowed for your rank.").withStyle(ChatFormatting.RED)); return; }
         for (ItemStack st : give) if (!p.getInventory().add(st)) p.drop(st, false);
-        p.getPersistentData().putLong(TAG, weekStart());
+        AstralData d = AstralData.get(p.server);
+        d.weeklyClaim.put(p.getUUID(), weekStart()); d.setDirty();
+        p.getPersistentData().putLong(TAG, weekStart());   // kept in step so an older build still reads it
         p.sendSystemMessage(Component.literal("You took your " + total + " weekly tarot pack" + (total == 1 ? "" : "s") + ". The next ones are ready when the week resets.").withStyle(ChatFormatting.GOLD));
     }
 
@@ -123,6 +143,8 @@ public final class WeeklyPacks {
                     .then(Commands.argument("player", EntityArgument.player()).executes(c -> {
                         ServerPlayer t = EntityArgument.getPlayer(c, "player");
                         t.getPersistentData().remove(TAG);
+                        AstralData d = AstralData.get(t.server);
+                        d.weeklyClaim.remove(t.getUUID()); d.setDirty();
                         c.getSource().sendSuccess(() -> Component.literal(t.getGameProfile().getName() + " can take their weekly packs again."), true);
                         return 1;
                     }))));
