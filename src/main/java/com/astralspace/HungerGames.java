@@ -81,7 +81,7 @@ public final class HungerGames {
                          float hp, int food, float sat, int xpLevel, float xpProg, int xpTotal, int seq, ListTag curios, CompoundTag attach) { }
 
     private static final double ARENA_R = EndGame.ARENA_R, RING_R = 270;
-    private static final int INVITE_TICKS = 20 * 60, COUNTDOWN_TICKS = 20 * 15, OUTER_CHESTS = 170, CENTRE_CHESTS = 50, CHURCH_CHESTS = 60;
+    private static final int INVITE_TICKS = 20 * 60, OUTER_CHESTS = 170, CENTRE_CHESTS = 50, CHURCH_CHESTS = 60;
 
     private static Phase phase = Phase.OFF;
     private static MinecraftServer server;
@@ -94,6 +94,7 @@ public final class HungerGames {
     /** Everyone taken into the games and not yet put back (also players who left in the middle: they are restored when they return). */
     private static final Map<UUID, Saved> saved = new HashMap<>();
     private static final List<BlockPos> chests = new ArrayList<>();
+    private static int caches = 0;
     private static int outerLeft = 0, centreLeft = 0, churchLeft = 0;
     private static final Random rnd = new Random();
     private static final String MOB_TAG = "astral_hg_mob";
@@ -165,6 +166,30 @@ public final class HungerGames {
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onCountdownAttack(net.neoforged.neoforge.event.entity.player.AttackEntityEvent event) {
         if (frozen(event.getEntity())) event.setCanceled(true);
+    }
+
+    /** True for anyone taking part, from the moment they are carried in until everything is put back. */
+    private static boolean inGames(ServerPlayer p) { return phase != Phase.OFF && players.contains(p.getUUID()); }
+
+    /**
+     * Commands a contestant may not run. /enderchest and the like reach storage outside the arena, so anything carried
+     * in is carried in through them and anything won can be taken out the same way; the teleport commands simply walk
+     * out of the arena. The list is {@code hungergames_blocked_commands} in settings.properties.
+     */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCommand(net.neoforged.neoforge.event.CommandEvent event) {
+        ServerPlayer p = event.getParseResults().getContext().getSource().getPlayer();
+        if (p == null || !inGames(p) || p.hasPermissions(2)) return;
+        String line = event.getParseResults().getReader().getString().trim();
+        if (line.startsWith("/")) line = line.substring(1);
+        int sp = line.indexOf(' ');
+        String root = (sp < 0 ? line : line.substring(0, sp)).toLowerCase(java.util.Locale.ROOT);
+        for (String b : Settings.hgBlockedCommands.split(",")) {
+            if (!root.equals(b.trim().toLowerCase(java.util.Locale.ROOT)) || b.isBlank()) continue;
+            event.setCanceled(true);
+            p.sendSystemMessage(Component.literal("/" + root + " is closed while you are in the hunger games.").withStyle(ChatFormatting.RED));
+            return;
+        }
     }
 
     // ------------------------------------------------------------------ commands
@@ -400,6 +425,55 @@ public final class HungerGames {
             e(3, () -> st(Items.TNT, 4)), e(2, () -> st(Items.FLINT_AND_STEEL, 1)), e(5, () -> st(Items.TORCH, 12)), e(6, () -> st(Items.WIND_CHARGE, 6 + rnd.nextInt(7))),
             e(6, () -> lotm("lotm:luckbottleitem", 1 + rnd.nextInt(2))), e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 4)));
 
+    /** The hidden caches: what the middle chests do not hold. Worth the walk out to the edge and the time away from the fight. */
+    private static final List<Entry> CACHE = List.of(
+            e(5, () -> st(Items.NETHERITE_SWORD, 1)), e(4, () -> st(Items.NETHERITE_AXE, 1)), e(3, () -> st(Items.TRIDENT, 1)),
+            e(5, () -> st(Items.NETHERITE_HELMET, 1)), e(5, () -> st(Items.NETHERITE_CHESTPLATE, 1)), e(5, () -> st(Items.NETHERITE_LEGGINGS, 1)), e(5, () -> st(Items.NETHERITE_BOOTS, 1)),
+            e(7, () -> st(Items.ENCHANTED_GOLDEN_APPLE, 1 + rnd.nextInt(2))), e(6, () -> st(Items.TOTEM_OF_UNDYING, 1)),
+            e(5, () -> st(Items.GOLDEN_APPLE, 3 + rnd.nextInt(3))), e(5, () -> st(Items.ENDER_PEARL, 4 + rnd.nextInt(4))),
+            e(4, () -> potion(Items.SPLASH_POTION, Potions.STRONG_HEALING)), e(4, () -> potion(Items.POTION, Potions.STRONG_STRENGTH)),
+            e(4, () -> potion(Items.POTION, Potions.LONG_SWIFTNESS)), e(3, () -> potion(Items.POTION, Potions.LONG_FIRE_RESISTANCE)),
+            e(5, () -> st(Items.WIND_CHARGE, 12 + rnd.nextInt(9))), e(4, () -> st(Items.TNT, 6)), e(4, () -> st(Items.COBWEB, 8)),
+            e(6, () -> lotm("lotm:luckbottleitem", 3 + rnd.nextInt(3))), e(5, () -> st(Items.ARROW, 32)), e(3, () -> st(Items.BOW, 1)));
+
+    /**
+     * Hidden caches: barrels, not chests, so they read differently at a glance. They sit out in the far ring and inside
+     * the church, away from the middle, and hold the {@link #CACHE} table. Placed after the cover, so some end up tucked
+     * behind it. The arena reset clears them with everything else.
+     */
+    private static void placeCaches(ServerLevel lv) {
+        caches = 0;
+        double maxR = PlanetGenerator.PLAT_R - 12;
+        for (int want = 0; want < Settings.hgHiddenCaches; want++) {
+            boolean church = rnd.nextInt(3) == 0;
+            for (int tries = 0; tries < 60; tries++) {
+                int x, z;
+                if (church) {
+                    x = rnd.nextInt(681) - 340; z = rnd.nextInt(681) - 340;
+                    if (!PlanetGenerator.churchInside(x, z, 3)) continue;
+                } else {
+                    double a = rnd.nextDouble() * Math.PI * 2, r = maxR * (0.62 + rnd.nextDouble() * 0.36);
+                    x = (int) Math.round(Math.cos(a) * r); z = (int) Math.round(Math.sin(a) * r);
+                    if (PlanetGenerator.churchInside(x, z, 6)) continue;
+                }
+                BlockPos p = surface(lv, x, z);
+                if (p == null || chests.contains(p)) continue;
+                lv.setBlock(p, Blocks.BARREL.defaultBlockState(), 3);
+                if (lv.getBlockEntity(p) instanceof net.minecraft.world.level.block.entity.BarrelBlockEntity b) {
+                    List<Integer> slots = new ArrayList<>();
+                    for (int i = 0; i < 27; i++) slots.add(i);
+                    Collections.shuffle(slots, rnd);
+                    int howMany = 4 + rnd.nextInt(4);
+                    for (int i = 0; i < howMany; i++) b.setItem(slots.get(i), pick(CACHE));
+                    b.setChanged();
+                }
+                chests.add(p);
+                caches++;
+                break;
+            }
+        }
+    }
+
     private static ItemStack pick(List<Entry> table) {
         int total = 0;
         for (Entry en : table) total += en.weight;
@@ -429,6 +503,13 @@ public final class HungerGames {
             return;
         }
         int n = in.size();
+        // How long everyone stands in the middle. A low sequence has far more abilities to pick through, so the whole
+        // field gets longer to choose; the strongest player present sets it, so nobody is rushed while someone else is not.
+        int lowSeq = 9;
+        if (!seqEvent) lowSeq = 9;
+        else if (!seqKeep) lowSeq = seqSet;
+        else for (ServerPlayer p : in) { int q = Lotm.sequence(p); if (q >= 0) lowSeq = Math.min(lowSeq, q); }
+        int wait = 20 * Math.min(Settings.hgCountdownMax, Settings.hgCountdownBase + (9 - lowSeq) * Settings.hgCountdownPerSequence);
         order.clear(); kills.clear(); names.clear(); out.clear();
         for (int i = 0; i < n; i++) {
             ServerPlayer p = in.get(i);
@@ -458,13 +539,16 @@ public final class HungerGames {
             p.teleportTo(lv, cx, groundY, cz, yaw, 0f);
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(9, 0));   // there is no tree in the games: the client must not draw its stand-in
             p.setInvulnerable(true);
-            p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, COUNTDOWN_TICKS + 20, 7, false, false, false));
-            p.sendSystemMessage(Component.literal("You are in the arena. Look at who you are up against: in 15 seconds everyone is sent to the edge of the arena and the games begin. Chests are all over, the middle has the most, and the arena will close in on the middle.").withStyle(ChatFormatting.GOLD));
+            p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, wait + 20, 7, false, false, false));
+            p.sendSystemMessage(Component.literal("You are in the arena. Look at who you are up against: in " + (wait / 20)
+                + " seconds everyone is sent to the edge of the arena and the games begin. Chests are all over, the middle has the most,"
+                + " hidden caches with better loot are out at the edges and in the church, and the arena will close in on the middle.").withStyle(ChatFormatting.GOLD));
         }
         placeObstacles(lv);
+        placeCaches(lv);
         phase = Phase.COUNTDOWN;
-        phaseEnd = s.getTickCount() + COUNTDOWN_TICKS;
-        LOGGER.info("[hungergames] {} players, {} chests", n, chests.size());
+        phaseEnd = s.getTickCount() + wait;
+        LOGGER.info("[hungergames] {} players, {} chests, {} caches, countdown {}s (lowest sequence {})", n, chests.size(), caches, wait / 20, lowSeq);
     }
 
     private static Saved snapshot(ServerPlayer p) {
@@ -944,6 +1028,6 @@ public final class HungerGames {
     private static void reset() {
         phase = Phase.OFF;
         answers.clear(); alive.clear(); players.clear(); chests.clear();
-        outerLeft = 0; centreLeft = 0; churchLeft = 0;
+        outerLeft = 0; centreLeft = 0; churchLeft = 0; caches = 0;
     }
 }

@@ -45,6 +45,12 @@ public final class Settings {
         KEYS.put("weekly_reset_day", new String[]{"1", "Weekly tarot packs: the day the week resets, 1 = Monday ... 7 = Sunday (server time)."});
         KEYS.put("raid_full_damage_players", new String[]{"3", "The Mother Tree raid: up to this many fighters hurt her at full strength. Past it, every hit is scaled down so that any\n# number of fighters together do what this many would: the fight stays as long with thirty as it is with three."});
         KEYS.put("casino_vault_losses_only", new String[]{"true", "The casino vault (/casinovault): true = only stakes that lost are kept, false = every stake, won or lost. A MineVegas\n# machine takes the staked items either way and makes the winnings fresh, so with false the vault holds everything wagered."});
+        KEYS.put("hungergames_countdown_base", new String[]{"15", "Hunger games: seconds everyone stands in the middle before the games begin, for a sequence 9 field."});
+        KEYS.put("hungergames_countdown_per_sequence", new String[]{"6", "Hunger games: extra seconds of that countdown for every sequence below 9 of the strongest player in the field.\n# A lower sequence has many more abilities to pick from, so the field gets longer to choose. 0 turns this off."});
+        KEYS.put("hungergames_countdown_max", new String[]{"90", "Hunger games: the longest that countdown may ever be, in seconds."});
+        KEYS.put("hungergames_hidden_caches", new String[]{"14", "Hunger games: how many hidden caches (barrels, out at the edges and in the church) are placed. They hold better loot\n# than the middle chests and are meant to reward looking away from the fight. 0 places none."});
+        KEYS.put("hungergames_blocked_commands", new String[]{"enderchest,ec,echest,ender,backpack,bp,trash,back,home,homes,sethome,tpa,tpask,tpahere,tpaccept,tpyes,spawn,warp,kit,rtp,wild,craft,anvil,enchanting,workbench,invsee,heal,feed,fly,god,near",
+            "Hunger games: commands a player in the games may not run, comma separated and without the slash. These reach storage or\n# move people around, which takes items into or out of the arena. Leave empty to block nothing."});
         KEYS.put("casino_vault_radius", new String[]{"48", "How close (blocks, same dimension) a casino machine must be to a vault chest for its lost stakes to go there.\n# A machine with no vault within this range keeps losing its stakes the way MineVegas loses them."});
         KEYS.put("uniqueness_use_corruption", new String[]{"12", "Uniquenesses are sealed artifacts: nobody can take one in. Percent of the corruption limit each use costs, on that\n# item's own pathway (it used to be 50, and only for someone who had not accommodated it)."});
         KEYS.put("uniqueness_carry_corruption", new String[]{"1", "Percent of the corruption limit that simply carrying a Uniqueness costs, every ten seconds. While one is on you,\n# you also lose two hearts of maximum health and mine slowly. 0 turns the carrying price off."});
@@ -73,6 +79,9 @@ public final class Settings {
     public static volatile int casinoVaultRadius = 48;
     public static volatile int uniqUseCorruption = 12;
     public static volatile int uniqCarryCorruption = 1;
+    public static volatile int hgCountdownBase = 15, hgCountdownPerSequence = 6, hgCountdownMax = 90, hgHiddenCaches = 14;
+    public static volatile String hgBlockedCommands =
+        "enderchest,ec,echest,ender,backpack,bp,trash,back,home,homes,sethome,tpa,tpask,tpahere,tpaccept,tpyes,spawn,warp,kit,rtp,wild,craft,anvil,enchanting,workbench,invsee,heal,feed,fly,god,near";
 
     private Settings() {}
 
@@ -127,6 +136,11 @@ public final class Settings {
             casinoVaultRadius = Math.max(1, Integer.parseInt(p.getProperty("casino_vault_radius").trim()));
             uniqUseCorruption = Math.max(0, Integer.parseInt(p.getProperty("uniqueness_use_corruption").trim()));
             uniqCarryCorruption = Math.max(0, Integer.parseInt(p.getProperty("uniqueness_carry_corruption").trim()));
+            hgCountdownBase = Math.max(3, Integer.parseInt(p.getProperty("hungergames_countdown_base").trim()));
+            hgCountdownPerSequence = Math.max(0, Integer.parseInt(p.getProperty("hungergames_countdown_per_sequence").trim()));
+            hgCountdownMax = Math.max(3, Integer.parseInt(p.getProperty("hungergames_countdown_max").trim()));
+            hgHiddenCaches = Math.max(0, Integer.parseInt(p.getProperty("hungergames_hidden_caches").trim()));
+            hgBlockedCommands = p.getProperty("hungergames_blocked_commands").trim();
             LOGGER.info("[astral] settings: surface {} down to {}, astral_barrier_level {}, stage3_days {}, damage every {} min, nearby_radius {}",
                     surfaceTop, surfaceBottom, barrierY, stage3Days, barrierDamageMinutes, nearbyRadius);
         } catch (IOException | NumberFormatException e) {

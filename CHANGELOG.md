@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.244
+
+- Hunger games: contestants can no longer run commands that reach outside the arena. /enderchest, backpacks, homes, teleports, spawn, kits and the rest are closed for anyone in the games (ops excepted). The list is `hungergames_blocked_commands` in settings.properties.
+- Hunger games: the countdown in the middle now grows with the strongest sequence in the field, so a low-sequence player has time to pick through their abilities. 15 seconds at sequence 9, plus 6 more per sequence below it, capped at 90. All three are settings.
+- Hunger games: hidden caches. Barrels, not chests, out in the far ring and inside the church, holding netherite, totems, notch apples and stacks of pearls. 14 by default (`hungergames_hidden_caches`), worth the walk away from the middle.
+
 ## 0.2.243
 
 - Rank perks (credit card, bank terminal, title) are now re-checked every 20 seconds for everyone online, not only once at login. A node set on a rank while its players were already connected did nothing at all until they relogged.
