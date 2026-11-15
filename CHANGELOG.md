@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.245
+
+- SolsTitleSystem damage titles: any highest-hit figure above `title_max_hit_damage` (100000 by default) is thrown away every few seconds and logged. LOTM abilities that deal the integer limit of damage to the player themselves were being counted, which unlocked the top damage title permanently.
+- New `/astralstats <player>` (ops) shows the highest hit, damage dealt and damage taken that SolsTitleSystem holds; `/astralstats reset <player>` puts them back to zero; `/astralstats revoke <player> <title id>` takes a title away. Reset the statistics as well as revoking, or the title unlocks again from the figure that is still there.
+
 ## 0.2.244
 
 - Hunger games: contestants can no longer run commands that reach outside the arena. /enderchest, backpacks, homes, teleports, spawn, kits and the rest are closed for anyone in the games (ops excepted). The list is `hungergames_blocked_commands` in settings.properties.

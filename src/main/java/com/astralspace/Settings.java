@@ -45,6 +45,7 @@ public final class Settings {
         KEYS.put("weekly_reset_day", new String[]{"1", "Weekly tarot packs: the day the week resets, 1 = Monday ... 7 = Sunday (server time)."});
         KEYS.put("raid_full_damage_players", new String[]{"3", "The Mother Tree raid: up to this many fighters hurt her at full strength. Past it, every hit is scaled down so that any\n# number of fighters together do what this many would: the fight stays as long with thirty as it is with three."});
         KEYS.put("casino_vault_losses_only", new String[]{"true", "The casino vault (/casinovault): true = only stakes that lost are kept, false = every stake, won or lost. A MineVegas\n# machine takes the staked items either way and makes the winnings fresh, so with false the vault holds everything wagered."});
+        KEYS.put("title_max_hit_damage", new String[]{"100000", "SolsTitleSystem records a highest-hit-damage per player and gives titles for it. Some LOTM abilities deal the integer limit\n# of damage to the player themselves and it counts, which unlocks the top damage title and cannot be undone in that mod.\n# Any highest hit above this number is thrown away every few seconds. Set it above any real hit on your server; 0 turns this off.\n# Use /astralstats <player> to see the figures and /astralstats reset <player> to put them back."});
         KEYS.put("hungergames_countdown_base", new String[]{"15", "Hunger games: seconds everyone stands in the middle before the games begin, for a sequence 9 field."});
         KEYS.put("hungergames_countdown_per_sequence", new String[]{"6", "Hunger games: extra seconds of that countdown for every sequence below 9 of the strongest player in the field.\n# A lower sequence has many more abilities to pick from, so the field gets longer to choose. 0 turns this off."});
         KEYS.put("hungergames_countdown_max", new String[]{"90", "Hunger games: the longest that countdown may ever be, in seconds."});
@@ -79,6 +80,7 @@ public final class Settings {
     public static volatile int casinoVaultRadius = 48;
     public static volatile int uniqUseCorruption = 12;
     public static volatile int uniqCarryCorruption = 1;
+    public static volatile int titleMaxHit = 100000;
     public static volatile int hgCountdownBase = 15, hgCountdownPerSequence = 6, hgCountdownMax = 90, hgHiddenCaches = 14;
     public static volatile String hgBlockedCommands =
         "enderchest,ec,echest,ender,backpack,bp,trash,back,home,homes,sethome,tpa,tpask,tpahere,tpaccept,tpyes,spawn,warp,kit,rtp,wild,craft,anvil,enchanting,workbench,invsee,heal,feed,fly,god,near";
@@ -141,6 +143,7 @@ public final class Settings {
             hgCountdownMax = Math.max(3, Integer.parseInt(p.getProperty("hungergames_countdown_max").trim()));
             hgHiddenCaches = Math.max(0, Integer.parseInt(p.getProperty("hungergames_hidden_caches").trim()));
             hgBlockedCommands = p.getProperty("hungergames_blocked_commands").trim();
+            titleMaxHit = Math.max(0, Integer.parseInt(p.getProperty("title_max_hit_damage").trim()));
             LOGGER.info("[astral] settings: surface {} down to {}, astral_barrier_level {}, stage3_days {}, damage every {} min, nearby_radius {}",
                     surfaceTop, surfaceBottom, barrierY, stage3Days, barrierDamageMinutes, nearbyRadius);
         } catch (IOException | NumberFormatException e) {
