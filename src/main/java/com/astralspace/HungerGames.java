@@ -78,7 +78,7 @@ public final class HungerGames {
     private enum Phase { OFF, INVITE, COUNTDOWN, RUNNING, ENDING }
 
     private record Saved(ResourceKey<Level> dim, double x, double y, double z, float yaw, float pitch, GameType mode, ListTag inv,
-                         float hp, int food, float sat, int xpLevel, float xpProg, int xpTotal, int seq, ListTag curios, CompoundTag attach) { }
+                         float hp, int food, float sat, int xpLevel, float xpProg, int xpTotal, int seq, String path, ListTag curios, CompoundTag attach) { }
 
     private static final double ARENA_R = EndGame.ARENA_R, RING_R = 270;
     private static final int INVITE_TICKS = 20 * 60, OUTER_CHESTS = 170, CENTRE_CHESTS = 50, CHURCH_CHESTS = 60;
@@ -95,6 +95,8 @@ public final class HungerGames {
     private static final Map<UUID, Saved> saved = new HashMap<>();
     private static final List<BlockPos> chests = new ArrayList<>();
     private static int caches = 0;
+    /** Pathways people asked for during the invitation, applied when they are carried in. */
+    private static final Map<UUID, String> wantedPath = new HashMap<>();
     private static int outerLeft = 0, centreLeft = 0, churchLeft = 0;
     private static final Random rnd = new Random();
     private static final String MOB_TAG = "astral_hg_mob";
@@ -211,6 +213,9 @@ public final class HungerGames {
                 }))
                 .then(Commands.literal("board").requires(s -> s.hasPermission(2)).executes(ctx -> placeBoard(ctx.getSource().getPlayerOrException()))
                     .then(Commands.literal("remove").executes(ctx -> removeBoard(ctx.getSource().getPlayerOrException()))))
+                .then(Commands.literal("path").then(Commands.argument("pathway", StringArgumentType.word())
+                        .suggests((c, b) -> { for (String id : Lotm.PATH_IDS) b.suggest(id); return b.buildFuture(); })
+                        .executes(ctx -> pickPath(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "pathway")))))
                 .then(Commands.literal("spectate").executes(ctx -> watch(ctx.getSource().getPlayerOrException())))
                 .then(Commands.literal("unspectate").executes(ctx -> unwatch(ctx.getSource().getPlayerOrException(), true)))
                 .then(Commands.literal("status").executes(ctx -> {
@@ -229,6 +234,45 @@ public final class HungerGames {
                 }))));
     }
 
+    /**
+     * Pick a pathway for the games. Allowed from the invitation until the countdown runs out; the pathway is put back
+     * with everything else afterwards, so this costs nothing outside the arena. The sequence is left alone: whatever
+     * the game is being played at is what they get on the new pathway.
+     */
+    private static int pickPath(ServerPlayer p, String id) {
+        if (!Settings.hgAllowPathwayChange) { p.sendSystemMessage(Component.literal("Picking a pathway is turned off on this server.").withStyle(ChatFormatting.GRAY)); return 0; }
+        if (phase != Phase.INVITE && phase != Phase.COUNTDOWN) {
+            p.sendSystemMessage(Component.literal("You can only pick a pathway before the games begin.").withStyle(ChatFormatting.GRAY));
+            return 0;
+        }
+        if (phase == Phase.COUNTDOWN && !players.contains(p.getUUID())) {
+            p.sendSystemMessage(Component.literal("You are not in these games.").withStyle(ChatFormatting.GRAY));
+            return 0;
+        }
+        String want = id.toLowerCase(java.util.Locale.ROOT).trim();
+        boolean known = false;
+        for (String k : Lotm.PATH_IDS) if (k.equals(want)) { known = true; break; }
+        if (!known) {
+            p.sendSystemMessage(Component.literal("No such pathway. One of: " + String.join(", ", Lotm.PATH_IDS)).withStyle(ChatFormatting.RED));
+            return 0;
+        }
+        if (phase == Phase.INVITE) {   // chosen early: remembered and applied when they are carried in
+            wantedPath.put(p.getUUID(), want);
+            p.sendSystemMessage(Component.literal("You will play these hunger games on the " + want + " pathway.").withStyle(ChatFormatting.GREEN));
+            return 1;
+        }
+        int seq = Lotm.sequence(p);
+        if (seq < 0) { p.sendSystemMessage(Component.literal("You are not a Beyonder, so there is no pathway to change.").withStyle(ChatFormatting.GRAY)); return 0; }
+        if (!Lotm.setPathwayAndSequence(p, want, seq)) {
+            p.sendSystemMessage(Component.literal("That pathway could not be given to you.").withStyle(ChatFormatting.RED));
+            return 0;
+        }
+        p.setHealth(p.getMaxHealth());
+        p.sendSystemMessage(Component.literal("You are now on the " + want + " pathway at sequence " + seq
+            + ". Your own pathway comes back when the games end.").withStyle(ChatFormatting.GREEN));
+        return 1;
+    }
+
     private static int start(MinecraftServer s, boolean seqEv, boolean keep, int setTo, net.minecraft.commands.CommandSourceStack src) {
         if (phase != Phase.OFF || !saved.isEmpty()) { src.sendFailure(Component.literal("Hunger games are already running (use /hungergames stop).")); return 0; }
         String ph = AstralData.get(s).endPhase;
@@ -238,6 +282,7 @@ public final class HungerGames {
         if (ArenaReset.busy()) { src.sendFailure(Component.literal("The arena is still being reset from the last game; try again in a moment.")); return 0; }
         server = s;
         seqEvent = seqEv; seqKeep = keep; seqSet = setTo;
+        wantedPath.clear();
         answers.clear(); alive.clear(); players.clear(); chests.clear();
         lv.getChunk(0, 0);
         groundY = PlanetGenerator.BASE + 1;   // the floor of the church (a roof covers the heightmap)
@@ -255,6 +300,7 @@ public final class HungerGames {
             p.sendSystemMessage(Component.literal("Do you want to play? Last one standing wins. You are carried to the arena and everything you carry is put back afterwards.").withStyle(ChatFormatting.YELLOW));
             p.sendSystemMessage(Component.literal(rule).withStyle(ChatFormatting.GRAY));
             p.sendSystemMessage(Component.empty().append(yes).append(Component.literal("   ")).append(no).append(Component.literal("   (60 seconds)").withStyle(ChatFormatting.DARK_GRAY)));
+            if (Settings.hgAllowPathwayChange) p.sendSystemMessage(Component.literal("You may play on another pathway: /hungergames path <pathway>. Your own comes back afterwards.").withStyle(ChatFormatting.AQUA));
         }
         LOGGER.info("[hungergames] invitation sent ({})", rule);
         return 1;
@@ -527,6 +573,12 @@ public final class HungerGames {
             p.experienceProgress = 0f; p.totalExperience = 0;
             p.connection.send(new ClientboundSetExperiencePacket(0f, 0, 0));
             applySeq(p);
+            String want = wantedPath.get(p.getUUID());
+            if (want != null && Settings.hgAllowPathwayChange) {
+                int q = Lotm.sequence(p);
+                if (q >= 0 && Lotm.setPathwayAndSequence(p, want, q))
+                    p.sendSystemMessage(Component.literal("You are playing on the " + want + " pathway.").withStyle(ChatFormatting.GREEN));
+            }
             int stripped = Lotm.stripCarried(p);   // grazed souls, scribed abilities and enslaved spirits stay outside: they come back with everything else (see restore)
             if (stripped > 0) LOGGER.info("[hungergames] {} enters without souls, scribed abilities or spirits ({} of 3 emptied)", p.getGameProfile().getName(), stripped);
             p.setHealth(p.getMaxHealth());   // after the sequence: that is what decides how much health they have
@@ -554,7 +606,7 @@ public final class HungerGames {
     private static Saved snapshot(ServerPlayer p) {
         return new Saved(p.level().dimension(), p.getX(), p.getY(), p.getZ(), p.getYRot(), p.getXRot(), p.gameMode.getGameModeForPlayer(),
                 p.getInventory().save(new ListTag()), p.getHealth(), p.getFoodData().getFoodLevel(), p.getFoodData().getSaturationLevel(),
-                p.experienceLevel, p.experienceProgress, p.totalExperience, Lotm.sequence(p), saveCurios(p), attachmentsOf(p));
+                p.experienceLevel, p.experienceProgress, p.totalExperience, Lotm.sequence(p), Lotm.pathwayId(p), saveCurios(p), attachmentsOf(p));
     }
 
     /** Curios slots (rings, charms, etc.) by reflection, so Curios stays optional. Null when Curios is not installed. */
@@ -959,6 +1011,9 @@ public final class HungerGames {
         p.setExperienceLevels(sv.xpLevel());
         p.experienceProgress = sv.xpProg(); p.totalExperience = sv.xpTotal();
         p.connection.send(new ClientboundSetExperiencePacket(sv.xpProg(), sv.xpTotal(), sv.xpLevel()));
+        // the pathway first, then the sequence: a pathway picked for the games is undone here, so nobody keeps it
+        if (sv.seq() >= 0 && sv.path() != null && !sv.path().isEmpty() && !sv.path().equals(Lotm.pathwayId(p)))
+            Lotm.setPathwayAndSequence(p, sv.path(), sv.seq());
         if (sv.seq() >= 0 && Lotm.sequence(p) != sv.seq()) Lotm.setSequence(p, sv.seq());
         restoreAttachments(p, sv.attach());   // enslaved spirits, grazed souls, personas ... everything that was not in the inventory
         Lotm.restoreCarried(p, sv.attach());    // and those three once more by hand: emptied first, so nothing grazed, scribed or enslaved inside the arena is kept
@@ -1027,7 +1082,7 @@ public final class HungerGames {
 
     private static void reset() {
         phase = Phase.OFF;
-        answers.clear(); alive.clear(); players.clear(); chests.clear();
+        answers.clear(); alive.clear(); players.clear(); chests.clear(); wantedPath.clear();
         outerLeft = 0; centreLeft = 0; churchLeft = 0; caches = 0;
     }
 }

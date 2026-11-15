@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.246
+
+- Hunger games: `/hungergames path <pathway>` lets a contestant play on a different pathway, from the invitation until the countdown ends. It goes through LOTM's own setPathwayAndSequence, so the abilities and attributes come with it, and their own pathway and sequence are put back when the games end. Turn it off with `hungergames_allow_pathway_change`.
+- Hunger games: a player's pathway is now part of what is saved and restored around a game. Only the sequence was before, so a pathway changed inside the arena would have followed them out.
+
 ## 0.2.245
 
 - SolsTitleSystem damage titles: any highest-hit figure above `title_max_hit_damage` (100000 by default) is thrown away every few seconds and logged. LOTM abilities that deal the integer limit of damage to the player themselves were being counted, which unlocked the top damage title permanently.

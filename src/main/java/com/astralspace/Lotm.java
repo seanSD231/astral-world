@@ -47,6 +47,7 @@ public final class Lotm {
 
             getPathway = find(pathways, "getPathway", 1);
             pwSetSequence = find(pathways, "setSequence", 2);
+            pwSetPathwayAndSequence = find(pathways, "setPathwayAndSequence", 3);
             pwGetSequence = find(pathways, "getSequence", 1);
             corrMax = find(corruption, "max", 1);
             corrAdd = find(corruption, "add", 3);
@@ -102,7 +103,7 @@ public final class Lotm {
         return p == null ? "unknown" : p.getClass().getSimpleName();
     }
 
-    private static final String[] PATH_IDS = {"seer", "marauder", "apprentice", "spectator", "bard", "sailor", "reader", "secrets_supplicant",
+    public static final String[] PATH_IDS = {"seer", "marauder", "apprentice", "spectator", "bard", "sailor", "reader", "secrets_supplicant",
             "sleepless", "corpse_collector", "warrior", "assassin", "hunter", "mystery_pryer", "savant", "monster", "planter",
             "apothecary", "criminal", "prisoner", "lawyer", "arbiter"};
 
@@ -235,6 +236,22 @@ public final class Lotm {
     }
 
     /** Puts a player's sequence back (LOTM's own loss-of-control and sanity collapse regress it). Returns false if LOTM could not be called. */
+    private static java.lang.reflect.Method pwSetPathwayAndSequence;
+
+    /**
+     * Puts a player on a pathway at a sequence, through LOTM's own Pathways.setPathwayAndSequence, so the abilities,
+     * attributes and spirituality that come with it are applied rather than the data simply being overwritten.
+     * False when LOTM is missing, the id is not a pathway, or that method is not there.
+     */
+    public static boolean setPathwayAndSequence(ServerPlayer player, String pathId, int seq) {
+        init();
+        if (pwSetPathwayAndSequence == null || pathId == null || pathId.isEmpty()) return false;
+        Object bc = pathwayById(pathId);
+        if (bc == null) return false;
+        try { pwSetPathwayAndSequence.invoke(null, player, bc, seq); return true; }
+        catch (Throwable t) { LOGGER.warn("[astral] could not put {} on the {} pathway: {}", player.getGameProfile().getName(), pathId, t.toString()); return false; }
+    }
+
     public static boolean setSequence(ServerPlayer player, int seq) {
         init();
         if (pwSetSequence != null) {   // newer LOTM: Pathways.setSequence(entity, seq)
