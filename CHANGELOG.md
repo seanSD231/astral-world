@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.247
+
+- Hunger games: cover is placed again. The whole raised platform is the church floor, so `churchInside` is true across the entire arena, and the test was the wrong way round: every candidate spot was skipped and no pillars, walls or mounds have ever been built. Cover now goes in the open middle where the roof fell in.
+- Hunger games: the same inversion meant hidden caches almost never placed (5 of 14 last game). They now go in the ring the roof still covers, past the open middle: dark, out of the way, and a real walk from the start.
+
 ## 0.2.246
 
 - Hunger games: `/hungergames path <pathway>` lets a contestant play on a different pathway, from the invitation until the countdown ends. It goes through LOTM's own setPathwayAndSequence, so the abilities and attributes come with it, and their own pathway and sequence are put back when the games end. Turn it off with `hungergames_allow_pathway_change`.

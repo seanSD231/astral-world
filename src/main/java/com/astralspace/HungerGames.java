@@ -359,10 +359,11 @@ public final class HungerGames {
         BlockState[] stone = {Blocks.COBBLESTONE.defaultBlockState(), Blocks.MOSSY_COBBLESTONE.defaultBlockState(), Blocks.STONE_BRICKS.defaultBlockState(),
             Blocks.CRACKED_STONE_BRICKS.defaultBlockState(), Blocks.MOSSY_STONE_BRICKS.defaultBlockState(), Blocks.DEEPSLATE_BRICKS.defaultBlockState()};
         int made = 0;
-        for (int tries = 0; tries < 900 && made < 150; tries++) {
-            double a = rnd.nextDouble() * Math.PI * 2, r = 14 + rnd.nextDouble() * (PlanetGenerator.PLAT_R - 40);
+        for (int tries = 0; tries < 1800 && made < 150; tries++) {
+            // the open middle, where the roof fell in: cover belongs where the fight is, and nothing pokes through the roof
+            double a = rnd.nextDouble() * Math.PI * 2, r = 14 + rnd.nextDouble() * (PlanetGenerator.ROOF_IN - 29);
             int x = (int) Math.round(Math.cos(a) * r), z = (int) Math.round(Math.sin(a) * r);
-            if (PlanetGenerator.churchInside(x, z, 6)) continue;
+            if (!PlanetGenerator.churchInside(x, z, 6)) continue;
             BlockPos base = surface(lv, x, z);
             if (base == null) continue;
             int kind = rnd.nextInt(3);
@@ -489,19 +490,14 @@ public final class HungerGames {
      */
     private static void placeCaches(ServerLevel lv) {
         caches = 0;
-        double maxR = PlanetGenerator.PLAT_R - 12;
+        // out in the ring the roof still covers, past the open middle where everyone fights. Dark, out of the way,
+        // and a real walk from the start, which is the point: the arena closes in, so a cache run costs you something.
+        double inner = PlanetGenerator.ROOF_IN + 8, outer = PlanetGenerator.PLAT_R - 16;
         for (int want = 0; want < Settings.hgHiddenCaches; want++) {
-            boolean church = rnd.nextInt(3) == 0;
-            for (int tries = 0; tries < 60; tries++) {
-                int x, z;
-                if (church) {
-                    x = rnd.nextInt(681) - 340; z = rnd.nextInt(681) - 340;
-                    if (!PlanetGenerator.churchInside(x, z, 3)) continue;
-                } else {
-                    double a = rnd.nextDouble() * Math.PI * 2, r = maxR * (0.62 + rnd.nextDouble() * 0.36);
-                    x = (int) Math.round(Math.cos(a) * r); z = (int) Math.round(Math.sin(a) * r);
-                    if (PlanetGenerator.churchInside(x, z, 6)) continue;
-                }
+            for (int tries = 0; tries < 240; tries++) {
+                double a = rnd.nextDouble() * Math.PI * 2, r = inner + rnd.nextDouble() * (outer - inner);
+                int x = (int) Math.round(Math.cos(a) * r), z = (int) Math.round(Math.sin(a) * r);
+                if (!PlanetGenerator.churchInside(x, z, 4)) continue;
                 BlockPos p = surface(lv, x, z);
                 if (p == null || chests.contains(p)) continue;
                 lv.setBlock(p, Blocks.BARREL.defaultBlockState(), 3);

@@ -287,7 +287,7 @@ public final class PlanetGenerator extends ChunkGenerator {
     /** Inside the walls of the church (the whole raised platform), `k` blocks in from the wall. */
     public static boolean churchInside(double x, double z, int k) { return Math.hypot(x, z) < PLAT_R - 7 - k; }
 
-    private static final double ROOF_IN = 215;   // the roof only covers the outer ring: the middle fell in long ago (and the tree needs the room)
+    public static final double ROOF_IN = 215;   // the roof only covers the outer ring: the middle fell in long ago (and the tree needs the room)
 
     /** Height of the roof's underside above the floor at radius r. */
     private static int roofH(double r) { return (int) Math.round(80 + (PLAT_R - 3 - r) * 0.5); }
