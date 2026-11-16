@@ -48,7 +48,7 @@ public final class Launcher {
         private Server() {}
 
         @SubscribeEvent
-        public static void onLogin(PlayerEvent.PlayerLoggedIn event) {
+        public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
             if (!(event.getEntity() instanceof ServerPlayer player)) return;
             var server = player.getServer();
             if (server == null || server.isDedicatedServer()) return;

@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.258
+
+- Fixes the 0.2.257 build: the login event is `PlayerLoggedInEvent`, not `PlayerLoggedIn`.
+
 ## 0.2.257
 
 - The client writes its pathway to `.lotmcraft/pathway.json` so the launcher can colour
