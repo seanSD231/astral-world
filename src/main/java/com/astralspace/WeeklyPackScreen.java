@@ -15,18 +15,30 @@ public final class WeeklyPackScreen extends Screen {
     private final int total;
     private final int[] cap;
     private final boolean claimed;
+    /** Null for the weekly menu; the binder row being paid for when the binder opened this. */
+    private final String binderRow;
     private final int[][] picked = new int[3][Tarot.PATHWAYS.length];
     private int tab = 0;
     private Button claimBtn;
     private static final int COLS = 6;
     private int cell = 52;
 
-    private WeeklyPackScreen(int total, int rainbow, int shiny, boolean claimed) {
-        super(Component.literal("Weekly Tarot Packs"));
-        this.total = total; this.cap = new int[]{total, rainbow, shiny}; this.claimed = claimed;
+    private WeeklyPackScreen(int total, int rainbow, int shiny, boolean claimed, String binderRow) {
+        super(Component.literal(binderRow == null ? "Weekly Tarot Packs" : "A Row Complete"));
+        this.total = total; this.cap = new int[]{total, rainbow, shiny}; this.claimed = claimed; this.binderRow = binderRow;
     }
 
-    public static void open(int total, int rainbow, int shiny, boolean claimed) { Minecraft.getInstance().setScreen(new WeeklyPackScreen(total, rainbow, shiny, claimed)); }
+    public static void open(int total, int rainbow, int shiny, boolean claimed) { Minecraft.getInstance().setScreen(new WeeklyPackScreen(total, rainbow, shiny, claimed, null)); }
+
+    /**
+     * The binder's reward for a finished row: one pack, picked here. A normal row offers any pathway's normal pack;
+     * a shiny row offers rainbow or shiny. The caps do the gating, so the type buttons that are not on offer go dark.
+     */
+    public static void openBinder(boolean shinyRow, String row) {
+        Minecraft.getInstance().setScreen(shinyRow
+            ? new WeeklyPackScreen(1, 1, 1, false, row)
+            : new WeeklyPackScreen(1, 0, 0, false, row));
+    }
 
     private int picks() { int n = 0; for (int[] a : picked) for (int v : a) n += v; return n; }
     private int picksOf(int t) { int n = 0; for (int v : picked[t]) n += v; return n; }
@@ -37,10 +49,11 @@ public final class WeeklyPackScreen extends Screen {
     protected void init() {
         int cx = width / 2;
         cell = Math.max(30, Math.min(52, (height - gridTop() - 6) / 4));
+        if (binderRow != null && binderRow.endsWith("_s")) tab = 1;
         for (int t = 0; t < 3; t++) {
             final int tt = t;
             Button b = Button.builder(Component.literal(TYPE[t] + (t == 0 ? "" : " (" + cap[t] + ")")), x -> tab = tt).bounds(cx - 156 + t * 106, 34, 100, 20).build();
-            b.active = cap[t] > 0 && !claimed;
+            b.active = !claimed && (binderRow == null ? cap[t] > 0 : (binderRow.endsWith("_s") ? t > 0 : t == 0));
             addRenderableWidget(b);
         }
         claimBtn = Button.builder(Component.literal("Take packs"), b -> {
@@ -53,12 +66,12 @@ public final class WeeklyPackScreen extends Screen {
                 for (int i = 0; i < Tarot.PATHWAYS.length; i++) if (picked[t][i] > 0) line.append(line.length() > 0 ? ", " : "").append(Tarot.pretty(Tarot.PATHWAYS[i])).append(" x").append(picked[t][i]);
                 if (line.length() > 0) msg.append(TYPE[t]).append(": ").append(line).append('\n');
             }
-            msg.append("You cannot change this until the week resets.");
+            msg.append(binderRow == null ? "You cannot change this until the week resets." : "A finished row pays once, and only once.");
             Minecraft mc = Minecraft.getInstance();
             mc.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(yes -> {
-                if (yes) { PacketDistributor.sendToServer(new Net.WeeklyClaimPayload(payload)); mc.setScreen(null); }
+                if (yes) { PacketDistributor.sendToServer(binderRow == null ? new Net.WeeklyClaimPayload(payload) : new Net.BinderClaimPayload(payload)); mc.setScreen(null); }
                 else mc.setScreen(this);
-            }, Component.literal("Take these " + total + " weekly pack" + (total == 1 ? "" : "s") + "?"), Component.literal(msg.toString()), Component.literal("Confirm"), Component.literal("Back")));
+            }, Component.literal(binderRow == null ? "Take these " + total + " weekly pack" + (total == 1 ? "" : "s") + "?" : "Take this pack for the finished row?"), Component.literal(msg.toString()), Component.literal("Confirm"), Component.literal("Back")));
         }).bounds(cx - 105, 58, 100, 20).build();
         addRenderableWidget(claimBtn);
         addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose()).bounds(cx + 5, 58, 100, 20).build());

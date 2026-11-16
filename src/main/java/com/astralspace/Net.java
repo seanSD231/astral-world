@@ -132,6 +132,21 @@ public final class Net {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** A binder row has filled and not paid out yet: open the pack picker. shinyRow decides which packs are on offer. */
+    public record BinderRewardPayload(boolean shinyRow, String row) implements CustomPacketPayload {
+        public static final Type<BinderRewardPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "binder_reward"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, BinderRewardPayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.BOOL, BinderRewardPayload::shinyRow, ByteBufCodecs.STRING_UTF8, BinderRewardPayload::row, BinderRewardPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    public record BinderClaimPayload(String picks) implements CustomPacketPayload {
+        public static final Type<BinderClaimPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "binder_claim"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, BinderClaimPayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.STRING_UTF8, BinderClaimPayload::picks, BinderClaimPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public record FunPickPayload(String id) implements CustomPacketPayload {
         public static final Type<FunPickPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "fun_pick"));
         public static final StreamCodec<RegistryFriendlyByteBuf, FunPickPayload> CODEC = StreamCodec.composite(
@@ -359,6 +374,10 @@ public final class Net {
         registrar.playToClient(RecipesPayload.TYPE, RecipesPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> PotionLock.arrived(payload.keys())));
         registrar.playToClient(FunOpenPayload.TYPE, FunOpenPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> FunItemScreen.open(payload.ids(), payload.days(), payload.left())));
         registrar.playToClient(BinderOpenPayload.TYPE, BinderOpenPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> BinderScreen.open(payload.cards())));
+        registrar.playToClient(BinderRewardPayload.TYPE, BinderRewardPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> WeeklyPackScreen.openBinder(payload.shinyRow(), payload.row())));
+        registrar.playToServer(BinderClaimPayload.TYPE, BinderClaimPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) Binder.claim(sp, payload.picks());
+        }));
         registrar.playToServer(BinderActPayload.TYPE, BinderActPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) Binder.act(sp, payload.what(), payload.key());
         }));

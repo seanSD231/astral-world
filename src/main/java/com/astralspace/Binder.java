@@ -133,6 +133,87 @@ public final class Binder {
         ItemStack b = held(p);
         if (b.isEmpty()) return;
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.BinderOpenPayload(pack(b)));
+        offer(p, b);
+    }
+
+    // ------------------------------------------------------------- finishing a row
+
+    /** The row this player is being offered a pack for, until they take it. */
+    private static final java.util.Map<java.util.UUID, String> PENDING = new java.util.HashMap<>();
+
+    /** True when every sequence 9..0 of that pathway is in the binder, in that finish. */
+    private static boolean rowFull(ItemStack binder, String pathway, boolean shiny) {
+        CompoundTag c = cards(binder);
+        for (int q = 0; q <= 9; q++) if (c.getInt(key(pathway, q, shiny)) <= 0) return false;
+        return true;
+    }
+
+    private static String claims(ServerPlayer p) {
+        return AstralData.get(p.getServer()).binderClaims.getOrDefault(p.getUUID(), "");
+    }
+
+    private static boolean claimed(ServerPlayer p, String row) {
+        for (String s : claims(p).split(",")) if (s.equals(row)) return true;
+        return false;
+    }
+
+    /**
+     * Looks for a finished row this player has never been paid for and offers them a pack for it. One row at a time:
+     * if several finish at once the next is offered when they next open the binder.
+     *
+     * The record is per player, kept in the world's saved data and not on the binder, so emptying a binder or crafting
+     * a second one pays nothing twice.
+     */
+    public static void offer(ServerPlayer p, ItemStack binder) {
+        for (boolean shiny : new boolean[]{false, true}) {
+            for (String pw : Tarot.PATHWAYS) {
+                String row = pw + (shiny ? "_s" : "");
+                if (claimed(p, row) || !rowFull(binder, pw, shiny)) continue;
+                PENDING.put(p.getUUID(), row);
+                net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.BinderRewardPayload(shiny, row));
+                return;
+            }
+        }
+        PENDING.remove(p.getUUID());
+    }
+
+    /** Takes the pack they picked for the row they were offered. picks = "pathway:type:count" as the weekly menu sends. */
+    public static void claim(ServerPlayer p, String picks) {
+        String row = PENDING.get(p.getUUID());
+        if (row == null) return;
+        ItemStack b = held(p);
+        boolean shinyRow = row.endsWith("_s");
+        String pathway = shinyRow ? row.substring(0, row.length() - 2) : row;
+        if (b.isEmpty() || claimed(p, row) || !rowFull(b, pathway, shinyRow)) { PENDING.remove(p.getUUID()); return; }
+
+        int given = 0;
+        for (String part : picks.split(",")) {
+            String[] bits = part.split(":");
+            if (bits.length != 3 || given >= 1) continue;
+            int type;
+            try { type = Integer.parseInt(bits[1]); } catch (NumberFormatException e) { continue; }
+            if (shinyRow ? (type != 1 && type != 2) : type != 0) continue;      // the row decides what is on offer
+            boolean known = false;
+            for (String k : Tarot.PATHWAYS) if (k.equals(bits[0])) { known = true; break; }
+            if (!known) continue;
+            String id = bits[0] + (type == 0 ? "_pack" : type == 1 ? "_rainbow_pack" : "_shiny_pack");
+            net.minecraft.world.item.Item it = net.minecraft.core.registries.BuiltInRegistries.ITEM
+                .get(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, id));
+            if (it == null || it == net.minecraft.world.item.Items.AIR) continue;
+            ItemStack pk = new ItemStack(it);
+            if (!p.getInventory().add(pk)) p.drop(pk, false);
+            given++;
+            p.sendSystemMessage(Component.literal("The " + Tarot.pretty(pathway) + " row is complete" + (shinyRow ? " in shiny" : "")
+                + ". Your " + pk.getHoverName().getString() + " is yours.").withStyle(ChatFormatting.GOLD));
+        }
+        if (given == 0) return;
+
+        AstralData d = AstralData.get(p.getServer());
+        String was = claims(p);
+        d.binderClaims.put(p.getUUID(), was.isEmpty() ? row : was + "," + row);
+        d.setDirty();
+        PENDING.remove(p.getUUID());
+        offer(p, b);                                                           // another row may be waiting
     }
 
     /** What the screen asks for: 0 take one of `key`, 1 store everything in the inventory. */
@@ -145,6 +226,7 @@ public final class Binder {
             p.displayClientMessage(Component.literal(n == 0 ? "No loose cards to file away." : "Filed " + n + " card" + (n == 1 ? "" : "s") + " away."), true);
         }
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.BinderOpenPayload(pack(b)));
+        offer(p, b);
     }
 
     public static class BinderItem extends Item {

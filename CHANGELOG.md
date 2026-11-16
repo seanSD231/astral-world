@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.249
+
+- Card binder rewards. Filling a pathway's whole row, sequence 9 down to 0, pays a pack you pick yourself: any pathway's normal pack for a normal row, or a rainbow or shiny pack for a shiny row. The picker is the weekly pack menu, which already knew how to do this.
+- The record of what has paid out is kept per player in the world's saved data, not on the binder, so emptying a binder or crafting a second one never pays twice. One row at a time: if several finish together the next is offered when the binder is opened again.
+
 ## 0.2.248
 
 - The card binder. A craftable book (leather, gold and a book) with one slot per card: 22 pathways of 10 sequences plus the 9 Great Old Ones, doubled by shinies, 458 faces in all. A card only goes in its own slot.
