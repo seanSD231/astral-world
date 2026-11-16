@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.257
+
+- The client writes its pathway to `.lotmcraft/pathway.json` so the launcher can colour
+  itself after it. The launcher cannot read one on its own: it has no account before the
+  player signs in, and LOTM keeps pathway state on the server. Written twice a minute and
+  on logout, and only when it has changed.
+- Singleplayer is refused: logging into a non-dedicated server disconnects with an
+  explanation. Not because it can be prevented -- anyone can delete the jar -- but so
+  nobody wanders into the pack's content offline by accident. `allow_singleplayer=true`
+  in settings.properties, or `-Dastral.allowSingleplayer=true`, permits it.
+
 ## 0.2.256
 
 - Arbiter Sequence 0 no longer crashes the game. Its gavel had lost its push and its transform somewhere, so it was drawn flat on the floor and the pop that followed it emptied the matrix stack, throwing NoSuchElementException out of the render thread. The gavel is back where it belongs, raised and falling and struck on a four-second cycle.

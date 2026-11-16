@@ -31,6 +31,7 @@ public final class Settings {
     static {
         KEYS.put("surface_top", new String[]{"320", "Height band of the REAL overworld. When a player leaves the Astral World the ground is searched from\n# surface_top DOWN to surface_bottom, so with a stacked dimension (OneDimension) the Nether/End layers are never\n# mistaken for the overworld's ground."});
         KEYS.put("surface_bottom", new String[]{"-64", null});
+        KEYS.put("allow_singleplayer", new String[]{"false", "Astral World is a server pack. With this false a singleplayer world disconnects you on login, so nobody\n# wanders into the pack's content offline by accident. It stops mistakes, not determined people: anyone can\n# delete the jar. -Dastral.allowSingleplayer=true also works, for development."});
         KEYS.put("astral_barrier_level", new String[]{"170", "The height (Y) of the Astral Barrier in the sky of the Astral World. Lower number = closer. It is never drawn higher than the game\n# can still render it (about 2.4 x the player's render distance above them)."});
         KEYS.put("overworld_barrier_y", new String[]{"1000", "The same for the overworld sky. It is always drawn at least as high as the game allows, never below this height unless the render distance is too small."});
         KEYS.put("stage3_days", new String[]{"7", "Real-life days from the start of stage 2 until stage 3 begins (decimals allowed, e.g. 0.01 to test)."});
@@ -103,6 +104,7 @@ public final class Settings {
     public static volatile int bendsFirstSeconds = 10, bendsMaxSeconds = 300, bendsForgetMinutes = 10;
     public static volatile int pressureImmuneSequence = 1, pressureSailorPercent = 25, pressureWarnDepth = 40;
     public static volatile boolean hgAuto = true;
+    public static volatile boolean allowSingleplayer = false;
     public static volatile int hgAutoHours = 24, hgAutoMinPlayers = 4, hgPrizePerPlayerPerWeek = 1;
     public static volatile int hgCountdownBase = 15, hgCountdownPerSequence = 6, hgCountdownMax = 90, hgHiddenCaches = 14;
     public static volatile String hgBlockedCommands =
@@ -178,6 +180,7 @@ public final class Settings {
             pressureSailorPercent = Math.max(0, Integer.parseInt(p.getProperty("pressure_sailor_percent").trim()));
             pressureWarnings = Boolean.parseBoolean(p.getProperty("pressure_warnings").trim());
             pressureWarnDepth = Math.max(1, Integer.parseInt(p.getProperty("pressure_warn_depth").trim()));
+            allowSingleplayer = Boolean.parseBoolean(p.getProperty("allow_singleplayer").trim());
             hgAuto = Boolean.parseBoolean(p.getProperty("hungergames_auto").trim());
             hgAutoHours = Math.max(1, Integer.parseInt(p.getProperty("hungergames_auto_hours").trim()));
             hgAutoMinPlayers = Math.max(2, Integer.parseInt(p.getProperty("hungergames_auto_min_players").trim()));
