@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.251
+
+- Hunger games: the closing wall can be seen. It was only ever a push-back with nothing drawn, so people walked into something invisible. Each contestant now gets the arc of it nearest them, drawn in end-rod particles five blocks high.
+- Hunger games: the LOTM dagger is in all three loot tables, weighted highest in the middle chests.
+- Hunger games: far more animals. 40 each of pigs, cows and chickens, plus sheep and rabbits, instead of 34 in total across a 350-block arena. `hungergames_animals` in settings.properties.
+- Hunger games: the games are fought at a random time of day, and the sky turns once when half the field is gone - day to night, night to dawn.
+- Hunger games: with five or fewer left, everyone still standing glows, unless they have made themselves invisible.
+
 ## 0.2.250
 
 - Hunger games: the countdown no longer blocks abilities. 0.2.242 cancelled right-click, left-click and attacking outright, which stopped people equipping and casting while they stood in the middle: that is what the countdown is for. Only reaching a container and breaking the arena are blocked now.

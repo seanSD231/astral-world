@@ -95,6 +95,9 @@ public final class HungerGames {
     private static final Map<UUID, Saved> saved = new HashMap<>();
     private static final List<BlockPos> chests = new ArrayList<>();
     private static int caches = 0;
+    /** How many started, and whether the sky has already turned at the halfway mark. */
+    private static int startCount = 0;
+    private static boolean turned = false;
     /** Pathways people asked for during the invitation, applied when they are carried in. */
     private static final Map<UUID, String> wantedPath = new HashMap<>();
     private static int outerLeft = 0, centreLeft = 0, churchLeft = 0;
@@ -332,10 +335,61 @@ public final class HungerGames {
             }
             case RUNNING -> {
                 UniqPower.contain(lv, new net.minecraft.world.phys.Vec3(0, groundY, 0), zoneRadius(now), null);   // the wall holds: anyone at its edge is pushed back in
-                if (now % 20 == 0) running(s, lv);
+                if (now % 3 == 0) drawWall(lv, zoneRadius(now));
+                if (now % 20 == 0) { running(s, lv); halfwaySky(s, lv); markFinalists(s); }
             }
             case ENDING -> { if (now >= phaseEnd) finish(s, null); }
             default -> { }
+        }
+    }
+
+    /**
+     * Draws the closing wall. It was only ever a push-back, with nothing to see, so players walked into something
+     * invisible. Each contestant gets the arc of it nearest them, a few blocks of it at a time, which is cheap and
+     * reads as a wall without filling the sky with particles.
+     */
+    private static void drawWall(ServerLevel lv, double r) {
+        for (ServerPlayer p : lv.players()) {
+            double dx = p.getX(), dz = p.getZ(), d = Math.hypot(dx, dz);
+            if (d < r - 40 || d > r + 20) continue;                       // only when it is close enough to matter
+            double mid = Math.atan2(dz, dx), span = Math.min(0.9, 26 / Math.max(r, 1));
+            for (int i = 0; i <= 14; i++) {
+                double a = mid - span + (span * 2) * i / 14.0;
+                double x = Math.cos(a) * r, z = Math.sin(a) * r;
+                for (int y = 0; y < 5; y++)
+                    lv.sendParticles(p, net.minecraft.core.particles.ParticleTypes.END_ROD, true,
+                        x, groundY + y * 1.6 + rnd.nextDouble(), z, 1, 0.06, 0.25, 0.06, 0.0);
+            }
+        }
+    }
+
+    /**
+     * The sky turns once, when half the field is gone: day becomes night, night becomes dawn. It changes how the
+     * second half is fought without anyone having to be told the game has moved on.
+     */
+    private static void halfwaySky(MinecraftServer s, ServerLevel lv) {
+        if (turned || startCount < 2 || alive.size() > startCount / 2) return;
+        turned = true;
+        boolean wasNight = lv.getDayTime() % 24000 > 13000;
+        lv.setDayTime(wasNight ? 23000 : 18000);
+        for (ServerPlayer p : onlinePlayers(s)) {
+            p.sendSystemMessage(Component.literal(wasNight ? "Half of you are gone. The sky is lightening." : "Half of you are gone. Night falls.")
+                .withStyle(ChatFormatting.AQUA));
+            p.playNotifySound(net.minecraft.sounds.SoundEvents.AMBIENT_CAVE.value(), net.minecraft.sounds.SoundSource.MASTER, 0.7f, 0.8f);
+        }
+    }
+
+    /**
+     * With five or fewer left, everyone still standing glows, so the last of it is a hunt rather than a search.
+     * Anyone who has made themselves invisible keeps that: hiding is a thing they spent something on.
+     */
+    private static void markFinalists(MinecraftServer s) {
+        if (alive.size() > 5) return;
+        for (UUID u : alive) {
+            ServerPlayer p = s.getPlayerList().getPlayer(u);
+            if (p == null) continue;
+            if (p.isInvisible() || p.hasEffect(MobEffects.INVISIBILITY)) { p.removeEffect(MobEffects.GLOWING); continue; }
+            p.addEffect(new MobEffectInstance(MobEffects.GLOWING, 60, 0, false, false, false));
         }
     }
 
@@ -457,7 +511,7 @@ public final class HungerGames {
             e(3, () -> st(Items.GOLDEN_APPLE, 1)), e(3, () -> st(Items.ENDER_PEARL, 1)), e(5, () -> st(Items.COBBLESTONE, 16 + rnd.nextInt(24))), e(4, () -> st(Items.OAK_PLANKS, 16 + rnd.nextInt(16))),
             e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 2 + rnd.nextInt(3))), e(3, () -> st(Items.FISHING_ROD, 1)), e(3, () -> st(Items.SNOWBALL, 8)),
             e(2, () -> st(Items.FLINT_AND_STEEL, 1)), e(6, () -> st(Items.TORCH, 6 + rnd.nextInt(11))), e(5, () -> st(Items.WIND_CHARGE, 3 + rnd.nextInt(5))),
-            e(4, () -> lotm("lotm:luckbottleitem", 1)), e(4, () -> potion(Items.SPLASH_POTION, Potions.HEALING)), e(3, () -> potion(Items.SPLASH_POTION, Potions.HARMING)),
+            e(4, () -> lotm("lotm:luckbottleitem", 1)), e(5, () -> lotm("lotm:dagger", 1)), e(4, () -> potion(Items.SPLASH_POTION, Potions.HEALING)), e(3, () -> potion(Items.SPLASH_POTION, Potions.HARMING)),
             e(3, () -> potion(Items.POTION, Potions.SWIFTNESS)), e(2, () -> st(Items.TNT, 2)));
 
     private static final List<Entry> RICH = List.of(
@@ -469,7 +523,7 @@ public final class HungerGames {
             e(7, () -> st(Items.COOKED_BEEF, 6)), e(5, () -> st(Items.ENDER_PEARL, 2 + rnd.nextInt(2))), e(5, () -> potion(Items.SPLASH_POTION, Potions.STRONG_HEALING)),
             e(4, () -> potion(Items.SPLASH_POTION, Potions.STRONG_HARMING)), e(3, () -> potion(Items.POTION, Potions.LONG_SWIFTNESS)), e(3, () -> potion(Items.POTION, Potions.STRONG_STRENGTH)),
             e(3, () -> st(Items.TNT, 4)), e(2, () -> st(Items.FLINT_AND_STEEL, 1)), e(5, () -> st(Items.TORCH, 12)), e(6, () -> st(Items.WIND_CHARGE, 6 + rnd.nextInt(7))),
-            e(6, () -> lotm("lotm:luckbottleitem", 1 + rnd.nextInt(2))), e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 4)));
+            e(6, () -> lotm("lotm:luckbottleitem", 1 + rnd.nextInt(2))), e(7, () -> lotm("lotm:dagger", 1)), e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 4)));
 
     /** The hidden caches: what the middle chests do not hold. Worth the walk out to the edge and the time away from the fight. */
     private static final List<Entry> CACHE = List.of(
@@ -480,7 +534,7 @@ public final class HungerGames {
             e(4, () -> potion(Items.SPLASH_POTION, Potions.STRONG_HEALING)), e(4, () -> potion(Items.POTION, Potions.STRONG_STRENGTH)),
             e(4, () -> potion(Items.POTION, Potions.LONG_SWIFTNESS)), e(3, () -> potion(Items.POTION, Potions.LONG_FIRE_RESISTANCE)),
             e(5, () -> st(Items.WIND_CHARGE, 12 + rnd.nextInt(9))), e(4, () -> st(Items.TNT, 6)), e(4, () -> st(Items.COBWEB, 8)),
-            e(6, () -> lotm("lotm:luckbottleitem", 3 + rnd.nextInt(3))), e(5, () -> st(Items.ARROW, 32)), e(3, () -> st(Items.BOW, 1)));
+            e(6, () -> lotm("lotm:luckbottleitem", 3 + rnd.nextInt(3))), e(6, () -> lotm("lotm:dagger", 1)), e(5, () -> st(Items.ARROW, 32)), e(3, () -> st(Items.BOW, 1)));
 
     /**
      * Hidden caches: barrels, not chests, so they read differently at a glance. They sit out in the far ring and inside
@@ -593,6 +647,13 @@ public final class HungerGames {
         }
         placeObstacles(lv);
         placeCaches(lv);
+        startCount = n;
+        turned = false;
+        boolean night = rnd.nextBoolean();            // which half of the day these games are fought in
+        lv.setDayTime(night ? 18000 : 6000);
+        for (ServerPlayer p : in) p.sendSystemMessage(Component.literal(night
+            ? "These games are fought at night. It will be dawn when half of you are gone."
+            : "These games are fought by day. Night falls when half of you are gone.").withStyle(ChatFormatting.AQUA));
         phase = Phase.COUNTDOWN;
         phaseEnd = s.getTickCount() + wait;
         LOGGER.info("[hungergames] {} players, {} chests, {} caches, countdown {}s (lowest sequence {})", n, chests.size(), caches, wait / 20, lowSeq);
@@ -722,7 +783,10 @@ public final class HungerGames {
     // ------------------------------------------------------------------ wild things
 
     private static void spawnMobs(ServerLevel lv) {
-        spawnSome(lv, EntityType.PIG, 12); spawnSome(lv, EntityType.COW, 10); spawnSome(lv, EntityType.CHICKEN, 12);
+        int herd = Math.max(0, Settings.hgAnimals);
+        spawnSome(lv, EntityType.PIG, herd); spawnSome(lv, EntityType.COW, herd);
+        spawnSome(lv, EntityType.CHICKEN, herd); spawnSome(lv, EntityType.SHEEP, herd * 2 / 3);
+        spawnSome(lv, EntityType.RABBIT, herd / 2);
         for (String id : new String[]{"lotm:fire_spirit", "lotm:frost_spirit", "lotm:earth_spirit"}) {
             var t = BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.parse(id));
             t.ifPresent(type -> spawnSome(lv, type, 5));
@@ -1097,6 +1161,6 @@ public final class HungerGames {
     private static void reset() {
         phase = Phase.OFF;
         answers.clear(); alive.clear(); players.clear(); chests.clear(); wantedPath.clear();
-        outerLeft = 0; centreLeft = 0; churchLeft = 0; caches = 0;
+        outerLeft = 0; centreLeft = 0; churchLeft = 0; caches = 0; startCount = 0; turned = false;
     }
 }
