@@ -33,7 +33,7 @@ public final class TitleStats {
     private static final Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
 
     private static boolean looked = false;
-    private static Method getData, markDirty, revokeTitle;
+    private static Method getData, markDirty, revokeTitle, getEquipped, setEquipped, getVanity, setVanity;
     private static Field fHighest, fDealt, fTaken;
 
     /** Finds SolsTitleSystem once. False when it is not installed, or its data no longer looks like this. */
@@ -46,6 +46,10 @@ public final class TitleStats {
             getData = cap.getMethod("getData", net.minecraft.world.entity.player.Player.class);
             markDirty = data.getMethod("markDirty");
             revokeTitle = data.getMethod("revokeTitle", int.class);
+            getEquipped = data.getMethod("getEquippedTitleId");
+            setEquipped = data.getMethod("setEquippedTitleId", int.class);
+            getVanity = data.getMethod("getVanityTitleId");
+            setVanity = data.getMethod("setVanityTitleId", int.class);
             fHighest = data.getDeclaredField("highestHitDamage"); fHighest.setAccessible(true);
             fDealt = data.getDeclaredField("totalDamageDealt");   fDealt.setAccessible(true);
             fTaken = data.getDeclaredField("totalDamageTaken");   fTaken.setAccessible(true);
@@ -86,6 +90,39 @@ public final class TitleStats {
                     + " it is past anything the server counts as a real hit.").withStyle(ChatFormatting.GRAY));
             } catch (Throwable ignored) { }
         }
+    }
+
+    // ---------------------------------------------------------- put aside and give back, for the hunger games
+
+    /**
+     * Everything the title mod holds that an arena should not touch: the titles worn, and the combat figures titles
+     * are given for. Returns {equipped, vanity, highest hit, damage dealt, damage taken}, or null when the mod is
+     * not installed. Fights inside a hunger games are not the server's combat record.
+     */
+    public static long[] setAside(ServerPlayer p) {
+        Object d = data(p);
+        if (d == null) return null;
+        try {
+            long[] was = {(int) getEquipped.invoke(d), (int) getVanity.invoke(d), fHighest.getInt(d), fDealt.getLong(d), fTaken.getLong(d)};
+            setEquipped.invoke(d, 0);
+            setVanity.invoke(d, 0);
+            dirty(d);
+            return was;
+        } catch (Throwable t) { return null; }
+    }
+
+    /** Puts back what {@link #setAside} took, including the combat figures, so the arena leaves no mark. */
+    public static void giveBack(ServerPlayer p, long[] was) {
+        Object d = data(p);
+        if (d == null || was == null || was.length < 5) return;
+        try {
+            setEquipped.invoke(d, (int) was[0]);
+            setVanity.invoke(d, (int) was[1]);
+            fHighest.setInt(d, (int) was[2]);
+            fDealt.setLong(d, was[3]);
+            fTaken.setLong(d, was[4]);
+            dirty(d);
+        } catch (Throwable ignored) { }
     }
 
     // ------------------------------------------------------------------ /astralstats

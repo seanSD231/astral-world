@@ -78,7 +78,7 @@ public final class HungerGames {
     private enum Phase { OFF, INVITE, COUNTDOWN, RUNNING, ENDING }
 
     private record Saved(ResourceKey<Level> dim, double x, double y, double z, float yaw, float pitch, GameType mode, ListTag inv,
-                         float hp, int food, float sat, int xpLevel, float xpProg, int xpTotal, int seq, String path, ListTag curios, CompoundTag attach) { }
+                         float hp, int food, float sat, int xpLevel, float xpProg, int xpTotal, int seq, String path, long[] titles, ListTag curios, CompoundTag attach) { }
 
     private static final double ARENA_R = EndGame.ARENA_R, RING_R = 270;
     private static final int INVITE_TICKS = 20 * 60, OUTER_CHESTS = 170, CENTRE_CHESTS = 50, CHURCH_CHESTS = 60;
@@ -145,29 +145,21 @@ public final class HungerGames {
         if (frozen(event.getPlayer())) event.setCanPickup(net.neoforged.neoforge.common.util.TriState.FALSE);
     }
 
+    /**
+     * Only what would be looting. Standing in the middle is when people pick their abilities and get ready, so
+     * using items, casting, left-clicking and swinging all have to work; what must not work is reaching a container
+     * or breaking the arena before GO.
+     */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onCountdownUseBlock(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) {
-        if (frozen(event.getEntity())) event.setCanceled(true);   // no opening the chests in the middle early
-    }
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void onCountdownUseItem(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickItem event) {
-        if (frozen(event.getEntity())) event.setCanceled(true);
-    }
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void onCountdownHitBlock(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock event) {
-        if (frozen(event.getEntity())) event.setCanceled(true);
+        if (!frozen(event.getEntity())) return;
+        var be = event.getLevel().getBlockEntity(event.getPos());
+        if (be instanceof net.minecraft.world.Container || be instanceof net.minecraft.world.MenuProvider) event.setCanceled(true);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onCountdownBreak(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent event) {
         if (frozen(event.getPlayer())) event.setCanceled(true);
-    }
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void onCountdownAttack(net.neoforged.neoforge.event.entity.player.AttackEntityEvent event) {
-        if (frozen(event.getEntity())) event.setCanceled(true);
     }
 
     /** True for anyone taking part, from the moment they are carried in until everything is put back. */
@@ -213,6 +205,13 @@ public final class HungerGames {
                 }))
                 .then(Commands.literal("board").requires(s -> s.hasPermission(2)).executes(ctx -> placeBoard(ctx.getSource().getPlayerOrException()))
                     .then(Commands.literal("remove").executes(ctx -> removeBoard(ctx.getSource().getPlayerOrException()))))
+                .then(Commands.literal("leave").executes(ctx -> {
+                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                    if (!players.contains(p.getUUID())) { p.sendSystemMessage(Component.literal("You are not in these games.").withStyle(ChatFormatting.GRAY)); return 0; }
+                    if (alive.contains(p.getUUID())) { p.sendSystemMessage(Component.literal("You are still alive. Fight or be eliminated.").withStyle(ChatFormatting.GRAY)); return 0; }
+                    leave(p);
+                    return 1;
+                }))
                 .then(Commands.literal("path").then(Commands.argument("pathway", StringArgumentType.word())
                         .suggests((c, b) -> { for (String id : Lotm.PATH_IDS) b.suggest(id); return b.buildFuture(); })
                         .executes(ctx -> pickPath(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "pathway")))))
@@ -602,7 +601,7 @@ public final class HungerGames {
     private static Saved snapshot(ServerPlayer p) {
         return new Saved(p.level().dimension(), p.getX(), p.getY(), p.getZ(), p.getYRot(), p.getXRot(), p.gameMode.getGameModeForPlayer(),
                 p.getInventory().save(new ListTag()), p.getHealth(), p.getFoodData().getFoodLevel(), p.getFoodData().getSaturationLevel(),
-                p.experienceLevel, p.experienceProgress, p.totalExperience, Lotm.sequence(p), Lotm.pathwayId(p), saveCurios(p), attachmentsOf(p));
+                p.experienceLevel, p.experienceProgress, p.totalExperience, Lotm.sequence(p), Lotm.pathwayId(p), TitleStats.setAside(p), saveCurios(p), attachmentsOf(p));
     }
 
     /** Curios slots (rings, charms, etc.) by reflection, so Curios stays optional. Null when Curios is not installed. */
@@ -961,9 +960,25 @@ public final class HungerGames {
             p.setGameMode(GameType.SPECTATOR);
             title(p, ChatFormatting.RED, "ELIMINATED", "You can watch the rest");
         }
+        ServerPlayer dead = s.getPlayerList().getPlayer(who);
+        if (dead != null) dead.sendSystemMessage(Component.literal("You are out. Watch the rest, or run /hungergames leave to be put back where you were.")
+            .withStyle(ChatFormatting.GRAY));
         String m = name + " " + how + (killer != null ? " (" + killer.getGameProfile().getName() + ")" : "") + ". " + alive.size() + " remain.";
         for (ServerPlayer q : s.getPlayerList().getPlayers()) if (players.contains(q.getUUID())) q.sendSystemMessage(Component.literal(m).withStyle(ChatFormatting.RED));
         checkWinner(s);
+    }
+
+    /**
+     * Puts an eliminated player back where they came from without waiting for the games to end. Watching the rest is
+     * worth something, but so is getting on with your evening, so it is their choice.
+     */
+    public static void leave(ServerPlayer p) {
+        Saved sv = saved.remove(p.getUUID());
+        players.remove(p.getUUID());
+        if (sv == null) { p.sendSystemMessage(Component.literal("Nothing of yours was being held.").withStyle(ChatFormatting.GRAY)); return; }
+        restoreOne(p, sv);
+        p.sendSystemMessage(Component.literal("You are back where you were. Your things, sequence and titles are as you left them.").withStyle(ChatFormatting.GREEN));
+        LOGGER.info("[hungergames] {} left after being eliminated", p.getGameProfile().getName());
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -994,7 +1009,10 @@ public final class HungerGames {
 
     private static void restore(ServerPlayer p) {
         Saved sv = saved.remove(p.getUUID());
-        if (sv == null) return;
+        if (sv != null) restoreOne(p, sv);
+    }
+
+    private static void restoreOne(ServerPlayer p, Saved sv) {
         p.setInvulnerable(false);
         p.removeAllEffects();
         p.getInventory().clearContent();
@@ -1008,6 +1026,7 @@ public final class HungerGames {
         p.experienceProgress = sv.xpProg(); p.totalExperience = sv.xpTotal();
         p.connection.send(new ClientboundSetExperiencePacket(sv.xpProg(), sv.xpTotal(), sv.xpLevel()));
         // the pathway first, then the sequence: a pathway picked for the games is undone here, so nobody keeps it
+        TitleStats.giveBack(p, sv.titles());
         if (sv.seq() >= 0 && sv.path() != null && !sv.path().isEmpty() && !sv.path().equals(Lotm.pathwayId(p)))
             Lotm.setPathwayAndSequence(p, sv.path(), sv.seq());
         if (sv.seq() >= 0 && Lotm.sequence(p) != sv.seq()) Lotm.setSequence(p, sv.seq());

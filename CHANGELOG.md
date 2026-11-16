@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.250
+
+- Hunger games: the countdown no longer blocks abilities. 0.2.242 cancelled right-click, left-click and attacking outright, which stopped people equipping and casting while they stood in the middle: that is what the countdown is for. Only reaching a container and breaking the arena are blocked now.
+- Hunger games: equipped and vanity titles are taken off on entry and put back at the end, so nobody wears a title into the arena.
+- Hunger games: SolsTitleSystem's highest hit, damage dealt and damage taken are put aside on entry and restored at the end. A fight in the arena is not the server's combat record, so it no longer earns damage titles.
+- Hunger games: `/hungergames leave` puts an eliminated player straight back where they were instead of making them watch. The death message says so.
+
 ## 0.2.249
 
 - Card binder rewards. Filling a pathway's whole row, sequence 9 down to 0, pays a pack you pick yourself: any pathway's normal pack for a normal row, or a rainbow or shiny pack for a shiny row. The picker is the weekly pack menu, which already knew how to do this.
