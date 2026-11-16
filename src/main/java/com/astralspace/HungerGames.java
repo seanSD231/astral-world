@@ -98,6 +98,8 @@ public final class HungerGames {
     /** How many started, and whether the sky has already turned at the halfway mark. */
     private static int startCount = 0;
     private static boolean turned = false;
+    /** Gold coins owed from the last game, paid out once a player's own inventory is back in their hands. */
+    private static final Map<UUID, Integer> owed = new HashMap<>();
     /** Pathways people asked for during the invitation, applied when they are carried in. */
     private static final Map<UUID, String> wantedPath = new HashMap<>();
     private static int outerLeft = 0, centreLeft = 0, churchLeft = 0;
@@ -312,7 +314,10 @@ public final class HungerGames {
 
     @SubscribeEvent
     public static void onTick(ServerTickEvent.Post event) {
-        if (phase == Phase.OFF) return;
+        if (phase == Phase.OFF) {
+            if (event.getServer().getTickCount() % 200 == 0) maybeAuto(event.getServer());
+            return;
+        }
         MinecraftServer s = event.getServer();
         server = s;
         ServerLevel lv = s.getLevel(Cosmos.key("cosmos"));
@@ -391,6 +396,31 @@ public final class HungerGames {
             if (p.isInvisible() || p.hasEffect(MobEffects.INVISIBILITY)) { p.removeEffect(MobEffects.GLOWING); continue; }
             p.addEffect(new MobEffectInstance(MobEffects.GLOWING, 60, 0, false, false, false));
         }
+    }
+
+    /**
+     * Calls a game on its own every so often. The first two the server ever runs are no-sequence games, so people
+     * learn the arena before anyone fights at sequence 0; after that it is a coin toss between no-sequence and one
+     * random sequence everyone plays at. A quiet night does not burn the day's game: if too few are online it simply
+     * waits and looks again.
+     */
+    private static void maybeAuto(MinecraftServer s) {
+        if (!Settings.hgAuto || phase != Phase.OFF || !saved.isEmpty() || ArenaReset.busy()) return;
+        AstralData d = AstralData.get(s);
+        long nowMs = System.currentTimeMillis();
+        if (d.hgNextAt <= 0) { d.hgNextAt = nowMs + Settings.hgAutoHours * 3600_000L; d.setDirty(); return; }
+        if (nowMs < d.hgNextAt) return;
+        int online = s.getPlayerList().getPlayerCount();
+        if (online < Settings.hgAutoMinPlayers) return;                 // not enough people: look again in ten seconds
+
+        boolean seqEv = d.hgRuns >= 2 && rnd.nextBoolean();
+        int at = seqEv ? rnd.nextInt(10) : 9;
+        d.hgRuns++;
+        d.hgNextAt = nowMs + Settings.hgAutoHours * 3600_000L;
+        if (d.hgFirstDay <= 0) d.hgFirstDay = java.time.LocalDate.now().toEpochDay();
+        d.setDirty();
+        LOGGER.info("[hungergames] automatic game #{} ({}), {} online", d.hgRuns, seqEv ? "sequence " + at : "no sequence", online);
+        start(s, seqEv, false, at, s.createCommandSourceStack());
     }
 
     private static List<ServerPlayer> onlinePlayers(MinecraftServer s) {
@@ -993,6 +1023,7 @@ public final class HungerGames {
         List<UUID> rank = new ArrayList<>(alive);
         for (int i = out.size() - 1; i >= 0; i--) rank.add(out.get(i));
         for (int i = 0; i < rank.size(); i++) lastResults.add(new Result(names.getOrDefault(rank.get(i), "?"), kills.getOrDefault(rank.get(i), 0), i + 1));
+        payOut(s, rank);
         if (!lastResults.isEmpty()) {                                          // this game joins the list of past ones
             Result win = lastResults.get(0);
             history.add(0, new Past(win.name(), win.kills(), rank.size()));
@@ -1070,6 +1101,47 @@ public final class HungerGames {
 
     // ------------------------------------------------------------------ the end
 
+    /**
+     * What the top three are owed. One gold coin per player in the game, per week the server has been open, so a
+     * prize grows with both the field and the age of the world. Second takes half, third a quarter.
+     *
+     * It is only recorded here: a player's inventory is replaced wholesale when they are put back, so the coins are
+     * actually handed over in {@link #restoreOne} once that is done.
+     */
+    private static void payOut(MinecraftServer s, List<UUID> rank) {
+        owed.clear();
+        if (Settings.hgPrizePerPlayerPerWeek <= 0 || rank.isEmpty()) return;
+        AstralData d = AstralData.get(s);
+        long today = java.time.LocalDate.now().toEpochDay();
+        if (d.hgFirstDay <= 0) { d.hgFirstDay = today; d.setDirty(); }
+        int weeks = (int) Math.max(1, (today - d.hgFirstDay) / 7 + 1);
+        int first = Settings.hgPrizePerPlayerPerWeek * rank.size() * weeks;
+        int[] share = {first, first / 2, first / 4};
+        for (int i = 0; i < Math.min(3, rank.size()); i++) {
+            if (share[i] <= 0) continue;
+            owed.put(rank.get(i), share[i]);
+            ServerPlayer p = s.getPlayerList().getPlayer(rank.get(i));
+            if (p != null) p.sendSystemMessage(Component.literal((i == 0 ? "First" : i == 1 ? "Second" : "Third") + " place: "
+                + share[i] + " gold coin" + (share[i] == 1 ? "" : "s") + " (" + rank.size() + " players x " + weeks
+                + " week" + (weeks == 1 ? "" : "s") + (i == 0 ? "" : i == 1 ? ", halved" : ", quartered") + ").").withStyle(ChatFormatting.GOLD));
+        }
+        LOGGER.info("[hungergames] prize: {} players, week {}, first place {} coins", rank.size(), weeks, first);
+    }
+
+    private static void giveCoins(ServerPlayer p) {
+        Integer n = owed.remove(p.getUUID());
+        if (n == null || n <= 0) return;
+        var it = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse("lotm:coin"));
+        if (it.isEmpty()) { LOGGER.warn("[hungergames] lotm:coin is not registered, so {} could not be paid", p.getGameProfile().getName()); return; }
+        int left = n;
+        while (left > 0) {
+            int take = Math.min(left, 64);
+            ItemStack st = new ItemStack(it.get(), take);
+            if (!p.getInventory().add(st)) p.drop(st, false);
+            left -= take;
+        }
+    }
+
     private static void restore(ServerPlayer p) {
         Saved sv = saved.remove(p.getUUID());
         if (sv != null) restoreOne(p, sv);
@@ -1084,6 +1156,7 @@ public final class HungerGames {
         p.setGameMode(sv.mode());
         p.setHealth(Math.max(1f, Math.min(sv.hp(), p.getMaxHealth())));
         p.getFoodData().setFoodLevel(sv.food());
+        giveCoins(p);
         p.getFoodData().setSaturation(sv.sat());
         p.setExperienceLevels(sv.xpLevel());
         p.experienceProgress = sv.xpProg(); p.totalExperience = sv.xpTotal();

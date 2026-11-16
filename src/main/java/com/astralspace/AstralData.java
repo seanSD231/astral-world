@@ -63,6 +63,10 @@ public class AstralData extends SavedData {
     public final Map<UUID, String> perksGiven = new HashMap<>();
     /** Binder rows that have already paid out, per player: "seer,seer_s,monster". Once per person, not per binder. */
     public final Map<UUID, String> binderClaims = new HashMap<>();
+    /** When the next automatic hunger games is due (epoch millis), how many have run, and the day the server opened. */
+    public long hgNextAt = 0L;
+    public int hgRuns = 0;
+    public long hgFirstDay = 0L;
     /** Where each player left from when they entered the Astral World. */
     public final Map<UUID, Return> returns = new HashMap<>();
 
@@ -117,6 +121,7 @@ public class AstralData extends SavedData {
         for (String k : pg.getAllKeys()) d.perksGiven.put(UUID.fromString(k), pg.getString(k));
         CompoundTag bc = tag.getCompound("binderClaims");
         for (String k : bc.getAllKeys()) d.binderClaims.put(UUID.fromString(k), bc.getString(k));
+        d.hgNextAt = tag.getLong("hgNextAt"); d.hgRuns = tag.getInt("hgRuns"); d.hgFirstDay = tag.getLong("hgFirstDay");
         CompoundTag r = tag.getCompound("returns");
         for (String k : r.getAllKeys()) {
             CompoundTag e = r.getCompound(k);
@@ -180,6 +185,7 @@ public class AstralData extends SavedData {
         CompoundTag bc = new CompoundTag();
         binderClaims.forEach((k, v) -> bc.putString(k.toString(), v));
         tag.put("binderClaims", bc);
+        tag.putLong("hgNextAt", hgNextAt); tag.putInt("hgRuns", hgRuns); tag.putLong("hgFirstDay", hgFirstDay);
         CompoundTag r = new CompoundTag();
         returns.forEach((k, v) -> {
             CompoundTag e = new CompoundTag();

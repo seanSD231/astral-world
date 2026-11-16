@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.252
+
+- Hunger games run themselves. A game is called every 24 hours (`hungergames_auto_hours`) once at least 4 people are online; if too few are on it waits rather than burning the day's game. The first two the server ever runs are always no-sequence, so people learn the arena first; after that each is a coin toss between no-sequence and one random sequence everyone plays at.
+- Hunger games prizes. The winner takes one LOTM gold coin per player in the game, per week the server has been open - eight players in the third week pays 24. Second place takes half, third a quarter. Coins are handed over after everything else is put back, because restoring replaces the inventory. `hungergames_prize_per_player_per_week`.
+
 ## 0.2.251
 
 - Hunger games: the closing wall can be seen. It was only ever a push-back with nothing drawn, so people walked into something invisible. Each contestant now gets the arc of it nearest them, drawn in end-rod particles five blocks high.
