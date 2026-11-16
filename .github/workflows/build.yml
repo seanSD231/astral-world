@@ -2,6 +2,8 @@ name: Build mod
 on:
   push:
   workflow_dispatch:
+permissions:
+  contents: write          # needed to publish the jar as a release asset
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,3 +30,26 @@ jobs:
         with:
           name: astral_world-jar
           path: build/libs/*.jar
+
+      # The launcher fetches the mod from a release asset. Actions artifacts need a
+      # login and expire, so they are no use for that. Publish the jar that was just
+      # built -- never a rebuild, because Gradle jars embed timestamps and a second
+      # build of the same commit hashes differently.
+      - name: Publish release
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          v=$(grep -E '^mod_version=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')
+          jar=$(ls build/libs/*.jar | grep -v -- '-sources\.jar$' | head -1)
+          if gh release view "v$v" >/dev/null 2>&1; then
+            echo "v$v already released; skipping"
+            exit 0
+          fi
+          echo "releasing v$v from $jar"
+          gh release create "v$v" "$jar" \
+            --title "v$v" \
+            --notes "Automated build of \`${GITHUB_SHA::7}\`."
+          echo "sha1 $(sha1sum "$jar" | cut -d' ' -f1)"
