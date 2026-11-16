@@ -73,7 +73,7 @@ public final class Tarot {
         ITEMS.register("ancient_one_pack", () -> new PackItem(new Item.Properties().stacksTo(16), "ancient_one", 3));
     }
 
-    public static void register(IEventBus modBus) { ITEMS.register(modBus); }
+    public static void register(IEventBus modBus) { Binder.init(); ITEMS.register(modBus); }   // Binder registers into ITEMS, so it has to be loaded first
 
     /** 0 common (Seq 9-8), 1 uncommon (7-6), 2 rare (5-4), 3 epic (3-2), 4 legendary (1), 5 mythic (0). */
     public static int rarityIndex(int seq) { return seq >= 8 ? 0 : seq >= 6 ? 1 : seq >= 4 ? 2 : seq >= 2 ? 3 : seq == 1 ? 4 : 5; }
@@ -113,7 +113,7 @@ public final class Tarot {
         return 0;
     }
 
-    static String pretty(String id) {
+    public static String pretty(String id) {
         if (gooIndex(id) >= 0) return GOO_NAMES[gooIndex(id)];
         StringBuilder b = new StringBuilder();
         for (String w : id.split("_")) b.append(b.length() > 0 ? " " : "").append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));

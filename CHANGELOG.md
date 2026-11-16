@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.248
+
+- The card binder. A craftable book (leather, gold and a book) with one slot per card: 22 pathways of 10 sequences plus the 9 Great Old Ones, doubled by shinies, 458 faces in all. A card only goes in its own slot.
+- One page per Great Old One, its pathways as rows, sequence 9 across to 0, so the rarest cards are the right-hand columns and a page reads as how far you have got. A shiny toggle swaps the whole page. "File loose cards" sweeps every card in your inventory into its place; clicking a slot takes one back out.
+- Storage only: nothing is remembered once a card leaves, so an empty slot means an empty slot. The binder is never dropped on death.
+
 ## 0.2.247
 
 - Hunger games: cover is placed again. The whole raised platform is the church floor, so `churchInside` is true across the entire arena, and the test was the wrong way round: every candidate spot was skipped and no pillars, walls or mounds have ever been built. Cover now goes in the open middle where the roof fell in.

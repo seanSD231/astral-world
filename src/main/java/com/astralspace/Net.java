@@ -116,6 +116,22 @@ public final class Net {
     }
 
     /** Client -&gt; server: the fun item the player picked. */
+    /** The whole binder as "key:count,key:count", sent whenever it changes. */
+    public record BinderOpenPayload(String cards) implements CustomPacketPayload {
+        public static final Type<BinderOpenPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "binder_open"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, BinderOpenPayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.STRING_UTF8, BinderOpenPayload::cards, BinderOpenPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    /** What the binder screen asks for: 0 take one of `key`, 1 file every loose card away. */
+    public record BinderActPayload(int what, String key) implements CustomPacketPayload {
+        public static final Type<BinderActPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "binder_act"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, BinderActPayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_INT, BinderActPayload::what, ByteBufCodecs.STRING_UTF8, BinderActPayload::key, BinderActPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public record FunPickPayload(String id) implements CustomPacketPayload {
         public static final Type<FunPickPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "fun_pick"));
         public static final StreamCodec<RegistryFriendlyByteBuf, FunPickPayload> CODEC = StreamCodec.composite(
@@ -342,6 +358,10 @@ public final class Net {
         }));
         registrar.playToClient(RecipesPayload.TYPE, RecipesPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> PotionLock.arrived(payload.keys())));
         registrar.playToClient(FunOpenPayload.TYPE, FunOpenPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> FunItemScreen.open(payload.ids(), payload.days(), payload.left())));
+        registrar.playToClient(BinderOpenPayload.TYPE, BinderOpenPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> BinderScreen.open(payload.cards())));
+        registrar.playToServer(BinderActPayload.TYPE, BinderActPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) Binder.act(sp, payload.what(), payload.key());
+        }));
         registrar.playToServer(TwSwingPayload.TYPE, TwSwingPayload.CODEC, (payload, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof net.minecraft.server.level.ServerPlayer sp) TwilightSword.voidStrike(sp);
         }));

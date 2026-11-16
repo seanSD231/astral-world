@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["LLL", "GBG", "LLL"],
+  "key": {
+    "L": {"item": "minecraft:leather"},
+    "G": {"item": "minecraft:gold_ingot"},
+    "B": {"item": "minecraft:book"}
+  },
+  "result": {"id": "astral_world:card_binder", "count": 1}
+}
