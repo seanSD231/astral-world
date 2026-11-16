@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.256
+
+- Arbiter Sequence 0 no longer crashes the game. Its gavel had lost its push and its transform somewhere, so it was drawn flat on the floor and the pop that followed it emptied the matrix stack, throwing NoSuchElementException out of the render thread. The gavel is back where it belongs, raised and falling and struck on a four-second cycle.
+- A card scene that pops an empty matrix stack now draws wrong instead of crashing the client, and says so once in the log. A card is decoration; it should never be able to end the game.
+
 ## 0.2.255
 
 - Crush Depth, from the outside, since that mod exposes no hooks for any of this. Sequence 1 and 0 take no pressure damage at all (`pressure_immune_sequence`); a Sailor takes a quarter of it (`pressure_sailor_percent`), the sea being their business.

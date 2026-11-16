@@ -360,7 +360,18 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private boolean strans;
     private final Vector3f tp = new Vector3f(), tn = new Vector3f();
     private void push() { mstack.push(new Matrix4f(cur)); }
-    private void pop() { cur = mstack.pop(); }
+    /**
+     * One scene having a pop too many used to throw out of the render thread and crash the client. A card is
+     * decoration: an unbalanced scene should draw oddly, not end the game. The imbalance is still logged, once.
+     */
+    private static boolean warnedStack;
+    private void pop() {
+        if (mstack.isEmpty()) {
+            if (!warnedStack) { warnedStack = true; org.slf4j.LoggerFactory.getLogger("astral").warn("[astral] holo card: a scene popped an empty matrix stack; it will draw wrong rather than crash"); }
+            return;
+        }
+        cur = mstack.pop();
+    }
     private void tr(float x, float y, float z) { cur.translate(x, y, z); }
     private void rY(float a) { cur.rotateY(a); }
     private void rX(float a) { cur.rotateX(a); }
@@ -2010,7 +2021,17 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         pushFace(); scalesModel(L, metal(.55f), P1); pop();
         if (N == 2) {   // Seq 0: a court of law: marble columns round the scales and a great gavel that falls and sends out a judgement
             for (int i = 0; i < 8; i++) { float a = i * TAU / 8 + .2f; push(); tr(gc(a) * R * .92f, 0, gs(a) * R * .92f); column2(top * 1.3f, .3f * S, false, mix(P1, 0xFFFFFF, .5f), mix(P2, 0x000000, .3f), P1); pop(); }
-            float gp = fract(t * .25f); box(1.5f * S, 0, 0, .12f * S, .6f * S, .6f * S, metal(.7f), 255); frustum(-.2f * S, -3.4f * S, .12f * S, .1f * S, 8, 1, 1, 0x5A3A1C, 255, true); pop();
+            // the gavel. It had lost its push and its transform somewhere, so it was drawn flat at the middle of the
+            // floor and the pop that followed it emptied the stack: that is what crashed the card.
+            float gp = fract(t * .25f);
+            float ang = gp < .25f ? -1.15f
+                      : gp < .31f ? -1.15f * (1f - (gp - .25f) / .06f)      // the fall
+                      : gp < .62f ? 0f                                       // struck, and held there
+                      : -1.15f * ((gp - .62f) / .38f);                       // lifted again
+            push(); tr(R * .42f, top * .52f, 0); rY(-t * .12f); rZ(ang);
+            box(1.5f * S, 0, 0, .12f * S, .6f * S, .6f * S, metal(.7f), 255);
+            frustum(-.2f * S, -3.4f * S, .12f * S, .1f * S, 8, 1, 1, 0x5A3A1C, 255, true);
+            pop();
             if (gp > .25f && gp < .6f) { float k2 = (gp - .25f) / .35f; flat("ring_thick", gx(R * .78f, R * .2f), .12f, gz(R * .78f, R * .2f), k2 * R * 1.6f, 0, rgba(P3, 1f - k2)); }
         }
         sym(CY + L * .55f + 1.5f * S, 3.4f * S, 0);
