@@ -98,6 +98,8 @@ public final class HungerGames {
     /** How many started, and whether the sky has already turned at the halfway mark. */
     private static int startCount = 0;
     private static boolean turned = false;
+    /** The time of day these games are fought at, held against the daylight cycle. */
+    private static long skyTime = 18000;
     /** Gold coins owed from the last game, paid out once a player's own inventory is back in their hands. */
     private static final Map<UUID, Integer> owed = new HashMap<>();
     /** Pathways people asked for during the invitation, applied when they are carried in. */
@@ -336,12 +338,13 @@ public final class HungerGames {
                     int sec = (int) (left / 20);
                     for (ServerPlayer p : onlinePlayers(s)) title(p, sec <= 3 ? ChatFormatting.RED : ChatFormatting.GOLD, String.valueOf(sec), "The games begin");
                 }
+                if (now % 20 == 0) lv.setDayTime(skyTime);
                 if (left <= 0) go(s);
             }
             case RUNNING -> {
                 UniqPower.contain(lv, new net.minecraft.world.phys.Vec3(0, groundY, 0), zoneRadius(now), null);   // the wall holds: anyone at its edge is pushed back in
                 if (now % 3 == 0) drawWall(lv, zoneRadius(now));
-                if (now % 20 == 0) { running(s, lv); halfwaySky(s, lv); markFinalists(s); }
+                if (now % 20 == 0) { running(s, lv); halfwaySky(s, lv); markFinalists(s); lv.setDayTime(skyTime); }
             }
             case ENDING -> { if (now >= phaseEnd) finish(s, null); }
             default -> { }
@@ -375,8 +378,9 @@ public final class HungerGames {
     private static void halfwaySky(MinecraftServer s, ServerLevel lv) {
         if (turned || startCount < 2 || alive.size() > startCount / 2) return;
         turned = true;
-        boolean wasNight = lv.getDayTime() % 24000 > 13000;
-        lv.setDayTime(wasNight ? 23000 : 18000);
+        boolean wasNight = skyTime % 24000 > 13000;
+        skyTime = wasNight ? 23000 : 18000;
+        lv.setDayTime(skyTime);
         for (ServerPlayer p : onlinePlayers(s)) {
             p.sendSystemMessage(Component.literal(wasNight ? "Half of you are gone. The sky is lightening." : "Half of you are gone. Night falls.")
                 .withStyle(ChatFormatting.AQUA));
@@ -680,7 +684,8 @@ public final class HungerGames {
         startCount = n;
         turned = false;
         boolean night = rnd.nextBoolean();            // which half of the day these games are fought in
-        lv.setDayTime(night ? 18000 : 6000);
+        skyTime = night ? 18000 : 6000;
+        lv.setDayTime(skyTime);
         for (ServerPlayer p : in) p.sendSystemMessage(Component.literal(night
             ? "These games are fought at night. It will be dawn when half of you are gone."
             : "These games are fought by day. Night falls when half of you are gone.").withStyle(ChatFormatting.AQUA));

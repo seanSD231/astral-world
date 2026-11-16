@@ -3287,6 +3287,9 @@ public final class EndGame {
         gt++;
         closeTick(server);
         if (d.endPhase.isEmpty() || d.endPhase.equals("classic")) return;
+        // the dimension type used to pin the time at midnight, which also stopped the hunger games turning the sky.
+        // It is held here instead, so the end still happens under a night sky and the arena is free the rest of the time.
+        if (gt % 40 == 0) { ServerLevel arena = server.getLevel(Cosmos.key("cosmos")); if (arena != null) arena.setDayTime(18000); }
         if (d.endPhase.equals("call")) callTick(server, d);
         if (d.endPhase.equals("raid")) raidTick(server, d);
         processTimed();

@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.253
+
+- The arena dimension no longer pins its time of day. Its dimension type carried `fixed_time: 18000`, which silently ignored every attempt to set the time - including the hunger games day/night turn added in 0.2.251, which has therefore never worked. The end event now holds midnight itself while it runs, so it still happens under a night sky, and the arena is free the rest of the time.
+- Hunger games hold their chosen sky against the daylight cycle, so a long game does not drift into the wrong half of the day.
+
 ## 0.2.252
 
 - Hunger games run themselves. A game is called every 24 hours (`hungergames_auto_hours`) once at least 4 people are online; if too few are on it waits rather than burning the day's game. The first two the server ever runs are always no-sequence, so people learn the arena first; after that each is a coin toss between no-sequence and one random sequence everyone plays at.
