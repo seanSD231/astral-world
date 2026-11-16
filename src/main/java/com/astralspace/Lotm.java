@@ -48,6 +48,7 @@ public final class Lotm {
             getPathway = find(pathways, "getPathway", 1);
             pwSetSequence = find(pathways, "setSequence", 2);
             pwSetPathwayAndSequence = find(pathways, "setPathwayAndSequence", 3);
+            pwResetPathway = find(pathways, "resetPathway", 1);
             pwGetSequence = find(pathways, "getSequence", 1);
             corrMax = find(corruption, "max", 1);
             corrAdd = find(corruption, "add", 3);
@@ -236,7 +237,16 @@ public final class Lotm {
     }
 
     /** Puts a player's sequence back (LOTM's own loss-of-control and sanity collapse regress it). Returns false if LOTM could not be called. */
-    private static java.lang.reflect.Method pwSetPathwayAndSequence;
+    private static java.lang.reflect.Method pwSetPathwayAndSequence, pwResetPathway;
+
+    /** Takes a pathway away again, leaving the player an ordinary person. Used to undo one handed out for a game. */
+    public static boolean resetPathway(ServerPlayer player) {
+        init();
+        if (pwResetPathway == null) return false;
+        try { pwResetPathway.invoke(null, player); return true; }
+        catch (Throwable t) { LOGGER.warn("[astral] could not take {}'s pathway back: {}", player.getGameProfile().getName(), t.toString()); return false; }
+    }
+
 
     /**
      * Puts a player on a pathway at a sequence, through LOTM's own Pathways.setPathwayAndSequence, so the abilities,

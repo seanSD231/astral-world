@@ -1835,14 +1835,19 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
         bb("glow", x, y + size * .15f, z, size * .8f, size * .35f, 0, rgba(outer, .35f * alpha));
     }
-    /** A dark sky dome plus a shaded ground disc. Seen from outside it is nearly clear so you can see what is inside. */
-    private boolean concealDome;   // the Darkness dome stays a solid shell from outside too, hiding whatever stands in it
+    /**
+     * A dark sky dome plus a shaded ground disc. From outside it is a solid shell, so a card is not a window into its
+     * own scene: only Darkness used to be built this way and every other dome vanished the moment you stepped out of
+     * it. Inside, the scene keeps whatever alpha it asked for.
+     */
+    private boolean concealDome;   // Darkness goes a shade further: all but opaque
     private void dome(float rad, int rgb, int alpha) {
-        boolean inside = camDist < rad * .97f, draw = inside || concealDome || alpha >= 240;
-        int a1 = draw ? alpha : 0, a2 = inside ? (int) (alpha * .92f) : (int) (alpha * .8f);
+        boolean inside = camDist < rad * .97f;
+        int a1 = inside ? alpha : Math.max(alpha, concealDome ? 253 : 246);
+        int a2 = inside ? (int) (alpha * .92f) : (int) (alpha * .8f);
         solid(true);
         int lat = 10, lon = 28; float[] hint = v3(0, 0, 0);
-        for (int i = 0; i < lat && draw; i++) {   // from outside only a concealing dome is drawn: its depth hides entities placed after the card
+        for (int i = 0; i < lat; i++) {   // the shell's depth also hides entities placed after the card
             float l0 = PI / 2 * i / lat, l1 = PI / 2 * (i + 1) / lat;
             for (int j = 0; j < lon; j++) {
                 float g0 = TAU * j / lon, g1 = TAU * (j + 1) / lon;

@@ -51,6 +51,7 @@ public final class Settings {
         KEYS.put("hungergames_auto_hours", new String[]{"24", "Hunger games: hours between automatic games."});
         KEYS.put("hungergames_auto_min_players", new String[]{"4", "Hunger games: how many people have to be online before an automatic game is called. Below this it waits and\n# tries again, so a quiet night does not burn the day's game."});
         KEYS.put("hungergames_prize_per_player_per_week", new String[]{"1", "Hunger games: gold coins the winner gets, per player in the game, per week the server has been open.\n# Eight players in the server's third week pays 8 x 3 = 24. Second place takes half, third a quarter. 0 turns the prize off."});
+        KEYS.put("hungergames_pathway_for_non_beyonders", new String[]{"true", "Hunger games: true = someone who is not a Beyonder is given a random pathway for the games, at whatever sequence they\n# are fought at, and is put back to being nobody afterwards. A pathway they picked with /hungergames path wins over the random one."});
         KEYS.put("hungergames_animals", new String[]{"40", "Hunger games: how many of each animal are turned loose in the arena. Sheep get two thirds of this and rabbits half,\n# so 40 is about 173 animals over the whole floor. 0 turns them off."});
         KEYS.put("hungergames_countdown_base", new String[]{"15", "Hunger games: seconds everyone stands in the middle before the games begin, for a sequence 9 field."});
         KEYS.put("hungergames_countdown_per_sequence", new String[]{"6", "Hunger games: extra seconds of that countdown for every sequence below 9 of the strongest player in the field.\n# A lower sequence has many more abilities to pick from, so the field gets longer to choose. 0 turns this off."});
@@ -89,6 +90,7 @@ public final class Settings {
     public static volatile int titleMaxHit = 100000;
     public static volatile boolean hgAllowPathwayChange = true;
     public static volatile int hgAnimals = 40;
+    public static volatile boolean hgPathForNonBeyonders = true;
     public static volatile boolean hgAuto = true;
     public static volatile int hgAutoHours = 24, hgAutoMinPlayers = 4, hgPrizePerPlayerPerWeek = 1;
     public static volatile int hgCountdownBase = 15, hgCountdownPerSequence = 6, hgCountdownMax = 90, hgHiddenCaches = 14;
@@ -156,6 +158,7 @@ public final class Settings {
             titleMaxHit = Math.max(0, Integer.parseInt(p.getProperty("title_max_hit_damage").trim()));
             hgAllowPathwayChange = Boolean.parseBoolean(p.getProperty("hungergames_allow_pathway_change").trim());
             hgAnimals = Math.max(0, Integer.parseInt(p.getProperty("hungergames_animals").trim()));
+            hgPathForNonBeyonders = Boolean.parseBoolean(p.getProperty("hungergames_pathway_for_non_beyonders").trim());
             hgAuto = Boolean.parseBoolean(p.getProperty("hungergames_auto").trim());
             hgAutoHours = Math.max(1, Integer.parseInt(p.getProperty("hungergames_auto_hours").trim()));
             hgAutoMinPlayers = Math.max(2, Integer.parseInt(p.getProperty("hungergames_auto_min_players").trim()));

@@ -100,6 +100,9 @@ public final class HungerGames {
     private static boolean turned = false;
     /** The time of day these games are fought at, held against the daylight cycle. */
     private static long skyTime = 18000;
+
+    /** The sequence these games are fought at, for a player who has none of their own. */
+    private static int gameSeq() { return !seqEvent || seqKeep ? 9 : seqSet; }
     /** Gold coins owed from the last game, paid out once a player's own inventory is back in their hands. */
     private static final Map<UUID, Integer> owed = new HashMap<>();
     /** Pathways people asked for during the invitation, applied when they are carried in. */
@@ -268,7 +271,7 @@ public final class HungerGames {
             return 1;
         }
         int seq = Lotm.sequence(p);
-        if (seq < 0) { p.sendSystemMessage(Component.literal("You are not a Beyonder, so there is no pathway to change.").withStyle(ChatFormatting.GRAY)); return 0; }
+        if (seq < 0) seq = gameSeq();        // not a Beyonder: they get the pathway at whatever these games are fought at
         if (!Lotm.setPathwayAndSequence(p, want, seq)) {
             p.sendSystemMessage(Component.literal("That pathway could not be given to you.").withStyle(ChatFormatting.RED));
             return 0;
@@ -345,6 +348,7 @@ public final class HungerGames {
                 UniqPower.contain(lv, new net.minecraft.world.phys.Vec3(0, groundY, 0), zoneRadius(now), null);   // the wall holds: anyone at its edge is pushed back in
                 if (now % 3 == 0) drawWall(lv, zoneRadius(now));
                 if (now % 20 == 0) { running(s, lv); halfwaySky(s, lv); markFinalists(s); lv.setDayTime(skyTime); }
+                if (now % 200 == 0) hideTree(lv);   // anyone who arrived or started spectating since
             }
             case ENDING -> { if (now >= phaseEnd) finish(s, null); }
             default -> { }
@@ -425,6 +429,16 @@ public final class HungerGames {
         d.setDirty();
         LOGGER.info("[hungergames] automatic game #{} ({}), {} online", d.hgRuns, seqEv ? "sequence " + at : "no sequence", online);
         start(s, seqEv, false, at, s.createCommandSourceStack());
+    }
+
+    /**
+     * Tells everyone in the arena to forget the tree. The renderer keeps drawing it wherever it last stood whenever
+     * nobody is tracking the boss, so during a hunger games a ghost of it hangs in the middle of the field; spectators
+     * flying over the arena see it plainly. The raid puts it back when it next spawns the boss.
+     */
+    private static void hideTree(ServerLevel lv) {
+        for (ServerPlayer p : lv.players())
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(9, 0));
     }
 
     private static List<ServerPlayer> onlinePlayers(MinecraftServer s) {
@@ -657,10 +671,16 @@ public final class HungerGames {
             p.connection.send(new ClientboundSetExperiencePacket(0f, 0, 0));
             applySeq(p);
             String want = wantedPath.get(p.getUUID());
+            int q = Lotm.sequence(p);
+            // Someone who is not a Beyonder used to be carried in with nothing at all, even when they had picked a
+            // pathway: their sequence read as -1 and the pathway was never applied. They now play at the game's own
+            // sequence, and are put back to being nobody at the end.
+            if (want == null && q < 0 && Settings.hgPathForNonBeyonders)
+                want = Tarot.PATHWAYS[rnd.nextInt(Tarot.PATHWAYS.length)];
             if (want != null && Settings.hgAllowPathwayChange) {
-                int q = Lotm.sequence(p);
-                if (q >= 0 && Lotm.setPathwayAndSequence(p, want, q))
-                    p.sendSystemMessage(Component.literal("You are playing on the " + want + " pathway.").withStyle(ChatFormatting.GREEN));
+                if (Lotm.setPathwayAndSequence(p, want, q >= 0 ? q : gameSeq()))
+                    p.sendSystemMessage(Component.literal("You are playing on the " + want + " pathway"
+                        + (q < 0 ? " at sequence " + gameSeq() + ". It is yours only for these games." : ".")).withStyle(ChatFormatting.GREEN));
             }
             int stripped = Lotm.stripCarried(p);   // grazed souls, scribed abilities and enslaved spirits stay outside: they come back with everything else (see restore)
             if (stripped > 0) LOGGER.info("[hungergames] {} enters without souls, scribed abilities or spirits ({} of 3 emptied)", p.getGameProfile().getName(), stripped);
@@ -681,6 +701,7 @@ public final class HungerGames {
         }
         placeObstacles(lv);
         placeCaches(lv);
+        hideTree(lv);
         startCount = n;
         turned = false;
         boolean night = rnd.nextBoolean();            // which half of the day these games are fought in
@@ -1168,6 +1189,7 @@ public final class HungerGames {
         p.connection.send(new ClientboundSetExperiencePacket(sv.xpProg(), sv.xpTotal(), sv.xpLevel()));
         // the pathway first, then the sequence: a pathway picked for the games is undone here, so nobody keeps it
         TitleStats.giveBack(p, sv.titles());
+        if (sv.seq() < 0 && Lotm.sequence(p) >= 0) Lotm.resetPathway(p);   // they came in as nobody; they leave as nobody
         if (sv.seq() >= 0 && sv.path() != null && !sv.path().isEmpty() && !sv.path().equals(Lotm.pathwayId(p)))
             Lotm.setPathwayAndSequence(p, sv.path(), sv.seq());
         if (sv.seq() >= 0 && Lotm.sequence(p) != sv.seq()) Lotm.setSequence(p, sv.seq());

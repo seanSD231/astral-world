@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.254
+
+- Hunger games: someone who is not a Beyonder is carried in with a pathway. Their sequence read as -1, so a pathway they had picked with `/hungergames path` was silently never applied and they played with nothing; anyone who picks none now gets a random one. It is theirs at whatever sequence the games are fought at, and taken back at the end through LOTM's own resetPathway.
+- Hunger games: no more ghost tree in the middle. The renderer draws the tree wherever it last stood whenever nothing is tracking the boss, so it hung over the arena during a game and spectators saw it plainly. Everyone in the arena is told to forget it when a game begins, and again every ten seconds for whoever has arrived since.
+- Holo cards: a card's dome is a solid shell from outside, the way Darkness always was. Every other dome vanished the moment you stepped out of it, so a card was a window into its own scene.
+
 ## 0.2.253
 
 - The arena dimension no longer pins its time of day. Its dimension type carried `fixed_time: 18000`, which silently ignored every attempt to set the time - including the hunger games day/night turn added in 0.2.251, which has therefore never worked. The end event now holds midnight itself while it runs, so it still happens under a night sky, and the arena is free the rest of the time.
