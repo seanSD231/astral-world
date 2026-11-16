@@ -2398,6 +2398,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      */
     private void wheelPair(float s, float x, float r, float roll, int spoke) {
         int tyre = 0x121316, steel = 0x8A8E96, gold = 0xD8B050; boolean drive = r > .4f * s; int ns = drive ? 10 : 6;
+        box(x, r, 0, .055f * r, .055f * r, .6f * s, steel, 255);                                             // the axle joining them
+        box(x, r, 0, .09f * r, .09f * r, .12f * s, 0x5A5E66, 255);                                           // and its bearing block at the middle
         for (int sd = -1; sd <= 1; sd += 2) { push(); tr(x, r, sd * .62f * s); rZ(-roll * .45f * s / r);
             torus(0, 0, 0, r * .92f, r * .92f, .08f * r, 20, 5, 0, TAU, tyre, 255);                          // the tyre, upright
             torus(0, 0, -sd * .06f * r, r * 1.0f, r * 1.0f, .03f * r, 20, 3, 0, TAU, steel, 255);            // its flange, on the inside of the rail
@@ -2451,6 +2453,16 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             box(-.1f * s + cx, .5f * s + cy, sd * .7f * s, 1.0f * s, .035f * s, .02f * s, brass, 255);                         // coupling rod
             box(.75f * s + cx * .5f, .55f * s + cy * .5f, sd * .72f * s, .5f * s, .03f * s, .02f * s, brass, 255);             // connecting rod
         }
+        // the frame. Without it the wheels hung in the air beside the boiler with nothing holding them: a running
+        // board over the top and a plate down each side between the wheels, which is where a real one carries them.
+        box(.5f * s, .8f * s, 0, 2.0f * s, .035f * s, .66f * s, iron, 255);                                  // running board, overhanging the tyres
+        box(.5f * s, .84f * s, 0, 2.0f * s, .012f * s, .68f * s, gold, 255);                                 // its gilt edge
+        for (int sd = -1; sd <= 1; sd += 2) {
+            box(.45f * s, .5f * s, sd * .5f * s, 1.85f * s, .17f * s, .035f * s, blk, 255);                  // side frame, inboard of the wheels
+            box(.45f * s, .66f * s, sd * .5f * s, 1.85f * s, .02f * s, .04f * s, red, 255);                  // a red band along its top edge
+        }
+        box(-1.25f * s, .5f * s, 0, .06f * s, .17f * s, .5f * s, blk, 255);                                  // rear frame stretcher
+        box(1.9f * s, .42f * s, 0, .06f * s, .12f * s, .5f * s, blk, 255);                                   // and one over the bogie
         for (int k = 0; k < 3; k++) wheelPair(s, (-1.1f + k * 1.0f) * s, .46f * s, roll, red);           // 1.0 apart, so the tyres must stay under .5 across
         wheelPair(s, 1.52f * s, .23f * s, roll, red); wheelPair(s, 2.08f * s, .23f * s, roll, red);        // leading bogie, .56 apart                             // leading bogie
         box(2.38f * s, .62f * s, 0, .05f * s, .12f * s, .62f * s, red, 255); box(2.42f * s, .62f * s, 0, .012f * s, .05f * s, .62f * s, gold, 255);   // buffer beam
@@ -2471,6 +2483,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 box(0, 1.2f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); box(0, 1.63f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); box(0, .82f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); }
         }
         box(0, .7f * s, 0, 1.4f * s, .06f * s, .5f * s, blk, 255);
+        for (int sd = -1; sd <= 1; sd += 2) box(0, .34f * s, sd * .48f * s, 1.25f * s, .12f * s, .03f * s, blk, 255);   // solebar down each side
+        for (float bx : new float[]{-.725f, .725f}) box(bx * s, .3f * s, 0, .38f * s, .1f * s, .52f * s, 0x1A1C22, 255); // a bogie frame under each pair
         for (float wx : new float[]{-.95f, -.5f, .5f, .95f}) wheelPair(s, wx * s, .21f * s, roll, red);   // two bogies of two, .45 apart within a bogie
     }
     private void railRing(float rad, float s) {

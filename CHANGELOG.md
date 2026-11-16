@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.255
+
+- Crush Depth, from the outside, since that mod exposes no hooks for any of this. Sequence 1 and 0 take no pressure damage at all (`pressure_immune_sequence`); a Sailor takes a quarter of it (`pressure_sailor_percent`), the sea being their business.
+- The bends are cut down. Crush Depth gives nausea, weakness and slowness together for up to ten minutes with no setting for it; they are now caught as they land and shortened to 10 seconds for a first dose, multiplying with each one you take within ten minutes, to a ceiling of five. A Sequence 1 or 0 does not get them at all. All four numbers are settings.
+- A warning on the way down: once per 16 blocks past 40 deep, a line and a sound saying the water is starting to press. The first sign of pressure used to be dying of it.
+- Paragon: the train's wheels are attached to it. Every pair now has an axle and a bearing block between them, the locomotive has a running board and side frames, and the carriages have solebars and bogie frames. The wheels were free-floating discs with air between them and the body.
+
 ## 0.2.254
 
 - Hunger games: someone who is not a Beyonder is carried in with a pathway. Their sequence read as -1, so a pathway they had picked with `/hungergames path` was silently never applied and they played with nothing; anyone who picks none now gets a random one. It is theirs at whatever sequence the games are fought at, and taken back at the end through LOTM's own resetPathway.
