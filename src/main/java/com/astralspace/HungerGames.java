@@ -959,10 +959,9 @@ public final class HungerGames {
             p.removeAllEffects();
             p.setGameMode(GameType.SPECTATOR);
             title(p, ChatFormatting.RED, "ELIMINATED", "You can watch the rest");
+            p.sendSystemMessage(Component.literal("You are out. Watch the rest, or run /hungergames leave to be put back where you were.")
+                .withStyle(ChatFormatting.GRAY));
         }
-        ServerPlayer dead = s.getPlayerList().getPlayer(who);
-        if (dead != null) dead.sendSystemMessage(Component.literal("You are out. Watch the rest, or run /hungergames leave to be put back where you were.")
-            .withStyle(ChatFormatting.GRAY));
         String m = name + " " + how + (killer != null ? " (" + killer.getGameProfile().getName() + ")" : "") + ". " + alive.size() + " remain.";
         for (ServerPlayer q : s.getPlayerList().getPlayers()) if (players.contains(q.getUUID())) q.sendSystemMessage(Component.literal(m).withStyle(ChatFormatting.RED));
         checkWinner(s);
