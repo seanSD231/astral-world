@@ -38,7 +38,18 @@ public final class BinderScreen extends Screen {
     private static final int GREY    = 0xFFA0A8B4;
     private static final int GREY_D  = 0xFF5A606C;
 
-    private static final long PEEL_MS = 240;
+    /**
+     * The order pages turn in: down the rail, Great Old One by Great Old One.
+     * {@link Tarot#PATHWAYS} is alphabetical, which is a fine way to find a pathway and
+     * a strange way to leaf through a book.
+     */
+    private static final String[] ORDER = order();
+
+    private static String[] order() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (String[] group : Tarot.GOO_PATHS) java.util.Collections.addAll(out, group);
+        return out.toArray(new String[0]);
+    }
 
     private final Map<String, Integer> have = new HashMap<>();
     /** Which of the twenty-two pathways is open. */
@@ -58,8 +69,6 @@ public final class BinderScreen extends Screen {
      */
     private double scale = 1;
     private int vw, vh, railLine = 19, railHead = 18, railGap = 6;
-    private int peelFrom = -1, peelDir = 1;
-    private long peelAt = 0;
 
     private BinderScreen(String packed) {
         super(Component.literal("Card Binder"));
@@ -83,7 +92,7 @@ public final class BinderScreen extends Screen {
         Minecraft.getInstance().setScreen(new BinderScreen(packed));
     }
 
-    private String path() { return Tarot.PATHWAYS[page]; }
+    private String path() { return ORDER[page]; }
 
     // ---- colour ---------------------------------------------------------------------
 
@@ -158,7 +167,7 @@ public final class BinderScreen extends Screen {
 
         // The rail is nine headings and twenty-two pathways. Rather than let it run off
         // the foot, measure what is there and divide the space it has.
-        int lines = Tarot.PATHWAYS.length, heads = Tarot.GOO_IDS.length;
+        int lines = ORDER.length, heads = Tarot.GOO_IDS.length;
         int railSpace = (bottom - 58) - (top + 96);
         railLine = Math.max(11, Math.min(19, (railSpace - heads * 16 - heads * 4) / lines));
         railHead = Math.max(11, Math.min(18, railLine - 1));
@@ -171,10 +180,7 @@ public final class BinderScreen extends Screen {
     // ---- input ------------------------------------------------------------------------
 
     private void goTo(int p) {
-        if (p == page || p < 0 || p >= Tarot.PATHWAYS.length) return;
-        peelDir = p > page ? 1 : -1;
-        peelFrom = page;
-        peelAt = System.currentTimeMillis();
+        if (p == page || p < 0 || p >= ORDER.length) return;
         page = p;
     }
 
@@ -230,8 +236,8 @@ public final class BinderScreen extends Screen {
             y += railHead;
             for (String p : Tarot.GOO_PATHS[g]) {
                 if (my >= y - 2 && my < y + railLine - 2) {
-                    for (int i = 0; i < Tarot.PATHWAYS.length; i++) {
-                        if (Tarot.PATHWAYS[i].equals(p)) return new int[]{0, i};
+                    for (int i = 0; i < ORDER.length; i++) {
+                        if (ORDER[i].equals(p)) return new int[]{0, i};
                     }
                 }
                 y += railLine;
@@ -290,7 +296,6 @@ public final class BinderScreen extends Screen {
         rail(g, mx, my, accent);
         faces(g, mx, my, accent);
         foot(g, mx, my);
-        peel(g);
     }
 
     /** The bound volume: a bronze case, the accent panel inside it, a spine at the left. */
@@ -434,11 +439,11 @@ public final class BinderScreen extends Screen {
 
         if (page > 0) {
             boolean over = mx >= left + 40 && mx < left + 240 && my >= bottom - 44 && my < bottom - 12;
-            g.drawString(font, "< " + Tarot.pretty(Tarot.PATHWAYS[page - 1]),
+            g.drawString(font, "< " + Tarot.pretty(ORDER[page - 1]),
                     left + 46, y + 16, over ? GOLD_HI : GREY_D, false);
         }
-        if (page < Tarot.PATHWAYS.length - 1) {
-            String s = Tarot.pretty(Tarot.PATHWAYS[page + 1]) + " >";
+        if (page < ORDER.length - 1) {
+            String s = Tarot.pretty(ORDER[page + 1]) + " >";
             boolean over = mx >= right - 240 && mx < right - 40 && my >= bottom - 44 && my < bottom - 12;
             g.drawString(font, s, right - 46 - font.width(s), y + 16, over ? GOLD_HI : GREY_D, false);
         }
@@ -448,24 +453,6 @@ public final class BinderScreen extends Screen {
         g.renderOutline(c - 110, y + 8, 220, 22, over ? GOLD_HI : GOLD);
         String file = "FILE LOOSE CARDS";
         g.drawString(font, file, c - font.width(file) / 2, y + 15, over ? GOLD_HI : GOLD, false);
-    }
-
-    private void peel(GuiGraphics g) {
-        if (peelFrom < 0) return;
-        long dt = System.currentTimeMillis() - peelAt;
-        if (dt >= PEEL_MS) { peelFrom = -1; return; }
-        float t = dt / (float) PEEL_MS;
-        int x0 = gridX - 14, x1 = right - 8, y0 = top + 64, y1 = bottom - 48;
-        int edge = peelDir > 0 ? (int) (x1 - (x1 - x0) * t) : (int) (x0 + (x1 - x0) * t);
-        if (peelDir > 0) {
-            g.fill(edge, y0, x1, y1, 0xF00E0C14);
-            g.fillGradient(edge, y0, Math.min(edge + 18, x1), y1, 0x99000000, 0x00000000);
-            g.fill(edge, y0, edge + 1, y1, GOLD_HI);
-        } else {
-            g.fill(x0, y0, edge, y1, 0xF00E0C14);
-            g.fillGradient(Math.max(edge - 18, x0), y0, edge, y1, 0x00000000, 0x99000000);
-            g.fill(edge - 1, y0, edge, y1, GOLD_HI);
-        }
     }
 
     @Override public boolean isPauseScreen() { return false; }

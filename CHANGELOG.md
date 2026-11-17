@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.266
+
+- Binder pages now turn in the order the rail lists them, Great Old One by Great Old One.
+  They were following `Tarot.PATHWAYS`, which is alphabetical: a fine way to find a
+  pathway and a strange way to leaf through a book, and it disagreed with what the rail
+  showed.
+- The page turn animation is gone.
+
 ## 0.2.265
 
 - The binder's rail no longer runs off the foot of the page. It is nine headings and
