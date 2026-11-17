@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.262
+
+- Binder cards are sized for the chapter being looked at rather than for the biggest one,
+  so a page always fills. Key of Light holds one pathway and God Almighty five; one size
+  for both left the small chapters as a thin row on an empty page.
+
 ## 0.2.261
 
 - Binder layout fixes from the first look in game: the Great Old One's card had the same

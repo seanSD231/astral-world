@@ -121,35 +121,30 @@ public final class BinderScreen extends Screen {
 
     @Override
     protected void init() {
-        int tallest = 1;
-        for (String[] g : Tarot.GOO_PATHS) tallest = Math.max(tallest, g.length);
-
         left = 18; right = width - 46; top = 14; bottom = height - 14;   // room for the tabs on the right
         leafGap = 18;
         mid = (left + right) / 2;
 
-        // the left margin holds the Great Old One's own card and then the row plates,
-        // so it has to be wide enough for both or they sit on top of each other
-        int usable = (right - left) - leafGap - 24;
-        cw = Math.max(18, Math.min(74, (usable - 200) / 10));
+        // The cards are sized for THIS chapter, not for the largest one. Chapters hold
+        // between one and five pathways, so a fixed size left Key of Light as a single
+        // small row on an empty page. Two limits decide it:
+        //
+        //   width  -- ten columns, the gutter, and a margin that is itself a card wide
+        //             plus the row plates, so (right-left) >= 11*cw + 136 + gap
+        //   height -- this chapter's rows at 1.5x card width plus the gap between them
+        int rows = Tarot.GOO_PATHS[tab].length;
+        int headRoom = top + 62, footRoom = 44;
+        int forWidth = ((right - left) - 136 - leafGap) / 11;
+        int forHeight = (((bottom - footRoom - headRoom) / rows) - 10) * 2 / 3;
+
+        cw = Math.max(18, Math.min(110, Math.min(forWidth, forHeight)));
         ch = cw * 3 / 2;
         rowH = ch + 10;
-
-        int headRoom = top + 62, footRoom = 44;
-        int rowsH = tallest * rowH;
-        if (headRoom + rowsH + footRoom > bottom) {      // shrink rather than overflow
-            ch = Math.max(21, (bottom - headRoom - footRoom) / tallest - 10);
-            cw = ch * 2 / 3;
-            rowH = ch + 10;
-            rowsH = tallest * rowH;
-        }
-        // centre this chapter's rows in the page: chapters hold between one and five
-        // pathways, and a one-row chapter stacked at the top is mostly empty page
-        int mine = Tarot.GOO_PATHS[tab].length * rowH;
-        gridTop = headRoom + Math.max(0, (bottom - footRoom - headRoom - mine) / 2);
         margin = cw + 112;
-    }
 
+        int mine = rows * rowH;
+        gridTop = headRoom + Math.max(0, (bottom - footRoom - headRoom - mine) / 2);
+    }
 
     private int gridLeft() { return left + margin; }
 
