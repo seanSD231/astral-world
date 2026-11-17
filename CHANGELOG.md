@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.268
+
+- Each Great Old One is a chapter page of its own rather than a thumbnail wedged into a
+  rail heading. The page shows that face at the size it deserves, with the chapter's
+  pathways beside it -- each with its Sequence 0 title, a progress bar and a way in.
+- The rail's headings are rows now: clickable, lit when their chapter is open, and
+  carrying how many of that chapter's pathways are finished.
+- Pages read chapter, then its pathways, then the next chapter.
+
 ## 0.2.267
 
 - The completed count in the binder's rail no longer sits on top of the progress bar. A

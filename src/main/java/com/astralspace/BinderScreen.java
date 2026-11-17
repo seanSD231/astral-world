@@ -1,3 +1,18 @@
+            boolean chapOn = here().isChapter() && here().goo() == gi;
+            boolean chapOver = mx >= railX - 8 && mx <= railX + railW && my >= y - 2 && my < y + railHead;
+            if (chapOn) {
+                slant(g, railX - 8, y - 3, railW + 6, railHead - 1, 5, 0xFF241C08);
+                g.renderOutline(railX - 8, y - 3, railW + 6, railHead - 1, GOLD);
+            }
+            g.drawString(font, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), railX, y,
+                    chapOn ? GOLD_HI : chapOver ? GREY : 0xFF43404E, false);
+            // how many of this chapter's pathways are finished, which is what a chapter is
+            int done = 0;
+            for (String p : Tarot.GOO_PATHS[gi]) if (held(p) == 10) done++;
+            String tally = done + "/" + Tarot.GOO_PATHS[gi].length;
+            g.drawString(font, tally, railX + railW - 2 - font.width(tally), y,
+                    done == Tarot.GOO_PATHS[gi].length ? GOLD : 0xFF3A3744, false);
+            if (chapOver) hover = Tarot.GOO_NAMES[gi] + " - chapter";
 package com.astralspace;
 
 import net.minecraft.client.Minecraft;
@@ -43,13 +58,23 @@ public final class BinderScreen extends Screen {
      * {@link Tarot#PATHWAYS} is alphabetical, which is a fine way to find a pathway and
      * a strange way to leaf through a book.
      */
-    private static final String[] ORDER = order();
-
-    private static String[] order() {
-        java.util.List<String> out = new java.util.ArrayList<>();
-        for (String[] group : Tarot.GOO_PATHS) java.util.Collections.addAll(out, group);
-        return out.toArray(new String[0]);
+    /** A page is either a Great Old One's own, or one of its pathways. */
+    private record Page(int goo, String path) {
+        boolean isChapter() { return path == null; }
     }
+
+    private static final Page[] ORDER = order();
+
+    private static Page[] order() {
+        java.util.List<Page> out = new java.util.ArrayList<>();
+        for (int g = 0; g < Tarot.GOO_PATHS.length; g++) {
+            out.add(new Page(g, null));                       // the chapter itself
+            for (String p : Tarot.GOO_PATHS[g]) out.add(new Page(g, p));
+        }
+        return out.toArray(new Page[0]);
+    }
+
+    private Page here() { return ORDER[page]; }
 
     private final Map<String, Integer> have = new HashMap<>();
     /** Which of the twenty-two pathways is open. */
@@ -92,7 +117,7 @@ public final class BinderScreen extends Screen {
         Minecraft.getInstance().setScreen(new BinderScreen(packed));
     }
 
-    private String path() { return ORDER[page]; }
+    private String path() { return here().path(); }
 
     // ---- colour ---------------------------------------------------------------------
 
@@ -190,14 +215,33 @@ public final class BinderScreen extends Screen {
         int[] hit = railHit(mx, my);
         if (hit != null) {
             if (hit[0] == 0) { goTo(hit[1]); return true; }
-            take(Binder.key("goo_" + Tarot.GOO_IDS[hit[1]], 0, shiny));
+            for (int i = 0; i < ORDER.length; i++) {
+                if (ORDER[i].isChapter() && ORDER[i].goo() == hit[1]) { goTo(i); return true; }
+            }
             return true;
         }
-        for (int i = 0; i < 10; i++) {
-            int x = cardX(i), y = cardY(i);
-            if (mx >= x && mx < x + cw && my >= y && my < y + ch) {
-                take(Binder.key(path(), 9 - i, shiny));
+        if (here().isChapter()) {
+            if (mx >= chapterCardX() && mx < chapterCardX() + chapterCardW()
+                    && my >= chapterCardY() && my < chapterCardY() + chapterCardH()) {
+                take(Binder.key("goo_" + Tarot.GOO_IDS[here().goo()], 0, shiny));
                 return true;
+            }
+            String[] ps = Tarot.GOO_PATHS[here().goo()];
+            for (int i = 0; i < ps.length; i++) {
+                int ly = chapterCardY() + 18 + i * 30;
+                if (my >= ly && my < ly + 26 && mx >= chapterListX() && mx < right - 40) {
+                    for (int k = 0; k < ORDER.length; k++) {
+                        if (ps[i].equals(ORDER[k].path())) { goTo(k); return true; }
+                    }
+                }
+            }
+        } else {
+            for (int i = 0; i < 10; i++) {
+                int x = cardX(i), y = cardY(i);
+                if (mx >= x && mx < x + cw && my >= y && my < y + ch) {
+                    take(Binder.key(path(), 9 - i, shiny));
+                    return true;
+                }
             }
         }
         if (mx >= right - 190 && mx < right - 16 && my >= top + 10 && my < top + 50) {
@@ -232,12 +276,12 @@ public final class BinderScreen extends Screen {
         if (mx < railX - 8 || mx > railX + railW) return null;
         int y = top + 96;
         for (int g = 0; g < Tarot.GOO_IDS.length; g++) {
-            if (my >= y - 2 && my < y + railHead && mx >= railX + railW - 24) return new int[]{1, g};
+            if (my >= y - 2 && my < y + railHead) return new int[]{1, g};
             y += railHead;
             for (String p : Tarot.GOO_PATHS[g]) {
                 if (my >= y - 2 && my < y + railLine - 2) {
                     for (int i = 0; i < ORDER.length; i++) {
-                        if (ORDER[i].equals(p)) return new int[]{0, i};
+                        if (p.equals(ORDER[i].path())) return new int[]{0, i};
                     }
                 }
                 y += railLine;
@@ -294,7 +338,8 @@ public final class BinderScreen extends Screen {
         shell(g, accent);
         head(g, mx, my, accent);
         rail(g, mx, my, accent);
-        faces(g, mx, my, accent);
+        if (here().isChapter()) chapter(g, mx, my, accent);
+        else faces(g, mx, my, accent);
         foot(g, mx, my);
     }
 
@@ -328,14 +373,19 @@ public final class BinderScreen extends Screen {
                 (accent & 0x00FFFFFF) | 0x33000000);
         slant(g, left + 31, top + 59, right - left - 38, 2, 0, GOLD);
 
-        int gi = Tarot.gooOf(path());
-        g.drawString(font, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), left + 48, top + 15, GREY_D, false);
-        g.drawString(font, Tarot.pretty(path()) + " Pathway", left + 48, top + 29, GOLD_HI, true);
+        int gi = here().goo();
+        if (here().isChapter()) {
+            g.drawString(font, "CHAPTER " + roman(gi + 1), left + 48, top + 15, GREY_D, false);
+            g.drawString(font, Tarot.GOO_NAMES[gi], left + 48, top + 29, GOLD_HI, true);
+        } else {
+            g.drawString(font, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), left + 48, top + 15, GREY_D, false);
+            g.drawString(font, Tarot.pretty(path()) + " Pathway", left + 48, top + 29, GOLD_HI, true);
+        }
 
         boolean over = mx >= right - 190 && mx < right - 16 && my >= top + 10 && my < top + 50;
         String label = shiny ? "SHINY FACES" : "NORMAL FACES";
         g.drawString(font, label, right - 22 - font.width(label), top + 16, shiny ? GOLD_HI : GREY, false);
-        String count = held(path()) + " / 10";
+        String count = here().isChapter() ? chapterHeld() + " / " + chapterTotal() : held(path()) + " / 10";
         g.drawString(font, count, right - 22 - font.width(count), top + 30, over ? GOLD_HI : GOLD, false);
         if (over) hover = "Turn to the " + (shiny ? "normal" : "shiny") + " faces";
     }
@@ -397,6 +447,93 @@ public final class BinderScreen extends Screen {
         }
     }
 
+    private int chapterCardH() { return Math.min(bottom - 60 - (top + 96), 330); }
+    private int chapterCardW() { return chapterCardH() * 2 / 3; }
+    private int chapterCardX() { return gridX + 10; }
+    private int chapterCardY() { return top + 96 + Math.max(0, (bottom - 60 - (top + 96) - chapterCardH()) / 2); }
+    private int chapterListX() { return chapterCardX() + chapterCardW() + 36; }
+
+    private int chapterTotal() { return Tarot.GOO_PATHS[here().goo()].length * 10 + 1; }
+
+    private int chapterHeld() {
+        int n = have.getOrDefault(Binder.key("goo_" + Tarot.GOO_IDS[here().goo()], 0, shiny), 0) > 0 ? 1 : 0;
+        for (String p : Tarot.GOO_PATHS[here().goo()]) n += held(p);
+        return n;
+    }
+
+    private static String roman(int n) {
+        return switch (n) {
+            case 1 -> "I"; case 2 -> "II"; case 3 -> "III"; case 4 -> "IV"; case 5 -> "V";
+            case 6 -> "VI"; case 7 -> "VII"; case 8 -> "VIII"; case 9 -> "IX";
+            default -> String.valueOf(n);
+        };
+    }
+
+    private String title(Page p) {
+        return p.isChapter() ? Tarot.GOO_NAMES[p.goo()] : Tarot.pretty(p.path());
+    }
+
+    /**
+     * A chapter's own page: the Great Old One's card at the size it deserves, and the
+     * pathways beneath it as a way in.
+     */
+    private void chapter(GuiGraphics g, int mx, int my, int accent) {
+        int gi = here().goo();
+        String key = "goo_" + Tarot.GOO_IDS[gi], id = Tarot.GOO_IDS[gi];
+        int n = have.getOrDefault(Binder.key(key, 0, shiny), 0);
+        int x = chapterCardX(), y = chapterCardY(), w = chapterCardW(), h = chapterCardH();
+        boolean over = mx >= x && mx < x + w && my >= y && my < y + h;
+
+        g.fill(x - 3, y - 3, x + w + 3, y + h + 3, 0xFF050407);
+        if (n > 0) {
+            g.blit(CardArt.ready(key, 0, shiny), x, y, 0, 0, w, h, w, h);
+            g.renderOutline(x, y, w, h, shiny ? GOLD_HI : GOLD);
+            if (n > 1) {
+                String c = String.valueOf(n);
+                g.drawString(font, c, x + w - 5 - font.width(c), y + h - 12, GOLD_HI, true);
+            }
+        } else {
+            g.fill(x, y, x + w, y + h, 0xFF100E14);
+            for (int d = 10; d < Math.min(w, h) - 10; d++) {
+                g.fill(x + d, y + d, x + d + 1, y + d + 1, 0xFF191520);
+                g.fill(x + w - 1 - d, y + d, x + w - d, y + d + 1, 0xFF191520);
+            }
+            g.renderOutline(x, y, w, h, 0xFF231F2C);
+        }
+        if (over) {
+            g.renderOutline(x, y, w, h, accent);
+            hover = Tarot.GOO_NAMES[gi] + (n > 0 ? "  (" + n + ")" : "  - missing");
+        }
+
+        int lx = chapterListX();
+        g.drawString(font, "PATHWAYS OF THIS CHAPTER", lx, y - 4, accent, false);
+        g.fill(lx, y + 8, right - 40, y + 9, BRONZE);
+        diamond(g, right - 36, y + 8, 3, GOLD);
+
+        String[] ps = Tarot.GOO_PATHS[gi];
+        for (int i = 0; i < ps.length; i++) {
+            int ly = y + 18 + i * 30;
+            boolean o = mx >= lx && mx < right - 40 && my >= ly && my < ly + 26;
+            if (o) {
+                slant(g, lx - 6, ly, right - 40 - lx + 6, 26, 6, 0xFF241C08);
+                g.renderOutline(lx - 6, ly, right - 40 - lx + 6, 26, GOLD);
+                hover = "Turn to " + Tarot.pretty(ps[i]);
+            }
+            int got = held(ps[i]);
+            g.drawString(font, Tarot.pretty(ps[i]), lx, ly + 5, got == 10 ? GOLD_HI : GREY, false);
+            g.drawString(font, seqName(ps[i], 0), lx, ly + 16, 0xFF43404E, false);
+            int bx = right - 210, bw = 130, by = ly + 10;
+            g.fill(bx, by, bx + bw, by + 7, 0xFF0C0B11);
+            g.renderOutline(bx, by, bw, 7, 0xFF2A2632);
+            if (got > 0) g.fill(bx, by, bx + bw * got / 10, by + 7, got == 10 ? GOLD : accentOf(ps[i]));
+            String t = got + " / 10";
+            g.drawString(font, t, right - 44 - font.width(t), ly + 7, got == 10 ? GOLD : GREY_D, false);
+        }
+        String note = "The face of " + Tarot.GOO_NAMES[gi] + " is one card. Its pathways hold ten each.";
+        g.drawString(font, note, x, y + h + 12, 0xFF3A3744, false);
+        if (id.isEmpty()) return;
+    }
+
     /** The ten faces of the open pathway. */
     private void faces(GuiGraphics g, int mx, int my, int accent) {
         for (int i = 0; i < 10; i++) {
@@ -442,11 +579,11 @@ public final class BinderScreen extends Screen {
 
         if (page > 0) {
             boolean over = mx >= left + 40 && mx < left + 240 && my >= bottom - 44 && my < bottom - 12;
-            g.drawString(font, "< " + Tarot.pretty(ORDER[page - 1]),
+            g.drawString(font, "< " + title(ORDER[page - 1]),
                     left + 46, y + 16, over ? GOLD_HI : GREY_D, false);
         }
         if (page < ORDER.length - 1) {
-            String s = Tarot.pretty(ORDER[page + 1]) + " >";
+            String s = title(ORDER[page + 1]) + " >";
             boolean over = mx >= right - 240 && mx < right - 40 && my >= bottom - 44 && my < bottom - 12;
             g.drawString(font, s, right - 46 - font.width(s), y + 16, over ? GOLD_HI : GREY_D, false);
         }
