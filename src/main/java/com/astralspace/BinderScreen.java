@@ -47,6 +47,17 @@ public final class BinderScreen extends Screen {
     private String hover = null;
 
     private int left, top, right, bottom, railX, railW, gridX, gridY, cw, ch, colGap, rowGap;
+    /**
+     * This page is laid out in real pixels, so it has to be drawn at a scale of its own
+     * rather than the player's. At GUI scale 4 the screen is about 480 logical pixels
+     * wide and a 268px rail swallows half of it.
+     *
+     * <p>Everything below works in a canvas of {@link #vw} x {@link #vh}, which is about
+     * half the window's real pixels whatever the setting, and the whole thing is scaled
+     * down to fit when it is drawn. Mouse coordinates come back the other way.
+     */
+    private double scale = 1;
+    private int vw, vh;
     private int peelFrom = -1, peelDir = 1;
     private long peelAt = 0;
 
@@ -121,7 +132,12 @@ public final class BinderScreen extends Screen {
 
     @Override
     protected void init() {
-        left = 16; top = 14; right = width - 16; bottom = height - 14;
+        double gui = Minecraft.getInstance().getWindow().getGuiScale();
+        scale = Math.min(1.0, 2.0 / Math.max(1.0, gui));
+        vw = (int) (width / scale);
+        vh = (int) (height / scale);
+
+        left = 16; top = 14; right = vw - 16; bottom = vh - 14;
         railX = left + 46;                                     // past the spine
         railW = Math.max(176, Math.min(268, (right - left) / 5));
 
@@ -151,7 +167,8 @@ public final class BinderScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mx, double my, int button) {
+    public boolean mouseClicked(double rawX, double rawY, int button) {
+        double mx = rawX / scale, my = rawY / scale;
         int[] hit = railHit(mx, my);
         if (hit != null) {
             if (hit[0] == 0) { goTo(hit[1]); return true; }
@@ -178,7 +195,7 @@ public final class BinderScreen extends Screen {
                 return true;
             }
         }
-        return super.mouseClicked(mx, my, button);
+        return super.mouseClicked(rawX, rawY, button);
     }
 
     @Override
@@ -246,14 +263,22 @@ public final class BinderScreen extends Screen {
         renderBackground(g, mx, my, pt);
         int accent = accent();
 
+        int vmx = (int) (mx / scale), vmy = (int) (my / scale);
+        g.pose().pushPose();
+        g.pose().scale((float) scale, (float) scale, 1f);
+        render(g, vmx, vmy, accent);
+        g.pose().popPose();
+
+        if (hover != null) g.renderTooltip(font, Component.literal(hover), mx, my);
+    }
+
+    private void render(GuiGraphics g, int mx, int my, int accent) {
         shell(g, accent);
         head(g, mx, my, accent);
         rail(g, mx, my, accent);
         faces(g, mx, my, accent);
         foot(g, mx, my);
         peel(g);
-
-        if (hover != null) g.renderTooltip(font, Component.literal(hover), mx, my);
     }
 
     /** The bound volume: a bronze case, the accent panel inside it, a spine at the left. */

@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.264
+
+- Fixes the binder at anything other than GUI scale 2. The page is laid out in real
+  pixels, and at scale 4 the screen is about 480 logical pixels wide, so a 268px rail
+  swallowed half the window and the cards ran off the edge. It now draws on a canvas of
+  its own, about half the window's real pixels whatever the setting, scaled to fit.
+
 ## 0.2.263
 
 - The binder is a bound volume, one pathway to a page. Its ten faces are drawn large and
