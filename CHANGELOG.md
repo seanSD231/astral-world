@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.273
+
+Hunger games, second pass on the feedback list.
+
+- **The animals are gone.** `hungergames_animals` now defaults to 0, and a settings file still carrying the old 40 is moved to 0 for you. Set it back if you ever want them.
+- **Weather.** The arena's biome had `has_precipitation: false`, which is why no amount of rain ever reached it. It rains there now. Each games rolls its own sky at GO — mostly clear, often rain, sometimes a storm — and the weather may turn again any minute while they are being fought, with a line in chat when it does. Between games the arena is left dry.
+- **Blocks are back in the loot.** Cobblestone and planks come in far bigger stacks, with logs, dirt and ladders in the common chests, scaffolding and obsidian in the rich ones and in the caches.
+- **Steak instead of apples.** The apple entry is gone from the common chests and cooked beef takes its weight, in bigger stacks.
+- **The caches are fewer and much better.** `hungergames_hidden_caches` drops from 14 to 7 (again, migrated for you), they are only placed against cover rather than out in the open, and every barrel now holds two guaranteed prizes off a new top table — netherite gear, a totem, enchanted golden apples, a trident, a fistful of luck bottles — on top of eight or so of the usual cache rolls.
+
 ## 0.2.272
 
 Hunger games, first of several passes on the feedback list.

@@ -61,11 +61,11 @@ public final class Settings {
         KEYS.put("pressure_warnings", new String[]{"true", "true = a player is told on the way down, once per 16 blocks of depth, that the water is starting to press.\n# Without it the first sign of pressure is taking damage from it."});
         KEYS.put("pressure_warn_depth", new String[]{"40", "Blocks below sea level at which those warnings start."});
         KEYS.put("hungergames_pathway_for_non_beyonders", new String[]{"true", "Hunger games: true = someone who is not a Beyonder is given a random pathway for the games, at whatever sequence they\n# are fought at, and is put back to being nobody afterwards. A pathway they picked with /hungergames path wins over the random one."});
-        KEYS.put("hungergames_animals", new String[]{"40", "Hunger games: how many of each animal are turned loose in the arena. Sheep get two thirds of this and rabbits half,\n# so 40 is about 173 animals over the whole floor. 0 turns them off."});
+        KEYS.put("hungergames_animals", new String[]{"0", "Hunger games: how many of each animal are turned loose in the arena. Sheep get two thirds of this and rabbits half,\n# so 40 would be about 173 animals over the whole floor. 0, the default, turns them off."});
         KEYS.put("hungergames_countdown_base", new String[]{"15", "Hunger games: seconds everyone stands in the middle before the games begin, for a sequence 9 field."});
         KEYS.put("hungergames_countdown_per_sequence", new String[]{"6", "Hunger games: extra seconds of that countdown for every sequence below 9 of the strongest player in the field.\n# A lower sequence has many more abilities to pick from, so the field gets longer to choose. 0 turns this off."});
         KEYS.put("hungergames_countdown_max", new String[]{"90", "Hunger games: the longest that countdown may ever be, in seconds."});
-        KEYS.put("hungergames_hidden_caches", new String[]{"14", "Hunger games: how many hidden caches (barrels, out at the edges and in the church) are placed. They hold better loot\n# than the middle chests and are meant to reward looking away from the fight. 0 places none."});
+        KEYS.put("hungergames_hidden_caches", new String[]{"7", "Hunger games: how many hidden caches (barrels, tucked against cover out at the edges and in the church) are placed.\n# Each one always holds two of the best prizes in the game, so they are few and worth the walk. 0 places none."});
         KEYS.put("hungergames_blocked_commands", new String[]{"enderchest,ec,echest,ender,backpack,bp,trash,back,home,homes,sethome,tpa,tpask,tpahere,tpaccept,tpyes,spawn,warp,kit,rtp,wild,craft,anvil,enchanting,workbench,invsee,heal,feed,fly,god,near",
             "Hunger games: commands a player in the games may not run, comma separated and without the slash. These reach storage or\n# move people around, which takes items into or out of the arena. Leave empty to block nothing."});
         KEYS.put("casino_vault_radius", new String[]{"48", "How close (blocks, same dimension) a casino machine must be to a vault chest for its lost stakes to go there.\n# A machine with no vault within this range keeps losing its stakes the way MineVegas loses them."});
@@ -98,7 +98,7 @@ public final class Settings {
     public static volatile int uniqCarryCorruption = 1;
     public static volatile int titleMaxHit = 100000;
     public static volatile boolean hgAllowPathwayChange = true;
-    public static volatile int hgAnimals = 40;
+    public static volatile int hgAnimals = 0;
     public static volatile boolean hgPathForNonBeyonders = true;
     public static volatile boolean bendsTrim = true, pressureWarnings = true;
     public static volatile int bendsFirstSeconds = 10, bendsMaxSeconds = 300, bendsForgetMinutes = 10;
@@ -106,7 +106,7 @@ public final class Settings {
     public static volatile boolean hgAuto = true;
     public static volatile boolean allowSingleplayer = false;
     public static volatile int hgAutoHours = 24, hgAutoMinPlayers = 4, hgPrizePerPlayerPerWeek = 1;
-    public static volatile int hgCountdownBase = 15, hgCountdownPerSequence = 6, hgCountdownMax = 90, hgHiddenCaches = 14;
+    public static volatile int hgCountdownBase = 15, hgCountdownPerSequence = 6, hgCountdownMax = 90, hgHiddenCaches = 7;
     public static volatile String hgBlockedCommands =
         "enderchest,ec,echest,ender,backpack,bp,trash,back,home,homes,sethome,tpa,tpask,tpahere,tpaccept,tpyes,spawn,warp,kit,rtp,wild,craft,anvil,enchanting,workbench,invsee,heal,feed,fly,god,near";
 
@@ -114,6 +114,20 @@ public final class Settings {
 
     private static Path file() {
         return FMLPaths.CONFIGDIR.get().resolve("astral_world").resolve("settings.properties");
+    }
+
+    /**
+     * A default that has moved: a file still carrying the old default is brought to the new one, and any other value
+     * someone set themselves is left alone.
+     */
+    private static void moveDefault(Path file, Properties p, String key, String was, String now) {
+        try {
+            String have = p.getProperty(key);
+            if (have == null || !was.equals(have.trim())) return;
+            Files.writeString(file, Files.readString(file)
+                .replaceAll("(?m)^" + java.util.regex.Pattern.quote(key) + "\\s*=\\s*" + java.util.regex.Pattern.quote(was) + "\\s*$", key + "=" + now));
+            p.setProperty(key, now);
+        } catch (Exception ignored) { }
     }
 
     public static void load() {
@@ -142,6 +156,9 @@ public final class Settings {
                 Files.writeString(file, Files.readString(file).replaceAll("(?m)^astral_barrier_level\\s*=\\s*320\\s*$", "astral_barrier_level=170"));
                 p.setProperty("astral_barrier_level", "170");
             }
+            // the same, for the two hunger-games defaults that moved: the animals are off now, and the caches are fewer
+            moveDefault(file, p, "hungergames_animals", "40", "0");
+            moveDefault(file, p, "hungergames_hidden_caches", "14", "7");
             surfaceTop = Integer.parseInt(p.getProperty("surface_top").trim());
             surfaceBottom = Integer.parseInt(p.getProperty("surface_bottom").trim());
             barrierY = Integer.parseInt(p.getProperty("astral_barrier_level").trim());

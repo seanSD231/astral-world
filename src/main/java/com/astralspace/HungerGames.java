@@ -393,6 +393,7 @@ public final class HungerGames {
                 UniqPower.contain(lv, new net.minecraft.world.phys.Vec3(0, groundY, 0), zoneRadius(now), null);   // the wall holds: anyone at its edge is pushed back in
                 if (now % 3 == 0) drawWall(lv, zoneRadius(now));
                 if (now % 20 == 0) { running(s, lv); halfwaySky(s, lv); markFinalists(s); lv.setDayTime(skyTime); }
+                if (now % (20 * 60) == 0) rollWeather(lv, false);   // the weather may turn on its own, once a minute
                 if (now % 200 == 0) hideTree(lv);   // anyone who arrived or started spectating since
             }
             case ENDING -> { if (now >= phaseEnd) finish(s, null); }
@@ -600,8 +601,10 @@ public final class HungerGames {
             e(5, () -> st(Items.LEATHER_HELMET, 1)), e(5, () -> st(Items.LEATHER_CHESTPLATE, 1)), e(5, () -> st(Items.LEATHER_LEGGINGS, 1)), e(5, () -> st(Items.LEATHER_BOOTS, 1)),
             e(4, () -> st(Items.CHAINMAIL_CHESTPLATE, 1)), e(4, () -> st(Items.CHAINMAIL_LEGGINGS, 1)), e(3, () -> st(Items.IRON_HELMET, 1)), e(3, () -> st(Items.IRON_BOOTS, 1)),
             e(3, () -> st(Items.IRON_CHESTPLATE, 1)), e(3, () -> st(Items.IRON_LEGGINGS, 1)), e(4, () -> st(Items.SHIELD, 1)),
-            e(12, () -> st(Items.BREAD, 3 + rnd.nextInt(4))), e(9, () -> st(Items.COOKED_BEEF, 2 + rnd.nextInt(4))), e(8, () -> st(Items.APPLE, 2 + rnd.nextInt(3))), e(5, () -> st(Items.GOLDEN_CARROT, 2)),
-            e(3, () -> st(Items.GOLDEN_APPLE, 1)), e(3, () -> st(Items.ENDER_PEARL, 1)), e(5, () -> st(Items.COBBLESTONE, 16 + rnd.nextInt(24))), e(4, () -> st(Items.OAK_PLANKS, 16 + rnd.nextInt(16))),
+            e(12, () -> st(Items.BREAD, 3 + rnd.nextInt(4))), e(17, () -> st(Items.COOKED_BEEF, 3 + rnd.nextInt(5))), e(5, () -> st(Items.GOLDEN_CARROT, 2)),
+            e(3, () -> st(Items.GOLDEN_APPLE, 1)), e(3, () -> st(Items.ENDER_PEARL, 1)),
+            e(8, () -> st(Items.COBBLESTONE, 32 + rnd.nextInt(33))), e(6, () -> st(Items.OAK_PLANKS, 24 + rnd.nextInt(25))),
+            e(4, () -> st(Items.OAK_LOG, 8 + rnd.nextInt(9))), e(4, () -> st(Items.DIRT, 16 + rnd.nextInt(17))), e(3, () -> st(Items.LADDER, 8 + rnd.nextInt(9))),
             e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 2 + rnd.nextInt(3))), e(3, () -> st(Items.FISHING_ROD, 1)), e(3, () -> st(Items.SNOWBALL, 8)),
             e(2, () -> st(Items.FLINT_AND_STEEL, 1)), e(6, () -> st(Items.TORCH, 6 + rnd.nextInt(11))), e(5, () -> st(Items.WIND_CHARGE, 3 + rnd.nextInt(5))),
             e(4, () -> lotm("lotm:luckbottleitem", 1)), e(5, () -> lotm("lotm:dagger", 1)), e(4, () -> potion(Items.SPLASH_POTION, Potions.HEALING)), e(3, () -> potion(Items.SPLASH_POTION, Potions.HARMING)),
@@ -616,6 +619,7 @@ public final class HungerGames {
             e(7, () -> st(Items.COOKED_BEEF, 6)), e(5, () -> st(Items.ENDER_PEARL, 2 + rnd.nextInt(2))), e(5, () -> potion(Items.SPLASH_POTION, Potions.STRONG_HEALING)),
             e(4, () -> potion(Items.SPLASH_POTION, Potions.STRONG_HARMING)), e(3, () -> potion(Items.POTION, Potions.LONG_SWIFTNESS)), e(3, () -> potion(Items.POTION, Potions.STRONG_STRENGTH)),
             e(3, () -> st(Items.TNT, 4)), e(2, () -> st(Items.FLINT_AND_STEEL, 1)), e(5, () -> st(Items.TORCH, 12)), e(6, () -> st(Items.WIND_CHARGE, 6 + rnd.nextInt(7))),
+            e(7, () -> st(Items.COBBLESTONE, 48 + rnd.nextInt(17))), e(5, () -> st(Items.OAK_PLANKS, 32 + rnd.nextInt(17))), e(4, () -> st(Items.SCAFFOLDING, 12 + rnd.nextInt(9))), e(3, () -> st(Items.OBSIDIAN, 4 + rnd.nextInt(5))),
             e(6, () -> lotm("lotm:luckbottleitem", 1 + rnd.nextInt(2))), e(7, () -> lotm("lotm:dagger", 1)), e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 4)));
 
     /** The hidden caches: what the middle chests do not hold. Worth the walk out to the edge and the time away from the fight. */
@@ -627,7 +631,17 @@ public final class HungerGames {
             e(4, () -> potion(Items.SPLASH_POTION, Potions.STRONG_HEALING)), e(4, () -> potion(Items.POTION, Potions.STRONG_STRENGTH)),
             e(4, () -> potion(Items.POTION, Potions.LONG_SWIFTNESS)), e(3, () -> potion(Items.POTION, Potions.LONG_FIRE_RESISTANCE)),
             e(5, () -> st(Items.WIND_CHARGE, 12 + rnd.nextInt(9))), e(4, () -> st(Items.TNT, 6)), e(4, () -> st(Items.COBWEB, 8)),
+            e(4, () -> st(Items.OBSIDIAN, 8 + rnd.nextInt(9))), e(4, () -> st(Items.SCAFFOLDING, 24)), e(3, () -> st(Items.COBBLESTONE, 64)),
             e(6, () -> lotm("lotm:luckbottleitem", 3 + rnd.nextInt(3))), e(6, () -> lotm("lotm:dagger", 1)), e(5, () -> st(Items.ARROW, 32)), e(3, () -> st(Items.BOW, 1)));
+
+    /** What every cache is guaranteed to hold. A barrel is a long walk out and back, so it always pays for the trip. */
+    private static final List<Entry> CACHE_TOP = List.of(
+            e(5, () -> st(Items.NETHERITE_SWORD, 1)), e(4, () -> st(Items.NETHERITE_AXE, 1)),
+            e(4, () -> st(Items.NETHERITE_HELMET, 1)), e(5, () -> st(Items.NETHERITE_CHESTPLATE, 1)),
+            e(5, () -> st(Items.NETHERITE_LEGGINGS, 1)), e(4, () -> st(Items.NETHERITE_BOOTS, 1)),
+            e(6, () -> st(Items.TOTEM_OF_UNDYING, 1)), e(6, () -> st(Items.ENCHANTED_GOLDEN_APPLE, 2 + rnd.nextInt(3))),
+            e(4, () -> st(Items.TRIDENT, 1)), e(4, () -> st(Items.ENDER_PEARL, 8)),
+            e(5, () -> lotm("lotm:luckbottleitem", 6 + rnd.nextInt(5))));
 
     /**
      * Hidden caches: barrels, not chests, so they read differently at a glance. They sit out in the far ring and inside
@@ -646,13 +660,16 @@ public final class HungerGames {
                 if (!PlanetGenerator.churchInside(x, z, 4)) continue;
                 BlockPos p = surface(lv, x, z);
                 if (p == null || chests.contains(p)) continue;
+                if (tries < 200 && cover(lv, p) < 2) continue;   // against something, not out in the open: a cache has to be found, not spotted
                 lv.setBlock(p, Blocks.BARREL.defaultBlockState(), 3);
                 if (lv.getBlockEntity(p) instanceof net.minecraft.world.level.block.entity.BarrelBlockEntity b) {
                     List<Integer> slots = new ArrayList<>();
                     for (int i = 0; i < 27; i++) slots.add(i);
                     Collections.shuffle(slots, rnd);
-                    int howMany = 4 + rnd.nextInt(4);
-                    for (int i = 0; i < howMany; i++) b.setItem(slots.get(i), pick(CACHE));
+                    int at = 0;
+                    for (int i = 0; i < 2; i++) b.setItem(slots.get(at++), pick(CACHE_TOP));   // two of the real prizes, every time
+                    int howMany = 6 + rnd.nextInt(4);
+                    for (int i = 0; i < howMany; i++) b.setItem(slots.get(at++), pick(CACHE));
                     b.setChanged();
                 }
                 chests.add(p);
@@ -660,6 +677,13 @@ public final class HungerGames {
                 break;
             }
         }
+    }
+
+    /** How many of the four sides of a spot are walled in. Used to tuck the caches behind the cover. */
+    private static int cover(ServerLevel lv, BlockPos p) {
+        int n = 0;
+        for (Direction d : Direction.Plane.HORIZONTAL) if (lv.getBlockState(p.relative(d)).isSolid()) n++;
+        return n;
     }
 
     private static ItemStack pick(List<Entry> table) {
@@ -873,7 +897,7 @@ public final class HungerGames {
             float yaw = (float) Math.toDegrees(Math.atan2(spot[0], -spot[2]));
             p.teleportTo(lv, spot[0], spot[1], spot[2], yaw, 0f);
         }
-        if (lv != null) spawnMobs(lv);
+        if (lv != null) { spawnMobs(lv); rollWeather(lv, true); }
         for (ServerPlayer p : onlinePlayers(s)) {
             p.setInvulnerable(false);
             p.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
@@ -918,6 +942,26 @@ public final class HungerGames {
 
     private static void clearMobs(ServerLevel lv) {
         for (Entity en : com.google.common.collect.Lists.newArrayList(lv.getAllEntities())) if (en.getTags().contains(MOB_TAG)) en.discard();
+    }
+
+    /**
+     * The weather of these games. Clear most of the time, rain often enough to matter, and a storm now and then;
+     * once the games are under way it may turn again, so nobody fights the same sky twice. The arena's biome has
+     * precipitation now, which it did not before, which is why these games were always dry.
+     */
+    private static void rollWeather(ServerLevel lv, boolean atStart) {
+        if (lv == null) return;
+        int roll = rnd.nextInt(100);
+        if (!atStart && roll >= 25) return;   // most minutes nothing changes
+        int r = atStart ? roll : rnd.nextInt(100);
+        int len = 20 * (60 * 4 + rnd.nextInt(60 * 8));
+        if (r < 55) { lv.setWeatherParameters(len, 0, false, false); if (!atStart) say(lv, "The sky clears."); }
+        else if (r < 85) { lv.setWeatherParameters(0, len, true, false); say(lv, atStart ? "It is raining over the arena." : "Rain moves in."); }
+        else { lv.setWeatherParameters(0, len, true, true); say(lv, atStart ? "These games are fought in a storm." : "A storm breaks over the arena."); }
+    }
+
+    private static void say(ServerLevel lv, String what) {
+        for (ServerPlayer p : lv.players()) p.sendSystemMessage(Component.literal(what).withStyle(ChatFormatting.AQUA));
     }
 
     /** The radius of the safe zone now. */
@@ -1259,6 +1303,7 @@ public final class HungerGames {
     }
 
     private static void clearArena(ServerLevel lv) {
+        lv.setWeatherParameters(20 * 60 * 20, 0, false, false);   // the arena is left dry between games
         for (BlockPos p : chests) {
             if (lv.getBlockState(p).is(Blocks.CHEST)) { lv.removeBlockEntity(p); lv.setBlock(p, Blocks.AIR.defaultBlockState(), 2); }
         }
