@@ -749,6 +749,7 @@ public final class HungerGames {
             p.getInventory().clearContent();
             clearCurios(p);
             p.removeAllEffects();
+            Lotm.resetSize(p);   // and nobody is carried in at anything but their own size either
             p.getFoodData().setFoodLevel(20);
             p.getFoodData().setSaturation(5f);
             p.setExperienceLevels(0);
@@ -1313,6 +1314,7 @@ public final class HungerGames {
         if (to != null) p.teleportTo(to, sv.x(), sv.y(), sv.z(), sv.yaw(), sv.pitch());
         // Health comes last, and again a tick later. Their sequence sets their maximum health, so setting it before
         // the pathway was put back clamped it against the arena's maximum and people walked out on a sliver.
+        Lotm.resetSize(p);   // gigantification and anything else that grew them does not survive the games
         restoreHealth(p, sv.hp());
         p.server.execute(() -> { if (p.isAlive() && !p.hasDisconnected()) restoreHealth(p, sv.hp()); });
         p.inventoryMenu.broadcastChanges();

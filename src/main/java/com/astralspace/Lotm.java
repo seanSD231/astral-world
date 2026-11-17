@@ -635,4 +635,50 @@ public final class Lotm {
             refill(p, got[0], c[1], saved);
         }
     }
+
+    // ------------------------------------------------------------------ size
+
+    private static boolean sizeTried, sizeOk;
+    private static java.util.List<Object> sizeTypes;
+    private static java.lang.reflect.Method sizeGetData, sizeSet, sizeSetTarget;
+
+    /**
+     * Puts a player back to their own size. Gigantification and anything else that grows someone works through
+     * Pehkui's scales and through the vanilla scale attribute, and neither is undone by giving a pathway back, so a
+     * player who was made huge stayed huge after the thing that did it was over. Every Pehkui scale is set to 1 and
+     * the scale attribute's modifiers are dropped; worn gear re-applies its own on the next tick.
+     */
+    public static void resetSize(ServerPlayer player) {
+        try {
+            if (!sizeTried) {
+                sizeTried = true;
+                Class<?> types = Class.forName("virtuoel.pehkui.api.ScaleTypes");
+                Class<?> type = Class.forName("virtuoel.pehkui.api.ScaleType");
+                Class<?> data = Class.forName("virtuoel.pehkui.api.ScaleData");
+                sizeTypes = new java.util.ArrayList<>();
+                for (java.lang.reflect.Field f : types.getFields())
+                    if (type.isAssignableFrom(f.getType())) { Object o = f.get(null); if (o != null) sizeTypes.add(o); }
+                for (java.lang.reflect.Method m : type.getMethods())
+                    if (m.getName().equals("getScaleData") && m.getParameterCount() == 1) sizeGetData = m;
+                sizeSet = data.getMethod("setScale", float.class);
+                try { sizeSetTarget = data.getMethod("setTargetScale", float.class); } catch (NoSuchMethodException ignored) { }
+                sizeOk = sizeGetData != null && !sizeTypes.isEmpty();
+                LOGGER.info("[astral] Pehkui {} for putting players back to their own size", sizeOk ? "found" : "not usable");
+            }
+            if (sizeOk) for (Object t : sizeTypes) {
+                Object d = sizeGetData.invoke(t, player);
+                if (d == null) continue;
+                sizeSet.invoke(d, 1.0f);
+                if (sizeSetTarget != null) sizeSetTarget.invoke(d, 1.0f);
+            }
+        } catch (Throwable t) {
+            sizeOk = false;
+            LOGGER.warn("[astral] could not put {} back to their own size through Pehkui: {}", player.getGameProfile().getName(), String.valueOf(t));
+        }
+        try {
+            var inst = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SCALE);
+            if (inst != null) { inst.removeModifiers(); inst.setBaseValue(inst.getAttribute().value().getDefaultValue()); }
+        } catch (Throwable ignored) { }
+        player.refreshDimensions();
+    }
 }

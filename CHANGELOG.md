@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.276
+
+- **Gigantification no longer follows you out of the games.** The physical half of it is a Pehkui scale and a vanilla scale attribute, and neither was touched by giving a pathway back, so anyone who had been made huge stayed huge after the games ended. Every Pehkui scale a player carries is now set back to 1 and the scale attribute's modifiers dropped, both on the way into the games and on the way out; worn gear puts its own back on the next tick. If Pehkui is not present this does nothing and says so once in the log.
+
 ## 0.2.275
 
 The hunger games move out of the church and onto the field built in 0.2.274.
