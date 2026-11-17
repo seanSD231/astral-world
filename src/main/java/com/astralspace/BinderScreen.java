@@ -103,8 +103,7 @@ public final class BinderScreen extends Screen {
         boolean goo = pathway.startsWith("goo_");
         g.fill(x, y, x + w, y + h, n > 0 ? 0xFF1A1622 : 0xFF0C0C11);
         if (n > 0) {
-            ResourceLocation art = ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID,
-                "textures/gui/tarot/card_" + pathway + "_" + seq + (shiny ? "_shiny" : "") + ".png");
+            ResourceLocation art = CardArt.ready(pathway, seq, shiny);
             // the whole card scaled into the slot: declaring the texture as w x h makes the UVs span all of it
             g.blit(art, x + 1, y + 1, 0, 0, w - 2, h - 2, w - 2, h - 2);
             if (n > 1) g.drawString(font, String.valueOf(n), x + w - 7 - font.width(String.valueOf(n)), y + h - 10, 0xFFE8C04A, true);

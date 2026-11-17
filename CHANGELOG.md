@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.259
+
+- Removed 18 MB of duplicated card art. Every one of the 449 card textures existed twice,
+  byte-identical, under `textures/item/` for the item models and under
+  `textures/gui/tarot/` for the screens. The jar was 61.6 MB, nearly a third of it the
+  same pictures stored twice, redownloaded by every player on every version bump.
+- The GUI copies were not pointless: they carried a `.mcmeta` asking for `blur: true` so
+  the art does not look harsh when scaled in a screen. That meta cannot move to the item
+  copies, which are stitched into the item atlas where blur bleeds neighbouring sprites.
+  So the screens now turn filtering on at runtime instead, which is what the meta did.
+
 ## 0.2.258
 
 - Fixes the 0.2.257 build: the login event is `PlayerLoggedInEvent`, not `PlayerLoggedIn`.
