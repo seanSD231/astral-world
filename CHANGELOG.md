@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.265
+
+- The binder's rail no longer runs off the foot of the page. It is nine headings and
+  twenty-two pathways, so it now measures what it has to fit and divides the space
+  accordingly rather than using a fixed line height.
+- The bottom row of cards had its Sequence names under the foot strip: that row's labels
+  were never counted in the height. They are now.
+- A little more room overall: the page aims for roughly 1.5 screen pixels per drawn one
+  rather than 2, which fits the whole collection without the text getting small.
+
 ## 0.2.264
 
 - Fixes the binder at anything other than GUI scale 2. The page is laid out in real

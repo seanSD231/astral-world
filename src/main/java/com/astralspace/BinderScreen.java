@@ -57,7 +57,7 @@ public final class BinderScreen extends Screen {
      * down to fit when it is drawn. Mouse coordinates come back the other way.
      */
     private double scale = 1;
-    private int vw, vh;
+    private int vw, vh, railLine = 19, railHead = 18, railGap = 6;
     private int peelFrom = -1, peelDir = 1;
     private long peelAt = 0;
 
@@ -132,8 +132,10 @@ public final class BinderScreen extends Screen {
 
     @Override
     protected void init() {
-        double gui = Minecraft.getInstance().getWindow().getGuiScale();
-        scale = Math.min(1.0, 2.0 / Math.max(1.0, gui));
+        // Aim for about 1.5 real pixels per virtual one: small enough that the whole
+        // collection fits down the rail, large enough that 9px text still reads.
+        double gui = Math.max(1.0, Minecraft.getInstance().getWindow().getGuiScale());
+        scale = Math.min(1.0, 1.5 / gui);
         vw = (int) (width / scale);
         vh = (int) (height / scale);
 
@@ -147,10 +149,20 @@ public final class BinderScreen extends Screen {
         rowGap = 52;                                           // room for the sequence name
 
         int availW = right - 24 - gridX;
-        int availH = bottom - 58 - gridY;
+        // the bottom row needs its own label space, which the gap between rows does not
+        // provide -- without this the last row's Sequence names sit under the foot strip
+        int availH = bottom - 58 - gridY - 32;
         cw = Math.max(40, Math.min((availW - colGap * 4) / 5, ((availH - rowGap) / 2) * 2 / 3));
         ch = cw * 3 / 2;
         gridX += Math.max(0, (availW - (cw * 5 + colGap * 4)) / 2);
+
+        // The rail is nine headings and twenty-two pathways. Rather than let it run off
+        // the foot, measure what is there and divide the space it has.
+        int lines = Tarot.PATHWAYS.length, heads = Tarot.GOO_IDS.length;
+        int railSpace = (bottom - 58) - (top + 96);
+        railLine = Math.max(11, Math.min(19, (railSpace - heads * 16 - heads * 4) / lines));
+        railHead = Math.max(11, Math.min(18, railLine - 1));
+        railGap = railLine >= 17 ? 6 : 2;
     }
 
     private int cardX(int i) { return gridX + (i % 5) * (cw + colGap); }
@@ -214,17 +226,17 @@ public final class BinderScreen extends Screen {
         if (mx < railX - 8 || mx > railX + railW) return null;
         int y = top + 96;
         for (int g = 0; g < Tarot.GOO_IDS.length; g++) {
-            if (my >= y - 2 && my < y + 16 && mx >= railX + railW - 24) return new int[]{1, g};
-            y += 18;
+            if (my >= y - 2 && my < y + railHead && mx >= railX + railW - 24) return new int[]{1, g};
+            y += railHead;
             for (String p : Tarot.GOO_PATHS[g]) {
-                if (my >= y - 2 && my < y + 17) {
+                if (my >= y - 2 && my < y + railLine - 2) {
                     for (int i = 0; i < Tarot.PATHWAYS.length; i++) {
                         if (Tarot.PATHWAYS[i].equals(p)) return new int[]{0, i};
                     }
                 }
-                y += 19;
+                y += railLine;
             }
-            y += 6;
+            y += railGap;
         }
         return null;
     }
@@ -344,34 +356,36 @@ public final class BinderScreen extends Screen {
             int gx = railX + railW - 22;
             boolean gOver = mx >= gx && mx < gx + 14 && my >= y - 2 && my < y + 16;
             if (gn > 0) {
-                g.blit(CardArt.ready("goo_" + Tarot.GOO_IDS[gi], 0, shiny), gx, y - 2, 0, 0, 12, 18, 12, 18);
-                g.renderOutline(gx, y - 2, 12, 18, gOver ? GOLD_HI : BRONZE);
+                g.blit(CardArt.ready("goo_" + Tarot.GOO_IDS[gi], 0, shiny), gx, y - 2, 0, 0,
+                        railHead * 2 / 3, railHead, railHead * 2 / 3, railHead);
+                g.renderOutline(gx, y - 2, railHead * 2 / 3, railHead, gOver ? GOLD_HI : BRONZE);
             } else {
-                g.fill(gx, y - 2, gx + 12, y + 16, 0xFF100E14);
-                g.renderOutline(gx, y - 2, 12, 18, gOver ? BRONZE : 0xFF231F2C);
+                g.fill(gx, y - 2, gx + railHead * 2 / 3, y + railHead - 2, 0xFF100E14);
+                g.renderOutline(gx, y - 2, railHead * 2 / 3, railHead, gOver ? BRONZE : 0xFF231F2C);
             }
             if (gOver) hover = Tarot.GOO_NAMES[gi] + (gn > 0 ? "  (" + gn + ")" : "  - missing");
-            y += 18;
+            y += railHead;
 
             for (String p : Tarot.GOO_PATHS[gi]) {
                 boolean on = p.equals(path());
-                boolean over = mx >= railX - 8 && mx <= railX + railW && my >= y - 2 && my < y + 17;
+                boolean over = mx >= railX - 8 && mx <= railX + railW && my >= y - 2 && my < y + railLine - 2;
                 if (on) {
-                    slant(g, railX - 8, y - 3, railW + 6, 18, 6, 0xFF241C08);
-                    g.renderOutline(railX - 8, y - 3, railW + 6, 18, GOLD);
+                    slant(g, railX - 8, y - 3, railW + 6, railLine - 1, 5, 0xFF241C08);
+                    g.renderOutline(railX - 8, y - 3, railW + 6, railLine - 1, GOLD);
                 }
                 g.drawString(font, Tarot.pretty(p), railX, y + 2, on ? GOLD_HI : over ? GREY : 0xFF8F8AA0, false);
 
                 int got = held(p);
                 int bx = railX + railW - 112, bw = 78;
-                g.fill(bx, y + 5, bx + bw, y + 11, 0xFF0C0B11);
-                g.renderOutline(bx, y + 5, bw, 6, 0xFF2A2632);
-                if (got > 0) g.fill(bx, y + 5, bx + bw * got / 10, y + 11, got == 10 ? GOLD : accentOf(p));
+                int by = y + railLine / 2 - 3;
+                g.fill(bx, by, bx + bw, by + 6, 0xFF0C0B11);
+                g.renderOutline(bx, by, bw, 6, 0xFF2A2632);
+                if (got > 0) g.fill(bx, by, bx + bw * got / 10, by + 6, got == 10 ? GOLD : accentOf(p));
                 String n = String.valueOf(got);
                 g.drawString(font, n, bx + bw + 10 - font.width(n), y + 2, got == 10 ? GOLD : GREY_D, false);
-                y += 19;
+                y += railLine;
             }
-            y += 6;
+            y += railGap;
         }
     }
 
