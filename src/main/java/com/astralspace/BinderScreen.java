@@ -191,8 +191,8 @@ public final class BinderScreen extends Screen {
         // the foot, measure what is there and divide the space it has.
         int lines = ORDER.length, heads = Tarot.GOO_IDS.length;
         int railSpace = (bottom - 58) - (top + 96);
-        railLine = Math.max(11, Math.min(19, (railSpace - heads * 16 - heads * 4) / lines));
-        railHead = Math.max(11, Math.min(18, railLine - 1));
+        railLine = Math.max(12, Math.min(19, (railSpace - heads * 17 - heads * 4) / lines));
+        railHead = Math.max(12, Math.min(18, railLine));
         railGap = railLine >= 17 ? 6 : 2;
     }
 
@@ -273,10 +273,10 @@ public final class BinderScreen extends Screen {
         if (mx < railX - 8 || mx > railX + railW) return null;
         int y = top + 96;
         for (int g = 0; g < Tarot.GOO_IDS.length; g++) {
-            if (my >= y - 2 && my < y + railHead) return new int[]{1, g};
+            if (my >= y && my < y + railHead) return new int[]{1, g};
             y += railHead;
             for (String p : Tarot.GOO_PATHS[g]) {
-                if (my >= y - 2 && my < y + railLine - 2) {
+                if (my >= y && my < y + railLine - 1) {
                     for (int i = 0; i < ORDER.length; i++) {
                         if (p.equals(ORDER[i].path())) return new int[]{0, i};
                     }
@@ -402,42 +402,47 @@ public final class BinderScreen extends Screen {
 
         int y = top + 96;
         for (int gi = 0; gi < Tarot.GOO_IDS.length; gi++) {
+            // Every row occupies exactly its line, and the text is centred in it. The
+            // earlier offsets assumed a 19px line; the rail compresses to 11 on a short
+            // window, where a box drawn three pixels high of the text overlapped the row
+            // above it.
             boolean chapOn = here().isChapter() && here().goo() == gi;
-            boolean chapOver = mx >= railX - 8 && mx <= railX + railW && my >= y - 2 && my < y + railHead;
+            boolean chapOver = mx >= railX - 8 && mx <= railX + railW && my >= y && my < y + railHead;
+            int ht = y + (railHead - 8) / 2;
             if (chapOn) {
-                slant(g, railX - 8, y - 3, railW + 6, railHead - 1, 5, 0xFF241C08);
-                g.renderOutline(railX - 8, y - 3, railW + 6, railHead - 1, GOLD);
+                slant(g, railX - 8, y, railW + 6, railHead - 1, 4, 0xFF241C08);
+                g.renderOutline(railX - 8, y, railW + 6, railHead - 1, GOLD);
             }
-            g.drawString(font, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), railX, y,
+            g.drawString(font, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), railX, ht,
                     chapOn ? GOLD_HI : chapOver ? GREY : 0xFF43404E, false);
-            // a chapter's own progress is how many of its pathways are finished
             int done = 0;
             for (String p : Tarot.GOO_PATHS[gi]) if (held(p) == 10) done++;
             String tally = done + "/" + Tarot.GOO_PATHS[gi].length;
-            g.drawString(font, tally, railX + railW - 2 - font.width(tally), y,
+            g.drawString(font, tally, railX + railW - 2 - font.width(tally), ht,
                     done == Tarot.GOO_PATHS[gi].length ? GOLD : 0xFF3A3744, false);
             if (chapOver) hover = Tarot.GOO_NAMES[gi] + " - chapter";
             y += railHead;
 
             for (String p : Tarot.GOO_PATHS[gi]) {
                 boolean on = p.equals(path());
-                boolean over = mx >= railX - 8 && mx <= railX + railW && my >= y - 2 && my < y + railLine - 2;
+                boolean over = mx >= railX - 8 && mx <= railX + railW && my >= y && my < y + railLine - 1;
+                int ty = y + (railLine - 9) / 2;
                 if (on) {
-                    slant(g, railX - 8, y - 3, railW + 6, railLine - 1, 5, 0xFF241C08);
-                    g.renderOutline(railX - 8, y - 3, railW + 6, railLine - 1, GOLD);
+                    slant(g, railX - 8, y, railW + 6, railLine - 1, 4, 0xFF241C08);
+                    g.renderOutline(railX - 8, y, railW + 6, railLine - 1, GOLD);
                 }
-                g.drawString(font, Tarot.pretty(p), railX, y + 2, on ? GOLD_HI : over ? GREY : 0xFF8F8AA0, false);
+                g.drawString(font, Tarot.pretty(p), railX, ty, on ? GOLD_HI : over ? GREY : 0xFF8F8AA0, false);
 
                 int got = held(p);
                 int bx = railX + railW - 116, bw = 74;
-                int by = y + railLine / 2 - 3;
+                int by = y + (railLine - 7) / 2;
                 g.fill(bx, by, bx + bw, by + 6, 0xFF0C0B11);
                 g.renderOutline(bx, by, bw, 6, 0xFF2A2632);
                 if (got > 0) g.fill(bx, by, bx + bw * got / 10, by + 6, got == 10 ? GOLD : accentOf(p));
                 String n = String.valueOf(got);
                 // right-aligned against the rail's edge, not the bar's: a two digit 10
                 // right-aligned ten pixels past a 78px bar lands back on top of it
-                g.drawString(font, n, railX + railW - 2 - font.width(n), y + 2,
+                g.drawString(font, n, railX + railW - 2 - font.width(n), ty,
                         got == 10 ? GOLD : GREY_D, false);
                 y += railLine;
             }

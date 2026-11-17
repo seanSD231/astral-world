@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.270
+
+- Rail rows no longer overlap each other. Each row's highlight was drawn three pixels
+  above its text, which is fine on the 19px line it was tuned for and collides with the
+  row above once the rail compresses to 11. Rows now occupy exactly their line with the
+  text centred in it, and the click areas match what is drawn.
+
 ## 0.2.268
 
 - Each Great Old One is a chapter page of its own rather than a thumbnail wedged into a
