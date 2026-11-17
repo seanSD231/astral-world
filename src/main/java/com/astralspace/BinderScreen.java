@@ -1,18 +1,3 @@
-            boolean chapOn = here().isChapter() && here().goo() == gi;
-            boolean chapOver = mx >= railX - 8 && mx <= railX + railW && my >= y - 2 && my < y + railHead;
-            if (chapOn) {
-                slant(g, railX - 8, y - 3, railW + 6, railHead - 1, 5, 0xFF241C08);
-                g.renderOutline(railX - 8, y - 3, railW + 6, railHead - 1, GOLD);
-            }
-            g.drawString(font, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), railX, y,
-                    chapOn ? GOLD_HI : chapOver ? GREY : 0xFF43404E, false);
-            // how many of this chapter's pathways are finished, which is what a chapter is
-            int done = 0;
-            for (String p : Tarot.GOO_PATHS[gi]) if (held(p) == 10) done++;
-            String tally = done + "/" + Tarot.GOO_PATHS[gi].length;
-            g.drawString(font, tally, railX + railW - 2 - font.width(tally), y,
-                    done == Tarot.GOO_PATHS[gi].length ? GOLD : 0xFF3A3744, false);
-            if (chapOver) hover = Tarot.GOO_NAMES[gi] + " - chapter";
 package com.astralspace;
 
 import net.minecraft.client.Minecraft;
@@ -75,6 +60,18 @@ public final class BinderScreen extends Screen {
     }
 
     private Page here() { return ORDER[page]; }
+
+    private String title(Page p) {
+        return p.isChapter() ? Tarot.GOO_NAMES[p.goo()] : Tarot.pretty(p.path());
+    }
+
+    private static String roman(int n) {
+        return switch (n) {
+            case 1 -> "I"; case 2 -> "II"; case 3 -> "III"; case 4 -> "IV"; case 5 -> "V";
+            case 6 -> "VI"; case 7 -> "VII"; case 8 -> "VIII"; case 9 -> "IX";
+            default -> String.valueOf(n);
+        };
+    }
 
     private final Map<String, Integer> have = new HashMap<>();
     /** Which of the twenty-two pathways is open. */
@@ -385,7 +382,8 @@ public final class BinderScreen extends Screen {
         boolean over = mx >= right - 190 && mx < right - 16 && my >= top + 10 && my < top + 50;
         String label = shiny ? "SHINY FACES" : "NORMAL FACES";
         g.drawString(font, label, right - 22 - font.width(label), top + 16, shiny ? GOLD_HI : GREY, false);
-        String count = here().isChapter() ? chapterHeld() + " / " + chapterTotal() : held(path()) + " / 10";
+        String count = here().isChapter() ? chapterHeld() + " / " + chapterTotal()
+                                          : held(path()) + " / 10";
         g.drawString(font, count, right - 22 - font.width(count), top + 30, over ? GOLD_HI : GOLD, false);
         if (over) hover = "Turn to the " + (shiny ? "normal" : "shiny") + " faces";
     }
@@ -404,21 +402,21 @@ public final class BinderScreen extends Screen {
 
         int y = top + 96;
         for (int gi = 0; gi < Tarot.GOO_IDS.length; gi++) {
-            g.drawString(font, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), railX, y, 0xFF43404E, false);
-
-            String gk = Binder.key("goo_" + Tarot.GOO_IDS[gi], 0, shiny);
-            int gn = have.getOrDefault(gk, 0);
-            int gx = railX + railW - 22;
-            boolean gOver = mx >= gx && mx < gx + 14 && my >= y - 2 && my < y + 16;
-            if (gn > 0) {
-                g.blit(CardArt.ready("goo_" + Tarot.GOO_IDS[gi], 0, shiny), gx, y - 2, 0, 0,
-                        railHead * 2 / 3, railHead, railHead * 2 / 3, railHead);
-                g.renderOutline(gx, y - 2, railHead * 2 / 3, railHead, gOver ? GOLD_HI : BRONZE);
-            } else {
-                g.fill(gx, y - 2, gx + railHead * 2 / 3, y + railHead - 2, 0xFF100E14);
-                g.renderOutline(gx, y - 2, railHead * 2 / 3, railHead, gOver ? BRONZE : 0xFF231F2C);
+            boolean chapOn = here().isChapter() && here().goo() == gi;
+            boolean chapOver = mx >= railX - 8 && mx <= railX + railW && my >= y - 2 && my < y + railHead;
+            if (chapOn) {
+                slant(g, railX - 8, y - 3, railW + 6, railHead - 1, 5, 0xFF241C08);
+                g.renderOutline(railX - 8, y - 3, railW + 6, railHead - 1, GOLD);
             }
-            if (gOver) hover = Tarot.GOO_NAMES[gi] + (gn > 0 ? "  (" + gn + ")" : "  - missing");
+            g.drawString(font, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), railX, y,
+                    chapOn ? GOLD_HI : chapOver ? GREY : 0xFF43404E, false);
+            // a chapter's own progress is how many of its pathways are finished
+            int done = 0;
+            for (String p : Tarot.GOO_PATHS[gi]) if (held(p) == 10) done++;
+            String tally = done + "/" + Tarot.GOO_PATHS[gi].length;
+            g.drawString(font, tally, railX + railW - 2 - font.width(tally), y,
+                    done == Tarot.GOO_PATHS[gi].length ? GOLD : 0xFF3A3744, false);
+            if (chapOver) hover = Tarot.GOO_NAMES[gi] + " - chapter";
             y += railHead;
 
             for (String p : Tarot.GOO_PATHS[gi]) {
@@ -450,9 +448,12 @@ public final class BinderScreen extends Screen {
     private int chapterCardH() { return Math.min(bottom - 60 - (top + 96), 330); }
     private int chapterCardW() { return chapterCardH() * 2 / 3; }
     private int chapterCardX() { return gridX + 10; }
-    private int chapterCardY() { return top + 96 + Math.max(0, (bottom - 60 - (top + 96) - chapterCardH()) / 2); }
+    private int chapterCardY() {
+        return top + 96 + Math.max(0, (bottom - 60 - (top + 96) - chapterCardH()) / 2);
+    }
     private int chapterListX() { return chapterCardX() + chapterCardW() + 36; }
 
+    /** A chapter is its own face plus ten for each of its pathways. */
     private int chapterTotal() { return Tarot.GOO_PATHS[here().goo()].length * 10 + 1; }
 
     private int chapterHeld() {
@@ -461,25 +462,13 @@ public final class BinderScreen extends Screen {
         return n;
     }
 
-    private static String roman(int n) {
-        return switch (n) {
-            case 1 -> "I"; case 2 -> "II"; case 3 -> "III"; case 4 -> "IV"; case 5 -> "V";
-            case 6 -> "VI"; case 7 -> "VII"; case 8 -> "VIII"; case 9 -> "IX";
-            default -> String.valueOf(n);
-        };
-    }
-
-    private String title(Page p) {
-        return p.isChapter() ? Tarot.GOO_NAMES[p.goo()] : Tarot.pretty(p.path());
-    }
-
     /**
-     * A chapter's own page: the Great Old One's card at the size it deserves, and the
-     * pathways beneath it as a way in.
+     * A chapter's own page: the Great Old One's face at the size it deserves, with the
+     * chapter's pathways beside it as the way in.
      */
     private void chapter(GuiGraphics g, int mx, int my, int accent) {
         int gi = here().goo();
-        String key = "goo_" + Tarot.GOO_IDS[gi], id = Tarot.GOO_IDS[gi];
+        String key = "goo_" + Tarot.GOO_IDS[gi];
         int n = have.getOrDefault(Binder.key(key, 0, shiny), 0);
         int x = chapterCardX(), y = chapterCardY(), w = chapterCardW(), h = chapterCardH();
         boolean over = mx >= x && mx < x + w && my >= y && my < y + h;
@@ -529,9 +518,8 @@ public final class BinderScreen extends Screen {
             String t = got + " / 10";
             g.drawString(font, t, right - 44 - font.width(t), ly + 7, got == 10 ? GOLD : GREY_D, false);
         }
-        String note = "The face of " + Tarot.GOO_NAMES[gi] + " is one card. Its pathways hold ten each.";
+        String note = "One face bears " + Tarot.GOO_NAMES[gi] + ". Its pathways hold ten each.";
         g.drawString(font, note, x, y + h + 12, 0xFF3A3744, false);
-        if (id.isEmpty()) return;
     }
 
     /** The ten faces of the open pathway. */
