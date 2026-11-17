@@ -748,6 +748,7 @@ public final class HungerGames {
             // wipe: nothing carried in, nothing left over
             p.getInventory().clearContent();
             clearCurios(p);
+            PhantomSlots.clear(p);   // the two hands Sol's Relic System adds are emptied with everything else
             p.removeAllEffects();
             Lotm.resetSize(p);   // and nobody is carried in at anything but their own size either
             p.getFoodData().setFoodLevel(20);
@@ -1308,7 +1309,9 @@ public final class HungerGames {
         if (sv.seq() >= 0 && sv.path() != null && !sv.path().isEmpty() && !sv.path().equals(Lotm.pathwayId(p)))
             Lotm.setPathwayAndSequence(p, sv.path(), sv.seq());
         if (sv.seq() >= 0 && Lotm.sequence(p) != sv.seq()) Lotm.setSequence(p, sv.seq());
+        PhantomSlots.clear(p);                // whatever is in the phantom hands now came from the arena
         restoreAttachments(p, sv.attach());   // enslaved spirits, grazed souls, personas ... everything that was not in the inventory
+        PhantomSlots.push(p);                 // their own phantom hands are back: tell the client
         Lotm.restoreCarried(p, sv.attach());    // and those three once more by hand: emptied first, so nothing grazed, scribed or enslaved inside the arena is kept
         ServerLevel to = p.server.getLevel(sv.dim());
         if (to != null) p.teleportTo(to, sv.x(), sv.y(), sv.z(), sv.yaw(), sv.pitch());

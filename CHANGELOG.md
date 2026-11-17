@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.277
+
+- **The phantom hands no longer smuggle.** Sol's Relic System gives every player a phantom mainhand and a phantom offhand, kept in an attachment of their own rather than in the inventory, so the hunger games — which empty the inventory and the Curios slots and put them back afterwards — never touched them. Gear could be carried in and an arena weapon carried out in a hand nobody was looking at. Both are now emptied on the way in and emptied again on the way out, just before the player's own attachments are put back, with the client told what it holds afterwards. All reflection, so the mod stays optional.
+
 ## 0.2.276
 
 - **Gigantification no longer follows you out of the games.** The physical half of it is a Pehkui scale and a vanilla scale attribute, and neither was touched by giving a pathway back, so anyone who had been made huge stayed huge after the games ended. Every Pehkui scale a player carries is now set back to 1 and the scale attribute's modifiers dropped, both on the way into the games and on the way out; worn gear puts its own back on the next tick. If Pehkui is not present this does nothing and says so once in the log.
