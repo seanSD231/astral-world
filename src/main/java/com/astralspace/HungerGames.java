@@ -110,6 +110,12 @@ public final class HungerGames {
     private static int outerLeft = 0, centreLeft = 0, churchLeft = 0;
     private static final Random rnd = new Random();
     private static final String MOB_TAG = "astral_hg_mob";
+
+    /** The closing wall is red: a deep red sheet with brighter red through it. */
+    private static final net.minecraft.core.particles.DustParticleOptions WALL_RED =
+        new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(0.75f, 0.03f, 0.05f), 2.2f);
+    private static final net.minecraft.core.particles.DustParticleOptions WALL_GLOW =
+        new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(1.0f, 0.25f, 0.18f), 1.4f);
     // the shrinking zone: it starts at the edge of the stone, waits, then closes on the middle; outside it, the air burns
     private static final int ZONE_WAIT = 20 * 90, ZONE_SHRINK = 20 * 60 * 11;
     private static final double ZONE_END_R = 10;
@@ -156,20 +162,59 @@ public final class HungerGames {
     }
 
     /**
-     * Only what would be looting. Standing in the middle is when people pick their abilities and get ready, so
-     * using items, casting, left-clicking and swinging all have to work; what must not work is reaching a container
-     * or breaking the arena before GO.
+     * Standing in the middle is when people pick their abilities and get ready, so the ability menus and anything
+     * else that is only a screen still have to open. What must not work is anything that happens in the world:
+     * reaching a container, breaking the arena, swinging at someone, or firing an ability off before GO.
      */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onCountdownUseBlock(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) {
-        if (!frozen(event.getEntity())) return;
-        var be = event.getLevel().getBlockEntity(event.getPos());
-        if (be instanceof net.minecraft.world.Container || be instanceof net.minecraft.world.MenuProvider) event.setCanceled(true);
+        if (frozen(event.getEntity())) event.setCanceled(true);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownUseItem(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickItem event) {
+        if (frozen(event.getEntity())) event.setCanceled(true);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownUseEntity(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.EntityInteract event) {
+        if (frozen(event.getEntity())) event.setCanceled(true);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownLeftClick(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock event) {
+        if (frozen(event.getEntity())) event.setCanceled(true);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownAttack(net.neoforged.neoforge.event.entity.player.AttackEntityEvent event) {
+        if (frozen(event.getEntity())) event.setCanceled(true);
+    }
+
+    /** Whatever got through anyway — an ability cast from a packet of its own — lands on nobody until GO. */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownDamage(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent event) {
+        if (phase != Phase.COUNTDOWN) return;
+        if (event.getSource().getEntity() instanceof net.minecraft.world.entity.player.Player pl && frozen(pl)) event.setCanceled(true);
+        else if (event.getEntity() instanceof ServerPlayer p && alive.contains(p.getUUID())) event.setCanceled(true);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onCountdownBreak(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent event) {
         if (frozen(event.getPlayer())) event.setCanceled(true);
+    }
+
+    /** True for a contestant who is out past the closing wall right now. */
+    private static boolean outsideZone(net.minecraft.world.entity.LivingEntity le) {
+        if (phase != Phase.RUNNING || !(le instanceof ServerPlayer p) || !alive.contains(p.getUUID())) return false;
+        if (server == null) return false;
+        return Math.hypot(p.getX(), p.getZ()) > zoneRadius(server.getTickCount());
+    }
+
+    /** Nothing heals out there: no regeneration, no golden apples, no ability that mends. */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onZoneHeal(net.neoforged.neoforge.event.entity.living.LivingHealEvent event) {
+        if (outsideZone(event.getEntity())) event.setCanceled(true);
     }
 
     /** True for anyone taking part, from the moment they are carried in until everything is put back. */
@@ -369,7 +414,7 @@ public final class HungerGames {
                 double a = mid - span + (span * 2) * i / 14.0;
                 double x = Math.cos(a) * r, z = Math.sin(a) * r;
                 for (int y = 0; y < 5; y++)
-                    lv.sendParticles(p, net.minecraft.core.particles.ParticleTypes.END_ROD, true,
+                    lv.sendParticles(p, WALL_RED, true,
                         x, groundY + y * 1.6 + rnd.nextDouble(), z, 1, 0.06, 0.25, 0.06, 0.0);
             }
         }
@@ -695,6 +740,7 @@ public final class HungerGames {
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(9, 0));   // there is no tree in the games: the client must not draw its stand-in
             p.setInvulnerable(true);
             p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, wait + 20, 7, false, false, false));
+            p.addEffect(new MobEffectInstance(MobEffects.JUMP, wait + 20, 128, false, false, false));   // level 129 jump boost is a negative jump: nobody leaves the ground before GO
             p.sendSystemMessage(Component.literal("You are in the arena. Look at who you are up against: in " + (wait / 20)
                 + " seconds everyone is sent to the edge of the arena and the games begin. Chests are all over, the middle has the most,"
                 + " hidden caches with better loot are out at the edges and in the church, and the arena will close in on the middle.").withStyle(ChatFormatting.GOLD));
@@ -831,6 +877,7 @@ public final class HungerGames {
         for (ServerPlayer p : onlinePlayers(s)) {
             p.setInvulnerable(false);
             p.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
+            p.removeEffect(MobEffects.JUMP);
             title(p, ChatFormatting.GREEN, "GO", alive.size() + " players");
             p.playNotifySound(net.minecraft.sounds.SoundEvents.ENDER_DRAGON_GROWL, net.minecraft.sounds.SoundSource.MASTER, 0.6f, 1.2f);
         }
@@ -1007,13 +1054,14 @@ public final class HungerGames {
             if (zp == null || zp.level() != lv) continue;
             double zd = Math.hypot(zp.getX(), zp.getZ());
             double ang = Math.atan2(zp.getZ(), zp.getX());
-            for (int k = -26; k <= 26; k++) {   // the wall of the zone: a tall sheet of fire drawn near each player, so it is plainly there
+            for (int k = -26; k <= 26; k++) {   // the wall of the zone: a tall sheet of red drawn near each player, so it is plainly there
                 double a = ang + k * (1.6 / Math.max(zr, 20));
-                for (int h = 0; h < 9; h++) lv.sendParticles(zp, ParticleTypes.SOUL_FIRE_FLAME, false, Math.cos(a) * zr, groundY + 0.4 + h * 1.4, Math.sin(a) * zr, 1, 0, 0.35, 0, 0);
-                if (k % 4 == 0) for (int h = 0; h < 5; h++) lv.sendParticles(zp, ParticleTypes.END_ROD, false, Math.cos(a) * zr, groundY + 0.6 + h * 2.6, Math.sin(a) * zr, 1, 0, 0.2, 0, 0);
+                for (int h = 0; h < 9; h++) lv.sendParticles(zp, WALL_RED, false, Math.cos(a) * zr, groundY + 0.4 + h * 1.4, Math.sin(a) * zr, 1, 0, 0.35, 0, 0);
+                if (k % 4 == 0) for (int h = 0; h < 5; h++) lv.sendParticles(zp, WALL_GLOW, false, Math.cos(a) * zr, groundY + 0.6 + h * 2.6, Math.sin(a) * zr, 1, 0, 0.2, 0, 0);
             }
             if (zd > zr) {
-                float dmg = 1.5f + (float) Math.min(6.0, (zd - zr) / 40.0) + (float) Math.max(0, (el - ZONE_WAIT - ZONE_SHRINK) / 1200.0);   // worse the further out, and worse still once it has fully closed
+                float dmg = Math.max(1f, zp.getMaxHealth() * 0.25f);   // a quarter of everything they have, every second, however far out they are
+                zp.invulnerableTime = 0;
                 zp.hurt(lv.damageSources().genericKill(), dmg);
                 zp.displayClientMessage(Component.literal("The arena is closing: get inside the circle! (" + (int) zr + " blocks)").withStyle(ChatFormatting.RED), true);
             } else if (el > ZONE_WAIT - 20 * 20) {
@@ -1180,7 +1228,6 @@ public final class HungerGames {
         p.getInventory().load(sv.inv());
         loadCurios(p, sv.curios());
         p.setGameMode(sv.mode());
-        p.setHealth(Math.max(1f, Math.min(sv.hp(), p.getMaxHealth())));
         p.getFoodData().setFoodLevel(sv.food());
         giveCoins(p);
         p.getFoodData().setSaturation(sv.sat());
@@ -1197,8 +1244,18 @@ public final class HungerGames {
         Lotm.restoreCarried(p, sv.attach());    // and those three once more by hand: emptied first, so nothing grazed, scribed or enslaved inside the arena is kept
         ServerLevel to = p.server.getLevel(sv.dim());
         if (to != null) p.teleportTo(to, sv.x(), sv.y(), sv.z(), sv.yaw(), sv.pitch());
+        // Health comes last, and again a tick later. Their sequence sets their maximum health, so setting it before
+        // the pathway was put back clamped it against the arena's maximum and people walked out on a sliver.
+        restoreHealth(p, sv.hp());
+        p.server.execute(() -> { if (p.isAlive() && !p.hasDisconnected()) restoreHealth(p, sv.hp()); });
         p.inventoryMenu.broadcastChanges();
         p.sendSystemMessage(Component.literal("You are back. Everything you had has been returned.").withStyle(ChatFormatting.GREEN));
+    }
+
+    /** The health they came in with, or a full bar if their maximum has moved under it since. */
+    private static void restoreHealth(ServerPlayer p, float hp) {
+        float max = p.getMaxHealth();
+        p.setHealth(Math.max(1f, hp > max ? max : hp));
     }
 
     private static void clearArena(ServerLevel lv) {

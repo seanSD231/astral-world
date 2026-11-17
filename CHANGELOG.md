@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.272
+
+Hunger games, first of several passes on the feedback list.
+
+- **Nobody acts during the countdown.** The circle before GO was meant for picking abilities and nothing else, but using items, swinging and casting all still worked. Now every interaction with the world is cancelled while the countdown runs — right-click on a block or an item, interacting with or attacking an entity, left-click, and any damage a contestant deals or takes. Jump boost 129 holds everyone on the ground. The ability and inventory screens still open, so abilities can still be *set*.
+- **The closing wall is red.** The blue soul-fire sheet and the white rods are now deep red dust with brighter red through them, both for the zone wall and for the push-back arc.
+- **Standing outside costs a quarter of your health a second**, whatever your maximum is and however far out you are, instead of the old 1.5-and-rising flat figure. Nothing heals out there either: regeneration, food and any ability that mends are all cancelled past the wall.
+- **Leaving the games no longer leaves you on a sliver of health.** Health was being put back before the pathway was, so it was clamped against the arena's maximum rather than the player's own. It is now restored last, and again on the following tick once the sequence's attributes have settled.
+
 ## 0.2.271
 
 - The binder is drawn on a fixed canvas fitted to the window, so it looks the same at
