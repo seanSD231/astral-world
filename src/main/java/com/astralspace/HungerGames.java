@@ -757,6 +757,7 @@ public final class HungerGames {
             p.experienceProgress = 0f; p.totalExperience = 0;
             p.connection.send(new ClientboundSetExperiencePacket(0f, 0, 0));
             applySeq(p);
+            fillFleshAndBlood(p);   // a Supplicant's own bar, full like their health and their food
             String want = wantedPath.get(p.getUUID());
             int q = Lotm.sequence(p);
             // Someone who is not a Beyonder used to be carried in with nothing at all, even when they had picked a
@@ -880,6 +881,12 @@ public final class HungerGames {
             }
         }
         LOGGER.warn("[hungergames] no way found to restore attachments");
+    }
+
+    /** Fills the Flesh and Blood bar of anyone who has one, now and once more next tick, after the sequence has settled. */
+    private static void fillFleshAndBlood(ServerPlayer p) {
+        Lotm.maxFleshAndBlood(p);
+        p.server.execute(() -> { if (p.isAlive() && !p.hasDisconnected() && alive.contains(p.getUUID())) Lotm.maxFleshAndBlood(p); });
     }
 
     private static void applySeq(ServerPlayer p) {

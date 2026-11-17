@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.278
+
+- **A Secrets Supplicant starts the hunger games with a full Flesh and Blood bar.** It is their whole resource, the bar beside their health, and they were being carried into the arena with whatever was left of it from whatever they had been doing beforehand, while their health, food and sequence were all set up for them. It is now filled to the cap for the sequence they are fought at (LOTM's own `getMaxFleshAndBlood`), on entry and once more on the following tick after the sequence has settled. Reflection, so an older LOTM that keeps the bar elsewhere just leaves it alone and says so once in the log.
+
 ## 0.2.277
 
 - **The phantom hands no longer smuggle.** Sol's Relic System gives every player a phantom mainhand and a phantom offhand, kept in an attachment of their own rather than in the inventory, so the hunger games — which empty the inventory and the Curios slots and put them back afterwards — never touched them. Gear could be carried in and an arena weapon carried out in a hand nobody was looking at. Both are now emptied on the way in and emptied again on the way out, just before the player's own attachments are put back, with the client told what it holds afterwards. All reflection, so the mod stays optional.

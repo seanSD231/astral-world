@@ -681,4 +681,54 @@ public final class Lotm {
         } catch (Throwable ignored) { }
         player.refreshDimensions();
     }
+
+    // ------------------------------------------------------------------ Flesh and Blood (the Secrets Supplicant's own bar)
+
+    private static boolean fabTried, fabOk;
+    private static java.lang.reflect.Method fabSet, fabGet, fabMax, fabSeq;
+
+    /**
+     * Fills a Secrets Supplicant's Flesh and Blood, the bar beside their health. It is their whole resource, and a
+     * contestant carried into the hunger games arrived with whatever was left of it from whatever they were doing
+     * beforehand. Returns the amount set, or -1 when there was nothing to set (not a Supplicant, or LOTM is older
+     * than this and keeps it somewhere else).
+     */
+    public static int maxFleshAndBlood(ServerPlayer player) {
+        if (!fabTried) {
+            fabTried = true;
+            try {
+                Class<?> fab = Class.forName("net.swimmingtuna.lotm.pathway.secretssupplicant.FleshAndBlood");
+                Class<?> cls = Class.forName("net.swimmingtuna.lotm.pathway.secretssupplicant.SecretsSupplicantClass");
+                Class<?> pw = Class.forName("net.swimmingtuna.lotm.beyonder.Pathways");
+                fabSet = fab.getMethod("setFleshAndBlood", net.minecraft.world.entity.LivingEntity.class, int.class);
+                fabGet = fab.getMethod("getFleshAndBlood", net.minecraft.world.entity.LivingEntity.class);
+                fabMax = cls.getMethod("getMaxFleshAndBlood", int.class);
+                fabSeq = pw.getMethod("getSequence", net.minecraft.world.entity.LivingEntity.class);
+                fabOk = true;
+            } catch (Throwable t) {
+                fabOk = false;
+                LOGGER.info("[astral] LOTM keeps Flesh and Blood somewhere else here, so it is left alone: {}", String.valueOf(t));
+            }
+        }
+        if (!fabOk) return -1;
+        try {
+            String path = pathwayId(player);
+            if (path == null || !path.contains("secrets")) return -1;   // only the Supplicant has the bar
+            int seq = (Integer) fabSeq.invoke(null, player);
+            int max = (Integer) fabMax.invoke(null, seq);
+            if (max <= 0) return -1;
+            fabSet.invoke(null, player, max);
+            return max;
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not fill {}'s Flesh and Blood: {}", player.getGameProfile().getName(), String.valueOf(t));
+            return -1;
+        }
+    }
+
+    /** What a player's Flesh and Blood stands at, or -1 when they have no such bar. */
+    public static int fleshAndBlood(ServerPlayer player) {
+        if (!fabOk) return -1;
+        try { return (Integer) fabGet.invoke(null, player); }
+        catch (Throwable t) { return -1; }
+    }
 }
