@@ -381,13 +381,16 @@ public final class BinderScreen extends Screen {
                 g.drawString(font, Tarot.pretty(p), railX, y + 2, on ? GOLD_HI : over ? GREY : 0xFF8F8AA0, false);
 
                 int got = held(p);
-                int bx = railX + railW - 112, bw = 78;
+                int bx = railX + railW - 116, bw = 74;
                 int by = y + railLine / 2 - 3;
                 g.fill(bx, by, bx + bw, by + 6, 0xFF0C0B11);
                 g.renderOutline(bx, by, bw, 6, 0xFF2A2632);
                 if (got > 0) g.fill(bx, by, bx + bw * got / 10, by + 6, got == 10 ? GOLD : accentOf(p));
                 String n = String.valueOf(got);
-                g.drawString(font, n, bx + bw + 10 - font.width(n), y + 2, got == 10 ? GOLD : GREY_D, false);
+                // right-aligned against the rail's edge, not the bar's: a two digit 10
+                // right-aligned ten pixels past a 78px bar lands back on top of it
+                g.drawString(font, n, railX + railW - 2 - font.width(n), y + 2,
+                        got == 10 ? GOLD : GREY_D, false);
                 y += railLine;
             }
             y += railGap;

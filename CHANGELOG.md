@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.267
+
+- The completed count in the binder's rail no longer sits on top of the progress bar. A
+  two-digit `10` was right-aligned ten pixels past the bar, which put it back over the end
+  of it.
+
 ## 0.2.266
 
 - Binder pages now turn in the order the rail lists them, Great Old One by Great Old One.
