@@ -28,6 +28,9 @@ import java.util.Map;
  */
 public final class BinderScreen extends Screen {
 
+    /** The canvas the page is laid out on; the window is fitted to it. */
+    private static final int DESIGN_W = 1180, DESIGN_H = 660;
+
     private static final int PANEL   = 0xFF141018;
     private static final int PANEL_2 = 0xFF1C1822;
     private static final int CASE    = 0xFF0D0B11;
@@ -163,10 +166,13 @@ public final class BinderScreen extends Screen {
 
     @Override
     protected void init() {
-        // Aim for about 1.5 real pixels per virtual one: small enough that the whole
-        // collection fits down the rail, large enough that 9px text still reads.
-        double gui = Math.max(1.0, Minecraft.getInstance().getWindow().getGuiScale());
-        scale = Math.min(1.0, 1.5 / gui);
+        // The page is drawn on a canvas of a fixed size and that canvas is fitted to the
+        // window, so it looks the same whatever the GUI scale and whatever the monitor.
+        //
+        // Scaling against the GUI setting instead, as this did, gets it wrong at both
+        // ends: huge at scale 4, and tiny on a large window at scale 1.
+        scale = Math.min(width / (double) DESIGN_W, height / (double) DESIGN_H);
+        scale = Math.max(0.25, Math.min(3.0, scale));
         vw = (int) (width / scale);
         vh = (int) (height / scale);
 

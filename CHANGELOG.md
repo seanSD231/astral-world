@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.271
+
+- The binder is drawn on a fixed canvas fitted to the window, so it looks the same at
+  every GUI scale and on every monitor. Scaling against the GUI setting, as it did, was
+  wrong at both ends: far too large at scale 4 and far too small on a wide window at
+  scale 1.
+
 ## 0.2.270
 
 - Rail rows no longer overlap each other. Each row's highlight was drawn three pixels
