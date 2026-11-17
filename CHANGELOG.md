@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.261
+
+- Binder layout fixes from the first look in game: the Great Old One's card had the same
+  margin as the row plates and the two drew over each other; a chapter's rows now sit
+  centred in the page rather than stacked at the top (chapters hold between one and five
+  pathways, so a small one was mostly empty page); cards may be larger; the lattice is
+  fainter and sparser, closer to the game's.
+
 ## 0.2.260
 
 - The card binder opens as a book rather than a grid. One spread per Great Old One, with

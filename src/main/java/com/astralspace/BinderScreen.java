@@ -47,7 +47,7 @@ public final class BinderScreen extends Screen {
     private String hover = null;
 
     /** Geometry, worked out in init() so the book fills whatever window it is given. */
-    private int left, top, right, bottom, mid, cw, ch, rowH, gridTop, leafGap;
+    private int left, top, right, bottom, mid, cw, ch, rowH, gridTop, leafGap, margin = 180;
 
     /** Page peel: where it came from, and when it started. */
     private int peelFrom = -1;
@@ -128,22 +128,30 @@ public final class BinderScreen extends Screen {
         leafGap = 18;
         mid = (left + right) / 2;
 
-        int marginL = 104;                       // the pathway label column
-        int usable = (right - left) - marginL - leafGap - 24;
-        cw = Math.max(18, Math.min(62, usable / 10));
+        // the left margin holds the Great Old One's own card and then the row plates,
+        // so it has to be wide enough for both or they sit on top of each other
+        int usable = (right - left) - leafGap - 24;
+        cw = Math.max(18, Math.min(74, (usable - 200) / 10));
         ch = cw * 3 / 2;
         rowH = ch + 10;
 
-        gridTop = top + 62;
-        int needed = gridTop + tallest * rowH + 44;
-        if (needed > bottom) {                   // shrink the cards rather than overflow
-            ch = Math.max(21, (bottom - gridTop - 44) / tallest - 10);
+        int headRoom = top + 62, footRoom = 44;
+        int rowsH = tallest * rowH;
+        if (headRoom + rowsH + footRoom > bottom) {      // shrink rather than overflow
+            ch = Math.max(21, (bottom - headRoom - footRoom) / tallest - 10);
             cw = ch * 2 / 3;
             rowH = ch + 10;
+            rowsH = tallest * rowH;
         }
+        // centre this chapter's rows in the page: chapters hold between one and five
+        // pathways, and a one-row chapter stacked at the top is mostly empty page
+        int mine = Tarot.GOO_PATHS[tab].length * rowH;
+        gridTop = headRoom + Math.max(0, (bottom - footRoom - headRoom - mine) / 2);
+        margin = cw + 112;
     }
 
-    private int gridLeft() { return left + 104; }
+
+    private int gridLeft() { return left + margin; }
 
     /** The x of a column: 9..5 on the left leaf, 4..0 on the right. */
     private int colX(int c) {
@@ -170,6 +178,7 @@ public final class BinderScreen extends Screen {
         peelFrom = tab;
         peelAt = System.currentTimeMillis();
         tab = chapter;
+        init();                                  // the next chapter may hold a different number of rows
     }
 
     @Override
@@ -192,7 +201,7 @@ public final class BinderScreen extends Screen {
         if (mx >= right - 150 && mx < right - 10 && my >= top + 8 && my < top + 30) { shiny = !shiny; return true; }
 
         // the Great Old One's own card
-        if (mx >= left + 14 && mx < left + 14 + cw && my >= gridTop && my < gridTop + ch) {
+        if (mx >= left + 12 && mx < left + 12 + cw && my >= gooY() && my < gooY() + ch) {
             take(Binder.key("goo_" + Tarot.GOO_IDS[tab], 0, shiny));
             return true;
         }
@@ -210,6 +219,12 @@ public final class BinderScreen extends Screen {
         if (key == 263) { goTo(tab - 1); return true; }   // left arrow
         if (key == 262) { goTo(tab + 1); return true; }   // right arrow
         return super.keyPressed(key, scan, mods);
+    }
+
+    /** The chapter card sits level with the middle of this chapter's rows. */
+    private int gooY() {
+        int mine = Tarot.GOO_PATHS[tab].length * rowH;
+        return gridTop + Math.max(0, (mine - ch) / 2);
     }
 
     private int tabH() { return Math.min(44, (bottom - top - 20) / Tarot.GOO_IDS.length); }
@@ -241,10 +256,10 @@ public final class BinderScreen extends Screen {
      * the same from where the player sits.
      */
     private void lattice(GuiGraphics g, int x0, int y0, int x1, int y1, int colour) {
-        final int step = 46;
+        final int step = 54;
         for (int y = y0 + 14; y < y1 - 6; y += step) {
             for (int x = x0 + 14 + ((y - y0) / step % 2) * step / 2; x < x1 - 6; x += step) {
-                diamond(g, x, y, 6, colour);
+                diamond(g, x, y, 5, colour);
             }
         }
     }
@@ -293,7 +308,7 @@ public final class BinderScreen extends Screen {
 
         // the book itself
         g.fill(left, top, right, bottom, PANEL);
-        lattice(g, left + 1, top + 1, right - 1, bottom - 1, 0x11FFFFFF);
+        lattice(g, left + 1, top + 1, right - 1, bottom - 1, 0x0AFFFFFF);
         frame(g, accent);
 
         head(g, mx, my, accent);
@@ -361,8 +376,8 @@ public final class BinderScreen extends Screen {
     }
 
     private void leaves(GuiGraphics g, int mx, int my, int accent) {
-        // the Great Old One's own card, in a socket of its own
-        slot(g, left + 14, gridTop, "goo_" + Tarot.GOO_IDS[tab], 0, mx, my, accent);
+        // the Great Old One's own card, in a socket of its own, centred against the rows
+        slot(g, left + 12, gooY(), "goo_" + Tarot.GOO_IDS[tab], 0, mx, my, accent);
 
         String[] rs = rows();
         for (int r = 0; r < rs.length; r++) {
@@ -372,11 +387,12 @@ public final class BinderScreen extends Screen {
             boolean full = complete == 10;
 
             // the row's nameplate, lit when the row is finished
-            if (full) slant(g, left + 10, y + ch / 2 - 13, 88, 26, 7, 0xFF241C08);
-            g.drawString(font, Tarot.pretty(rs[r]), left + 16, y + ch / 2 - 9, full ? GOLD_HI : GREY_D, false);
-            g.drawString(font, full ? "COMPLETE" : complete + " / 10", left + 16, y + ch / 2 + 1,
+            int px = left + cw + 22;
+            if (full) slant(g, px - 6, y + ch / 2 - 13, 92, 26, 7, 0xFF241C08);
+            g.drawString(font, Tarot.pretty(rs[r]), px, y + ch / 2 - 9, full ? GOLD_HI : GREY_D, false);
+            g.drawString(font, full ? "COMPLETE" : complete + " / 10", px, y + ch / 2 + 1,
                     full ? GOLD : 0xFF3A3E48, false);
-            if (full) g.renderOutline(left + 10, y + ch / 2 - 13, 88, 26, GOLD);
+            if (full) g.renderOutline(px - 6, y + ch / 2 - 13, 92, 26, GOLD);
 
             for (int c = 0; c < 10; c++) slot(g, colX(c), y, rs[r], 9 - c, mx, my, accent);
         }
