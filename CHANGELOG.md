@@ -2,6 +2,18 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.260
+
+- The card binder opens as a book rather than a grid. One spread per Great Old One, with
+  its own card in a socket on the left and a row per pathway running Sequence 9 down to 0
+  across two leaves with a gutter between them. Held faces show their art, missing ones
+  are cut sockets, so a page still reads as a bar chart of how far someone has got.
+- Drawn in the mod's own visual language: gold border with the pathway colour punctuating
+  it, diamonds on the rails, slanted nameplates, diamond lattice over near-black. The
+  accent follows the player's own pathway, gold when they are not a Beyonder.
+- Chapters peel across when changed, by click, by the foot strip, or with the arrow keys.
+  Chapter tabs down the right edge carry each Great Old One's own face.
+
 ## 0.2.259
 
 - Removed 18 MB of duplicated card art. Every one of the 449 card textures existed twice,
