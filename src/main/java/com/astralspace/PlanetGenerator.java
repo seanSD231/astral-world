@@ -36,7 +36,7 @@ public final class PlanetGenerator extends ChunkGenerator {
 
     public static final int BASE = 64;
     /** The arena is a round grassy field of this radius; beyond it there is only sky. */
-    public static final double FIELD_R = EndGame.ARENA_R + 70;
+    public static final double FIELD_R = EndGame.ARENA_R + 560;   // the field around the church: a real country now, not a 57-block verge
     /** The temple: a raised stone platform this wide (the arena plus a rim), standing DROP blocks above the grass field around it. */
     public static final double PLAT_R = EndGame.ARENA_R + 13;
     public static final int DROP = 20;
@@ -141,9 +141,11 @@ public final class PlanetGenerator extends ChunkGenerator {
                 double w = Math.abs(fbm(x, z, 70, 9, 4) - 0.5) * 2;             // ridged storm waves
                 h = BASE - 4 + (1 - w) * 22;
             }
-            case "raid" -> {   // the platform is perfectly level (the fight is built on it); the field around it lies lower, with a stair down at each gateway
+            case "raid" -> {   // the platform is perfectly level (the fight is built on it); the country around it is open ground, with a stair down at each gateway
                 double rr = Math.hypot(x, z);
-                h = rr <= PLAT_R ? BASE : (gateway(x, z) ? BASE - Math.min(DROP, 1 + (int) ((rr - PLAT_R) / 2)) : BASE - DROP);
+                if (rr <= PLAT_R) h = BASE;
+                else if (gateway(x, z) && rr < PLAT_R + 24) h = BASE - Math.min(DROP, 1 + (int) ((rr - PLAT_R) / 2));
+                else h = fieldHeight(x, z, rr);
             }
             default -> h = BASE + (fbm(x, z, 120, 10, 3) - 0.5) * 6;
         }
@@ -151,6 +153,24 @@ public final class PlanetGenerator extends ChunkGenerator {
         double f = 1 - smooth(26, 64, dist);                                   // flat disc around the arrival point
         if (!id.equals("raid")) h = h + (BASE - h) * f;
         return (int) Math.max(8, Math.min(230, Math.round(h)));
+    }
+
+    /**
+     * The country outside the church: an apron of flat ground at the wall, then rolling hills, long ridges and buttes
+     * out to the rim of the island, where the ground falls away into the night. The hunger games are fought out here,
+     * so it has to be ground worth fighting over rather than a lawn.
+     */
+    private static double fieldHeight(int x, int z, double rr) {
+        double h = BASE - DROP;
+        double t = smooth(PLAT_R + 2, PLAT_R + 44, rr);                     // nothing right at the wall: the stairs and the rim stay readable
+        double hills = (fbm(x, z, 170, 61, 4) - 0.5) * 30;                   // broad rises and hollows
+        double ridge = Math.abs(fbm(x, z, 460, 62, 2) - 0.5) * 2;            // a few long ridges running out from the church
+        hills += (1 - ridge) * 16;
+        hills += cones(x, z, 230, 0.5, 34, 78, 32, 63);                      // buttes, high enough to break the sightlines
+        hills += (fbm(x, z, 46, 64, 3) - 0.5) * 7;                           // the small roughness underfoot
+        h += hills * t;
+        h -= smooth(FIELD_R - 110, FIELD_R, rr) * 10;                        // the ground settles as it nears the rim, then the island simply ends
+        return h;
     }
 
     /** The four gateways of the temple: a strip about 18 wide along each axis. */
@@ -243,7 +263,12 @@ public final class PlanetGenerator extends ChunkGenerator {
                     if (r > PLAT_R - 3 && y >= BASE - DROP) return brickMix(x, z);   // the cliff face under the rim
                     return depth < 4 ? Blocks.DIRT : Blocks.STONE;
                 }
-                if (depth == 0) return gateway(x, z) ? (hash(x, z, 12) < 0.5 ? Blocks.POLISHED_ANDESITE : Blocks.STONE_BRICKS) : (n < 0.12 ? Blocks.COARSE_DIRT : Blocks.GRASS_BLOCK);   // the stairs down at the gateways
+                if (depth == 0) {
+                    if (gateway(x, z) && r < PLAT_R + 24) return hash(x, z, 12) < 0.5 ? Blocks.POLISHED_ANDESITE : Blocks.STONE_BRICKS;   // the stairs down at the gateways
+                    if (h > BASE + 4) return n < 0.45 ? Blocks.STONE : n < 0.8 ? Blocks.ANDESITE : Blocks.COBBLESTONE;   // the tops are bare rock
+                    return n < 0.08 ? Blocks.COARSE_DIRT : n < 0.13 ? Blocks.GRAVEL : Blocks.GRASS_BLOCK;
+                }
+                if (h > BASE + 4 && depth < 3) return Blocks.STONE;
                 return depth < 4 ? Blocks.DIRT : Blocks.STONE;
             }
             default:
@@ -386,12 +411,73 @@ public final class PlanetGenerator extends ChunkGenerator {
     private static void decorateRaid(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int z, int h) {
         double rr = Math.hypot(x, z);
         if (rr <= PLAT_R + 1) churchColumn(chunk, pos, x, z, h);
+        else decorateField(chunk, pos, x, z);
         // grass and flowers where the ground is grass
         if (hash(x, 3, z) < 0.35 && chunk.getBlockState(pos.set(x, h, z)).is(Blocks.GRASS_BLOCK)) {
             double q = hash(x, 4, z);
             BlockState p = q < 0.80 ? Blocks.SHORT_GRASS.defaultBlockState() : q < 0.88 ? Blocks.FERN.defaultBlockState()
                     : q < 0.92 ? Blocks.DANDELION.defaultBlockState() : q < 0.96 ? Blocks.AZURE_BLUET.defaultBlockState() : Blocks.CORNFLOWER.defaultBlockState();
             chunk.setBlockState(pos.set(x, h + 1, z), p, false);
+        }
+    }
+
+    private static final int TREE_CELL = 14, ROCK_CELL = 31;
+
+    /** Only into air, so nothing a tree or a boulder stands on is swallowed. */
+    private static void put(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int y, int z, Block b) {
+        if (y < 1 || y > 250) return;
+        if (!chunk.getBlockState(pos.set(x, y, z)).isAir()) return;
+        chunk.setBlockState(pos.set(x, y, z), b.defaultBlockState(), false);
+    }
+
+    /**
+     * Cover out in the field: woods and boulders, laid out on a grid of cells so that one column at a time is enough
+     * to build them and the whole thing stays deterministic for the arena reset. Nothing grows on the bare tops, in
+     * the gateways, right against the church or out on the crumbling rim.
+     */
+    private static void decorateField(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int z) {
+        for (int ox = -1; ox <= 1; ox++) for (int oz = -1; oz <= 1; oz++) {
+            int cx = Math.floorDiv(x, TREE_CELL) + ox, cz = Math.floorDiv(z, TREE_CELL) + oz;
+            if (hash(cx, cz, 71) > 0.34) continue;
+            int tx = cx * TREE_CELL + 2 + (int) (hash(cx, cz, 72) * (TREE_CELL - 4));
+            int tz = cz * TREE_CELL + 2 + (int) (hash(cx, cz, 73) * (TREE_CELL - 4));
+            double tr = Math.hypot(tx, tz);
+            if (tr < PLAT_R + 26 || tr > FIELD_R - 26 || gateway(tx, tz)) continue;
+            int th = height("raid", tx, tz);
+            if (th > BASE + 4) continue;
+            int trunk = 5 + (int) (hash(cx, cz, 74) * 3);
+            boolean spruce = hash(cx, cz, 75) < 0.30;
+            int dx = x - tx, dz = z - tz, d2 = dx * dx + dz * dz;
+            if (d2 > 9) continue;
+            Block log = spruce ? Blocks.SPRUCE_LOG : Blocks.OAK_LOG, leaf = spruce ? Blocks.SPRUCE_LEAVES : Blocks.OAK_LEAVES;
+            if (d2 == 0) for (int i = 1; i <= trunk; i++) put(chunk, pos, x, th + i, z, log);
+            if (spruce) {   // a cone, narrowing as it goes up
+                for (int i = 0; i <= 4; i++) {
+                    int want = i >= 3 ? 1 : i >= 1 ? 4 : 9;
+                    if (d2 <= want && !(d2 == 0 && i <= 3)) put(chunk, pos, x, th + trunk - 2 + i, z, leaf);
+                }
+            } else {        // a round crown
+                for (int i = -1; i <= 1; i++) {
+                    int want = i == 0 ? 9 : 4;
+                    if (d2 <= want && !(d2 == 0 && i < 1)) put(chunk, pos, x, th + trunk + i, z, leaf);
+                }
+            }
+        }
+        int rx = Math.floorDiv(x, ROCK_CELL), rz = Math.floorDiv(z, ROCK_CELL);
+        for (int ox = -1; ox <= 1; ox++) for (int oz = -1; oz <= 1; oz++) {
+            int cx = rx + ox, cz = rz + oz;
+            if (hash(cx, cz, 81) > 0.30) continue;
+            int bx = cx * ROCK_CELL + 3 + (int) (hash(cx, cz, 82) * (ROCK_CELL - 6));
+            int bz = cz * ROCK_CELL + 3 + (int) (hash(cx, cz, 83) * (ROCK_CELL - 6));
+            double br = Math.hypot(bx, bz);
+            if (br < PLAT_R + 20 || br > FIELD_R - 20 || gateway(bx, bz)) continue;
+            int bh = height("raid", bx, bz);
+            int rad = 2 + (int) (hash(cx, cz, 84) * 2);
+            int dx = x - bx, dz = z - bz, d2 = dx * dx + dz * dz;
+            if (d2 > rad * rad) continue;
+            int tall = (int) Math.round(rad + 1 - Math.sqrt(d2));
+            for (int i = 1; i <= tall; i++)
+                put(chunk, pos, x, bh + i, z, hash(x, i, z) < 0.45 ? Blocks.MOSSY_COBBLESTONE : hash(z, i, x) < 0.6 ? Blocks.COBBLESTONE : Blocks.STONE);
         }
     }
 

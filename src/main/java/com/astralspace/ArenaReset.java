@@ -58,7 +58,7 @@ public final class ArenaReset {
         event.getDispatcher().register(Commands.literal("arenareset").requires(c -> c.hasPermission(2)).executes(ctx -> {
             if (busy()) { ctx.getSource().sendFailure(Component.literal("The arena is already being reset.")); return 0; }
             start(ctx.getSource().getServer());
-            ctx.getSource().sendSuccess(() -> Component.literal("Resetting the arena to how it was generated (takes about half a minute)."), true);
+            ctx.getSource().sendSuccess(() -> Component.literal("Resetting the arena to how it was generated (the field is large now: this takes a couple of minutes)."), true);
             return 1;
         }));
     }
@@ -69,7 +69,7 @@ public final class ArenaReset {
         MinecraftServer s = event.getServer();
         ServerLevel lv = s.getLevel(Cosmos.key("cosmos"));
         if (lv == null || !(lv.getChunkSource().getGenerator() instanceof PlanetGenerator gen)) { queue.clear(); return; }
-        for (int i = 0; i < 3 && !queue.isEmpty(); i++) {
+        for (int i = 0; i < 6 && !queue.isEmpty(); i++) {
             ChunkPos cp = queue.poll();
             try { resetChunk(lv, gen, cp); } catch (Throwable t) { LOGGER.warn("[arenareset] chunk {} failed: {}", cp, t.toString()); }
         }

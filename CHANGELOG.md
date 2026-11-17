@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.274
+
+The arena gets a country around it. Generation only: the hunger games still play out inside the church until the next build moves them out.
+
+- **The raid island goes from 410 blocks of radius to 900.** Everything inside the church is untouched, down to the block, so the raid boss fight is exactly as it was. What changes is what lies outside the wall.
+- **Real terrain out there**, in place of the flat 57-block lawn: an apron of level ground at the wall so the gateway stairs and the rim still read, then broad rises and hollows, long ridges running out from the church, and buttes tall enough to break the sightlines. Hilltops come up as bare stone and andesite; the lower ground is grass with coarse dirt and gravel through it, and the grass and flowers that were only ever on the verge now carry across the whole field.
+- **Cover**: woods of oak and spruce on a 14-block grid and boulders on a 31-block one, kept off the bare tops, out of the gateways, away from the church wall and off the crumbling rim. All of it is laid out from the position alone, so the arena reset still puts every block of it back.
+- `/astralarenareset` now does six chunks a tick instead of three, since there are about five times as many of them; it takes a couple of minutes.
+
 ## 0.2.273
 
 Hunger games, second pass on the feedback list.
