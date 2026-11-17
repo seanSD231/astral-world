@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.263
+
+- The binder is a bound volume, one pathway to a page. Its ten faces are drawn large and
+  named by their Sequence titles -- Planeswalker, Scribe, Tyrant -- rather than numbers
+  alone, read from LOTM's own lang file so they stay right if it changes them.
+- Down the left, a spine and then the whole collection: every pathway under its Great Old
+  One with a progress bar, and each Great Old One's own card beside its heading. Where you
+  stand is visible without turning a page.
+- The previous grid showed fifty cards at thumbnail size. The art is 240x360 and could not
+  be seen at all.
+
 ## 0.2.262
 
 - Binder cards are sized for the chapter being looked at rather than for the biggest one,
