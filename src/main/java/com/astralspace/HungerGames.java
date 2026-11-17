@@ -80,8 +80,8 @@ public final class HungerGames {
     private record Saved(ResourceKey<Level> dim, double x, double y, double z, float yaw, float pitch, GameType mode, ListTag inv,
                          float hp, int food, float sat, int xpLevel, float xpProg, int xpTotal, int seq, String path, long[] titles, ListTag curios, CompoundTag attach) { }
 
-    private static final double ARENA_R = EndGame.ARENA_R, RING_R = 270;
-    private static final int INVITE_TICKS = 20 * 60, OUTER_CHESTS = 170, CENTRE_CHESTS = 50, CHURCH_CHESTS = 60;
+    private static final double ARENA_R = EndGame.ARENA_R, RING_R = PlanetGenerator.PLAT_R + 150;   // the start ring is out in the field, past the church wall
+    private static final int INVITE_TICKS = 20 * 60, OUTER_CHESTS = 430, CENTRE_CHESTS = 50, CHURCH_CHESTS = 60;
 
     private static Phase phase = Phase.OFF;
     private static MinecraftServer server;
@@ -117,7 +117,7 @@ public final class HungerGames {
     private static final net.minecraft.core.particles.DustParticleOptions WALL_GLOW =
         new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(1.0f, 0.25f, 0.18f), 1.4f);
     // the shrinking zone: it starts at the edge of the stone, waits, then closes on the middle; outside it, the air burns
-    private static final int ZONE_WAIT = 20 * 90, ZONE_SHRINK = 20 * 60 * 11;
+    private static final int ZONE_WAIT = 20 * 90, ZONE_SHRINK = 20 * 60 * 18;   // the field is far wider than the church was, so the close takes longer
     private static final double ZONE_END_R = 10;
     private static final List<UUID> order = new ArrayList<>();
     private static final Map<UUID, Integer> kills = new HashMap<>();
@@ -414,9 +414,10 @@ public final class HungerGames {
             for (int i = 0; i <= 14; i++) {
                 double a = mid - span + (span * 2) * i / 14.0;
                 double x = Math.cos(a) * r, z = Math.sin(a) * r;
-                for (int y = 0; y < 5; y++)
+                double wy = floorY((int) Math.round(x), (int) Math.round(z));
+                for (int y = 0; y < 6; y++)
                     lv.sendParticles(p, WALL_RED, true,
-                        x, groundY + y * 1.6 + rnd.nextDouble(), z, 1, 0.06, 0.25, 0.06, 0.0);
+                        x, wy + y * 1.6 + rnd.nextDouble(), z, 1, 0.06, 0.25, 0.06, 0.0);
             }
         }
     }
@@ -545,8 +546,8 @@ public final class HungerGames {
     }
 
     private static void placeChest(ServerLevel lv) {
-        int kind = centreLeft > 0 ? 0 : churchLeft > 0 ? 1 : 2;   // 0 middle, 1 inside the church, 2 anywhere on the stone
-        double maxR = PlanetGenerator.PLAT_R - 10;
+        int kind = centreLeft > 0 ? 0 : churchLeft > 0 ? 1 : 2;   // 0 middle, 1 inside the church, 2 out in the field
+        double maxR = PlanetGenerator.FIELD_R - 50;
         for (int tries = 0; tries < 60; tries++) {
             int x, z;
             if (kind == 0) {
@@ -556,7 +557,9 @@ public final class HungerGames {
                 x = rnd.nextInt(681) - 340; z = rnd.nextInt(681) - 340;
                 if (!PlanetGenerator.churchInside(x, z, 3)) continue;
             } else {
-                double a = rnd.nextDouble() * Math.PI * 2, r = Math.max(45, Math.sqrt(rnd.nextDouble()) * maxR);
+                double a = rnd.nextDouble() * Math.PI * 2;
+                double lo = PlanetGenerator.PLAT_R + 12;
+                double r = Math.sqrt(lo * lo + rnd.nextDouble() * (maxR * maxR - lo * lo));   // evenly over the field, not bunched at the wall
                 x = (int) Math.round(Math.cos(a) * r); z = (int) Math.round(Math.sin(a) * r);
             }
             BlockPos p = surface(lv, x, z);
@@ -574,11 +577,21 @@ public final class HungerGames {
     /** A free floor spot at (x, z): about the height of the arena floor, solid and dry underneath. Null inside walls, on top of them or in water. */
     private static BlockPos surface(ServerLevel lv, int x, int z) {
         lv.getChunk(x >> 4, z >> 4);
-        BlockPos p = new BlockPos(x, (int) groundY, z);
+        BlockPos p = new BlockPos(x, floorY(x, z), z);
         BlockState below = lv.getBlockState(p.below());
         if (!below.isSolid() || !below.getFluidState().isEmpty()) return null;
         if (!lv.getBlockState(p).isAir() || !lv.getBlockState(p.above()).isAir()) return null;
         return p;
+    }
+
+    /**
+     * The y a column stands on. Inside the church that is its one level floor, and the heightmap is no use there
+     * because the roof is over it; out in the field it is whatever the generator made the ground, which now rises
+     * and falls by tens of blocks.
+     */
+    static int floorY(int x, int z) {
+        if (Math.hypot(x, z) <= PlanetGenerator.PLAT_R) return (int) groundY;
+        return PlanetGenerator.height("raid", x, z) + 1;
     }
 
     private static final class Entry {
@@ -654,10 +667,13 @@ public final class HungerGames {
         // and a real walk from the start, which is the point: the arena closes in, so a cache run costs you something.
         double inner = PlanetGenerator.ROOF_IN + 8, outer = PlanetGenerator.PLAT_R - 16;
         for (int want = 0; want < Settings.hgHiddenCaches; want++) {
+            boolean far = want % 3 != 0;   // two in three are out in the field, the rest in the dark of the church ring
             for (int tries = 0; tries < 240; tries++) {
-                double a = rnd.nextDouble() * Math.PI * 2, r = inner + rnd.nextDouble() * (outer - inner);
+                double a = rnd.nextDouble() * Math.PI * 2;
+                double r = far ? PlanetGenerator.PLAT_R + 60 + rnd.nextDouble() * (PlanetGenerator.FIELD_R - 80 - (PlanetGenerator.PLAT_R + 60))
+                               : inner + rnd.nextDouble() * (outer - inner);
                 int x = (int) Math.round(Math.cos(a) * r), z = (int) Math.round(Math.sin(a) * r);
-                if (!PlanetGenerator.churchInside(x, z, 4)) continue;
+                if (!far && !PlanetGenerator.churchInside(x, z, 4)) continue;
                 BlockPos p = surface(lv, x, z);
                 if (p == null || chests.contains(p)) continue;
                 if (tries < 200 && cover(lv, p) < 2) continue;   // against something, not out in the open: a cache has to be found, not spotted
@@ -766,8 +782,9 @@ public final class HungerGames {
             p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, wait + 20, 7, false, false, false));
             p.addEffect(new MobEffectInstance(MobEffects.JUMP, wait + 20, 128, false, false, false));   // level 129 jump boost is a negative jump: nobody leaves the ground before GO
             p.sendSystemMessage(Component.literal("You are in the arena. Look at who you are up against: in " + (wait / 20)
-                + " seconds everyone is sent to the edge of the arena and the games begin. Chests are all over, the middle has the most,"
-                + " hidden caches with better loot are out at the edges and in the church, and the arena will close in on the middle.").withStyle(ChatFormatting.GOLD));
+                + " seconds everyone is sent out into the field beyond the church and the games begin. Chests are everywhere,"
+                + " thickest in the middle of the church; a few hidden barrels out in the country and in the dark of the church ring hold the best of it,"
+                + " and the wall will close in from the rim of the world onto the middle of the church.").withStyle(ChatFormatting.GOLD));
         }
         placeObstacles(lv);
         placeCaches(lv);
@@ -874,7 +891,10 @@ public final class HungerGames {
     private static double[] ringSpot(ServerLevel lv, int i, int n) {
         double base = Math.PI * 2 * i / n;
         double span = Math.PI * 2 / n * 0.4;
-        for (double r = RING_R; r >= 90; r -= 5) {
+        // outwards first, then back in towards the wall, but never inside the church: the games start in the field
+        for (int step = 0; step < 90; step++) {
+            double r = step % 2 == 0 ? RING_R + (step / 2) * 6 : RING_R - (step / 2 + 1) * 6;
+            if (r > PlanetGenerator.FIELD_R - 60 || r < PlanetGenerator.PLAT_R + 16) continue;
             for (int k = 0; k < 9; k++) {
                 double a = base + (k == 0 ? 0 : ((k % 2 == 0 ? 1 : -1) * (k / 2 + (k % 2)) * span / 4.0));
                 int x = (int) Math.round(Math.cos(a) * r), z = (int) Math.round(Math.sin(a) * r);
@@ -882,7 +902,8 @@ public final class HungerGames {
                 if (p != null) return new double[]{p.getX() + 0.5, p.getY(), p.getZ() + 0.5};
             }
         }
-        return new double[]{0.5 + Math.cos(base) * 60, groundY, 0.5 + Math.sin(base) * 60};
+        int fx = (int) Math.round(Math.cos(base) * RING_R), fz = (int) Math.round(Math.sin(base) * RING_R);
+        return new double[]{fx + 0.5, floorY(fx, fz), fz + 0.5};
     }
 
     private static void go(MinecraftServer s) {
@@ -967,7 +988,7 @@ public final class HungerGames {
     /** The radius of the safe zone now. */
     private static double zoneRadius(long now) {
         long el = now - startTick;
-        double r0 = PlanetGenerator.PLAT_R - 10;
+        double r0 = PlanetGenerator.FIELD_R - 40;
         if (el <= ZONE_WAIT) return r0;
         double t = Math.min(1.0, (double) (el - ZONE_WAIT) / ZONE_SHRINK);
         return r0 + (ZONE_END_R - r0) * t;
@@ -1100,8 +1121,10 @@ public final class HungerGames {
             double ang = Math.atan2(zp.getZ(), zp.getX());
             for (int k = -26; k <= 26; k++) {   // the wall of the zone: a tall sheet of red drawn near each player, so it is plainly there
                 double a = ang + k * (1.6 / Math.max(zr, 20));
-                for (int h = 0; h < 9; h++) lv.sendParticles(zp, WALL_RED, false, Math.cos(a) * zr, groundY + 0.4 + h * 1.4, Math.sin(a) * zr, 1, 0, 0.35, 0, 0);
-                if (k % 4 == 0) for (int h = 0; h < 5; h++) lv.sendParticles(zp, WALL_GLOW, false, Math.cos(a) * zr, groundY + 0.6 + h * 2.6, Math.sin(a) * zr, 1, 0, 0.2, 0, 0);
+                double wx = Math.cos(a) * zr, wz = Math.sin(a) * zr;
+                double wy = floorY((int) Math.round(wx), (int) Math.round(wz));   // the field rises and falls, and so does the wall standing on it
+                for (int h = 0; h < 11; h++) lv.sendParticles(zp, WALL_RED, false, wx, wy + 0.4 + h * 1.4, wz, 1, 0, 0.35, 0, 0);
+                if (k % 4 == 0) for (int h = 0; h < 6; h++) lv.sendParticles(zp, WALL_GLOW, false, wx, wy + 0.6 + h * 2.6, wz, 1, 0, 0.2, 0, 0);
             }
             if (zd > zr) {
                 float dmg = Math.max(1f, zp.getMaxHealth() * 0.25f);   // a quarter of everything they have, every second, however far out they are
@@ -1117,11 +1140,11 @@ public final class HungerGames {
             if (p == null) { eliminate(s, u, null, "left the games"); continue; }
             if (p.level() != lv) { p.teleportTo(lv, 0.5, groundY, 0.5, 0f, 0f); continue; }
             double d = Math.hypot(p.getX(), p.getZ());
-            if (d > PlanetGenerator.PLAT_R - 3) {   // the edge of the stone
-                double k = (PlanetGenerator.PLAT_R - 8) / d;
+            if (d > PlanetGenerator.FIELD_R - 10) {   // the rim of the island
+                double k = (PlanetGenerator.FIELD_R - 24) / d;
                 int x = (int) (p.getX() * k), z = (int) (p.getZ() * k);
                 lv.getChunk(x >> 4, z >> 4);
-                p.teleportTo(lv, x + 0.5, groundY, z + 0.5, p.getYRot(), p.getXRot());
+                p.teleportTo(lv, x + 0.5, floorY(x, z), z + 0.5, p.getYRot(), p.getXRot());
                 p.displayClientMessage(Component.literal("That is the edge of the arena."), true);
             }
         }

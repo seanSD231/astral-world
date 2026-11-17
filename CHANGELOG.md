@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.275
+
+The hunger games move out of the church and onto the field built in 0.2.274.
+
+- **The games are fought over the whole island.** The closing wall now starts at 860 blocks instead of 343 and takes 18 minutes rather than 11 to shut, ending on the middle of the church as before. So the last circle is still the church floor, but getting there is a journey.
+- **Everyone starts outside the church.** The start ring is 150 blocks past the wall, out in the open country, and it searches outwards and back towards the wall for a spot rather than retreating into the nave.
+- **Chests follow.** 430 field chests instead of 170 verge ones, spread evenly over the ground rather than bunched near the wall; the 50 middle and 60 church chests are unchanged. Two in every three hidden barrels are now out in the country, the rest still in the dark of the church ring.
+- **Everything knows the ground moves now.** Chests, barrels, start spots and the forced walk back from the rim all read the generated terrain height instead of assuming the church's one flat floor, and the wall of particles rises and falls with the hills it stands on. The rim you are pushed back from is the edge of the island, not the edge of the stone.
+
 ## 0.2.274
 
 The arena gets a country around it. Generation only: the hunger games still play out inside the church until the next build moves them out.
