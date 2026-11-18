@@ -2,6 +2,18 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.309
+
+- **The Apothecary's middle is clear.** The benches stood at .55 of the radius and the potions began at .4,
+  which put the whole workshop around whoever walked in. Benches, herbs and books are against the wall, the
+  potions start out at the rim, and the Seq 1 flasks are two thirds the size.
+- **Apothecary's stars are against the black.** They were at 3.4 times the radius with the dome at 4, so most of
+  them sat outside it; Seq 0 drew five hundred and twenty. They are well inside the dome and a third as many.
+- **Fool 1's card can be picked up again.** The card lies on the table top, and the table top is a grid of solid
+  entities, so the card's own box was always behind them. It reaches the card where it is drawn.
+- **A card is laid in the middle of the block**, not on the exact spot that was clicked. An off-centre card put
+  the Fool's table, the hall and the thrones a third of a block out from whatever was built around them.
+
 ## 0.2.308
 
 - **Death 0 has a scythe.** The blade was ten tapered segments laid along an arc, which built a jointed bent rod

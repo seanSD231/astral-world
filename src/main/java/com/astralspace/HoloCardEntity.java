@@ -110,6 +110,20 @@ public class HoloCardEntity extends Entity {
         super.remove(reason);
     }
 
+    /**
+     * Fool Seq 1 lays the card on the table top, and the table top is itself a grid of solid
+     * entities: a thin box down on the floor was always behind them, so the card could not be
+     * taken back. Its box reaches the card where it is drawn.
+     */
+    @Override
+    protected AABB makeBoundingBox() {
+        if (!symbolOnly() && goo() < 0 && seq() == 1 && pathIndex() == 18) {
+            double ty = getY() + .84 * (F1_S * .6f);
+            return new AABB(getX() - .42, ty - .02, getZ() - .42, getX() + .42, ty + .34, getZ() + .42);
+        }
+        return super.makeBoundingBox();
+    }
+
     @Override public boolean isPickable() { return true; }
     @Override public float getPickRadius() { return 0.3f; }
     @Override public boolean isPushable() { return false; }

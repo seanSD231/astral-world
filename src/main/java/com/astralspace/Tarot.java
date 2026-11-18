@@ -232,7 +232,10 @@ public final class Tarot {
                 net.minecraft.core.BlockPos bp = c.getClickedPos();
                 double top = bp.getY() + lv.getBlockState(bp).getShape(lv, bp).max(net.minecraft.core.Direction.Axis.Y);
                 if (top < bp.getY() + .1) top = bp.getY() + 1;
-                net.minecraft.world.phys.Vec3 at = new net.minecraft.world.phys.Vec3(c.getClickLocation().x, top + .01, c.getClickLocation().z);
+                // the middle of the block it was laid on, not the exact spot that was clicked: a card
+                // whose hologram brings a table or a throne with it has to line up with what is built
+                // around it, and an off-centre one puts the whole hall a third of a block out
+                net.minecraft.world.phys.Vec3 at = new net.minecraft.world.phys.Vec3(bp.getX() + .5, top + .01, bp.getZ() + .5);
                 if (!lv.getEntitiesOfClass(HoloCardEntity.class, new net.minecraft.world.phys.AABB(at, at).inflate(.45, .3, .45)).isEmpty()) return net.minecraft.world.InteractionResult.FAIL;
                 HoloCardEntity e = new HoloCardEntity(HoloCardEntity.TYPE.get(), lv);
                 int seq = Math.max(0, Math.min(9, t.getInt("seq")));
