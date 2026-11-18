@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.290
+
+- **Error 0** is its own scene now. Seq 1 stays the Worm of Time (stepped time, the clock, the worms); Seq 0 is the
+  whole sphere going wrong. Theft is the pathway's one skill and by Sequence 1 it reaches time, anchors and
+  authorities, so Seq 0 lifts the authorities of other pathways out of the air one at a time, dragging each along a
+  thread into the middle and leaving a blank platinum null hanging where it was. The dome is torn into panes knocked
+  out of true with some missing outright and a bright seam where they tore, threads of fate hang with their middles
+  cut clean out, three dials stack in the sky each keeping its own time with the middle one running backwards, and a
+  column of the world is simply not there. Platinum and white, the pathway's own colour, with the purple as accent.
+- **Error 0 and 1**: half again as many error windows and messages.
+
 ## 0.2.289
 
 - **Paragon 0, Demon of Knowledge and Goddess of Origin** all run much lighter. The costs were: a ring of rails

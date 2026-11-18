@@ -2207,14 +2207,14 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         { float bw = 5f * S, by = CY - 3.6f * S, prog = (float) Math.min(1f, fract(t * .12f) * 1.3f); prog = Math.round(prog * 12f) / 12f;   // a stuttering loading bar
           quad("solid", gx(0, 0), by, gz(0, 0), sx0 * bw / 2, 0, sz0 * bw / 2, 0, .22f * S, 0, rgba(0x101018, .85f));
           quad("solid", gx(-bw / 2 + bw * prog / 2, 0), by, gz(-bw / 2 + bw * prog / 2, 0), sx0 * bw * prog / 2, 0, sz0 * bw * prog / 2, 0, .16f * S, 0, rgba(PUR, .95f)); }
-        int nw = 2 * N;
+        int nw = 3 * N;
         for (int i = 0; i < nw; i++) {   // error windows that jump around, each in its own sector so they do not pile up
             int slot = (int) Math.floor(t / 1.4f + h(i, 5) * 3);
             float a = (i + .15f + .7f * h(slot * 5 + i, 71)) * TAU / nw, r = R * (.75f + .3f * h(slot * 3 + i, 72)), y = 1.5f * S + h(slot * 7 + i, 73) * top * .55f;
             if (fract(t * .7f + h(i, 8)) < .85f) panel("errwin", (float) Math.cos(a) * r, y, (float) Math.sin(a) * r, 3.0f * S, 1.9f * S, a + PI / 2, rgba(0xFFFFFF, 1f));
         }
         String[] words = {"errtext", "nulltext", "deadtext", "t404"};
-        for (int i = 0; i < 2; i++) { if (fract(t * .5f + h(i, 31)) < .6f) { int slot = (int) Math.floor(t * .5f + h(i, 31));
+        for (int i = 0; i < 1 + N; i++) { if (fract(t * .5f + h(i, 31)) < .6f) { int slot = (int) Math.floor(t * .5f + h(i, 31));
             float a = (i * .5f + .1f + .3f * h(slot + i, 81)) * TAU, r = R * (.5f + .3f * h(slot + i, 82)); bb(words[(slot + i) & 3], (float) Math.cos(a) * r, 1f * S + top * (.45f + .4f * h(slot + i, 83)), (float) Math.sin(a) * r, 4f * S, 1f * S, 0, rgba(0xFFFFFF, 1f)); } }
         for (int c = 0; c < 2 * N; c++) {   // binary rain
             float a = c * TAU / (2 * N) + .3f, r = R * (.35f + .35f * h(c, 4));
@@ -2255,7 +2255,62 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             }
         }
         solid(false);
+        if (N == 2) errorZero(t0);
         t = t0;
+    }
+    /**
+     * Error (Seq 0). Seq 1 is the Worm of Time: stepped time, the clock, the worms. Seq 0 is the whole sphere going
+     * wrong. Theft is the pathway's one skill and by Sequence 1 it reaches time, anchors and authorities, so here the
+     * authorities of other pathways are lifted out of the air one at a time and left as blank platinum nulls; the dome
+     * is torn into panes knocked out of true with some of them missing outright; threads of fate hang with their
+     * middles cut clean out; dials stack in the sky each keeping its own time, the middle one backwards; and a column
+     * of the world is simply not there. Platinum and white, which is the pathway's own colour, with the purple as accent.
+     */
+    private void errorZero(float t0) {
+        int PLAT = 0xE8ECF2, PUR = 0xA050FF;
+        dome(R * 3.6f, 0x080510, 250);
+        for (int i = 0; i < 26; i++) {   // the dome in panes, each slid out of true and flickering
+            float a = h(i, 300) * TAU, el = .08f + 1.25f * h(i, 301);
+            int slot = (int) Math.floor(t0 * .8f + h(i, 302) * 7);
+            if (h(slot * 7 + i, 303) < .18f) continue;                                   // this pane is gone this moment
+            float jx = (h(slot * 3 + i, 304) - .5f) * .5f, jr = 1f + (h(slot * 5 + i, 305) - .5f) * .14f, sz = (9f + 7f * h(i, 306)) * S;
+            domeQuad("solid", R * 3.5f * jr, a + jx * .12f, el + jx * .06f, sz, sz * (.6f + .5f * h(i, 307)), h(i, 308) * PI,
+                     rgba(i % 4 == 0 ? PUR : PLAT, .1f + .13f * h(slot + i, 309)));
+            if (h(slot * 11 + i, 310) < .25f)
+                domeQuad("solid", R * 3.46f, a + jx * .12f, el + jx * .06f, sz * 1.04f, sz * .06f, h(i, 308) * PI, rgba(PLAT, .6f));   // the bright seam where it tore
+        }
+        for (int i = 0; i < 8; i++) {   // the theft of authority: a pathway's symbol slides in, shrinks, and a null is left hanging where it was
+            float a = i * TAU / 8 + .2f, rr = R * .9f, y = 2.4f * S + 2.6f * S * (i % 3), q = t0 * .07f + i / 8f, ph = fract(q);
+            int pw = (((int) Math.floor(q)) * 7 + i * 5) % Tarot.PATHWAYS.length;
+            float k = ph < .55f ? 0f : Math.min(1f, (ph - .55f) / .3f);
+            float px = gc(a) * rr * (1f - k * .55f), py = y + k * (CY - y) * .4f, pz = gs(a) * rr * (1f - k * .55f);
+            if (k < .99f) symPlane(pw, px, py, pz, (2.4f - 1.6f * k) * S, -a + PI / 2, 1f - k);
+            if (k > .2f) { bb("solid", gc(a) * rr, y, gs(a) * rr, 2.5f * S * k, 2.5f * S * k, 0, rgba(PLAT, .3f * k));
+                           bb("solid", gc(a) * rr, y, gs(a) * rr, 2.2f * S * k, 2.2f * S * k, 0, rgba(0x05040A, .85f * k)); }
+            if (k > .02f && k < .98f) for (int m2 = 0; m2 < 3; m2++) {   // the thread it is dragged in along
+                float u = fract(t0 * 1.1f + m2 / 3f);
+                bb("spark", px + (0 - px) * u, py + (CY - py) * u, pz + (0 - pz) * u, .7f * S, .7f * S, t0 * 2f, rgba(PUR, .8f * (1f - u)));
+            }
+        }
+        for (int i = 0; i < 10; i++) {   // threads of fate, several of them cut
+            float a = h(i, 320) * TAU + t0 * .01f, rr = R * (.45f + .8f * h(i, 321)), hT = top * (1.1f + .5f * h(i, 322));
+            int slot = (int) Math.floor(t0 * .25f + h(i, 323) * 5);
+            if (h(slot * 3 + i, 324) >= .45f) { column("line", gc(a) * rr, .1f, hT, gs(a) * rr, .16f * S, rgba(PLAT, .45f)); continue; }
+            float c0 = .3f + .4f * h(slot + i, 325);
+            column("line", gc(a) * rr, .1f, hT * (c0 - .07f), gs(a) * rr, .16f * S, rgba(PLAT, .45f));
+            column("line", gc(a) * rr, hT * (c0 + .07f), hT, gs(a) * rr, .16f * S, rgba(PLAT, .45f));
+            bb("spark", gc(a) * rr, hT * c0, gs(a) * rr, 1.6f * S, 1.6f * S, t0 * 2f, rgba(PUR, .9f));
+        }
+        for (int d = 0; d < 3; d++) {   // dials in the sky, the middle one running backwards
+            float a = d * TAU / 3 + .6f, rr = R * (.5f + .25f * d), cy2 = top * (.75f + .38f * d), cw = (6f - 1.2f * d) * S;
+            standIn("clock", gc(a) * rr, cy2, gs(a) * rr, cw, cw, rgba(PLAT, .5f));
+            standSpin("line", gc(a) * rr, cy2, gs(a) * rr, cw * .62f, .12f * S, t0 * (d == 1 ? -1.4f : .5f + .4f * d), rgba(PUR, .85f));
+        }
+        { int slot = (int) Math.floor(t0 * .18f); float na = h(slot, 330) * TAU, nr = R * (.3f + .45f * h(slot, 331));
+          float ph = fract(t0 * .18f), fa = Math.min(1f, Math.min(ph, 1f - ph) * 6f);
+          float nx = gc(na) * nr, nz = gs(na) * nr, nw2 = 1.9f * S, nh = top * .8f;
+          solid(true); box(nx, nh / 2, nz, nw2, nh / 2, nw2, 0x010103, (int) (250 * fa)); solid(false);   // a column of the world that is not there
+          for (int e2 = 0; e2 < 4; e2++) column("line", nx + ((e2 & 1) == 0 ? nw2 : -nw2), 0, nh, nz + ((e2 & 2) == 0 ? nw2 : -nw2), .14f * S, rgba(PLAT, .8f * fa)); }
     }
     private void wheel(int N) {
         sigil(R);
