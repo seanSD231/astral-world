@@ -248,10 +248,20 @@ public final class Duel {
         return ma != null && ma == mv;                       // a duelist and an outsider, or two other duelists: never
     }
 
+    /**
+     * A duel is over the moment it is decided, but the two of them stand in the arena for
+     * a few more seconds before they are carried back. Until then neither of them can be
+     * hurt by anything at all -- the winner was still swinging when the blow landed.
+     */
+    private static boolean leaving(Player p) { return returns.containsKey(p.getUUID()); }
+
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onIncoming(LivingIncomingDamageEvent event) {
-        if (!(event.getEntity() instanceof Player victim) || matches.isEmpty()) return;
+        if (!(event.getEntity() instanceof Player victim)) return;
+        if (leaving(victim)) { event.setCanceled(true); return; }
         Player by = playerBehind(event.getSource().getEntity());
+        if (by != null && by != victim && leaving(by)) { event.setCanceled(true); return; }
+        if (matches.isEmpty()) return;
         if (by != null && by != victim && !allowed(by, victim)) event.setCanceled(true);
     }
 
@@ -287,9 +297,10 @@ public final class Duel {
     /** Nobody outside a duel can put an effect on a duelist, and a duelist's effects only reach their opponent. The effect is taken straight back off (the old one restored). */
     @SubscribeEvent
     public static void onEffect(MobEffectEvent.Added event) {
-        if (matches.isEmpty() || !(event.getEntity() instanceof Player victim)) return;
+        if (!(event.getEntity() instanceof Player victim)) return;
         Player by = playerBehind(event.getEffectSource());
-        if (by == null || by == victim || allowed(by, victim)) return;
+        if (by == null || by == victim) return;
+        if (!leaving(victim) && !leaving(by) && (matches.isEmpty() || allowed(by, victim))) return;
         var old = event.getOldEffectInstance();
         victim.removeEffect(event.getEffectInstance().getEffect());
         if (old != null) victim.addEffect(new net.minecraft.world.effect.MobEffectInstance(old));

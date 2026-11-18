@@ -810,8 +810,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     /**
      * A heart, built as one smooth surface: the classic heart outline, swept in toward its middle while it bulges out
      * to the front and to the back, so it is rounded like a real thing and has the cleft and the point. It is lighter
-     * where it bulges and darker in the cleft, with a small bright sheen high on one lobe and the stubs of the two
-     * great vessels at the top. About 2r across, centred on the origin. (It was two balls and a wedge.)
+     * where it bulges and darker in the cleft, with a small bright sheen high on one lobe. No vessels: on the
+     * balance it reads as a symbol, and the stubs made it anatomical. About 2r across, centred on the origin.
      */
     private void heartModel(float r, int rgb) {
         int n = 28, rings = 6; float k = r / 15f, yc = 2.5f * k, depth = .62f * r;
@@ -833,9 +833,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             }
         }
         sphere(-6.5f * k, 9f * k, depth * .78f, 2.6f * k, 1.7f * k, .5f * k, 4, 6, mix(rgb, 0xFFFFFF, .7f), 255);     // the sheen
-        int vessel = mix(rgb, 0x500010, .35f);
-        push(); tr(-2.5f * k, 11.5f * k, 0); rZ(.25f); frustum(0, 5.5f * k, 2.6f * k, 2.2f * k, 8, 1, 1, vessel, 255, true); tr(0, 5.5f * k, 0); rZ(.9f); frustum(0, 3.5f * k, 2.2f * k, 1.9f * k, 8, 1, 1, vessel, 255, true); pop();   // the aorta, arching over
-        push(); tr(3.5f * k, 11f * k, 0); rZ(-.3f); frustum(0, 4.2f * k, 2.0f * k, 1.7f * k, 8, 1, 1, mix(rgb, 0x3040A0, .45f), 255, true); pop();                                                                             // a vein, bluish
     }
     /**
      * A feather: a quill that bends, bare at the root, with two vanes of separate barbs sweeping forward along it,
@@ -2231,10 +2228,12 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void door(int N, boolean m) {
         sigil(R);
         float H = m ? 3.6f : 2.3f;
-        // Seq 0 starts with every door shut and opens them one after another; Seq 1's single door stands open.
-        float mid = m ? doorSwing(.5f) : 1f, midE = mid * mid * (3f - 2f * mid);
+        // Both sequences begin shut and swing open: Seq 0's ring opens one door after another.
+        // The model's own leaf is carved standing open, so shut is the quarter turn back and
+        // the rest pose is wide -- the swing runs from 90 degrees down to nothing.
+        float mid = doorSwing(m ? .5f : .4f), midE = mid * mid * (3f - 2f * mid);
         pushFace(); rY(PI);
-        geoBone = "panel"; geoBoneYaw = (float) Math.toRadians(90f * midE);
+        geoBone = "panel"; geoBoneYaw = (float) Math.toRadians(90f * (1f - midE));
         boolean ok = m ? drawGeo("high_sequence_door", "lotm", "textures/entity/high_sequence_door.png", H) : drawGeo("mid_sequence_door", "lotm", "textures/entity/mid_sequence_door.png", H);
         geoBone = null;
         pop();
@@ -2244,7 +2243,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         if (m) for (int i = 0; i < 6; i++) { float a = i * TAU / 6 + HoloCardEntity.DOOR_PHASE, rr = R * HoloCardEntity.DOOR_RING; int dc = hsv(i / 6f, .6f);
             float k2 = doorSwing(1.1f + i * .32f), ke = k2 * k2 * (3f - 2f * k2);
             push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2); boolean hi = i % 2 == 0;
-            geoBone = "panel"; geoBoneYaw = (float) Math.toRadians(90f * ke);
+            geoBone = "panel"; geoBoneYaw = (float) Math.toRadians(90f * (1f - ke));
             if (!drawGeo(hi ? "high_sequence_door" : "mid_sequence_door", "lotm", "textures/entity/" + (hi ? "high" : "mid") + "_sequence_door.png", 3.0f * S))
                 doorModel(1.3f * S, 2.2f * S, mix(P2, 0x182030, .3f), mix(P2, 0x0A1428, .2f), P3, -1.15f * ke);
             geoBone = null; pop();

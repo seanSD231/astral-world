@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.307
+
+- **Both door holograms swing the right way.** The Sequence 1 door never opened and the Sequence 0 ring started
+  wide and shut itself -- one cause: LOTM's door model is carved with its leaf already standing open, so the
+  quarter turn that was meant to open it was closing it. Both now begin shut and swing out.
+- **Nobody can be hit after a duel is decided.** The match was cleared the instant someone went down, which let
+  the winner keep swinging through the few seconds before the two of them are carried back. Both duelists are
+  now untouchable, by damage and by effects, until they are out of the arena.
+- **The weighed heart has no vessels.** The aorta and the blue stub at the top made it anatomical; on the
+  Arbiter's balance it should read as a symbol.
+
 ## 0.2.306
 
 - **The binder's progress bars are alive.** Each bar fills in its own pathway's colour -- gold only once all
