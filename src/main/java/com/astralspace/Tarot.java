@@ -51,6 +51,20 @@ public final class Tarot {
     public static final String[] GOO_NAMES = {"Lord of Mysteries", "God Almighty", "Eternal Darkness", "Calamity of Destruction", "Demon of Knowledge", "Key of Light", "Goddess of Origin", "Father of Devils", "The Anarchy"};
     /** The pathways under each Great Old One. */
     public static final String[][] GOO_PATHS = {{"seer", "marauder", "apprentice"}, {"spectator", "bard", "sailor", "reader", "secrets_supplicant"}, {"sleepless", "corpse_collector", "warrior"}, {"assassin", "hunter"}, {"mystery_pryer", "savant"}, {"monster"}, {"planter", "apothecary"}, {"criminal", "prisoner"}, {"lawyer", "arbiter"}};
+    /**
+     * The admin cards. A tier of their own above the Great Old Ones: a card's pathway is "admin_<id>", its seq 0.
+     * They are never rolled by any pack and never appear in the odds; the only source is an admin pack, which is
+     * itself only ever given out.
+     */
+    public static final String[] ADMIN_IDS = {"rupex_123"};
+    public static final String[] ADMIN_TITLES = {"Bearer of Sins"};
+    public static int adminIndex(String pathway) {
+        if (pathway == null || !pathway.startsWith("admin_")) return -1;
+        for (int i = 0; i < ADMIN_IDS.length; i++) if (pathway.equals("admin_" + ADMIN_IDS[i])) return i;
+        return -1;
+    }
+    public static ItemStack makeAdminCard(int i) { return makeCard("admin_" + ADMIN_IDS[i], 0, false); }
+
     /** Chance per card of a Great Old One, percent: normal and shiny packs, rainbow packs. */
     private static final double GOO_CHANCE = 0.1, GOO_CHANCE_RAINBOW = 0.25;
     public static int gooIndex(String pathway) {
@@ -90,7 +104,7 @@ public final class Tarot {
     public static void onItemJoin(net.neoforged.neoforge.event.entity.EntityJoinLevelEvent e) {
         if (!(e.getEntity() instanceof net.minecraft.world.entity.item.ItemEntity ie) || !ie.getItem().is(CARD.get())) return;
         CompoundTag t = ie.getItem().getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (gooIndex(t.getString("pathway")) >= 0 || t.contains("seq") && t.getInt("seq") <= 1) ie.setInvulnerable(true);
+        if (gooIndex(t.getString("pathway")) >= 0 || adminIndex(t.getString("pathway")) >= 0 || t.contains("seq") && t.getInt("seq") <= 1) ie.setInvulnerable(true);
     }
 
     public static int rarityOf(ItemStack s) {
@@ -108,6 +122,7 @@ public final class Tarot {
         if (!t.contains("pathway")) return 0;
         String p = shownPath(t); int q = shownSeq(t);
         if (gooIndex(p) >= 0) return 3001 + gooIndex(p);
+        if (adminIndex(p) >= 0) return 4001 + adminIndex(p);
         if (!(q >= 0 && q <= 9 || hasAnim(p, q))) return 0;
         for (int i = 0; i < PATHWAYS.length; i++) if (PATHWAYS[i].equals(p)) return (t.getBoolean("shiny") ? 1000 : 0) + i * 10 + q + 1;   // shiny cards (Seq 9 to 3) have their own black and gold art
         return 0;
@@ -115,6 +130,7 @@ public final class Tarot {
 
     public static String pretty(String id) {
         if (gooIndex(id) >= 0) return GOO_NAMES[gooIndex(id)];
+        if (adminIndex(id) >= 0) return ADMIN_IDS[adminIndex(id)];
         StringBuilder b = new StringBuilder();
         for (String w : id.split("_")) b.append(b.length() > 0 ? " " : "").append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
         return b.toString();
@@ -191,6 +207,8 @@ public final class Tarot {
             boolean mim = canMimic(t) && t.contains("mimicPath") && !t.getString("mimicPath").isEmpty();   // wearing another card's face: its name too, in a slightly different shade
             String pw = mim ? t.getString("mimicPath") : t.getString("pathway");
             if (gooIndex(pw) >= 0) return Component.literal("Great Old One - " + GOO_NAMES[gooIndex(pw)]).withStyle(mim ? net.minecraft.network.chat.Style.EMPTY.withBold(true).withColor(net.minecraft.network.chat.TextColor.fromRgb(0xDCDCEC)) : net.minecraft.network.chat.Style.EMPTY.withBold(true).withColor(ChatFormatting.WHITE));
+            if (adminIndex(pw) >= 0) return Component.literal(ADMIN_TITLES[adminIndex(pw)] + " - " + ADMIN_IDS[adminIndex(pw)])
+                    .withStyle(net.minecraft.network.chat.Style.EMPTY.withBold(true).withColor(net.minecraft.network.chat.TextColor.fromRgb(0xE23030)));
             int seq = Math.max(0, Math.min(9, mim ? t.getInt("mimicSeq") : t.getInt("seq")));
             Component nm = Component.literal((t.getBoolean("shiny") ? "Shiny " : "") + pretty(pw) + " - Seq " + seq);
             if (!mim) return nm.copy().withStyle(RARITY_COLOR[seq]);

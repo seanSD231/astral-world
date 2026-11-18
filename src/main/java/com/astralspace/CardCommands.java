@@ -31,7 +31,20 @@ public final class CardCommands {
             .executes(ctx -> give(ctx, true, true))
             .then(Commands.literal("normal").executes(ctx -> give(ctx, true, false)))
             .then(Commands.literal("shiny").executes(ctx -> give(ctx, false, true)))
-            .then(Commands.literal("both").executes(ctx -> give(ctx, true, true))));
+            .then(Commands.literal("both").executes(ctx -> give(ctx, true, true)))
+            .then(Commands.literal("admin").executes(CardCommands::giveAdmin)));
+    }
+
+    /** /astralcards admin - one of every admin card. They come from nowhere else but an admin pack. */
+    private static int giveAdmin(com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx) {
+        net.minecraft.server.level.ServerPlayer p;
+        try { p = ctx.getSource().getPlayerOrException(); } catch (Exception e) { ctx.getSource().sendFailure(Component.literal("Run this as a player.")); return 0; }
+        for (int i = 0; i < Tarot.ADMIN_IDS.length; i++) {
+            ItemStack card = Tarot.makeAdminCard(i);
+            if (!p.getInventory().add(card)) p.drop(card, false);
+        }
+        ctx.getSource().sendSuccess(() -> Component.literal("Gave " + Tarot.ADMIN_IDS.length + " admin card(s)."), false);
+        return 1;
     }
 
     private static int give(CommandContext<CommandSourceStack> ctx, boolean normal, boolean shiny) {

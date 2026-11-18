@@ -1112,6 +1112,11 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         curPath = Math.min(pi, PAL.length - 1); gold = shiny; GOLDMODE = shiny; curOwner = e.ownerName();
         int[] pal = PAL[curPath];
         P1 = gold ? 0xFFD448 : pal[0]; P2 = gold ? 0x9A6A10 : pal[1]; P3 = gold ? 0xFFF0B8 : pal[2];
+        if (e.admin() >= 0) {   // a tier of its own: the Bearing of Sins, over the Hanged Man's own colours
+            R = 12f; top = 19f; S = 2.35f; CY = 7.4f + (float) Math.sin(t * 1.2) * .3f;
+            curPath = pidx("secrets_supplicant"); P1 = 0xFF3038; P2 = 0x7A0C14; P3 = 0xFFC8B8;
+            if (!symOnly) { adminScene(e.admin()); return; }
+        }
         if (e.goo() >= 0) { R = 12f; top = 19f; S = 2.35f; CY = 7.4f + (float) Math.sin(t * 1.2) * .3f; int[] gp = GOOPAL[e.goo()]; curPath = pidx(Tarot.GOO_PATHS[e.goo()][0]); P1 = gp[0]; P2 = gp[1]; P3 = gp[2]; if (!symOnly) { gooScene(e.goo()); return; } }
         if (symOnly) { if (e.goo() >= 0) gooSymbolOnly(e.goo()); else symbolOnly(); return; }
         Cfg c = CFG[curPath];
@@ -1121,7 +1126,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
 
     private void drawCard(HoloCardEntity e, MultiBufferSource bufs, int light, int pi, int seq, boolean shiny) {
-        String name = e.goo() >= 0 ? "textures/item/card_goo_" + Tarot.GOO_IDS[e.goo()] + "_0.png" : "textures/item/card_" + Tarot.PATHWAYS[pi] + "_" + seq + (shiny ? "_shiny" : "") + ".png";
+        String name = e.admin() >= 0 ? "textures/item/card_admin_" + Tarot.ADMIN_IDS[e.admin()] + "_0.png"
+                    : e.goo() >= 0 ? "textures/item/card_goo_" + Tarot.GOO_IDS[e.goo()] + "_0.png" : "textures/item/card_" + Tarot.PATHWAYS[pi] + "_" + seq + (shiny ? "_shiny" : "") + ".png";
         ResourceLocation rl = ResourceLocation.fromNamespaceAndPath("astral_world", name);
         VertexConsumer vc = bufs.getBuffer(RenderType.entityCutoutNoCull(rl));
         float yawR = (float) Math.toRadians(e.getYRot());
@@ -1159,6 +1165,42 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         sigil(R * .6f);   // just a small circle under the model, like the legendaries
     }
     private int gooDomeRgb;
+    /**
+     * The admin card's hologram. The Bearing of Sins hanging at the heart of it, chains out of a red sky, seven
+     * pillars standing round the rim, and a drop that falls and rings the floor over and over.
+     */
+    private void adminScene(int a) {
+        dome(R * 3.6f, 0x090305, 252);
+        mcStars(130, R * 3.3f, 0xFFFFFF, 0xFF7A7A, .45f * S);
+        for (int i = 0; i < 16; i++) {   // red cloud turning slowly on the sky
+            float ang = h(i, 500) * TAU + t * .012f, el = .10f + 1.25f * h(i, 501), sz = (16f + 12f * h(i, 502)) * S;
+            domeQuad("smoke", R * 3.5f, ang, el, sz, sz * .55f, h(i, 503) * PI, rgba(0x8A1018, .18f));
+        }
+        sigil(R);
+        for (int k = 0; k < 4; k++)
+            flat("ring", 0, .12f + k * .004f, 0, R * (.45f + .42f * k), t * (k % 2 == 0 ? .18f : -.18f), rgba(k % 2 == 0 ? P1 : P3, .5f));
+        flat("whirl", 0, .11f, 0, R * 1.6f, -t * .25f, rgba(P1, .4f));
+        for (int i = 0; i < 7; i++) {   // seven pillars of light standing round the rim, breathing
+            float ang = i * TAU / 7 + t * .02f, rr = R * 1.18f, k2 = .45f + .55f * Math.abs(gs(t * .6f + i * 1.3f));
+            column("beam", gc(ang) * rr, 0, top * 1.1f, gs(ang) * rr, 1.5f * S, rgba(P1, .22f * k2));
+            bb("glow", gc(ang) * rr, top * .45f, gs(ang) * rr, 5f * S, top * .8f, 0, rgba(P1, .10f * k2));
+        }
+        int iron = mix(0x6A6A74, P1, .2f);
+        for (int i = 0; i < 6; i++) {   // chains hanging out of the sky
+            float ang = i * TAU / 6 + .4f, rr = R * .62f;
+            push(); tr(gc(ang) * rr, top * 1.15f, gs(ang) * rr); rZ(gs(t * .4f + i) * .05f);
+            chain(top * .5f, .55f * S, iron); pop();
+        }
+        float sy = CY + 2.6f * S;
+        bearerSym(0, sy, 0, 9.5f * S, -face, true);
+        for (int i = 0; i < 3; i++) {   // the drop, falling again and again
+            float pw = fract(t * .35f + i / 3f), y0 = sy - 4.4f * S;
+            bb("drop", 0, y0 - pw * (y0 - .4f), 0, .9f * S, 1.5f * S, 0, rgba(0xD01828, 1f - pw * .3f));
+        }
+        for (int i = 0; i < 2; i++) { float pw = fract(t * .35f + i / 2f); flat("ring_thick", 0, .13f, 0, pw * R * 1.5f, 0, rgba(P1, fd(pw))); }
+        sprites("mote", 60, RISEM, R * .9f, 0, top, .45f * S, P1, 1f, .3f, 95, false);
+        cardBeam(P1);
+    }
     private void gooScene(int g) {
         gooBase(g, g == 1 ? 0x100800 : g == 5 ? 0x020A18 : g == 6 ? 0x180804 : g == 3 ? 0x1A0204 : g == 7 ? 0x0C0012 : g == 8 ? 0x020A0C : g == 0 ? 0x08041A : g == 4 ? 0x04041A : 0x010204, 248);
         offX = 0; offZ = 0;

@@ -89,6 +89,7 @@ public final class Binder {
         String pw = t.getString("pathway");
         if (pw.isEmpty()) return null;                       // the plain test card has no face of its own
         if (t.contains("mimicPath")) return null;            // a card wearing another's face is not that card
+        if (Tarot.adminIndex(pw) >= 0) return null;          // an admin card is not part of the collection, and must not be swallowed by a binder it has no page in
         return key(pw, t.getInt("seq"), t.getBoolean("shiny"));
     }
 

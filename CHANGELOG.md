@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.299
+
+- **The admin cards.** A tier of their own above the Great Old Ones. A card's pathway is `admin_<id>` and its
+  sequence 0; no pack rolls one and they are in nobody's odds. The first is **rupex_123, Bearer of Sins**: red and
+  black on the Sequence 0 template, with LOTM's own Hanged Man symbol at the heart of the circle, bleeding.
+  `/astralcards admin` gives one.
+- Placing it raises a hologram of its own: the Bearing of Sins hanging at the middle, chains out of a red sky, seven
+  pillars of light standing round the rim that breathe in and out, cloud turning across the dome, and a drop that
+  falls and rings the floor over and over.
+- A binder will not take one. It has no page for it, so it would have swallowed the card with no way to get it back.
+
 ## 0.2.298
 
 - **The duel arena has a dimension of its own** (`astral_world:duel`): an empty void with nothing in it but the

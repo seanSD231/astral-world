@@ -32,6 +32,7 @@ public class HoloCardEntity extends Entity {
     private static final EntityDataAccessor<Integer> SEQ = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> SHINY = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> GOO = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> ADMIN = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> SYMBOL = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<String> OWNERN = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.STRING);   // the one who put it down, so the scene can wear their face
     private UUID owner;
@@ -48,9 +49,10 @@ public class HoloCardEntity extends Entity {
     public HoloCardEntity(EntityType<?> type, Level level) { super(type, level); this.noPhysics = true; }
 
     public void setCard(String pathway, int seq, boolean shiny) {
-        int gi = Tarot.gooIndex(pathway);
+        int gi = Tarot.gooIndex(pathway), ai = Tarot.adminIndex(pathway);
         entityData.set(GOO, gi);
-        if (gi >= 0) { entityData.set(PATH, 0); entityData.set(SEQ, 0); entityData.set(SHINY, false); return; }
+        entityData.set(ADMIN, ai);
+        if (gi >= 0 || ai >= 0) { entityData.set(PATH, 0); entityData.set(SEQ, 0); entityData.set(SHINY, false); return; }
         int p = 0;
         for (int i = 0; i < Tarot.PATHWAYS.length; i++) if (Tarot.PATHWAYS[i].equals(pathway)) p = i;
         entityData.set(PATH, p); entityData.set(SEQ, seq); entityData.set(SHINY, shiny);
@@ -60,7 +62,9 @@ public class HoloCardEntity extends Entity {
     public String ownerName() { return entityData.get(OWNERN); }
     /** Index of the Great Old One this card is (0..8), or -1 for an ordinary card. */
     public int goo() { return entityData.get(GOO); }
-    public String pathway() { if (goo() >= 0) return "goo_" + Tarot.GOO_IDS[goo()]; return Tarot.PATHWAYS[Math.max(0, Math.min(Tarot.PATHWAYS.length - 1, entityData.get(PATH)))]; }
+    /** Index of the admin card this is, or -1. A tier of its own, above the Great Old Ones. */
+    public int admin() { return entityData.get(ADMIN); }
+    public String pathway() { if (admin() >= 0) return "admin_" + Tarot.ADMIN_IDS[admin()]; if (goo() >= 0) return "goo_" + Tarot.GOO_IDS[goo()]; return Tarot.PATHWAYS[Math.max(0, Math.min(Tarot.PATHWAYS.length - 1, entityData.get(PATH)))]; }
     public int pathIndex() { return Math.max(0, Math.min(Tarot.PATHWAYS.length - 1, entityData.get(PATH))); }
     public int seq() { return entityData.get(SEQ); }
     public boolean shiny() { return entityData.get(SHINY); }
@@ -68,7 +72,7 @@ public class HoloCardEntity extends Entity {
     public boolean symbolOnly() { return entityData.get(SYMBOL); }
     public void setSymbolOnly(boolean b) { entityData.set(SYMBOL, b); }
 
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); b.define(SYMBOL, false); b.define(GOO, -1); b.define(OWNERN, ""); }
+    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); b.define(SYMBOL, false); b.define(GOO, -1); b.define(ADMIN, -1); b.define(OWNERN, ""); }
 
     @Override protected void readAdditionalSaveData(CompoundTag t) {
         setCard(t.getString("pathway"), t.getInt("seq"), t.getBoolean("shiny"));
@@ -90,7 +94,7 @@ public class HoloCardEntity extends Entity {
     @Override public boolean isInvulnerableTo(DamageSource source) { return true; }
     @Override public void kill() { }                                          // not even an ability that kills outright takes a card
     /** The hologram reaches several blocks above the card, so the renderer must not be culled with the thin card box. */
-    @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 300 : 48, goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 220 : 30, goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 300 : 48); }
+    @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(admin() >= 0 || goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 300 : 48, admin() >= 0 || goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 220 : 30, admin() >= 0 || goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 300 : 48); }
     @Override public boolean shouldRenderAtSqrDistance(double d) { return d < 420.0 * 420.0; }
 
     @Override
