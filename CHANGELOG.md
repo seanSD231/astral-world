@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.298
+
+- **The duel arena has a dimension of its own** (`astral_world:duel`): an empty void with nothing in it but the
+  platforms, lit by its own ambient light and the arena's sea lanterns, with no sky, no mobs, no raids and no beds.
+  The platforms sit at the origin there instead of a million blocks out in the overworld, nothing of the overworld
+  can wander in, and duelists are still carried back to exactly where they were afterwards. /duel refuses to start a
+  new duel from inside it. If the pack holding the dimension is ever missing, it falls back to the old far-away
+  overworld platforms.
+
 ## 0.2.297
 
 - **Door 0** starts with every door shut and opens them. The model loader now keeps which bone each face came from

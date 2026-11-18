@@ -1,0 +1,18 @@
+{
+  "type": "astral_world:duel",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "astral_world:astral_void",
+      "features": false,
+      "lakes": false,
+      "layers": [
+        {
+          "block": "minecraft:air",
+          "height": 1
+        }
+      ],
+      "structure_overrides": []
+    }
+  }
+}

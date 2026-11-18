@@ -64,11 +64,24 @@ public final class Duel {
     // Duels do not happen where the challenge was made (an ambush, a prepared spot, someone else's spell or mob would decide them): both
     // duelists are carried to a platform of their own, far from anything, and carried back to exactly where they were afterwards.
 
-    private static final int ARENA_X = 1_000_000, ARENA_Z = 1_000_000, ARENA_Y = 250, ARENA_R = 20, SLOT_GAP = 80;
+    /** The duel arena has a dimension to its own: an empty void with nothing in it but the platforms. */
+    public static final net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> DUEL =
+        net.minecraft.resources.ResourceKey.create(Registries.DIMENSION, ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "duel"));
+    /** The duel dimension, or the overworld if the pack that holds it is missing (then the old far-away platforms are used). */
+    private static ServerLevel arenaLevel(MinecraftServer server) {
+        ServerLevel lv = server.getLevel(DUEL);
+        return lv != null ? lv : server.overworld();
+    }
+    private static boolean ownDim(MinecraftServer server) { return server.getLevel(DUEL) != null; }
+
+    private static final int ARENA_Y = 100, ARENA_R = 20, SLOT_GAP = 80;
     private static final String BACK = "astral_duel_back";
     private static final Map<UUID, Long> returns = new HashMap<>();   // player -> server tick at which they go back
 
-    private static BlockPos centre(int slot) { return new BlockPos(ARENA_X + slot * SLOT_GAP, ARENA_Y, ARENA_Z); }
+    private static BlockPos centre(MinecraftServer server, int slot) {
+        int off = ownDim(server) ? 0 : 1_000_000;   // in its own dimension the platforms sit at the origin; in the overworld, far from everything
+        return new BlockPos(off + slot * SLOT_GAP, ARENA_Y, off);
+    }
 
     private static int freeSlot() {
         java.util.Set<Integer> used = new java.util.HashSet<>();
@@ -79,7 +92,7 @@ public final class Duel {
 
     /** The platform: a round stone floor with lit panels, and invisible walls and a lid so nobody leaves it. Built once. */
     private static void buildArena(ServerLevel lv, int slot) {
-        BlockPos c = centre(slot);
+        BlockPos c = centre(lv.getServer(), slot);
         BlockState mark = Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState();
         if (lv.getBlockState(c).is(mark.getBlock())) return;
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
@@ -99,8 +112,8 @@ public final class Duel {
     }
 
     /** Where a duelist stands in the arena: opposite ends, facing each other. */
-    private static double[] spot(int slot, boolean first) {
-        BlockPos c = centre(slot);
+    private static double[] spot(MinecraftServer server, int slot, boolean first) {
+        BlockPos c = centre(server, slot);
         return new double[]{c.getX() + 0.5 + (first ? -14 : 14), c.getY() + 1, c.getZ() + 0.5, first ? -90 : 90};
     }
 
@@ -113,8 +126,8 @@ public final class Duel {
             t.putFloat("yaw", p.getYRot()); t.putFloat("pitch", p.getXRot());
             keep.put(BACK, t);
         }
-        ServerLevel lv = p.server.overworld();
-        double[] s = spot(slot, first);
+        ServerLevel lv = arenaLevel(p.server);
+        double[] s = spot(p.server, slot, first);
         p.teleportTo(lv, s[0], s[1], s[2], (float) s[3], 0f);
         p.setDeltaMovement(0, 0, 0); p.fallDistance = 0;
     }
@@ -157,6 +170,7 @@ public final class Duel {
         if (dueling(them)) { say(me, them.getGameProfile().getName() + " is already in a duel.", ChatFormatting.RED); return 0; }
         if (HungerGames.fighting(me) || HungerGames.fighting(them)) { say(me, "Not during the hunger games.", ChatFormatting.RED); return 0; }
         if (me.level().dimension().equals(Cosmos.COSMOS) || them.level().dimension().equals(Cosmos.COSMOS)) { say(me, "Not in the arena dimension.", ChatFormatting.RED); return 0; }
+        if (me.level().dimension().equals(DUEL) || them.level().dimension().equals(DUEL)) { say(me, "Not in the duel arena.", ChatFormatting.RED); return 0; }
         asks.put(them.getUUID(), new Ask(me.getUUID(), safe, System.currentTimeMillis() + ASK_MS));
         String mode = safe ? "SAFE (nobody loses items or sequence)" : "NORMAL (the loser really dies: items and sequence are at stake)";
         say(me, "Challenge sent to " + them.getGameProfile().getName() + " (" + (safe ? "safe" : "normal") + "). It expires in 60 seconds.", ChatFormatting.GOLD);
@@ -182,7 +196,7 @@ public final class Duel {
         Match m = new Match(from.getUUID(), me.getUUID(), ask.safe(), Lotm.sequence(from), Lotm.sequence(me), freeSlot());
         matches.put(m.a, m); matches.put(m.b, m);
         asks.remove(from.getUUID());
-        buildArena(me.server.overworld(), m.slot);
+        buildArena(arenaLevel(me.server), m.slot);
         carryToArena(from, m.slot, true); carryToArena(me, m.slot, false);
         String msg = "The duel begins in the duel arena! (" + (ask.safe() ? "safe" : "normal") + ") Only your opponent can hurt or affect you. /duel forfeit to yield. You are carried back to where you were afterwards.";
         say(from, msg, ChatFormatting.GREEN); say(me, msg, ChatFormatting.GREEN);
@@ -330,10 +344,11 @@ public final class Duel {
             for (UUID id : new UUID[]{m.a, m.b}) {
                 ServerPlayer p = server.getPlayerList().getPlayer(id);
                 if (p == null) continue;
-                BlockPos c = centre(m.slot);
-                boolean in = p.level().dimension().equals(net.minecraft.world.level.Level.OVERWORLD)
+                ServerLevel arena = arenaLevel(server);
+                BlockPos c = centre(server, m.slot);
+                boolean in = p.level().dimension().equals(arena.dimension())
                         && Math.hypot(p.getX() - c.getX() - 0.5, p.getZ() - c.getZ() - 0.5) <= ARENA_R + 1 && p.getY() > c.getY() - 3;
-                if (!in) { double[] s = spot(m.slot, id.equals(m.a)); p.teleportTo(server.overworld(), s[0], s[1], s[2], (float) s[3], 0f); p.fallDistance = 0; }
+                if (!in) { double[] s = spot(server, m.slot, id.equals(m.a)); p.teleportTo(arena, s[0], s[1], s[2], (float) s[3], 0f); p.fallDistance = 0; }
             }
         }
         long now = System.currentTimeMillis();
