@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.295
+
+- **Lawyer 0**: a court. Ten black pillars with gilt capitals ring the throne, heavy chains swag between their tops,
+  twelve figures kneel in two ranks bowed toward the seat, and two great banners flank it with cloth that ripples.
+- **Father of Devils**: a lake of fire burning in patches across the floor, the sky cracked right across, and twelve
+  devils on the wing in two tiers going opposite ways — lean red bodies, horns, beating three-fingered wings.
+- **Key of Light**: the door the key is for. A dark arch stands behind the gate ring filled with white light, with
+  the seven colours set into its crown; and seven locks round the rim turn open one after another, each throwing a
+  beam of its own colour up into the dark.
+- **Corpse 0**: the glow around the scythe was drawn at the middle of the sphere instead of at the scythe.
+
 ## 0.2.294
 
 - **Hunter 0**: an army's camp. Ten war banners round the rim, each on a pole most of the sphere's height with cloth
