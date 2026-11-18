@@ -2467,9 +2467,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
     private void abyss(int N, boolean m) {
         dome(R * 3.6f, 0x050008, m ? 252 : 246);
-        flat("whirl", 0, .06f, 0, 2.2f * R, -t * .5f, rgba(0x7A22B0, .9f)); flat("whirl", 0, .08f, 0, 1.4f * R, t * .8f, rgba(0xA01830, .9f));
+        flat("whirl", 0, .06f, 0, 1.7f * R, -t * .5f, rgba(0x7A22B0, .9f)); flat("whirl", 0, .08f, 0, 1.15f * R, t * .8f, rgba(0xA01830, .9f));
         sigil(R);
-        for (int i = 0; i < 4; i++) { float pw = fract(t * .25f + i / 4f); flat("ring", 0, .1f + i * .02f, 0, (1 - pw) * 2.2f * R, 0, rgba(P1, fd(pw))); }
+        for (int i = 0; i < 4; i++) { float pw = fract(t * .25f + i / 4f); flat("ring", 0, .1f + i * .02f, 0, (1 - pw) * 1.8f * R, 0, rgba(P1, fd(pw))); }
         float vr = (m ? 4.6f : 2.2f) * S, vy = CY + (m ? 3.4f : 1.4f) * S;
         flat("whirl", 0, vy, 0, (m ? 18f : 9f) * S, t * 1.2f, rgba(0xB02040, .95f)); flat("whirl", 0, vy, 0, (m ? 12f : 6f) * S, -t * 1.8f, rgba(0x9A50E0, .9f));
         if (m) {   // Seq 0: the orb is split open. A red heart burns inside it, the shell is in plates with the light
@@ -2495,9 +2495,11 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int i = 0; i < nten; i++) wrapTentacle(0, vy, 0, vr, R * (m ? .85f : .65f), i * TAU / nten + t * .03f, i % 2 == 0 ? 1f : -1f, i, dark, (m ? .8f : .6f) * S);
         mcStars(70, R * 2.8f, 0xFF3050, 0xB060FF, .55f * S);
         if (m) {   // seq 0: the whole sphere is the abyss: swirls and cracks across the floor out to the dome, and swirls turning in the sky
-            for (int i = 0; i < 4; i++) { float a = i * TAU / 4 + .4f, rr = R * (1.1f + 1.4f * h(i, 231)), sz = (7f + 9f * h(i, 232)) * S; flat("whirl", (float) Math.cos(a) * rr, .1f + i * .005f, (float) Math.sin(a) * rr, sz, t * (i % 2 == 0 ? .5f : -.6f) + i, rgba(i % 2 == 0 ? 0x9A50E0 : 0xB02040, .85f)); }
-            flat("whirl", 0, .04f, 0, 6.5f * R, -t * .15f, rgba(0x4A1470, .9f)); flat("whirl", 0, .05f, 0, 4.6f * R, t * .2f, rgba(0x701028, .8f));
-            for (int i = 0; i < 5; i++) flat("crack", 0, .13f, 0, R * (2.4f + 1.6f * h(i, 233)), i * TAU / 5 + h(i, 234) * .3f, rgba(i % 2 == 0 ? 0xC02438 : 0x9048B0, .3f));
+            // all of this used to run out to six and a half times the radius with the dome at 3.6,
+            // so most of every swirl lay outside the dark and over the real ground
+            for (int i = 0; i < 4; i++) { float a = i * TAU / 4 + .4f, rr = R * (.45f + .75f * h(i, 231)), sz = (5f + 6f * h(i, 232)) * S; flat("whirl", (float) Math.cos(a) * rr, .1f + i * .005f, (float) Math.sin(a) * rr, sz, t * (i % 2 == 0 ? .5f : -.6f) + i, rgba(i % 2 == 0 ? 0x9A50E0 : 0xB02040, .85f)); }
+            flat("whirl", 0, .04f, 0, 2.9f * R, -t * .15f, rgba(0x4A1470, .9f)); flat("whirl", 0, .05f, 0, 2.1f * R, t * .2f, rgba(0x701028, .8f));
+            for (int i = 0; i < 5; i++) flat("crack", 0, .13f, 0, R * (1.3f + .9f * h(i, 233)), i * TAU / 5 + h(i, 234) * .3f, rgba(i % 2 == 0 ? 0xC02438 : 0x9048B0, .3f));
             for (int i = 0; i < 12; i++) { float a = i * TAU / 12, el = .15f + .75f * h(i, 235), sz = (10f + 8f * h(i, 236)) * S;
                 domeQuad("whirl", R * 3.52f, a, el, sz, sz, (i % 2 == 0 ? 1 : -1) * t * (.6f + .3f * h(i, 237)), rgba(i % 2 == 0 ? 0x9A50E0 : 0xB02040, .55f)); }
         }
@@ -2700,15 +2702,15 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      * of the world is simply not there. Platinum and white, which is the pathway's own colour, with the purple as accent.
      */
     private void errorZero(float t0) {
-        int PLAT = 0xE8ECF2, PUR = 0xA050FF;
-        dome(R * 3.6f, 0x080510, 250);
+        int PLAT = 0xF2F5FA, PUR = 0xBE78FF;
+        dome(R * 3.6f, 0x1A1430, 242);   // it was all but black: a lit violet dark, so the panes and the threads read
         for (int i = 0; i < 26; i++) {   // the dome in panes, each slid out of true and flickering
             float a = h(i, 300) * TAU, el = .08f + 1.25f * h(i, 301);
             int slot = (int) Math.floor(t0 * .8f + h(i, 302) * 7);
             if (h(slot * 7 + i, 303) < .18f) continue;                                   // this pane is gone this moment
             float jx = (h(slot * 3 + i, 304) - .5f) * .5f, jr = 1f + (h(slot * 5 + i, 305) - .5f) * .14f, sz = (9f + 7f * h(i, 306)) * S;
             domeQuad("solid", R * 3.5f * jr, a + jx * .12f, el + jx * .06f, sz, sz * (.6f + .5f * h(i, 307)), h(i, 308) * PI,
-                     rgba(i % 4 == 0 ? PUR : PLAT, .1f + .13f * h(slot + i, 309)));
+                     rgba(i % 4 == 0 ? PUR : PLAT, .2f + .2f * h(slot + i, 309)));
             if (h(slot * 11 + i, 310) < .25f)
                 domeQuad("solid", R * 3.46f, a + jx * .12f, el + jx * .06f, sz * 1.04f, sz * .06f, h(i, 308) * PI, rgba(PLAT, .6f));   // the bright seam where it tore
         }
@@ -2718,8 +2720,13 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             float k = ph < .55f ? 0f : Math.min(1f, (ph - .55f) / .3f);
             float px = gc(a) * rr * (1f - k * .55f), py = y + k * (CY - y) * .4f, pz = gs(a) * rr * (1f - k * .55f);
             if (k < .99f) symPlane(pw, px, py, pz, (2.4f - 1.6f * k) * S, -a + PI / 2, 1f - k);
-            if (k > .2f) { bb("solid", gc(a) * rr, y, gs(a) * rr, 2.5f * S * k, 2.5f * S * k, 0, rgba(PLAT, .3f * k));
-                           bb("solid", gc(a) * rr, y, gs(a) * rr, 2.2f * S * k, 2.2f * S * k, 0, rgba(0x05040A, .85f * k)); }
+            if (k > .2f) {   // what is left where the symbol was: a hollow frame with a slash through it
+                float nx2 = gc(a) * rr, nz2 = gs(a) * rr, w2 = 2.4f * S * k, e2w = .12f * S;
+                bb("glow", nx2, y, nz2, w2 * 1.5f, w2 * 1.5f, 0, rgba(PUR, .25f * k));
+                for (int q = -1; q <= 1; q += 2) {
+                    stand("solid", nx2, y + q * w2 * .5f, nz2, w2, e2w, -a + PI / 2, rgba(PLAT, .85f * k));
+                    stand("solid", nx2 - gs(a) * q * w2 * .5f, y, nz2 + gc(a) * q * w2 * .5f, e2w, w2, -a + PI / 2, rgba(PLAT, .85f * k)); }
+                stand("solid", nx2, y, nz2, w2 * 1.3f, e2w, -a + PI / 2 + .78f, rgba(PUR, .9f * k)); }
             if (k > .02f && k < .98f) for (int m2 = 0; m2 < 3; m2++) {   // the thread it is dragged in along
                 float u = fract(t0 * 1.1f + m2 / 3f);
                 bb("spark", px + (0 - px) * u, py + (CY - py) * u, pz + (0 - pz) * u, .7f * S, .7f * S, t0 * 2f, rgba(PUR, .8f * (1f - u)));
@@ -2742,8 +2749,16 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         { int slot = (int) Math.floor(t0 * .18f); float na = h(slot, 330) * TAU, nr = R * (.3f + .45f * h(slot, 331));
           float ph = fract(t0 * .18f), fa = Math.min(1f, Math.min(ph, 1f - ph) * 6f);
           float nx = gc(na) * nr, nz = gs(na) * nr, nw2 = 1.9f * S, nh = top * .8f;
-          solid(true); box(nx, nh / 2, nz, nw2, nh / 2, nw2, 0x010103, (int) (250 * fa)); solid(false);   // a column of the world that is not there
-          for (int e2 = 0; e2 < 4; e2++) column("line", nx + ((e2 & 1) == 0 ? nw2 : -nw2), 0, nh, nz + ((e2 & 2) == 0 ? nw2 : -nw2), .14f * S, rgba(PLAT, .8f * fa)); }
+          // a column of the world that is not there. It was a solid near-black block, which just
+          // read as a black cube standing in the scene; it is a lit outline round a thin violet
+          // haze now, so it reads as a hole cut out of the air.
+          solid(true); box(nx, nh / 2, nz, nw2, nh / 2, nw2, 0x241844, (int) (90 * fa)); solid(false);
+          for (int e2 = 0; e2 < 4; e2++) column("line", nx + ((e2 & 1) == 0 ? nw2 : -nw2), 0, nh, nz + ((e2 & 2) == 0 ? nw2 : -nw2), .16f * S, rgba(PLAT, .9f * fa));
+          for (int lv = 0; lv < 2; lv++) { float ly = lv == 0 ? .12f : nh;      // a bright frame round the top and the foot of it
+              for (int e2 = -1; e2 <= 1; e2 += 2) {
+                  bb("solid", nx, ly, nz + e2 * nw2, nw2 * 2f, .16f * S, 0, rgba(PLAT, .8f * fa));
+                  bb("solid", nx + e2 * nw2, ly, nz, .16f * S, nw2 * 2f, 0, rgba(PLAT, .8f * fa)); } }
+          bb("glow", nx, nh * .5f, nz, nw2 * 4f, nh, 0, rgba(PUR, .2f * fa)); }
     }
     private void wheel(int N) {
         sigil(R);

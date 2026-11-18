@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.312
+
+- **The black cube in Error 0 is gone.** The "column of the world that is not there" was a solid near-black box
+  standing in the middle of the scene. It is a lit outline round a thin violet haze with a bright frame at its
+  top and foot, so it reads as a hole cut out of the air. The nulls left where a stolen symbol was are hollow
+  frames with a slash through them instead of black squares.
+- **Error 0 is lit.** Its dome was all but black at `0x080510`; it is a violet dark now and the torn panes are
+  twice as bright, so the fate threads and the dials read against it.
+- **The Abyss keeps its swirls inside the dark.** They ran out to six and a half times the radius with the dome
+  at three and a half, so most of every swirl lay outside the sphere and over the real ground.
+
 ## 0.2.311
 
 - **The Paragon's trains carry their own wheels.** The loco's side frame stopped a tenth of a scale short of the
