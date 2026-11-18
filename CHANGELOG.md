@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.306
+
+- **The binder's progress bars are alive.** Each bar fills in its own pathway's colour -- gold only once all
+  ten shiny faces are in -- with a brighter band sliding along the collected part. A finished bar stops
+  sliding and breathes instead, and its label changes from `7 / 10` to **COMPLETE**, **ALL SHINY** on the
+  shiny page, or **MASTERED** when every shiny face of that pathway is held.
+
 ## 0.2.305
 
 - **The pack sprites are back to what they were.** 0.2.285 redrew all 67 of them as 64px pixel art; they were worse,

@@ -391,7 +391,7 @@ public final class BinderScreen extends Screen {
         String label = shiny ? "SHINY FACES" : "NORMAL FACES";
         g.drawString(font, label, right - 22 - font.width(label), top + 16, shiny ? GOLD_HI : GREY, false);
         String count = here().isChapter() ? chapterHeld() + " / " + chapterTotal()
-                                          : held(path()) + " / 10";
+                                          : tally(held(path()), path());
         g.drawString(font, count, right - 22 - font.width(count), top + 30, over ? GOLD_HI : GOLD, false);
         if (over) hover = "Turn to the " + (shiny ? "normal" : "shiny") + " faces";
     }
@@ -450,6 +450,46 @@ public final class BinderScreen extends Screen {
         }
     }
 
+    /**
+     * A pathway's progress bar. The fill is always the pathway's own colour -- gold only
+     * once all ten shiny faces are in -- and a brighter band slides along the filled part
+     * so the bar is alive on the page. A finished bar breathes instead of sliding, which
+     * reads as arrival rather than progress.
+     */
+    private void bar(GuiGraphics g, int x, int y, int w, int h, int got, String pathway) {
+        boolean gold = allShiny(pathway), full = got == 10;
+        int base = gold ? GOLD : accentOf(pathway);
+        g.fill(x, y, x + w, y + h, 0xFF0C0B11);
+        g.renderOutline(x, y, w, h, full ? dim(base, .55f) : 0xFF2A2632);
+        if (got <= 0) return;
+        int fw = Math.max(1, w * got / 10);
+        g.fill(x, y, x + fw, y + h, base);
+        float ph = (System.currentTimeMillis() % 2200L) / 2200f;
+        if (full) {
+            // a slow breath over the whole bar, strongest in the middle of the cycle
+            float k = .55f + .45f * (float) Math.sin(ph * Math.PI * 2);
+            g.fill(x, y, x + fw, y + h, (((int) (90 * k)) << 24) | (lift(base) & 0xFFFFFF));
+        } else {
+            // a three pixel highlight running the length of what has been collected
+            int band = Math.max(2, fw / 7);
+            int hx = x - band + (int) (ph * (fw + band));
+            int a = Math.max(x, hx), b = Math.min(x + fw, hx + band);
+            if (b > a) g.fill(a, y, b, y + h, 0x70000000 | (lift(base) & 0xFFFFFF));
+        }
+    }
+
+    /** A colour pushed toward white, for the moving part of a bar. */
+    private static int lift(int argb) {
+        int r = (argb >> 16) & 255, gg = (argb >> 8) & 255, b = argb & 255;
+        return 0xFF000000 | ((r + (255 - r) * 3 / 5) << 16) | ((gg + (255 - gg) * 3 / 5) << 8) | (b + (255 - b) * 3 / 5);
+    }
+
+    /** What a bar is labelled with: a count until it is full, and then what it means. */
+    private String tally(int got, String pathway) {
+        if (got < 10) return got + " / 10";
+        return allShiny(pathway) ? "MASTERED" : shiny ? "ALL SHINY" : "COMPLETE";
+    }
+
     /** Dims a colour toward the page, for a row that is not the one being read. */
     private static int dim(int argb, float k) {
         int r = (int) (((argb >> 16) & 255) * k), gg = (int) (((argb >> 8) & 255) * k), b = (int) ((argb & 255) * k);
@@ -505,9 +545,7 @@ public final class BinderScreen extends Screen {
                 int got = held(p);
                 int bx = railX + railW - 116, bw = 74;
                 int by = y + (railLine - 7) / 2;
-                g.fill(bx, by, bx + bw, by + 6, 0xFF0C0B11);
-                g.renderOutline(bx, by, bw, 6, 0xFF2A2632);
-                if (got > 0) g.fill(bx, by, bx + bw * got / 10, by + 6, gold ? GOLD : got == 10 ? GOLD_HI : accentOf(p));
+                bar(g, bx, by, bw, 6, got, p);
                 String n = String.valueOf(got);
                 // right-aligned against the rail's edge, not the bar's: a two digit 10
                 // right-aligned ten pixels past a 78px bar lands back on top of it
@@ -588,11 +626,10 @@ public final class BinderScreen extends Screen {
                          gold ? GOLD : dim(accentOf(ps[i]), got == 10 ? 1f : .8f), false);
             g.drawString(font, seqName(ps[i], 0), lx, ly + 16, 0xFF43404E, false);
             int bx = right - 210, bw = 130, by = ly + 10;
-            g.fill(bx, by, bx + bw, by + 7, 0xFF0C0B11);
-            g.renderOutline(bx, by, bw, 7, 0xFF2A2632);
-            if (got > 0) g.fill(bx, by, bx + bw * got / 10, by + 7, gold ? GOLD : got == 10 ? GOLD_HI : accentOf(ps[i]));
-            String t = got + " / 10";
-            g.drawString(font, t, right - 44 - font.width(t), ly + 7, got == 10 ? GOLD : GREY_D, false);
+            bar(g, bx, by, bw, 7, got, ps[i]);
+            String t = tally(got, ps[i]);
+            g.drawString(font, t, right - 44 - font.width(t), ly + 7,
+                         got == 10 ? (gold ? GOLD : lift(accentOf(ps[i]))) : GREY_D, false);
         }
         String note = "One face bears " + Tarot.GOO_NAMES[gi] + ". Its pathways hold ten each.";
         g.drawString(font, note, x, y + h + 12, 0xFF3A3744, false);
