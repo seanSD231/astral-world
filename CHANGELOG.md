@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.289
+
+- **Paragon 0, Demon of Knowledge and Goddess of Origin** all run much lighter. The costs were: a ring of rails
+  drawn as two 72-segment tubes with a 32-quad ball at every join (and the Demon of Knowledge lays three of those
+  rings); three toruses at 20 x 5 on every wheel of a ten-car train; and the world tree's strands, roots, limbs and
+  veins each carrying a ball at all of their joins. Joins are a third the quads they were, the smooth runs do
+  without them, and the wheels, moat banks, quay and canopy are on coarser rings. Nothing has moved or changed shape.
+
 ## 0.2.288
 
 - **Seer 1**: the card sits on top of the round table instead of inside it, and the table is solid all the way

@@ -524,7 +524,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
     }
     /** A ring lying flat on the ground (a kerb, a quay). */
-    private void torus2(float rr, float r, int rgb) { push(); rX(PI / 2); torus(0, 0, 0, rr, rr, r, 40, 6, 0, TAU, rgb, 255); pop(); }
+    private void torus2(float rr, float r, int rgb) { push(); rX(PI / 2); torus(0, 0, 0, rr, rr, r, 32, 4, 0, TAU, rgb, 255); pop(); }
     private void crown(float r, int rgb, int gem) {
         sphere(0, .3f * r, 0, .9f * r, .62f * r, .9f * r, 6, 12, 0x08080C, 255); frustum(-.02f * r, .1f * r, r * 1.06f, r * 1.06f, 16, 1, 1, 0x0A0A0E, 255, false);   // a black velvet cap inside the gold and a black band round its foot
         frustum(0, .28f * r, r, r * 1.04f, 16, 1, 1, rgb, 255, false);
@@ -896,7 +896,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             if (l < 1e-4f) continue;
             float ra = r0 + (r1 - r0) * i / n, rb = r0 + (r1 - r0) * (i + 1) / n;
             push(); tr(pts[i][0], pts[i][1], pts[i][2]); aim(dx, dy, dz); frustum(0, l, ra, rb, 8, 1, 1, rgb, 255, false); pop();
-            if (joints) sphere(pts[i + 1][0], pts[i + 1][1], pts[i + 1][2], rb * 1.02f, rb * 1.02f, rb * 1.02f, 4, 8, rgb, 255);
+            if (joints) sphere(pts[i + 1][0], pts[i + 1][1], pts[i + 1][2], rb * 1.02f, rb * 1.02f, rb * 1.02f, 3, 6, rgb, 255);
         }
     }
     /** A tentacle that rises from the ground and spirals around an orb centred at (cx,cy,cz). */
@@ -1412,7 +1412,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
           for (int j = 0; j < sg; j++) { float a = j * TAU / sg, ln = rm * TAU / sg * .56f;
               eq(tex("solid"), gc(a) * rm, .09f, gs(a) * rm, -gs(a) * ln, 0, gc(a) * ln, gc(a) * wm, 0, gs(a) * wm, rgba(0x14406E, .97f), 0, 0, 1, 1);
               if (j % 2 == 0) eq(tex("solid"), gc(a) * rm, .1f, gs(a) * rm, -gs(a) * ln, 0, gc(a) * ln, gc(a) * wm * .96f, 0, gs(a) * wm * .96f, rgba(0x1F5C94, .6f), 0, 0, 1, 1); }
-          for (int sd = -1; sd <= 1; sd += 2) tube(ring(0, .14f, 0, rm + sd * wm * 1.02f, 60), .18f * S, .18f * S, 0x6A6458);   // stone banks
+          for (int sd = -1; sd <= 1; sd += 2) tube(ring(0, .14f, 0, rm + sd * wm * 1.02f, 44), .18f * S, .18f * S, 0x6A6458, false);   // stone banks
           for (int k = 0; k < 16; k++) { float ph2 = fract(t * .2f + k / 16f), a = k * 1.3f; flat("ring", gc(a) * rm, .13f, gs(a) * rm, (.5f + 1.6f * ph2) * S, 0, rgba(0xBFE0FF, .5f * fd(ph2))); }
           for (int sh = 0; sh < 8; sh++) { float ta = t * .07f + sh * TAU / 8, sr = rm + (sh % 2 == 0 ? -1f : 1f) * wm * .35f;
               vAlpha = 1f; push(); tr(gc(ta) * sr, .16f, gs(ta) * sr); rY(-ta - PI / 2); steamShip((sh % 3 == 0 ? .3f : .22f) * S); pop();
@@ -1441,7 +1441,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             tube(pts, .95f * U, .55f * U, v % 2 == 0 ? bkA : bkB);
             float[][] vp = new float[24][];   // a vein of light in the groove beside it
             for (int k = 0; k < 24; k++) { float u = k / 23f, a = v * TAU / 8 + TAU / 16 + dir * u * 3.6f, rr = (2.9f * (float) Math.pow(1f - u, 2.2f) + 1.42f + 1.1f * u * u * u) * U; vp[k] = v3(gc(a) * rr, u * H, gs(a) * rr); }
-            tube(vp, .07f * U, .05f * U, vein);
+            tube(vp, .07f * U, .05f * U, vein, false);
             for (int q = 0; q < 3; q++) { float u = fract(t * .07f + q / 3f + v * .13f); int k = Math.min(22, (int) (u * 23)); float[] pp = vp[k]; bb("glow", pp[0], pp[1], pp[2], 1.5f * U, 1.5f * U, 0, rgba(vein, .7f * fd(u))); }   // light travelling up it
         }
         for (int v = 0; v < 10; v++) {   // roots running out across the ground, each ending in a curl
@@ -1449,7 +1449,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             for (int k = 0; k < 16; k++) { float u = k / 15f;
                 if (k < 11) { float uu = k / 10f, aa = a + uu * .5f * dir, r2 = (2.6f + uu * 6.5f) * U; pts[k] = v3(gc(aa) * r2, (float) Math.pow(1f - uu, 2f) * 2.4f * U + .12f * U + gs(uu * 9f + v) * .12f * U, gs(aa) * r2); }
                 else { float sp = (k - 10) / 5f * 4.4f, aa = a + .5f * dir, cr = .9f * U * (1f - (k - 10) / 5f * .6f), bxr = 9.1f * U; pts[k] = v3(gc(aa) * (bxr - cr * (float) Math.sin(sp)) , .12f * U + cr * (1f - (float) Math.cos(sp)), gs(aa) * (bxr - cr * (float) Math.sin(sp))); } }
-            tube(pts, .75f * U, .09f * U, v % 2 == 0 ? bkA : bkB);
+            tube(pts, .75f * U, .09f * U, v % 2 == 0 ? bkA : bkB, false);
         }
         cardBeam(P1);
         // the limbs: each sweeps out and up, carries a broad flat tier of leaves and ends in a curl
@@ -1457,10 +1457,10 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int b = 0; b < 9; b++) {
             float a = b * TAU / 9 + .35f, y0 = H * (.72f + .03f * (b % 3)), reach = (6.5f + 2.5f * h(b, 5)) * U, rise = (1.2f + 3.6f * h(b, 6) + (b % 3) * 1.2f) * U; float[][] pts = new float[14][];
             for (int k = 0; k < 14; k++) { float u = k / 13f, aa = a + (float) Math.sin(u * 2.6f) * .28f * (b % 2 == 0 ? 1 : -1); pts[k] = v3(gc(aa) * (1.6f * U + u * reach), y0 + rise * (float) Math.pow(u, 1.6f) + (float) Math.sin(u * PI) * .8f * U, gs(aa) * (1.6f * U + u * reach)); }
-            tube(pts, .7f * U, .16f * U, b % 2 == 0 ? bkA : bkB);
+            tube(pts, .7f * U, .16f * U, b % 2 == 0 ? bkA : bkB, false);
             float[] e = pts[13]; float ea = a + (float) Math.sin(2.6f) * .28f * (b % 2 == 0 ? 1 : -1);
             float[][] curl = new float[9][]; for (int k = 0; k < 9; k++) { float sp = k / 8f * 5f, cr = .9f * U * (1f - k / 8f * .65f); curl[k] = v3(e[0] + gc(ea) * cr * (float) Math.sin(sp), e[1] + cr * (1f - (float) Math.cos(sp)), e[2] + gs(ea) * cr * (float) Math.sin(sp)); }
-            tube(curl, .16f * U, .05f * U, bkB);
+            tube(curl, .16f * U, .05f * U, bkB, false);
             float[] m2 = pts[9];   // the tier of canopy this limb holds up
             canopyTier(m2[0], m2[1] + 1.0f * U, m2[2], (2.6f + 1.2f * h(b, 7)) * U, 30 + b * 9, lfA, lfB, lfC);
             bb("glow", m2[0], m2[1] + .4f * U, m2[2], 5f * U, 2.4f * U, 0, rgba(gl, .16f));
@@ -1468,11 +1468,11 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int b = 0; b < 4; b++) {   // small low tiers on short boughs half way up, like the old trees in the hills
             float a = b * TAU / 4 + 1.1f, y0 = H * (.38f + .08f * b); float[][] pts = new float[8][];
             for (int k = 0; k < 8; k++) { float u = k / 7f; pts[k] = v3(gc(a) * (1.4f * U + u * 3.6f * U), y0 + u * u * 1.4f * U, gs(a) * (1.4f * U + u * 3.6f * U)); }
-            tube(pts, .4f * U, .12f * U, bkA); canopyTier(pts[7][0], pts[7][1] + .6f * U, pts[7][2], 1.7f * U, 200 + b * 9, lfA, lfB, lfC);
+            tube(pts, .4f * U, .12f * U, bkA, false); canopyTier(pts[7][0], pts[7][1] + .6f * U, pts[7][2], 1.7f * U, 200 + b * 9, lfA, lfB, lfC);
         }
         // the crown: three wide tiers, the light of the sky breaking through the middle of them
         canopyTier(0, H + 3.2f * U, 0, 5.4f * U, 300, lfA, lfB, lfC); canopyTier(0, H + 5.0f * U, 0, 4.0f * U, 320, lfA, lfB, lfC); canopyTier(0, H + 6.4f * U, 0, 2.4f * U, 340, lfB, lfC, lfC);
-        for (int v = 0; v < 6; v++) { float a = v * TAU / 6 + .5f; float[][] pts = new float[8][]; for (int k = 0; k < 8; k++) { float u = k / 7f; pts[k] = v3(gc(a + u * .5f) * (1.0f * U + u * 2.6f * U), H + u * 4.6f * U, gs(a + u * .5f) * (1.0f * U + u * 2.6f * U)); } tube(pts, .5f * U, .14f * U, v % 2 == 0 ? bkA : bkB); }
+        for (int v = 0; v < 6; v++) { float a = v * TAU / 6 + .5f; float[][] pts = new float[8][]; for (int k = 0; k < 8; k++) { float u = k / 7f; pts[k] = v3(gc(a + u * .5f) * (1.0f * U + u * 2.6f * U), H + u * 4.6f * U, gs(a + u * .5f) * (1.0f * U + u * 2.6f * U)); } tube(pts, .5f * U, .14f * U, v % 2 == 0 ? bkA : bkB, false); }
         bb("glow", 0, H + 4.4f * U, 0, 16f * U, 11f * U, 0, rgba(0xFFF8D0, .45f)); bb("glow", 0, H + 4.4f * U, 0, 30f * U, 20f * U, 0, rgba(gl, .2f));
         for (int i = 0; i < 16; i++) { float a = i * TAU / 16 + t * .02f, rr = (1.5f + 6.5f * h(i, 9)) * U; column("beam", gc(a) * rr, .5f * U, H + 4f * U, gs(a) * rr, (.6f + .9f * h(i, 10)) * U, rgba(i % 3 == 0 ? vein : 0xFFF4C0, .1f + .1f * gs(t * .5f + i))); }   // shafts of light falling through the tiers
         bb("glow", 0, H * .45f, 0, 9f * U, H * 1.1f, 0, rgba(vein, .2f));
@@ -1488,13 +1488,13 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
     /** One flat tier of a great tree's canopy: a spread of low leafy domes, darker underneath and lit on top, with a fringe of leaves round its rim. */
     private void canopyTier(float x, float y, float z, float r, int seed, int dark, int mid, int lit) {
-        sphere(x, y - r * .1f, z, r * .8f, r * .14f, r * .8f, 5, 10, dark, 255);
+        sphere(x, y - r * .1f, z, r * .8f, r * .14f, r * .8f, 4, 8, dark, 255);
         int n = 7 + (int) (r / S);
         for (int i = 0; i < n; i++) {
             float a = i * TAU / n + h(seed, i), rr = r * (.42f + .32f * h(seed + i, 2)), cr = r * (.36f + .2f * h(seed + i, 3));
-            sphere(x + gc(a) * rr, y + r * (.02f + .08f * h(seed + i, 4)), z + gs(a) * rr, cr, cr * .36f, cr, 5, 9, i % 3 == 0 ? lit : i % 3 == 1 ? mid : mix(mid, dark, .5f), 255);
+            sphere(x + gc(a) * rr, y + r * (.02f + .08f * h(seed + i, 4)), z + gs(a) * rr, cr, cr * .36f, cr, 4, 8, i % 3 == 0 ? lit : i % 3 == 1 ? mid : mix(mid, dark, .5f), 255);
         }
-        sphere(x, y + r * .12f, z, r * .5f, r * .2f, r * .5f, 5, 10, lit, 255);
+        sphere(x, y + r * .12f, z, r * .5f, r * .2f, r * .5f, 4, 8, lit, 255);
         for (int i = 0; i < n; i++) { float a = i * TAU / n + t * .01f + seed; bb("leaf", x + gc(a) * r * .95f, y + gs(t * .8f + i + seed) * r * .04f, z + gs(a) * r * .95f, r * .28f, r * .28f, a, rgba(lit, .95f)); }
     }
     private float cy0(float U) { return 5.2f * U; }
@@ -2417,18 +2417,18 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      * (The tyres used to be laid flat like plates while the spokes stood upright, and the rods went round the other way.)
      */
     private void wheelPair(float s, float x, float r, float roll, int spoke) {
-        int tyre = 0x121316, steel = 0x8A8E96, gold = 0xD8B050; boolean drive = r > .4f * s; int ns = drive ? 10 : 6;
+        int tyre = 0x121316, steel = 0x8A8E96, gold = 0xD8B050; boolean drive = r > .4f * s; int ns = drive ? 8 : 5;
         box(x, r, 0, .055f * r, .055f * r, .6f * s, steel, 255);                                             // the axle joining them
         box(x, r, 0, .09f * r, .09f * r, .12f * s, 0x5A5E66, 255);                                           // and its bearing block at the middle
         for (int sd = -1; sd <= 1; sd += 2) { push(); tr(x, r, sd * .62f * s); rZ(-roll * .45f * s / r);
-            torus(0, 0, 0, r * .92f, r * .92f, .08f * r, 20, 5, 0, TAU, tyre, 255);                          // the tyre, upright
-            torus(0, 0, -sd * .06f * r, r * 1.0f, r * 1.0f, .03f * r, 20, 3, 0, TAU, steel, 255);            // its flange, on the inside of the rail
-            torus(0, 0, sd * .03f * r, r * .8f, r * .8f, .035f * r, 20, 3, 0, TAU, gold, 255);               // gilt rim
+            torus(0, 0, 0, r * .92f, r * .92f, .08f * r, 14, 3, 0, TAU, tyre, 255);                          // the tyre, upright
+            torus(0, 0, -sd * .06f * r, r * 1.0f, r * 1.0f, .03f * r, 14, 2, 0, TAU, steel, 255);            // its flange, on the inside of the rail
+            torus(0, 0, sd * .03f * r, r * .8f, r * .8f, .035f * r, 14, 2, 0, TAU, gold, 255);               // gilt rim
             for (int k = 0; k < ns; k++) { push(); rZ(k * TAU / ns); taper(.13f * r, .82f * r, .055f * r, .035f * r, .032f * r, .022f * r, spoke, 255); pop(); }
             push(); rX(PI / 2); frustum(-.08f * r, .08f * r, .16f * r, .16f * r, 10, 1, 1, gold, 255, true); pop();   // hub
             sphere(0, 0, sd * .09f * r, .07f * r, .07f * r, .04f * r, 4, 6, steel, 255);
             if (drive) {
-                torus(0, 0, sd * .02f * r, r * .6f, r * .6f, .13f * r, 8, 4, PI * .72f, PI * 1.28f, tyre, 255);      // counterweight, opposite the pin
+                torus(0, 0, sd * .02f * r, r * .6f, r * .6f, .13f * r, 6, 3, PI * .72f, PI * 1.28f, tyre, 255);      // counterweight, opposite the pin
                 push(); tr(.44f * r, 0, sd * .1f * r); rX(PI / 2); frustum(-.07f * r, .07f * r, .055f * r, .055f * r, 8, 1, 1, steel, 255, true); pop();   // crank pin
             }
             pop(); }
@@ -2507,7 +2507,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (float wx : new float[]{-.95f, -.5f, .5f, .95f}) wheelPair(s, wx * s, .21f * s, roll, red);   // two bogies of two, .45 apart within a bogie
     }
     private void railRing(float rad, float s) {
-        for (int sd = -1; sd <= 1; sd += 2) tube(ring(0, .14f * s, 0, rad + sd * .5f * s, 72), .045f * s, .045f * s, metal(.6f));
+        for (int sd = -1; sd <= 1; sd += 2) tube(ring(0, .14f * s, 0, rad + sd * .5f * s, 48), .045f * s, .045f * s, metal(.6f), false);
         int n = Math.max(24, (int) (rad * 2.2f / s * .55f)); for (int k = 0; k < n; k++) { float a = k * TAU / n; push(); tr((float) Math.cos(a) * rad, .06f * s, (float) Math.sin(a) * rad); rY(-a); box(0, 0, 0, .68f * s, .05f * s, .1f * s, 0x5A4026, 255); pop(); }
     }
     /** A train of units running round a track; dir +1 anticlockwise, -1 the other way. kinds: 0 loco, 1 tender, 2 car, 3 gun car. */
