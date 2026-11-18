@@ -2,6 +2,20 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.296
+
+- **Assassin**: the thorn hoops are gone. In their place are real rose arches — two vines twisting round each other
+  up one side and over, with thorns along them and roses opening where they cross.
+- **Assassin 0**: the mirror is a mirror. It had only a frame and a glow; it has dark backed glass in it now, a
+  cresting rose, feet and a foot to stand on, and a sheen that runs down the glass. The witch hats are about half the
+  size and the broom is half as long.
+- **Assassin 0**: chaos, which the pathway is, finally shows. Ordinary things at wrong sizes — a cube, a chair, a
+  teacup, a hoop, a shard of broken mirror — tumble in jerks instead of turning smoothly, every so often simply
+  upside down, under a knot of rings at mismatched tilts and colours each turning at its own speed.
+- **Planter 0**: the butterflies are gone and the mutation of a high-sequence Planter is there instead. Malformed
+  blooms with too many petals, a fringe of teeth and an eye in the throat; tendrils groping up out of the ground,
+  lumpy and eyed; seed pods that swell, split along a glowing seam and close again; and spores hanging over all of it.
+
 ## 0.2.295
 
 - **Lawyer 0**: a court. Ten black pillars with gilt capitals ring the throne, heavy chains swag between their tops,
