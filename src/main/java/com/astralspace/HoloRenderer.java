@@ -1384,8 +1384,19 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float by = CY + 1.2f * S; int brass = 0xC8A040, dk = 0x4A3A1C;
         for (int i = 0; i < 4; i++) { float rr = (2.6f + i * .9f) * S; push(); tr(0, by, 0); rY(t * (.25f + .12f * i) * (i % 2 == 0 ? 1 : -1)); rX(i * .6f + .3f * gs(t * .3f + i)); ring(rr, .12f * S, i % 2 == 0 ? brass : mix(P1, 0xFFFFFF, .3f), 255);
             for (int k = 0; k < 12; k++) { float a = k * TAU / 12; box(gc(a) * rr, gs(a) * rr, 0, .06f * S, .06f * S, .2f * S, dk, 255); } pop(); }
-        sphere(0, by, 0, 1.3f * S, 1.3f * S, 1.3f * S, 10, 16, mix(P3, 0xFFFFFF, .75f), 255);
-        solid(true); sphere(0, by, 0, 1.8f * S, 1.8f * S, 1.8f * S, 10, 16, P1, 80); solid(false);
+        // the crystal of knowledge: a cut gem, not a ball, held in a brass setting with its facets catching the light
+        { float gr = 1.5f * S, gh = 2.2f * S; int face1 = mix(P3, 0xFFFFFF, .7f), face2 = mix(P1, 0xFFFFFF, .35f);
+          push(); tr(0, by, 0); rY(t * .12f);
+          frustum(.18f * gh, gh, gr, 0, 8, 1, 1, face1, 245, true);                    // the crown
+          frustum(0, .18f * gh, gr * .94f, gr, 8, 1, 1, face2, 245, false);            // the girdle
+          frustum(-gh * .95f, 0, 0, gr * .94f, 8, 1, 1, face1, 245, true);             // the pavilion, drawn down to a point
+          for (int k = 0; k < 8; k++) { float a = k * TAU / 8; box(gc(a) * gr * .99f, .09f * gh, gs(a) * gr * .99f, .02f * S, .1f * gh, .02f * S, face2, 255); }
+          pop();
+          for (int k = 0; k < 4; k++) { float a = k * TAU / 4 + .4f;                    // the brass claws holding it
+              push(); tr(gc(a) * gr * 1.02f, by - gh * .5f, gs(a) * gr * 1.02f); rZ(gc(a) * .5f); rX(gs(a) * .5f);
+              taper(0, gh * .95f, .12f * S, .12f * S, .07f * S, .07f * S, brass, 255); pop(); }
+          bb("glow", 0, by, 0, 9f * S, 9f * S, 0, rgba(P3, .3f));
+          for (int k = 0; k < 6; k++) { float a = t * .8f + k * TAU / 6; bb("spark", gc(a) * gr * 1.1f, by + gs(a * 1.3f) * gh * .5f, gs(a) * gr * 1.1f, 1.1f * S, 1.1f * S, t * 2f, rgba(0xFFFFFF, .8f)); } }
         frustum(0, by - 1.5f * S, .5f * S, .9f * S, 10, 1, 1, dk, 255, true);
         // vehicles that phase in and out of reality: each solidifies, flickers and is gone again, all on their own beat
         float ts = .4f * S, trad = R * .6f; railRing(trad, ts);
@@ -2143,12 +2154,29 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         flat("whirl", 0, .06f, 0, 2.2f * R, -t * .5f, rgba(0x7A22B0, .9f)); flat("whirl", 0, .08f, 0, 1.4f * R, t * .8f, rgba(0xA01830, .9f));
         sigil(R);
         for (int i = 0; i < 4; i++) { float pw = fract(t * .25f + i / 4f); flat("ring", 0, .1f + i * .02f, 0, (1 - pw) * 2.2f * R, 0, rgba(P1, fd(pw))); }
-        float vr = 2.2f * S, vy = CY + 1.4f * S;
-        flat("whirl", 0, vy, 0, 9 * S, t * 1.2f, rgba(0xB02040, .95f)); flat("whirl", 0, vy, 0, 6 * S, -t * 1.8f, rgba(0x9A50E0, .9f));
-        sphere(0, vy, 0, vr, vr, vr, 10, 16, 0x050205, 255);
+        float vr = (m ? 4.6f : 2.2f) * S, vy = CY + (m ? 3.4f : 1.4f) * S;
+        flat("whirl", 0, vy, 0, (m ? 18f : 9f) * S, t * 1.2f, rgba(0xB02040, .95f)); flat("whirl", 0, vy, 0, (m ? 12f : 6f) * S, -t * 1.8f, rgba(0x9A50E0, .9f));
+        if (m) {   // Seq 0: the orb is split open. A red heart burns inside it, the shell is in plates with the light
+                   // of the inside showing between them, and three tilted rings of cracks turn around the whole thing.
+            sphere(0, vy, 0, vr * .62f, vr * .62f, vr * .62f, 8, 14, 0xFF2840, 255);
+            bb("glow", 0, vy, 0, vr * 3.2f, vr * 3.2f, 0, rgba(0xFF3050, .45f));
+            solid(true);
+            for (int pl = 0; pl < 7; pl++) {   // the plates of the broken shell, each turned a little out of true
+                float la = -.9f + pl * (1.8f / 6f), sp = t * (pl % 2 == 0 ? .06f : -.05f) + pl * 1.7f;
+                push(); rY(sp); rZ(la);
+                frustum(vr * .86f, vr * .99f, vr * .52f, vr * .3f, 16, 1, 1, 0x060208, 250, false);
+                frustum(vr * .80f, vr * .86f, vr * .58f, vr * .52f, 16, 1, 1, 0x1A0410, 250, false); pop();
+            }
+            solid(false);
+            for (int rg = 0; rg < 3; rg++) { push(); tr(0, vy, 0); rY(rg * PI / 3 + t * .18f); rX(.5f + rg * .7f);
+                torus(0, 0, 0, vr * 1.32f, vr * 1.32f, .1f * S, 24, 3, 0, TAU, 0x8A1028, 255); pop();
+                for (int c2 = 0; c2 < 6; c2++) { float a = c2 * TAU / 6 + t * (rg % 2 == 0 ? .3f : -.3f);
+                    standSpin("crack", gc(a) * vr * 1.32f, vy + gs(a) * vr * .55f, gs(a) * vr * 1.32f, 5f * S, 5f * S, a + rg, rgba(rg % 2 == 0 ? 0xFF3050 : 0xC060FF, .5f)); } }
+        } else sphere(0, vy, 0, vr, vr, vr, 10, 16, 0x050205, 255);
         sym(vy + vr * 1.3f + 3.4f * S, 3.4f * S, 0);
         int dark = mix(P2, 0x1A0830, .5f);
-        for (int i = 0; i < 6; i++) wrapTentacle(0, vy, 0, vr, R * .65f, i * TAU / 6 + t * .03f, i % 2 == 0 ? 1f : -1f, i, dark, .6f * S);
+        int nten = m ? 10 : 6;
+        for (int i = 0; i < nten; i++) wrapTentacle(0, vy, 0, vr, R * (m ? .85f : .65f), i * TAU / nten + t * .03f, i % 2 == 0 ? 1f : -1f, i, dark, (m ? .8f : .6f) * S);
         mcStars(70, R * 2.8f, 0xFF3050, 0xB060FF, .55f * S);
         if (m) {   // seq 0: the whole sphere is the abyss: swirls and cracks across the floor out to the dome, and swirls turning in the sky
             for (int i = 0; i < 4; i++) { float a = i * TAU / 4 + .4f, rr = R * (1.1f + 1.4f * h(i, 231)), sz = (7f + 9f * h(i, 232)) * S; flat("whirl", (float) Math.cos(a) * rr, .1f + i * .005f, (float) Math.sin(a) * rr, sz, t * (i % 2 == 0 ? .5f : -.6f) + i, rgba(i % 2 == 0 ? 0x9A50E0 : 0xB02040, .85f)); }
@@ -3377,10 +3405,30 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
         strikes(3 * N, R, top, P1);
         if (m) {   // Seq 0: the sea itself rises: three waterspouts and a great whirlpool in the floor
-            for (int i = 0; i < 3; i++) { float a = i * TAU / 3 + .4f, rr = R * .7f; if (gold || !LotmFx.hold(curId + 1000 * (i + 1), "astral_world:waterspout", ex + gc(a) * rr, ey, ez + gs(a) * rr, top * 1.15f)) {   // Photon waterspouts; a plain column only if Photon is missing
-                    spout(gc(a) * rr, gs(a) * rr, top * 1.1f, i); }
+            for (int i = 0; i < 3; i++) { float a = i * TAU / 3 + .4f, rr = R * .7f;
+                if (!LotmFx.hold(curId + 1000 * (i + 1), "astral_world:waterspout", ex + gc(a) * rr, ey, ez + gs(a) * rr, top * 1.15f))
+                    spout(gc(a) * rr, gs(a) * rr, top * 1.1f, i);                                    // a plain column only if Photon is missing, shiny included
                 bb("glow", gc(a) * rr, top * .5f, gs(a) * rr, 4f * S, 8f * S, 0, rgba(P3, .2f)); }
             flat("whirl", 0, .14f, 0, R * 2.4f, -t * .5f, rgba(P2, .8f)); flat("whirl", 0, .15f, 0, R * 1.6f, t * .8f, rgba(P1, .8f));
+            // the whirlpool is a real hole in the sea: a funnel of turning water going down out of sight
+            { float wr0 = R * .62f, dep = 7.5f * S; int rings = 7;
+              solid(true);
+              for (int k = 0; k < rings; k++) { float u = k / (float) rings, u2 = (k + 1) / (float) rings;
+                  float r0 = wr0 * (1f - u * .92f), r1 = wr0 * (1f - u2 * .92f);
+                  push(); rY(t * (.5f + .5f * u)); frustum(-u * dep, -u2 * dep, r0, r1, 26, 1, 1, mix(0x0A2440, P2, .25f * u), 255, false); pop(); }
+              frustum(-dep, -dep - 1.2f * S, wr0 * .08f, 0, 12, 1, 1, 0x02060C, 255, true);
+              solid(false);
+              for (int k = 0; k < rings; k++) { float u = (k + .5f) / rings; flat("whirl", 0, -u * dep + .1f, 0, wr0 * 2f * (1f - u * .9f), t * (1.2f + 1.6f * u), rgba(mix(P1, 0xFFFFFF, .4f), .55f)); }
+              for (int i = 0; i < 26; i++) { float pw = fract(t * .5f + h(i, 440)), a = h(i, 441) * TAU + pw * 9f, rr = wr0 * (1f - pw * .9f);
+                  bb("mote", gc(a) * rr, -pw * dep, gs(a) * rr, .5f * S, .5f * S, 0, rgba(0xFFFFFF, .8f * (1f - pw))); }
+              // two ships caught in it, going round and tipping in as they go
+              for (int sh = 0; sh < 2; sh++) { float q = fract(t * .085f + sh * .5f), a = q * TAU * 2.2f, rr = wr0 * (1.45f - q * .95f), yy = -q * q * dep * .85f + .2f;
+                  push(); tr(gc(a) * rr, yy, gs(a) * rr); rY(-a - PI / 2); rZ(-q * 1.5f); rX(q * .5f); steamShip((.3f - .1f * q) * S); pop(); }
+            }
+            // and a wall of water standing round the rim of the whole sphere
+            for (int i = 0; i < 22; i++) { float a = i * TAU / 22, rr = R * 1.28f, hh = (7f + 2.2f * gs(t * .8f + i * 1.7f)) * S;
+                stand("wave", gc(a) * rr, hh * .5f, gs(a) * rr, R * TAU / 22 * 1.5f, hh, (float) Math.atan2(gc(a), -gs(a)), rgba(mix(P1, 0xFFFFFF, .25f), .55f));
+                bb("glow", gc(a) * rr, hh * .8f, gs(a) * rr, 5f * S, 3f * S, 0, rgba(P3, .12f)); }
         }
         float th = 5.2f * S;
         push(); tr(0, CY - th * .45f, 0); rY(t * .5f); trident(th, metal(.8f), P1); pop();

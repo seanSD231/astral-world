@@ -2,6 +2,19 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.292
+
+- **Sailor 0**: the whirlpool is a real hole in the sea now — a funnel of turning water going down out of sight, with
+  spray drawn down it and two steamships caught going round, tipping further over the lower they get. A wall of
+  water stands round the rim of the whole sphere. Seq 1 is untouched, so the two no longer read the same.
+- **Shiny Sailor 0**: the waterspouts use the Photon effect like every other card. Shiny was the one case that fell
+  back to the built model.
+- **Criminal 0**: the orb is twice the size and a different thing — a red heart burning inside a shell broken into
+  plates that are each turned out of true, with the light of the inside showing between them and three tilted rings
+  of cracks turning round it. Ten tentacles instead of six, and they reach further.
+- **Demon of Knowledge**: the crystal is a cut gem in a brass setting — crown, girdle and pavilion drawn to a point,
+  held in four claws — instead of a glowing ball that read as the Criminal's orb.
+
 ## 0.2.291
 
 - **Monster 0**: nine dice instead of twenty-six, and the wheel now pays out whatever the ticker stopped on. Coin
