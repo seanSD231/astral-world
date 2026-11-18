@@ -258,14 +258,14 @@ public final class Lotm {
         if (pwSetPathwayAndSequence == null || pathId == null || pathId.isEmpty()) return false;
         Object bc = pathwayById(pathId);
         if (bc == null) return false;
-        try { pwSetPathwayAndSequence.invoke(null, player, bc, seq); fillFleshAndBlood(player); return true; }
+        try { pwSetPathwayAndSequence.invoke(null, player, bc, seq); maxFleshAndBlood(player); return true; }
         catch (Throwable t) { LOGGER.warn("[astral] could not put {} on the {} pathway: {}", player.getGameProfile().getName(), pathId, t.toString()); return false; }
     }
 
     public static boolean setSequence(ServerPlayer player, int seq) {
         init();
         if (pwSetSequence != null) {   // newer LOTM: Pathways.setSequence(entity, seq)
-            try { pwSetSequence.invoke(null, player, seq); fillFleshAndBlood(player); return true; }
+            try { pwSetSequence.invoke(null, player, seq); maxFleshAndBlood(player); return true; }
             catch (Throwable t) { LOGGER.warn("[astral] could not set the sequence: {}", String.valueOf(t.getCause() != null ? t.getCause() : t)); return false; }
         }
         if (holderFailed) return false;
@@ -288,43 +288,6 @@ public final class Lotm {
         }
     }
 
-
-    // ---- the Secrets Supplicant's flesh and blood ---------------------------------------------------
-    private static boolean fabLoaded, fabFailed;
-    private static Method fabMax, fabSet, fabGet;
-
-    private static synchronized void initFlesh() {
-        if (fabLoaded) return;
-        fabLoaded = true;
-        try {
-            fabMax = find(cls("net.swimmingtuna.lotm.pathway.secretssupplicant.SecretsSupplicantClass"), "getMaxFleshAndBlood", 1);
-            Class<?> fab = cls("net.swimmingtuna.lotm.pathway.secretssupplicant.FleshAndBlood");
-            fabSet = find(fab, "setFleshAndBlood", 2);
-            fabGet = find(fab, "getFleshAndBlood", 1);
-        } catch (Throwable t) { fabFailed = true; }
-    }
-
-    /**
-     * Fills a Secrets Supplicant's flesh and blood to whatever their sequence allows. LOTM grants the pool
-     * when the sequence is set but leaves it empty, so a Hanged Man started with nothing in it has nothing
-     * to spend. Does nothing for anyone not on that pathway, and nothing at all if LOTM is missing.
-     */
-    public static boolean fillFleshAndBlood(ServerPlayer player) {
-        initFlesh();
-        if (fabFailed || fabMax == null || fabSet == null) return false;
-        String path = pathwayId(player);
-        if (path == null || !path.toLowerCase(java.util.Locale.ROOT).contains("secrets")) return false;
-        try {
-            int max = (Integer) fabMax.invoke(null, sequence(player));
-            if (max <= 0) return false;
-            fabSet.invoke(null, player, max);
-            return true;
-        } catch (Throwable t) {
-            LOGGER.warn("[astral] could not fill flesh and blood: {}", t.toString());
-            fabFailed = true;
-            return false;
-        }
-    }
 
     /** Sets sanity to `percent` of the player's maximum. Returns false if LOTM could not be called. */
     public static boolean setSanityPercent(ServerPlayer player, double percent) {

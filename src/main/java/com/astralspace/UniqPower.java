@@ -231,8 +231,9 @@ public final class UniqPower {
     /** LOTM's stun, with a plain root as the stand-in when LOTM is missing. */
     public static void stun(LivingEntity e, int ticks) {
         if (Lotm.util("applyStun", e, ticks) == null && !lotm()) {
+            // Slowness alone. Jump boost at amplifier 128 was meant to wrap round to a negative jump, but the
+            // amplifier is an int now, so it was level 129 jump boost: a stun fired its victim into the sky.
             e.addEffect(new MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, ticks, 9, false, false));
-            e.addEffect(new MobEffectInstance(net.minecraft.world.effect.MobEffects.JUMP, ticks, 128, false, false));
         }
     }
 

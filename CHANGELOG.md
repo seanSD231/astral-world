@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.315
+
+- Fixes the build (0.2.314 added a second Flesh and Blood bridge beside the one already there), and:
+- **The Hanged Man really does start with a full bar now.** It was being filled, and then the pathway was
+  applied four lines later -- which grants the bar afresh and leaves it empty. The fill happens after the
+  pathway, and setting any pathway or sequence through this mod fills it too.
+- **The stairs at the gateways can be walked up.** They fell a whole block every two, so you could walk down
+  them and had to jump every step going back. A slab on the inner half of each tread halves every rise.
+- **A stun no longer launches its victim.** It carried jump boost at amplifier 128 on the same wrap-to-negative
+  trick as the countdown; slowness alone now.
+
 ## 0.2.314
 
 - **The bottles of luck have luck in them.** LOTM keeps the amount in the stack's custom data under

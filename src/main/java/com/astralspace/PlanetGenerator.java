@@ -295,7 +295,16 @@ public final class PlanetGenerator extends ChunkGenerator {
                     Block b = banded ? block(planet, x, z, h, h) : block(planet, x, z, y, h);
                     chunk.setBlockState(pos.set(x, y, z), b.defaultBlockState(), false);
                 }
-                if (planet.equals("raid")) decorateRaid(chunk, pos, x, z, h);
+                if (planet.equals("raid")) {
+                    decorateRaid(chunk, pos, x, z, h);
+                    // The stairs at each gateway fall a whole block every two, which is a flight you can walk
+                    // down and have to jump up. A slab on the inner half of every tread halves each rise, so
+                    // they can be walked both ways.
+                    double rr = Math.hypot(x, z);
+                    if (rr > PLAT_R && rr < PLAT_R + 24 && gateway(x, z) && (rr - PLAT_R) % 2.0 < 1.0
+                            && chunk.getBlockState(pos.set(x, h + 1, z)).isAir())
+                        chunk.setBlockState(pos.set(x, h + 1, z), Blocks.STONE_BRICK_SLAB.defaultBlockState(), false);
+                }
                 if (planet.equals("venus")) for (int y = h + 1; y <= 62; y++) chunk.setBlockState(pos.set(x, y, z), lava, false);
                 if (saturn && Math.abs(z + 300) >= 150 && Math.abs(z + 300) <= 230 && hash(x, z, 5) < 0.85) { // its ring, high overhead
                     Block r = hash(z, x, 6) < 0.6 ? Blocks.PACKED_ICE : hash(x, 2, z) < 0.5 ? Blocks.CALCITE : Blocks.LIGHT_GRAY_CONCRETE;

@@ -807,7 +807,6 @@ public final class HungerGames {
             p.experienceProgress = 0f; p.totalExperience = 0;
             p.connection.send(new ClientboundSetExperiencePacket(0f, 0, 0));
             applySeq(p);
-            fillFleshAndBlood(p);   // a Supplicant's own bar, full like their health and their food
             String want = wantedPath.get(p.getUUID());
             int q = Lotm.sequence(p);
             // Someone who is not a Beyonder used to be carried in with nothing at all, even when they had picked a
@@ -827,7 +826,9 @@ public final class HungerGames {
             double ang = Math.PI * 2 * i / n, cr = Math.max(3.5, n * 0.9);   // everyone starts in a circle in the middle, facing the others
             double cx = 0.5 + Math.cos(ang) * cr, cz = 0.5 + Math.sin(ang) * cr;
             float yaw = (float) Math.toDegrees(Math.atan2(cx - 0.5, -(cz - 0.5)));
-            Lotm.fillFleshAndBlood(p);   // a Hanged Man with an empty pool has no abilities at all
+            // after the pathway, not before it: setPathwayAndSequence grants the bar afresh and leaves it
+            // empty, so a fill done earlier in this loop was wiped and every Hanged Man started on nothing
+            fillFleshAndBlood(p);
             p.setGameMode(GameType.SURVIVAL);
             lv.getChunk((int) cx >> 4, (int) cz >> 4);
             p.teleportTo(lv, cx, groundY, cz, yaw, 0f);
