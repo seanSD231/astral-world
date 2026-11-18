@@ -1268,8 +1268,10 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             }
             bb("glow", 0, top * 1.1f, 0, D * 2f, D * 1.2f, 0, rgba(0xFFE0B0, .07f * fa));
         }
-        // a dark rim round the whole sky, so the eye is pulled to him
-        bb("lotm:vignette", fx * -R * 2f, top * .7f, fz * -R * 2f, D * 2.1f, D * 2.1f, 0, rgba(0x1A0602, .5f));
+        // his own mark, enormous and burning in the sky behind him
+        float bx = fx * R * 2.2f, bz2 = fz * R * 2.2f, bs = 34f * S * (.97f + .03f * gs(t * .8f));
+        facing("sin_cross", bx, top * .86f, bz2, bs, bs, 0, rgba(0xFF6A20, .30f));
+        facing("sin_cross", bx, top * .86f, bz2, bs * .97f, bs * .97f, 0, rgba(0xFFE0A0, .16f));
     }
 
     /** The ground: three circles turning against each other, the Hanged Man's own mark laid in the middle of them. */
@@ -1293,8 +1295,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void adminCross(float armY, float feet) {
         column("beam", 0, .1f, top * 1.5f, 0, 2.6f * S, rgba(0xFFD890, .22f));
         column("beam", 0, .1f, top * 1.5f, 0, .9f * S, rgba(0xFFF6E0, .34f));
-        stand2("beam", 0, armY, 0, R * 2.3f, 3.0f * S, 0, rgba(0xFFE0A8, .26f));
-        stand2("beam", 0, armY, 0, R * 2.3f, 1.0f * S, 0, rgba(0xFFFBF0, .32f));
+        stand2("lotm:streak_h", 0, armY, 0, R * 2.3f, 3.0f * S, 0, rgba(0xFFE0A8, .30f));
+        stand2("lotm:streak_h", 0, armY, 0, R * 2.3f, 1.0f * S, 0, rgba(0xFFFBF0, .38f));
         bb("lotm:flare", 0, armY, 0, 9f * S, 9f * S, t * .12f, rgba(ADM_PALE, .5f));
         // the rope he hangs by, running on up out of sight
         push(); tr(0, top * 1.46f, 0); chain(top * 1.46f - feet, .72f * S, ADM_IRON); pop();
@@ -1418,6 +1420,13 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             torus(0, .02f * S, 0, .95f * S, .95f * S, .12f * S, 14, 4, 0, TAU, mix(ADM_GOLD, 0x6A4A10, .4f), 255); pop();
             flameAt(gc(ang) * rr, cy2 + .2f * S, gs(ang) * rr, 3.4f * S, 40 + i, 0xC02808, ADM_EMBER, ADM_PALE, .9f);
             bb("glow", gc(ang) * rr, cy2 + .6f * S, gs(ang) * rr, 7f * S, 7f * S, 0, rgba(ADM_EMBER, .28f));
+        }
+        for (int i = 0; i < 9; i++) {   // chains falling out of the sky all round him, with no end to them
+            float ang = i * TAU / 9 + .25f, rr = R * (.72f + .5f * h(i, 740));
+            float len = top * (.45f + .4f * h(i, 741));
+            push(); tr(gc(ang) * rr, top * 1.5f, gs(ang) * rr); rZ(gs(t * .3f + i) * .03f);
+            chain(len, .3f * S, ADM_IRON); pop();
+            bb("glow", gc(ang) * rr, top * 1.5f - len * .5f, gs(ang) * rr, 2.2f * S, len, 0, rgba(ADM_EMBER, .07f));
         }
         cardBeam(ADM_GOLD);
     }

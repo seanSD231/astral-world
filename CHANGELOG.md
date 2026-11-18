@@ -2,6 +2,12 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.317
+
+- The admin hologram: his own mark burns enormous in the sky behind him, chains fall out of it all round him
+  with no end to them, and the bar of the cross is drawn with a sideways streak rather than an upright beam
+  texture stretched across. The sky vignette is gone -- it would have hung a dark disc in front of everything.
+
 ## 0.2.316
 
 - **The admin hologram rebuilt, at its own scale.** It stood at a Great Old One's size; it is half again the
