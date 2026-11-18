@@ -3013,6 +3013,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         int tyre = 0x121316, steel = 0x8A8E96, gold = 0xD8B050; boolean drive = r > .4f * s; int ns = drive ? 8 : 5;
         box(x, r, 0, .055f * r, .055f * r, .6f * s, steel, 255);                                             // the axle joining them
         box(x, r, 0, .09f * r, .09f * r, .12f * s, 0x5A5E66, 255);                                           // and its bearing block at the middle
+        for (int sd = -1; sd <= 1; sd += 2) {                                                                // the axlebox and the hanger up to the frame, so the wheel is held by something
+            box(x, r, sd * .54f * s, .17f * r, .17f * r, .045f * s, 0x24262C, 255);
+            box(x, r + .19f * s, sd * .54f * s, .1f * r, .19f * s, .035f * s, 0x1A1C22, 255); }
         for (int sd = -1; sd <= 1; sd += 2) { push(); tr(x, r, sd * .62f * s); rZ(-roll * .45f * s / r);
             torus(0, 0, 0, r * .92f, r * .92f, .08f * r, 14, 3, 0, TAU, tyre, 255);                          // the tyre, upright
             torus(0, 0, -sd * .06f * r, r * 1.0f, r * 1.0f, .03f * r, 14, 2, 0, TAU, steel, 255);            // its flange, on the inside of the rail
@@ -3070,10 +3073,10 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         box(.5f * s, .8f * s, 0, 2.0f * s, .035f * s, .66f * s, iron, 255);                                  // running board, overhanging the tyres
         box(.5f * s, .84f * s, 0, 2.0f * s, .012f * s, .68f * s, gold, 255);                                 // its gilt edge
         for (int sd = -1; sd <= 1; sd += 2) {
-            box(.45f * s, .5f * s, sd * .5f * s, 1.85f * s, .17f * s, .035f * s, blk, 255);                  // side frame, inboard of the wheels
-            box(.45f * s, .66f * s, sd * .5f * s, 1.85f * s, .02f * s, .04f * s, red, 255);                  // a red band along its top edge
+            box(.45f * s, .565f * s, sd * .5f * s, 1.85f * s, .235f * s, .035f * s, blk, 255);              // side frame, carried right up to the running board: it stopped a tenth short and the wheels read as loose
+            box(.45f * s, .78f * s, sd * .5f * s, 1.85f * s, .02f * s, .04f * s, red, 255);                  // a red band along its top edge
         }
-        box(-1.25f * s, .5f * s, 0, .06f * s, .17f * s, .5f * s, blk, 255);                                  // rear frame stretcher
+        box(-1.25f * s, .565f * s, 0, .06f * s, .235f * s, .5f * s, blk, 255);                               // rear frame stretcher
         box(1.9f * s, .42f * s, 0, .06f * s, .12f * s, .5f * s, blk, 255);                                   // and one over the bogie
         for (int k = 0; k < 3; k++) wheelPair(s, (-1.1f + k * 1.0f) * s, .46f * s, roll, red);           // 1.0 apart, so the tyres must stay under .5 across
         wheelPair(s, 1.52f * s, .23f * s, roll, red); wheelPair(s, 2.08f * s, .23f * s, roll, red);        // leading bogie, .56 apart                             // leading bogie
@@ -3095,8 +3098,10 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 box(0, 1.2f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); box(0, 1.63f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); box(0, .82f * s, sd * .585f * s, 1.5f * s, .015f * s, .006f * s, gold, 255); }
         }
         box(0, .7f * s, 0, 1.4f * s, .06f * s, .5f * s, blk, 255);
-        for (int sd = -1; sd <= 1; sd += 2) box(0, .34f * s, sd * .48f * s, 1.25f * s, .12f * s, .03f * s, blk, 255);   // solebar down each side
-        for (float bx : new float[]{-.725f, .725f}) box(bx * s, .3f * s, 0, .38f * s, .1f * s, .52f * s, 0x1A1C22, 255); // a bogie frame under each pair
+        for (int sd = -1; sd <= 1; sd += 2) box(0, .45f * s, sd * .48f * s, 1.25f * s, .23f * s, .03f * s, blk, 255);   // solebar down each side, up to the underframe
+        for (float bx : new float[]{-.725f, .725f}) {
+            box(bx * s, .36f * s, 0, .38f * s, .17f * s, .52f * s, 0x1A1C22, 255);                                       // a bogie frame under each pair
+            box(bx * s, .58f * s, 0, .17f * s, .12f * s, .3f * s, 0x1A1C22, 255); }                                      // and the pivot it hangs from
         for (float wx : new float[]{-.95f, -.5f, .5f, .95f}) wheelPair(s, wx * s, .21f * s, roll, red);   // two bogies of two, .45 apart within a bogie
     }
     private void railRing(float rad, float s) {
@@ -3279,7 +3284,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float ey = top * 1.25f, er = 3.2f * S, bh = 4.2f * S, headY = 1.5f * S, feetY = headY + bh;
         int iron = mix(0x707078, P1, .15f);
         if (!m) { push(); tr(0, top * 1.1f, 0); chain(top * 1.1f - feetY, .8f * S, iron); pop(); }
-        if (!m) bearerSym(0, feetY - bh * .5f, 0, bh * 1.5f, -face);
+        if (!m) bearerSym(0, feetY - bh * .42f, 0, bh * 2.3f, -face);   // half as big again: it was small for the sphere it hangs in
         if (m) {   // Sacrifice Authority: Last Hope. A great cross standing on a mound, a mercury likeness nailed to it, chained and bleeding, inside walls of grey curtain that watch with eyes
             float P = .2f * S; int blk = 0x15121A, band = 0x363640, nail = 0x30303C, redr = 0xD01828;
             // the mound of black stone, then a vast black cross of squared timber banded in iron and cut with red runes, upside down, as in Last Hope
@@ -3297,9 +3302,17 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 float rx = (h(k, 31) - .5f) * 8f * P, ry = (8f + h(k, 32) * 40f) * P; boolean bar = k % 4 == 0;
                 box(bar ? (h(k, 33) - .5f) * 40f * P : rx * .8f, bar ? 20f * P + (h(k, 34) - .5f) * 3f * P : ry, 4.5f * P, .25f * P, .8f * P, .06f * P, redr, 255);
             }
-            for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * 16f * P, 22f * P, 4.5f * P); rZ(sd * .12f); chain(15f * P, .6f * P, iron); pop(); }   // chains from the wrists to the ground
-            for (int sd = -1; sd <= 1; sd += 2) { push(); tr(-sd * 5f * P, 30f * P, 6.5f * P); rZ(sd * .9f); chain(11f * P, .55f * P, iron); pop(); }   // chains wound across the body
+            for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * 16f * P, 22f * P, 4.5f * P); rZ(sd * .12f); chain(16f * P, 1.15f * P, iron); pop(); }   // heavy chains from the wrists to the ground
+            for (int sd = -1; sd <= 1; sd += 2) for (int k = 0; k < 3; k++) {   // and wound right across the body, three to a side
+                push(); tr(-sd * (3f + k * 2.6f) * P, (26f + k * 5.5f) * P, 6.5f * P); rZ(sd * (.75f + .18f * k)); chain((12f - k * 1.4f) * P, 1f * P, iron); pop(); }
+            for (int k = 0; k < 4; k++) {   // bands of chain passing round the beam and the body, holding it against the wood
+                push(); tr(0, (24f + k * 6f) * P, 5.2f * P); rX(PI / 2);
+                torus(0, 0, 0, (5.4f - .3f * k) * P, (3.4f - .2f * k) * P, .95f * P, 18, 5, 0, TAU, iron, 255); pop(); }
+            push(); tr(0, 10f * P, 4.6f * P); rX(PI / 2); torus(0, 0, 0, 4.2f * P, 3f * P, 1f * P, 18, 5, 0, TAU, iron, 255); pop();   // and round the ankles above
             pop(); pop();
+            // one great chain from the top of the cross up to the top of the barrier: it is held there
+            push(); tr(gx(0, -hmD), top * 1.18f, gz(0, -hmD)); chain(top * 1.18f - 67f * P, 1.5f * S, iron); pop();
+            bb("glow", gx(0, -hmD), top * .9f, gz(0, -hmD), 3f * S, top * .5f, 0, rgba(P1, .12f));
             // the hanged man himself: the player's own skin, upside down, arms nailed out along the bar
             ResourceLocation sk = ownerSkin();
             float yB = 18f * P, zf = 6.5f * P;
@@ -3319,7 +3332,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int i = 0; i < 4; i++) { float a = i * TAU / 4 + .4f, r = R * .5f; push(); tr((float) Math.cos(a) * r, 0, (float) Math.sin(a) * r); rY(-a + PI / 2); torus(0, .5f * S, 0, .5f * S, .55f * S, .1f * S, 12, 4, -.3f, PI + .3f, iron, 255); pop();
             column("line", (float) Math.cos(a) * r, .5f * S, feetY - .55f * bh, (float) Math.sin(a) * r * .1f, .25f * S, rgba(P1, .35f)); }
         symFront(CY + .6f * S, 3.4f * S, 3.8f * S);
-        if (!m) sprites("drop", 70, FALLM, R * .9f, 0, top, .7f * S, 0xC01820, 1f, .45f, 34, false);
+        if (!m) sprites("drop", 22, FALLM, R * .9f, 0, top, .55f * S, 0xC01820, 1f, .3f, 34, false);   // a fall of blood, not a downpour
         for (int i = 0; i < 6; i++) { float pw = fract(t * .5f + i / 6f); flat("ring", (h(i, 61) - .5f) * R, .1f, (h(i, 62) - .5f) * R, pw * 3f * S, 0, rgba(P1, fd(pw))); }
     }
     /** Sefirah Castle as the books describe it: stone pillars round a vast dome where the grey fog gathers, an ancient mottled bronze long table

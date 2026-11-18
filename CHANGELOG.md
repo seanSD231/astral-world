@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.311
+
+- **The Paragon's trains carry their own wheels.** The loco's side frame stopped a tenth of a scale short of the
+  running board and the coaches' solebars stopped a quarter short of the underframe, so every wheelset hung in a
+  black box with daylight above it. The frames reach now, each bogie is pinned up to the floor it swings under,
+  and every axle has an axlebox and a hanger.
+- **The Hanged Man's cross is half as big again** on Sequence 1, and the fall of blood is a third of what it was.
+- **The Hanged Man 0 is properly bound:** twice the chain at the wrists, three more wound across the body each
+  side, four bands passing round the beam and the body, a band at the ankles, and one great chain from the top of
+  the cross up to the top of the barrier.
+
 ## 0.2.310
 
 - Fixes the build: the scythe blade's back colour was declared among the floats.
