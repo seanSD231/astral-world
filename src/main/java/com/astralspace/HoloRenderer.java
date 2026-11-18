@@ -2021,18 +2021,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         pushFace(); scalesModel(L, metal(.55f), P1); pop();
         if (N == 2) {   // Seq 0: a court of law: marble columns round the scales and a great gavel that falls and sends out a judgement
             for (int i = 0; i < 8; i++) { float a = i * TAU / 8 + .2f; push(); tr(gc(a) * R * .92f, 0, gs(a) * R * .92f); column2(top * 1.3f, .3f * S, false, mix(P1, 0xFFFFFF, .5f), mix(P2, 0x000000, .3f), P1); pop(); }
-            // the gavel. It had lost its push and its transform somewhere, so it was drawn flat at the middle of the
-            // floor and the pop that followed it emptied the stack: that is what crashed the card.
+            // the judgement itself: a ring of light going out across the floor, once every few seconds
             float gp = fract(t * .25f);
-            float ang = gp < .25f ? -1.15f
-                      : gp < .31f ? -1.15f * (1f - (gp - .25f) / .06f)      // the fall
-                      : gp < .62f ? 0f                                       // struck, and held there
-                      : -1.15f * ((gp - .62f) / .38f);                       // lifted again
-            push(); tr(R * .42f, top * .52f, 0); rY(-t * .12f); rZ(ang);
-            box(1.5f * S, 0, 0, .12f * S, .6f * S, .6f * S, metal(.7f), 255);
-            frustum(-.2f * S, -3.4f * S, .12f * S, .1f * S, 8, 1, 1, 0x5A3A1C, 255, true);
-            pop();
-            if (gp > .25f && gp < .6f) { float k2 = (gp - .25f) / .35f; flat("ring_thick", gx(R * .78f, R * .2f), .12f, gz(R * .78f, R * .2f), k2 * R * 1.6f, 0, rgba(P3, 1f - k2)); }
+            if (gp > .25f && gp < .6f) { float k2 = (gp - .25f) / .35f; flat("ring_thick", 0, .12f, 0, k2 * R * 1.9f, 0, rgba(P3, 1f - k2)); }
         }
         sym(CY + L * .55f + 1.5f * S, 3.4f * S, 0);
         for (int i = 0; i < 6 * N; i++) { float a = -t * .1f + i * TAU / (6 * N), r = R * .62f; float y = top * .5f + (float) Math.sin(t * 1.2f + i) * .4f;
@@ -2129,11 +2120,12 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         if (m) {   // seq 0: the whole sphere is the abyss: swirls and cracks across the floor out to the dome, and swirls turning in the sky
             for (int i = 0; i < 4; i++) { float a = i * TAU / 4 + .4f, rr = R * (1.1f + 1.4f * h(i, 231)), sz = (7f + 9f * h(i, 232)) * S; flat("whirl", (float) Math.cos(a) * rr, .1f + i * .005f, (float) Math.sin(a) * rr, sz, t * (i % 2 == 0 ? .5f : -.6f) + i, rgba(i % 2 == 0 ? 0x9A50E0 : 0xB02040, .85f)); }
             flat("whirl", 0, .04f, 0, 6.5f * R, -t * .15f, rgba(0x4A1470, .9f)); flat("whirl", 0, .05f, 0, 4.6f * R, t * .2f, rgba(0x701028, .8f));
-            for (int i = 0; i < 9; i++) flat("crack", 0, .13f, 0, R * (2.4f + 1.6f * h(i, 233)), i * TAU / 9 + h(i, 234) * .3f, rgba(i % 2 == 0 ? 0xFF3050 : 0xC060FF, .85f));
-            for (int i = 0; i < 12; i++) { float a = i * TAU / 12, el = .15f + .6f * h(i, 235); standSpin("whirl", (float) Math.cos(a) * R * 2.9f * (float) Math.cos(el), (float) Math.sin(el) * R * 2.9f, (float) Math.sin(a) * R * 2.9f * (float) Math.cos(el), (10f + 8f * h(i, 236)) * S, (10f + 8f * h(i, 236)) * S, (i % 2 == 0 ? 1 : -1) * t * (.6f + .3f * h(i, 237)), rgba(i % 2 == 0 ? 0x9A50E0 : 0xB02040, .55f)); }
+            for (int i = 0; i < 5; i++) flat("crack", 0, .13f, 0, R * (2.4f + 1.6f * h(i, 233)), i * TAU / 5 + h(i, 234) * .3f, rgba(i % 2 == 0 ? 0xC02438 : 0x9048B0, .3f));
+            for (int i = 0; i < 12; i++) { float a = i * TAU / 12, el = .15f + .75f * h(i, 235), sz = (10f + 8f * h(i, 236)) * S;
+                domeQuad("whirl", R * 3.52f, a, el, sz, sz, (i % 2 == 0 ? 1 : -1) * t * (.6f + .3f * h(i, 237)), rgba(i % 2 == 0 ? 0x9A50E0 : 0xB02040, .55f)); }
         }
-        for (int i = 0; i < 12 * N; i++) { float a = i * TAU / (12 * N) + t * .08f, r = R * .85f;
-            column("crack", (float) Math.cos(a) * r, 0, top * (.5f + .4f * h(i, 3)), (float) Math.sin(a) * r, 1.5f * S, rgba(P1, .9f)); }
+        for (int i = 0; i < 6 * N; i++) { float a = i * TAU / (6 * N) + t * .08f, r = R * .85f;
+            column("crack", (float) Math.cos(a) * r, 0, top * (.5f + .4f * h(i, 3)), (float) Math.sin(a) * r, 1.5f * S, rgba(P1, .4f)); }
         sprites("mote", 90 * N, SPIRALM, R, 0, top, .4f * S, P1, 1f, .2f, 16, false);
         sprites("smoke", 24 * N, DRIFTM, R, .5f, 6f, 4f * S, P2, .6f, .1f, 15, true);
         strikes(2 * N, R, top, P1);
@@ -2329,7 +2321,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         if (N == 2) {   // Seq 0: one great eye watches over everything from above, sweeping a beam of light across the floor, under turning rings of sigils
             float ey3 = top * 1.25f, lk = t * .3f; bb("glow", 0, ey3, 0, 16f * S, 16f * S, 0, rgba(P1, .35f)); bb("eye", 0, ey3, 0, 14f * S, 7f * S * Math.max(.2f, Math.abs(gc(t * .35f))), 0, rgba(mix(P1, 0xFFFFFF, .3f), 1f));
             column("beam", gc(lk) * R * .7f, 0, ey3, gs(lk) * R * .7f, 2.2f * S, rgba(P3, .35f)); flat("glow", gc(lk) * R * .7f, .12f, gs(lk) * R * .7f, 6f * S, 0, rgba(P3, .6f));
-            for (int i = 0; i < 3; i++) flat("ring_dash", 0, ey3 * (.45f + .15f * i), 0, R * (1.2f + .5f * i), t * (i % 2 == 0 ? .3f : -.3f), rgba(P1, .6f));
         }
         if (N == 2) for (int i = 0; i < 8; i++) { float a = i * TAU / 8 + .2f, rr = R * .88f; push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2);   // a ring of tall gilded mirrors, each showing a glow of its own
             torus(0, 3.2f * S, 0, 1.3f * S, 2.6f * S, .14f * S, 20, 5, 0, TAU, metal(.7f), 255); box(0, .2f * S, 0, .8f * S, .2f * S, .5f * S, metal(.4f), 255); pop();
@@ -2433,7 +2424,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 push(); tr(.44f * r, 0, sd * .1f * r); rX(PI / 2); frustum(-.07f * r, .07f * r, .055f * r, .055f * r, 8, 1, 1, steel, 255, true); pop();   // crank pin
             }
             pop(); }
-        push(); tr(x, r, 0); rX(PI / 2); frustum(-.6f * s, .6f * s, .05f * r, .05f * r, 6, 1, 1, tyre, 255, false); pop();
     }
     /** A gilt scroll on a flat side (in the xy plane at z): two curls back to back. */
     private void scroll(float x, float y, float z, float r, int gold) {
@@ -3125,6 +3115,16 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     /** An upright glow standing in the world and facing the middle, so it does not turn with the camera. */
     private void standIn(String tx, float x, float y, float z, float w, float hh, int argb) {
         stand(tx, x, y, z, w, hh, (float) Math.atan2(x, -z), argb);
+    }
+    /** A quad lying flat on the inside of a dome of radius rad, at azimuth a and elevation el, turned by rot in its own plane. */
+    private void domeQuad(String tx, float rad, float a, float el, float w, float hh, float rot, int argb) {
+        float ce = (float) Math.cos(el), se = (float) Math.sin(el), ca = (float) Math.cos(a), sa = (float) Math.sin(a);
+        float x = rad * ce * ca, y = rad * se, z = rad * ce * sa;
+        float ex = -sa, ez = ca;                                  // along the dome, level
+        float ux2 = -se * ca, uy2 = ce, uz2 = -se * sa;           // along the dome, up the slope
+        float cr = (float) Math.cos(rot), sr = (float) Math.sin(rot), hw = w / 2, hg = hh / 2;
+        quad(tx, x, y, z, (ex * cr + ux2 * sr) * hw, uy2 * sr * hw, (ez * cr + uz2 * sr) * hw,
+             (-ex * sr + ux2 * cr) * hg, uy2 * cr * hg, (-ez * sr + uz2 * cr) * hg, argb);
     }
     /** Like standIn, but the picture turns about its own centre (rot) instead of the whole thing moving. */
     private void standSpin(String tx, float x, float y, float z, float w, float hh, float rot, int argb) {

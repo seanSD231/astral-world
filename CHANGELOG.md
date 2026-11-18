@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.287
+
+- **Paragon 0**: the black prism slung between each pair of wheels is gone. There was already a steel axle in the
+  same place, so this was a second, fatter, black one hanging under nothing.
+- **Justicar 0**: the gavel is removed. The marble columns and the ring of judgement going out across the floor stay.
+- **Criminal 0**: the spirals lie flat on the dome now instead of standing upright on a smaller sphere of their own
+  inside it.
+- **Criminal 0 and 1**: far fewer red cracks, and much fainter.
+- **Mystery Prier 0**: the three great dashed rings that went right round the sphere are gone.
+
 ## 0.2.286
 
 - **Masks.** Six of them (black, pale, crimson, azure, verdant, gilded). Right click to put one on: your skin
