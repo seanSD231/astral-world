@@ -2,6 +2,24 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.308
+
+- **Death 0 has a scythe.** The blade was ten tapered segments laid along an arc, which built a jointed bent rod
+  with a skull on it. It is one broad flat sheet now, widest at the haft and drawn to a point, blunt along the
+  back and keen underneath.
+- **The way up to the throne is open** on Death 0 and the Black Emperor 0. The statues, tombstones, coffins,
+  colonnade and bowed ranks all leave the corridor in front of the seat clear.
+- **Justicar 0 is not a courtroom wall.** Eight fat columns at nine tenths of the radius are six slender ones set
+  back against it, and the ring of twelve hanging swords -- which read as robed people with their arms out -- is
+  four, further out.
+- **Red Priest 0:** the shields are gone, the spears and blades are roughly half as many, and the banners hang
+  squarely in front of their own poles with a hem down both edges and a device on the cloth. They were nailed a
+  block and a third off to one side with one hemmed edge, which is why they looked detached.
+- **The Father of Devils has no devils in it** -- two tiers of embers ride the same currents instead.
+- **Key of Light's locks are locks.** Seven gold discs round the rim read as coins; they are upright lock plates
+  with a keyhole and a shackle that lifts as each one gives.
+- **The weighed heart has no vessels.**
+
 ## 0.2.307
 
 - **Both door holograms swing the right way.** The Sequence 1 door never opened and the Sequence 0 ring started
