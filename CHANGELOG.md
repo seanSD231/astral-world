@@ -2,6 +2,20 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.316
+
+- **The admin hologram rebuilt, at its own scale.** It stood at a Great Old One's size; it is half again the
+  reach and nearly twice the height, and he hangs well up in it with the ground a long way below.
+  - **The sky burns.** A furnace sun behind him so he reads as a silhouette, three skins of cloud turning at
+    their own rates from red along the horizon to gold at the zenith, licks of flame standing off the rim of
+    the world, and lightning walking across it every few seconds.
+  - **The halos are lit.** Each is metal standing in its own light -- a heat ring beneath, a crisp ripple ring
+    on top, flares riding round it -- plus two rings standing on edge that turn about him carrying glyphs.
+  - **Three drops of blood, not ninety.** A proper teardrop off his head falling the whole way down, and a
+    splash of droplets and a ring going out across the circle where it lands.
+  - The ground is three circles turning against each other with the Hanged Man's own mark laid in the middle,
+    the cross runs the full height of the sky, and censers hang burning on chains with moths round them.
+
 ## 0.2.315
 
 - Fixes the build (0.2.314 added a second Flesh and Blood bridge beside the one already there), and:

@@ -1134,8 +1134,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         curPath = Math.min(pi, PAL.length - 1); gold = shiny; GOLDMODE = shiny; curOwner = e.ownerName();
         int[] pal = PAL[curPath];
         P1 = gold ? 0xFFD448 : pal[0]; P2 = gold ? 0x9A6A10 : pal[1]; P3 = gold ? 0xFFF0B8 : pal[2];
-        if (e.admin() >= 0) {   // a tier of its own: the Bearing of Sins, over the Hanged Man's own colours
-            R = 12f; top = 19f; S = 2.35f; CY = 7.4f + (float) Math.sin(t * 1.2) * .3f;
+        if (e.admin() >= 0) {   // a tier of its own, and bigger than any of them: half again the reach of a
+                                // Great Old One's card and twice the height, because he hangs well up in it
+            R = 17f; top = 34f; S = 3.2f; CY = 18f + (float) Math.sin(t * 1.2) * .4f;
             curPath = pidx("secrets_supplicant"); P1 = 0xFF3038; P2 = 0x7A0C14; P3 = 0xFFC8B8;
             if (!symOnly) { adminScene(e.admin()); return; }
         }
@@ -1193,82 +1194,234 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      * each wrist, inside a burning sky with curtains of light coming down through it. Halo rings turn about him,
      * a cross of light runs through him, and a drop of blood falls from his head and rings the floor.
      */
+    // ================= the admin card: the Bearing of Sins =================
+    //
+    // Its own tier, and it has to look like it. Everything here is drawn larger and higher than a
+    // Great Old One's: he hangs well up in a burning sky with the ground a long way below him, the
+    // halos are lit rings rather than bare wire, and the blood is three heavy drops with a splash
+    // rather than a rain of the generic particle.
+
+    private static final int ADM_EMBER = 0xFF7A20, ADM_GOLD = 0xFFC250, ADM_PALE = 0xFFE9BC,
+                             ADM_DEEP = 0x9A1A06, ADM_BLOOD = 0xC8121F, ADM_IRON = 0x24222B;
+
     private void adminScene(int a) {
         String who = Tarot.ADMIN_NAMES[Math.max(0, Math.min(Tarot.ADMIN_NAMES.length - 1, a))];
-        float P = .19f * S;                      // blocks to a skin pixel
-        float yB = 6.3f;                         // the waist: his legs go up from here and his head hangs below
+        float P = .17f * S;                      // blocks to a skin pixel
+        float yB = top * .55f;                   // the waist: his legs go up from here, his head hangs below
         float feet = yB + 24f * P, head = yB - 8f * P, armY = yB + 2f * P, armX = 16f * P;
 
-        // --- the burning sky -------------------------------------------------------------------------
-        dome(R * 3.6f, 0x2A1206, 252);
-        for (int i = 0; i < 20; i++) {           // cloud lit from below, turning slowly
-            float ang = h(i, 520) * TAU + t * .012f, el = .06f + 1.2f * h(i, 521), sz = (18f + 14f * h(i, 522)) * S;
-            domeQuad("smoke", R * 3.5f, ang, el, sz, sz * .5f, h(i, 523) * PI,
-                     rgba(mix(0xFF8A20, 0x401004, el / 1.3f), .30f));
-        }
-        for (int i = 0; i < 11; i++) {           // curtains of light falling through it
-            float ang = i * TAU / 11 + t * .015f, rr = R * (1.05f + .22f * h(i, 524));
-            float k2 = .40f + .60f * Math.abs(gs(t * .5f + i * 1.7f));
-            column("beam", gc(ang) * rr, 0, top * 1.25f, gs(ang) * rr, (1.1f + .9f * h(i, 525)) * S, rgba(0xFFD88A, .26f * k2));
-            bb("glow", gc(ang) * rr, top * .55f, gs(ang) * rr, 5f * S, top, 0, rgba(0xFFC060, .07f * k2));
-        }
-
-        // --- the floor -------------------------------------------------------------------------------
-        sigil(R);
-        for (int k = 0; k < 4; k++)
-            flat("ring", 0, .12f + k * .004f, 0, R * (.42f + .40f * k), t * (k % 2 == 0 ? .16f : -.16f), rgba(0xFFC048, .55f));
-        flat("whirl", 0, .11f, 0, R * 1.5f, -t * .22f, rgba(0xFFA030, .35f));
-        column("beam", 0, 0, top * 1.2f, 0, 1.3f * S, rgba(0xFFE0A0, .30f));          // the upright of the cross
-        flat("ring_thick", 0, armY, 0, R * 1.9f, 0, rgba(0xFFE0A0, .22f));            // and its bar, through his arms
-
-        // --- the rings that turn about him -----------------------------------------------------------
-        int goldr = 0xFFBE3C, goldl = 0xFFE6A8;
-        ringAt(armY - .3f * S, R * .92f, .13f * S, goldr, t * .25f);
-        ringAt(armY - .3f * S, R * .78f, .07f * S, goldl, -t * .35f);
-        ringAt(yB + 13f * P, R * .58f, .10f * S, goldr, -t * .3f);
-        ringAt(yB + 20f * P, R * .36f, .08f * S, goldr, t * .4f);
-
-        // --- the man ---------------------------------------------------------------------------------
-        ResourceLocation sk = skinNamed(who);
-        float zf = 0f;
-        hmD = 0f;
-        skinPart(sk, 0, 0, 8, 8, 8, 0, 4, 0, true, P, yB, zf);              // head, hanging below
-        skinPart(sk, 16, 16, 8, 12, 4, 0, -6, 0, true, P, yB, zf);          // body
-        skinPart(sk, 40, 16, 4, 12, 4, -10, -2, -PI / 2, true, P, yB, zf);  // right arm, straight out
-        skinPart(sk, 32, 48, 4, 12, 4, 10, -2, PI / 2, true, P, yB, zf);    // left arm
-        skinPart(sk, 0, 16, 4, 12, 4, -2, -18, 0, true, P, yB, zf);         // right leg, up
-        skinPart(sk, 16, 48, 4, 12, 4, 2, -18, 0, true, P, yB, zf);         // left leg
-
-        int iron = 0x2A2730;
-        for (int k = 0; k < 6; k++) {   // his legs bound together, coil after coil
-            float y = yB + (13f + k * 2.1f) * P;
-            push(); tr(0, y, 0); rX(PI / 2); torus(0, 0, 0, 4.6f * P, 4.6f * P, .5f * P, 12, 4, 0, TAU, iron, 255); pop();
-        }
-        push(); tr(0, feet + .3f * S, 0); chain(1.6f * S, .5f * S, iron); pop();       // the rope he hangs by
-        for (int sd = -1; sd <= 1; sd += 2) {   // and a chain off each wrist
-            push(); tr(sd * armX, armY - .4f * S, 0); rZ(sd * .06f + gs(t * .5f + sd) * .03f);
-            chain((5.5f + (sd > 0 ? 1.2f : 0f)) * S, .55f * S, iron); pop();
-        }
-
-        // --- the blood, falling from his head --------------------------------------------------------
-        bb("glow", 0, head - .5f * S, 0, 3.4f * S, 3.4f * S, 0, rgba(0xD01828, .55f));
-        for (int i = 0; i < 4; i++) {
-            float pw = fract(t * .33f + i / 4f), y0 = head - .7f * S;
-            bb("drop", 0, y0 - pw * (y0 - .35f), 0, .85f * S, 1.4f * S, 0, rgba(0xD81C2C, 1f - pw * .25f));
-        }
-        for (int i = 0; i < 2; i++) { float pw = fract(t * .33f + i / 2f); flat("ring_thick", 0, .13f, 0, pw * R * 1.3f, 0, rgba(0xC81828, fd(pw))); }
-
-        // --- rain and embers -------------------------------------------------------------------------
-        sprites("drop", 90, FALLM, R * 1.1f, 0, top * 1.2f, .55f * S, 0xFFD48A, .55f, .35f, 96, true);
-        sprites("mote", 50, RISEM, R * .95f, 0, top, .4f * S, 0xFF9A40, 1f, .3f, 97, false);
-        cardBeam(0xFFC048);
+        adminSky();
+        adminGround();
+        adminCross(armY, feet);
+        adminHalos(yB, armY, P);
+        adminFigure(who, P, yB, armY, armX, feet);
+        adminBlood(head);
+        adminAir(yB);
     }
-    /** One flat halo ring lying level at height y, turning. */
-    private void ringAt(float y, float rr, float thick, int rgb, float spin) {
+
+    /**
+     * The sky: a dark ember shell, three skins of cloud lit from the furnace behind him and turning
+     * at their own rates, a horizon of flame, and lightning that walks across it every few seconds.
+     */
+    private void adminSky() {
+        float D = R * 3.9f;
+        dome(D, 0x120502, 251);
+
+        // the furnace: a low sun burning behind him, so he is a silhouette against it
+        float sx = fx * R * 2.5f, sz = fz * R * 2.5f, sy = top * 1.15f;
+        float breathe = .86f + .14f * gs(t * .55f);
+        bb("glow", sx, sy, sz, 74f * S * breathe, 74f * S * breathe, 0, rgba(ADM_DEEP, .20f));
+        bb("lotm:heat_ring", sx, sy, sz, 34f * S, 34f * S, t * .05f, rgba(0xFF5A14, .40f));
+        bb("lotm:corona", sx, sy, sz, 30f * S * breathe, 30f * S * breathe, -t * .03f, rgba(0xFFA832, .55f));
+        bb("lotm:sunburst", sx, sy, sz, 52f * S, 52f * S, t * .015f, rgba(ADM_PALE, .30f));
+        bb("lotm:flare", sx, sy, sz, 16f * S * breathe, 16f * S * breathe, t * .2f, rgba(0xFFF2D0, .75f));
+
+        // three skins of burning cloud, red along the horizon and gold toward the zenith
+        for (int layer = 0; layer < 3; layer++) {
+            int n = 24 - layer * 6;
+            float rad = D * (.985f - layer * .055f), sp = (layer % 2 == 0 ? 1f : -1f) * (.006f + .007f * layer);
+            for (int i = 0; i < n; i++) {
+                int sd = 520 + layer * 11;
+                float ang = h(i, sd) * TAU + t * sp, el = .02f + 1.35f * h(i, sd + 1);
+                float sz2 = (24f + 24f * h(i, sd + 2)) * S * (1f - .16f * layer);
+                int c = mix(mix(0xE8380A, ADM_GOLD, Math.min(1f, el / 1.15f)), 0x240802, .18f + .26f * layer);
+                domeQuad("cloud", rad, ang, el, sz2, sz2 * .4f, (h(i, sd + 3) - .5f) * .8f,
+                         rgba(c, .17f + .09f * (2 - layer)));
+            }
+        }
+        // the horizon itself alight: licks of flame standing off the rim of the world
+        for (int i = 0; i < 20; i++) {
+            float ang = i * TAU / 20 + .13f, wob = gs(t * 1.3f + i * 2.1f);
+            float hgt = (16f + 9f * h(i, 560) + 4f * wob) * S;
+            domeQuad("lotm:plasma_wisp", D * .97f, ang, .05f + .035f * h(i, 561), 11f * S, hgt, wob * .09f,
+                     rgba(mix(0xFF5A10, 0xFFD070, .25f + .3f * h(i, 562)), .42f));
+        }
+        // and lightning, every few seconds, three strokes at once
+        int slot = (int) Math.floor(t * .55f);
+        if (h(slot, 600) < .26f) {
+            float ph = fract(t * .55f), fa = Math.min(1f, Math.min(ph, 1f - ph) * 7f);
+            for (int i = 0; i < 3; i++) {
+                int sd = slot * 3 + i;
+                domeQuad("lotm:lightning_strip", D * .94f, h(sd, 601) * TAU, .3f + .75f * h(sd, 602),
+                         (4f + 4f * h(sd, 603)) * S, (26f + 18f * h(sd, 604)) * S, (h(sd, 605) - .5f) * .9f,
+                         rgba(0xFFF4DC, .8f * fa));
+            }
+            bb("glow", 0, top * 1.1f, 0, D * 2f, D * 1.2f, 0, rgba(0xFFE0B0, .07f * fa));
+        }
+        // a dark rim round the whole sky, so the eye is pulled to him
+        bb("lotm:vignette", fx * -R * 2f, top * .7f, fz * -R * 2f, D * 2.1f, D * 2.1f, 0, rgba(0x1A0602, .5f));
+    }
+
+    /** The ground: three circles turning against each other, the Hanged Man's own mark laid in the middle of them. */
+    private void adminGround() {
+        flat("lotm:heat_ring", 0, .05f, 0, R * 2.5f, 0, rgba(0xFF4A12, .30f));
+        flat("lotm:curse_circle", 0, .07f, 0, R * 2.0f, t * .055f, rgba(0xFF4A28, .48f));
+        flat("lotm:magic_circle", 0, .09f, 0, R * 1.42f, -t * .11f, rgba(ADM_GOLD, .62f));
+        flat("lotm:sigil", 0, .11f, 0, R * .92f, t * .19f, rgba(ADM_PALE, .62f));
+        flat("whirl", 0, .13f, 0, R * 1.7f, -t * .2f, rgba(0xFF8A2A, .22f));
+        float mz = R * .0f;
+        float c = gc(t * .04f) * R * .34f, s2 = gs(t * .04f) * R * .34f;
+        eq(ResourceLocation.fromNamespaceAndPath("lotm", "textures/effect/hanged_man_symbol.png"),
+           0, .16f, mz, c, 0, s2, -s2, 0, c, rgba(0xFFD8A0, .85f), 0, 0, 1, 1);
+        for (int i = 0; i < 3; i++) {   // light going out from under him, over and over
+            float pw = fract(t * .17f + i / 3f);
+            flat("lotm:ripple_ring", 0, .17f + i * .004f, 0, pw * R * 2.6f, 0, rgba(ADM_GOLD, .55f * fd(pw)));
+        }
+    }
+
+    /** The cross of light he is nailed on: a shaft from the ground to the top of the sky and a bar through his arms. */
+    private void adminCross(float armY, float feet) {
+        column("beam", 0, .1f, top * 1.5f, 0, 2.6f * S, rgba(0xFFD890, .22f));
+        column("beam", 0, .1f, top * 1.5f, 0, .9f * S, rgba(0xFFF6E0, .34f));
+        stand2("beam", 0, armY, 0, R * 2.3f, 3.0f * S, 0, rgba(0xFFE0A8, .26f));
+        stand2("beam", 0, armY, 0, R * 2.3f, 1.0f * S, 0, rgba(0xFFFBF0, .32f));
+        bb("lotm:flare", 0, armY, 0, 9f * S, 9f * S, t * .12f, rgba(ADM_PALE, .5f));
+        // the rope he hangs by, running on up out of sight
+        push(); tr(0, top * 1.46f, 0); chain(top * 1.46f - feet, .72f * S, ADM_IRON); pop();
+        bb("glow", 0, (top * 1.46f + feet) * .5f, 0, 3f * S, top * .9f, 0, rgba(ADM_EMBER, .09f));
+    }
+
+    /**
+     * The halos. Each is a real ring of metal standing in its own light: a heat ring under it, a
+     * crisp ripple ring on top, flares riding round it and a wash of glow through it. The two
+     * tilted ones turn about him on their own axes.
+     */
+    private void adminHalos(float yB, float armY, float P) {
+        halo(armY - .5f * S, R * .95f, .15f * S, ADM_GOLD, 12, t * .22f);
+        halo(armY - .5f * S, R * .80f, .08f * S, ADM_PALE, 8, -t * .31f);
+        halo(yB + 13f * P, R * .60f, .11f * S, ADM_GOLD, 9, -t * .27f);
+        halo(yB + 20f * P, R * .38f, .09f * S, ADM_PALE, 7, t * .36f);
+        for (int k = 0; k < 2; k++) {   // two rings standing on edge, turning the other way about him
+            float rr = R * (.70f - .14f * k), tilt = (k == 0 ? .62f : -.5f), spin = t * (k == 0 ? .17f : -.23f);
+            push(); tr(0, yB + 2f * P, 0); rY(spin); rZ(tilt);
+            torus(0, 0, 0, rr, rr, .085f * S, 40, 6, 0, TAU, k == 0 ? ADM_GOLD : ADM_PALE, 255);
+            pop();
+            for (int i = 0; i < 18; i++) {   // the light it carries, and a glyph riding it
+                float ang = i * TAU / 18 + spin * 2f;
+                float lx = gc(ang) * rr, ly = gs(ang) * rr, px = lx * gc(tilt) * gc(spin) - ly * gs(tilt) * gc(spin);
+                float py = lx * gs(tilt) + ly * gc(tilt), pz = lx * gc(tilt) * gs(spin) - ly * gs(tilt) * gs(spin);
+                bb("glow", px, yB + 2f * P + py, pz, 1.5f * S, 1.5f * S, 0, rgba(ADM_GOLD, .22f));
+                if (i % 3 == 0) bb("lotm:glyph", px, yB + 2f * P + py, pz, 1.5f * S, 1.5f * S, ang, rgba(ADM_PALE, .6f));
+            }
+        }
+    }
+
+    /** One halo: metal, the light it sits in, and the flares going round it. */
+    private void halo(float y, float rr, float thick, int rgb, int flares, float spin) {
         push(); tr(0, y, 0); rY(spin); rX(PI / 2);
-        torus(0, 0, 0, rr, rr, thick, 36, 5, 0, TAU, rgb, 255); pop();
-        bb("glow", 0, y, 0, rr * 2.3f, thick * 9f, 0, rgba(rgb, .22f));
+        torus(0, 0, 0, rr, rr, thick, 44, 6, 0, TAU, rgb, 255); pop();
+        flat("lotm:heat_ring", 0, y - .02f, 0, rr * 2.24f, spin * .4f, rgba(mix(rgb, 0xFF4A10, .35f), .40f));
+        flat("lotm:ripple_ring", 0, y + .02f, 0, rr * 2.06f, -spin * .7f, rgba(ADM_PALE, .50f));
+        flat("lotm:ring", 0, y + .04f, 0, rr * 2.14f, spin, rgba(rgb, .35f));
+        for (int i = 0; i < flares; i++) {
+            float ang = i * TAU / flares + spin, tw = .55f + .45f * gs(t * 1.6f + i * 1.9f);
+            bb("lotm:flare", gc(ang) * rr, y, gs(ang) * rr, thick * 11f * tw, thick * 11f * tw, t * .3f + i, rgba(ADM_PALE, .75f * tw));
+            bb("glow", gc(ang) * rr, y, gs(ang) * rr, thick * 20f, thick * 20f, 0, rgba(rgb, .22f));
+        }
+        bb("glow", 0, y, 0, rr * 2.7f, thick * 22f, 0, rgba(rgb, .20f));
     }
+
+    /** Him: his own skin, upside down, arms straight out, legs roped and bound, chains off both wrists. */
+    private void adminFigure(String who, float P, float yB, float armY, float armX, float feet) {
+        ResourceLocation sk = skinNamed(who);
+        hmD = 0f;
+        skinPart(sk, 0, 0, 8, 8, 8, 0, 4, 0, true, P, yB, 0f);              // head, hanging below
+        skinPart(sk, 16, 16, 8, 12, 4, 0, -6, 0, true, P, yB, 0f);          // body
+        skinPart(sk, 40, 16, 4, 12, 4, -10, -2, -PI / 2, true, P, yB, 0f);  // right arm, straight out
+        skinPart(sk, 32, 48, 4, 12, 4, 10, -2, PI / 2, true, P, yB, 0f);    // left arm
+        skinPart(sk, 0, 16, 4, 12, 4, -2, -18, 0, true, P, yB, 0f);         // right leg, up
+        skinPart(sk, 16, 48, 4, 12, 4, 2, -18, 0, true, P, yB, 0f);         // left leg
+
+        for (int k = 0; k < 7; k++) {   // his legs bound together, coil after coil
+            float y = yB + (12f + k * 2.0f) * P;
+            push(); tr(0, y, 0); rX(PI / 2); torus(0, 0, 0, 4.8f * P, 4.8f * P, .62f * P, 14, 5, 0, TAU, ADM_IRON, 255); pop();
+        }
+        for (int sd = -1; sd <= 1; sd += 2) {   // a heavy chain off each wrist, swinging a little
+            push(); tr(sd * armX, armY - .35f * S, 0); rZ(sd * .07f + gs(t * .45f + sd) * .035f);
+            chain((7.5f + (sd > 0 ? 1.6f : 0f)) * S, .62f * S, ADM_IRON); pop();
+        }
+        bb("glow", 0, yB, 0, 26f * P, 30f * P, 0, rgba(ADM_EMBER, .14f));   // the furnace behind him catching his edge
+    }
+
+    /** The blood: three heavy drops off his head, falling the whole way, and a splash where they land. */
+    private void adminBlood(float head) {
+        bb("glow", 0, head - .45f * S, 0, 4.2f * S, 4.2f * S, 0, rgba(0xFF2030, .45f));
+        bb("lotm:droplet", 0, head - .55f * S, 0, 1.1f * S, 1.1f * S, 0, rgba(ADM_BLOOD, .95f));
+        float y0 = head - .8f * S;
+        for (int i = 0; i < 3; i++) {
+            float pw = fract(t * .26f + i / 3f), yy = y0 - pw * (y0 - .4f);
+            bb("lotm:drip", 0, yy, 0, 1.15f * S, 2.2f * S, 0, rgba(ADM_BLOOD, .92f));
+            bb("glow", 0, yy, 0, 2.6f * S, 3.4f * S, 0, rgba(0xFF2434, .22f));
+        }
+        float land = fract(t * .26f);
+        if (land > .85f) {   // it strikes the circle and goes out across it
+            float k = (land - .85f) / .15f;
+            flat("lotm:ripple_ring", 0, .19f, 0, k * R * 1.1f, 0, rgba(0xD41A28, (1f - k) * .8f));
+            for (int i = 0; i < 6; i++) {
+                float ang = i * TAU / 6 + .4f, d = k * 2.6f * S;
+                bb("lotm:droplet", gc(ang) * d, .35f * S + gs(k * PI) * 1.4f * S, gs(ang) * d, .5f * S, .5f * S, 0, rgba(ADM_BLOOD, (1f - k) * .9f));
+            }
+        }
+    }
+
+    /** What rides the air: embers up, ash down, smoke across, and moths round the light. */
+    private void adminAir(float yB) {
+        for (int i = 0; i < 80; i++) {   // embers lifting off the ground
+            float pw = fract(t * .13f * (.6f + .8f * h(i, 700)) + h(i, 701));
+            float ang = h(i, 702) * TAU + pw * .8f, rr = (float) Math.sqrt(h(i, 703)) * R * 1.35f;
+            float sz = (.35f + .4f * h(i, 704)) * S * (1f - pw * .4f);
+            bb("lotm:ember_hd", gc(ang) * rr, .2f + pw * top * 1.35f, gs(ang) * rr, sz, sz, t + i, rgba(mix(0xFF9A28, 0xFFE2A0, h(i, 705)), fd(pw)));
+        }
+        for (int i = 0; i < 60; i++) {   // ash coming down through it
+            float pw = fract(t * .07f * (.6f + .9f * h(i, 710)) + h(i, 711));
+            float ang = h(i, 712) * TAU - pw * .5f, rr = (float) Math.sqrt(h(i, 713)) * R * 1.5f;
+            float sz = (.22f + .26f * h(i, 714)) * S;
+            bb("mote", gc(ang) * rr + gs(t * .7f + i) * .8f, top * 1.45f - pw * top * 1.45f, gs(ang) * rr, sz, sz, 0, rgba(0xE8C898, .55f * fd(pw)));
+        }
+        for (int i = 0; i < 16; i++) {   // smoke rolling across the middle of it
+            float ang = t * .035f + i * TAU / 16, rr = R * (.55f + .85f * h(i, 720));
+            float yy = top * (.25f + .95f * h(i, 721)) + gs(t * .4f + i) * 1.4f;
+            bb("lotm:smoke_puff", gc(ang) * rr, yy, gs(ang) * rr, (10f + 7f * h(i, 722)) * S, (7f + 5f * h(i, 723)) * S, h(i, 724) * PI,
+               rgba(0x3A1408, .22f));
+        }
+        for (int i = 0; i < 9; i++) {   // moths round him, the way they come to any burning thing
+            float sp = .35f + .3f * h(i, 730), ang = t * sp * (i % 2 == 0 ? 1 : -1) + i * TAU / 9;
+            float rr = R * (.4f + .42f * h(i, 731)), yy = yB + (h(i, 732) - .5f) * 7f * S + gs(t * 1.7f + i) * 1.1f * S;
+            float flap = .55f + .45f * Math.abs(gs(t * 7f + i * 2f));
+            bb("lotm:profane_moth", gc(ang) * rr, yy, gs(ang) * rr, 1.5f * S * flap, 1.3f * S, gs(t + i) * .3f, rgba(0xFFD8A8, .8f));
+        }
+        for (int i = 0; i < 5; i++) {   // censers hanging on chains, burning
+            float ang = i * TAU / 5 + .5f + t * .04f, rr = R * 1.02f, cy2 = top * .78f + gs(t * .6f + i) * .5f * S;
+            push(); tr(gc(ang) * rr, top * 1.4f, gs(ang) * rr); chain(top * 1.4f - cy2, .2f * S, ADM_IRON); pop();
+            push(); tr(gc(ang) * rr, cy2, gs(ang) * rr);
+            frustum(-.9f * S, 0, .9f * S, .25f * S, 12, 1, 1, ADM_IRON, 255, true);
+            torus(0, .02f * S, 0, .95f * S, .95f * S, .12f * S, 14, 4, 0, TAU, mix(ADM_GOLD, 0x6A4A10, .4f), 255); pop();
+            flameAt(gc(ang) * rr, cy2 + .2f * S, gs(ang) * rr, 3.4f * S, 40 + i, 0xC02808, ADM_EMBER, ADM_PALE, .9f);
+            bb("glow", gc(ang) * rr, cy2 + .6f * S, gs(ang) * rr, 7f * S, 7f * S, 0, rgba(ADM_EMBER, .28f));
+        }
+        cardBeam(ADM_GOLD);
+    }
+
     private void gooScene(int g) {
         gooBase(g, g == 1 ? 0x100800 : g == 5 ? 0x020A18 : g == 6 ? 0x180804 : g == 3 ? 0x1A0204 : g == 7 ? 0x0C0012 : g == 8 ? 0x020A0C : g == 0 ? 0x08041A : g == 4 ? 0x04041A : 0x010204, 248);
         offX = 0; offZ = 0;
