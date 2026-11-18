@@ -54,7 +54,10 @@ public class Uniqueness extends Item {
     public void appendHoverText(ItemStack stack, Item.TooltipContext ctx, List<Component> tip, net.minecraft.world.item.TooltipFlag flag) {
         tip.add(Component.literal(title).withStyle(ChatFormatting.GOLD));
         tip.add(Component.literal("Astral artifact \u00b7 sealed").withStyle(ChatFormatting.DARK_GRAY));
-        tip.add(Component.literal("It asks something of whoever carries it.").withStyle(ChatFormatting.DARK_RED));
+        String id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath();
+        String cost = UniqPower.DOWNSIDE.get(id);
+        tip.add(Component.literal(cost == null ? "It asks something of whoever carries it." : cost)
+                .withStyle(ChatFormatting.DARK_RED));
     }
 
 }

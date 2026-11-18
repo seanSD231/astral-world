@@ -61,6 +61,7 @@ public class AstralMod {
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqAbilities::onHandsAttack);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqPower::carryTick);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqPower::onLogout);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqPower::onAttack);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqAbilities::onLogout);
         AstralBarrier.onBreak(Stage::onBarrierBroken);
         if (FMLEnvironment.dist == Dist.CLIENT) {

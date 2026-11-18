@@ -95,9 +95,104 @@ public final class UniqPower {
                 if (sp.getHealth() > sp.getMaxHealth()) sp.setHealth(sp.getMaxHealth());
                 sp.displayClientMessage(net.minecraft.network.chat.Component.literal("The sealed artifact weighs on you.").withStyle(net.minecraft.ChatFormatting.DARK_GRAY), true);
             }
-            sp.addEffect(new MobEffectInstance(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN, 60, 0, true, false, false));
-            if (drip && st.getItem() instanceof Uniqueness u)
-                try { Lotm.addCorruptionPercent(sp, Lotm.pathwayById(u.pathId()), Settings.uniqCarryCorruption); } catch (Throwable ignored) { }
+            if (st.getItem() instanceof Uniqueness u) {
+                price(sp, BuiltInRegistries.ITEM.getKey(st.getItem()).getPath());
+                if (drip)
+                    try { Lotm.addCorruptionPercent(sp, Lotm.pathwayById(u.pathId()), Settings.uniqCarryCorruption); } catch (Throwable ignored) { }
+            }
+        }
+    }
+
+
+    // ---- what each artifact asks of whoever carries it
+
+    /** One line per artifact, for the tooltip and for the thing itself. */
+    public static final Map<String, String> DOWNSIDE = Map.of(
+        "starry_sniper",     "You see everything, and everything sees you: you glow, and nothing loses you.",
+        "quill_of_alzuhod",  "The quill writes whether you will it or not, and drinks your spirituality to do it.",
+        "shadow_sword",      "It keeps its own shadow. Open daylight weakens you and wears you down.",
+        "spear_of_sun",      "It will not be carried in the dark: out of the light you are blinded and weak.",
+        "storm_katana",      "No shield will stay on your arm, and in a storm the sky comes looking for you.",
+        "bone_greatsword",   "The book eats what keeps you alive: your hunger never settles, so you never mend on your own.",
+        "twilight_longsword", "The blade must be fed. Half a minute without blood and it starts taking yours.",
+        "snake_rifle",       "The wheel takes its turn on you too: your luck is gone and your gear gives out early.",
+        "chained_bow",       "The chain is on you as much as on them. You are slowed, and you do not run.");
+
+    private static final java.util.Map<java.util.UUID, Long> LAST_BLOOD = new java.util.HashMap<>();
+
+    /** Remembers when a carrier of the Longsword of Twilight last drew blood. */
+    public static void onAttack(net.neoforged.neoforge.event.entity.player.AttackEntityEvent e) {
+        if (e.getEntity() instanceof ServerPlayer sp) LAST_BLOOD.put(sp.getUUID(), sp.level().getGameTime());
+    }
+
+    private static void say(ServerPlayer sp, String what, net.minecraft.ChatFormatting col) {
+        sp.displayClientMessage(net.minecraft.network.chat.Component.literal(what).withStyle(col), true);
+    }
+
+    private static void eff(ServerPlayer sp, net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> h, int amp) {
+        sp.addEffect(new MobEffectInstance(h, 60, amp, true, false, false));
+    }
+
+    /** Called once a second for whoever is carrying one. */
+    private static void price(ServerPlayer sp, String id) {
+        var lv = sp.serverLevel();
+        long t = lv.getGameTime();
+        switch (id) {
+            case "starry_sniper" -> eff(sp, net.minecraft.world.effect.MobEffects.GLOWING, 0);
+            case "quill_of_alzuhod" -> {
+                if (t % 200 == 0) pay(sp, 100);
+            }
+            case "shadow_sword" -> {
+                if (lv.isDay() && !lv.isRaining() && lv.canSeeSky(sp.blockPosition())) {
+                    eff(sp, net.minecraft.world.effect.MobEffects.WEAKNESS, 1);
+                    if (t % 100 == 0 && sp.getHealth() > 2f) {
+                        sp.hurt(lv.damageSources().magic(), 2f);
+                        say(sp, "The shadow recoils from the light.", net.minecraft.ChatFormatting.DARK_GRAY);
+                    }
+                }
+            }
+            case "spear_of_sun" -> {
+                if (lv.getMaxLocalRawBrightness(sp.blockPosition()) < 5) {
+                    eff(sp, net.minecraft.world.effect.MobEffects.BLINDNESS, 0);
+                    eff(sp, net.minecraft.world.effect.MobEffects.WEAKNESS, 0);
+                }
+            }
+            case "storm_katana" -> {
+                if (lv.isThundering() && lv.canSeeSky(sp.blockPosition()) && lv.random.nextInt(24) == 0) {
+                    var bolt = net.minecraft.world.entity.EntityType.LIGHTNING_BOLT.create(lv);
+                    if (bolt != null) {
+                        bolt.moveTo(sp.getX(), sp.getY(), sp.getZ());
+                        bolt.setVisualOnly(true);
+                        lv.addFreshEntity(bolt);
+                    }
+                    sp.hurt(lv.damageSources().lightningBolt(), 4f);
+                    say(sp, "The storm knows its own.", net.minecraft.ChatFormatting.AQUA);
+                }
+            }
+            case "bone_greatsword" -> eff(sp, net.minecraft.world.effect.MobEffects.HUNGER, 0);
+            case "twilight_longsword" -> {
+                long last = LAST_BLOOD.getOrDefault(sp.getUUID(), 0L);
+                if (t - last > 600 && t % 100 == 0 && sp.getHealth() > 2f) {
+                    sp.hurt(lv.damageSources().magic(), 2f);
+                    say(sp, "The blade is hungry.", net.minecraft.ChatFormatting.DARK_PURPLE);
+                }
+            }
+            case "snake_rifle" -> {
+                eff(sp, net.minecraft.world.effect.MobEffects.UNLUCK, 0);
+                if (t % 120 == 0) {
+                    var inv = sp.getInventory();
+                    java.util.List<ItemStack> worn = new java.util.ArrayList<>();
+                    for (ItemStack a : sp.getArmorSlots()) if (a.isDamageableItem()) worn.add(a);
+                    ItemStack hand = sp.getMainHandItem();
+                    if (hand.isDamageableItem()) worn.add(hand);
+                    if (!worn.isEmpty()) worn.get(lv.random.nextInt(worn.size())).hurtAndBreak(2, sp, net.minecraft.world.entity.EquipmentSlot.MAINHAND);
+                }
+            }
+            case "chained_bow" -> {
+                eff(sp, net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 0);
+                if (sp.isSprinting()) sp.setSprinting(false);
+            }
+            default -> { }
         }
     }
 
@@ -105,6 +200,7 @@ public final class UniqPower {
     public static void onLogout(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent e) {
         if (e.getEntity() instanceof ServerPlayer sp) {
             BURDENED.remove(sp.getUUID());
+            LAST_BLOOD.remove(sp.getUUID());
             var mh = sp.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH);
             if (mh != null) mh.removeModifier(BURDEN);
         }

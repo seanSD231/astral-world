@@ -2,6 +2,22 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.280
+
+- **Every astral artifact now asks something of its own.** Corruption and the two hearts of weight were the only price,
+  and they were the same whatever you carried. Each one now has a cost that belongs to it, paid while it is on you at all —
+  hand, artifact slot or pack — and the tooltip says what it is.
+  - **Eyes of the Door** — you glow. Nothing loses you.
+  - **Quill of Alzuhod** — it writes on its own and drinks 100 spirituality every ten seconds to do it.
+  - **Sword of Shadow** — open daylight gives you Weakness II and takes a heart every five seconds.
+  - **Spear of Sun and Justice** — in light level 4 or less you are blind and weak.
+  - **Storm Katana** — still no shields, and in a thunderstorm under open sky the lightning comes for you.
+  - **Book of Feathered Serpents** — permanent Hunger, so your food never settles and you never heal on your own.
+  - **Longsword of Twilight** — thirty seconds without hitting something and it takes a heart every five seconds.
+  - **Wheel of Fortune Rifle** — permanent Unluck, and every six seconds a worn or held item takes extra wear.
+  - **Chained Bow** — Slowness, and you cannot sprint.
+- The old generic mining slowdown is gone; the two hearts and the corruption drip stay.
+
 ## 0.2.279
 
 - **The Uniqueness slot is now the Astral Artifact slot.** The curios slot is `astral_artifact`, the item tag is
