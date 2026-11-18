@@ -26,7 +26,11 @@ PATH_RGB = {
     "apothecary": (0x22, 0xAA, 0x55), "lawyer": (0x33, 0x55, 0xCC), "savant": (0xFF, 0xB0, 0x30),
     "arbiter": (0xFF, 0x99, 0x22), "reader": (0xE8, 0xEC, 0xF4), "monster": (0xAA, 0xAA, 0xB4),
     "sleepless": (0x7A, 0x7A, 0x88), "ancient_one": (0x6A, 0x3C, 0xC0),
+    "admin": (0x62, 0x14, 0x1E),
 }
+
+# packs with no symbol of their own borrow one
+SYM_ALIAS = {"admin": "secrets_supplicant"}
 
 
 def ramp(rgb):
@@ -47,7 +51,7 @@ def sym_stamp(path):
     plain brightness cut just gives back the disc: what reads at this size is the emblem's own
     shading, so each pixel is placed in one of three bands between the darkest and brightest of it.
     """
-    f = os.path.join(SYM, f"sym_{path}.png")
+    f = os.path.join(SYM, f"sym_{SYM_ALIAS.get(path, path)}.png")
     if not os.path.exists(f):
         return None
     im = Image.open(f).convert("RGBA").resize((SYM_N, SYM_N), Image.BOX)
@@ -85,7 +89,7 @@ def pack(path, rarity):
                 put(x, y, c)
 
     body = ramp(PATH_RGB.get(path, (150, 150, 160)))
-    trim = SILVER if rarity == "" else GOLD
+    trim = GOLD if rarity != "" or path == "admin" else SILVER
     X0, X1, Y0, Y1 = 14, 50, 4, 60
 
     rect(X0 - 2, Y0 - 1, X1 + 2, Y1 + 1, INK)                       # the outline, drawn first
@@ -140,8 +144,10 @@ def pack(path, rarity):
                 if abs(x) + abs(y) <= 8 and (abs(x) < 2 or abs(y) < 2):
                     put(cx + x, cy + y, trim[2])
 
-    for i in range(3):                                               # three pips: three cards
-        px_ = X0 + 9 + i * 9
+    pips = 1 if path == "admin" else 3                               # one pip per card in the pack
+    start = X0 + 9 if pips == 3 else (X0 + X1) // 2 - 2
+    for i in range(pips):
+        px_ = start + i * 9
         rect(px_, Y1 - 13, px_ + 5, Y1 - 10, trim[2])
         put(px_, Y1 - 13, INK)
         put(px_ + 4, Y1 - 13, INK)

@@ -2,6 +2,17 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.301
+
+- **The admin pack looks like the rest of the set now.** The pouch on the opening screen was drawn from scratch and
+  was far poorer than the hand-made ones it sat beside. It is built from the Secrets Supplicant pouch instead, which
+  already carries the Hanged Man's rose-and-cross in its middle: the same crimped edges, ring of twenty-two
+  pathways, frame and plates, with the body taken down toward black while the gold and the symbols keep their
+  brightness, and the three pieces of text replaced. `tools/art/admin_pouch.py` builds it.
+- The pack's inventory sprite now comes out of `tools/art/packs.py` like every other one, so it matches them exactly
+  rather than approximately: dark red body, gold crimp and rails, the Hanged Man's symbol on the medallion, and one
+  pip instead of three because the pack holds one card.
+
 ## 0.2.300
 
 - **The admin pack.** One card, and that card is an admin card. It is in no creative tab, has no recipe and is
