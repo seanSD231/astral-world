@@ -2276,6 +2276,37 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         int ns = N == 2 ? 26 : 12;   // spears driven into the ground all around, leaning outward
         for (int i = 0; i < ns; i++) { float a = i * TAU / ns + (i % 2) * .12f, rr = R * (.4f + .45f * ((i * 7) % 5) / 4f), L = (4.5f + 3f * h(i, 5)) * S; int v = N == 2 ? i % 3 : 0;
             push(); tr((float) Math.cos(a) * rr, L * .9f, (float) Math.sin(a) * rr); rY(-a); rZ(PI + .1f + .12f * h(i, 6)); drawGeo(sp[v], "lotm", spt[v], L); pop(); }   // point down, in the ground
+        if (N == 2) {   // Seq 0: an army's camp. War banners round the rim, a field of blades, and shields set among them.
+            int gold2 = mix(0xC8A040, P1, .25f);
+            for (int i = 0; i < 10; i++) {
+                float a = i * TAU / 10 + .3f, rr = R * 1.06f, ph = top * .78f;
+                push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2); rZ((h(i, 180) - .5f) * .06f);
+                frustum(0, ph, .15f * S, .1f * S, 8, 1, 1, 0x2A1C12, 255, true);                           // the pole
+                box(0, ph * .99f, 1.3f * S, .07f * S, .07f * S, 1.35f * S, gold2, 255);                    // the crossbar it hangs from
+                for (int k = 0; k < 7; k++) {                                                              // the cloth, rippling
+                    float ky = ph * (.98f - .085f * k), wv = gs(t * 1.6f - k * .7f + i * 2.1f) * .3f * S;
+                    float wdt = 1.25f - .06f * k;
+                    box(wv, ky, 1.3f * S, .05f * S, ph * .042f, wdt * S, k % 2 == 0 ? mix(P2, 0x200804, .25f) : mix(P2, 0x401008, .15f), 255);
+                    box(wv, ky, 1.3f * S + wdt * S, .055f * S, ph * .042f, .05f * S, gold2, 255);
+                }
+                box(gs(t * 1.6f + i * 2.1f) * .3f * S, ph * .52f, 1.3f * S, .06f * S, .5f * S, .5f * S, gold2, 255);   // a device sewn on it
+                sphere(0, ph + .2f * S, 0, .18f * S, .26f * S, .18f * S, 5, 8, gold2, 255);
+                pop();
+                flameAt(gc(a) * rr, ph + .4f * S, gs(a) * rr, 1.6f * S, 40 + i, P2, P1, P3, .9f);          // the finial burning
+                bb("glow", gc(a) * rr, ph * .6f, gs(a) * rr, 6f * S, top * .6f, 0, rgba(P2, .1f));
+            }
+            for (int i = 0; i < 18; i++) {   // blades driven into the ground, leaning every way
+                float a = i * TAU / 18 + .17f, rr = R * (.52f + .3f * h(i, 182)), L = (3.4f + 1.8f * h(i, 183)) * S;
+                push(); tr(gc(a) * rr, L * .88f, gs(a) * rr); rY(-a + h(i, 184) * 2f); rZ(PI + (h(i, 185) - .5f) * .3f);
+                if (!drawGeo("silver_sword", "lotm", "textures/entity/silver_sword_entity.png", L)) sword(L, metal(.8f), mix(P2, 0x201008, .5f), P1);
+                pop(); }
+            for (int i = 0; i < 8; i++) {   // shields leaning among them
+                float a = i * TAU / 8 + .75f, rr = R * .68f;
+                push(); tr(gc(a) * rr, .95f * S, gs(a) * rr); rY(-a + PI / 2); rX(-.35f);
+                frustum(-.08f * S, .08f * S, .95f * S, .95f * S, 14, 1, 1, mix(P2, 0x281008, .4f), 255, true);
+                push(); rX(PI / 2); torus(0, 0, 0, .95f * S, .95f * S, .09f * S, 16, 4, 0, TAU, gold2, 255); pop();
+                sphere(0, .12f * S, 0, .26f * S, .18f * S, .26f * S, 5, 8, gold2, 255); pop(); }
+        }
         sprites("spark", 90 * N, RISEM, R, 0, top * 1.1f, .3f * S, P3, 1f, .5f, 18, true);
         sprites("smoke", 16 * N, RISEM, R * .5f, top * .3f, top, 3f * S, mix(P2, 0x000000, .6f), .5f, .1f, 19, true);
     }
@@ -2535,6 +2566,29 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         if (N == 2) {   // Seq 0: one great eye watches over everything from above, sweeping a beam of light across the floor, under turning rings of sigils
             float ey3 = top * 1.25f, lk = t * .3f; bb("glow", 0, ey3, 0, 16f * S, 16f * S, 0, rgba(P1, .35f)); bb("eye", 0, ey3, 0, 14f * S, 7f * S * Math.max(.2f, Math.abs(gc(t * .35f))), 0, rgba(mix(P1, 0xFFFFFF, .3f), 1f));
             column("beam", gc(lk) * R * .7f, 0, ey3, gs(lk) * R * .7f, 2.2f * S, rgba(P3, .35f)); flat("glow", gc(lk) * R * .7f, .12f, gs(lk) * R * .7f, 6f * S, 0, rgba(P3, .6f));
+        }
+        if (N == 2) {   // Seq 0: a sky of its own with the heavens charted across it, and seven lesser orbs round the great one, each holding another pathway
+            dome(R * 3.6f, 0x05080F, 250);
+            for (int c = 0; c < 7; c++) {   // constellations: four stars joined up, drawn flat on the dome
+                float a0 = h(c, 190) * TAU, e0 = .12f + .95f * h(c, 191);
+                float[] ca = new float[4], ce = new float[4];
+                for (int k = 0; k < 4; k++) { ca[k] = a0 + (h(c * 7 + k, 192) - .5f) * .55f; ce[k] = Math.max(.06f, Math.min(1.35f, e0 + (h(c * 11 + k, 193) - .5f) * .45f)); }
+                for (int k = 0; k < 3; k++) {
+                    float da = (ca[k + 1] - ca[k]) * (float) Math.cos((ce[k] + ce[k + 1]) * .5f), de = ce[k + 1] - ce[k];
+                    float len = (float) Math.sqrt(da * da + de * de) * R * 3.5f, rot = (float) Math.atan2(de, da);
+                    domeQuad("line", R * 3.48f, (ca[k] + ca[k + 1]) * .5f, (ce[k] + ce[k + 1]) * .5f, len, .18f * S, rot, rgba(P3, .45f));
+                }
+                for (int k = 0; k < 4; k++) { float ce2 = (float) Math.cos(ce[k]), rad = R * 3.47f;
+                    float sx2 = rad * ce2 * (float) Math.cos(ca[k]), sy2 = rad * (float) Math.sin(ce[k]), sz2 = rad * ce2 * (float) Math.sin(ca[k]);
+                    bb("star", sx2, sy2, sz2, (1.6f + 1.2f * h(c * 5 + k, 194)) * S, (1.6f + 1.2f * h(c * 5 + k, 194)) * S, 0, rgba(0xFFFFFF, .75f + .25f * gs(t * .7f + c + k))); }
+            }
+            for (int i = 0; i < 7; i++) {   // the lesser orbs, each one showing another pathway's mystery
+                float a = i * TAU / 7 + t * .09f, rr = rr0 * 2.6f, oy = cy0 + gs(t * .5f + i * 1.7f) * .8f * S, orr = .72f * S;
+                sphere(gc(a) * rr, oy, gs(a) * rr, orr, orr, orr, 8, 12, mix(P3, 0x101830, .5f), 160);
+                bb("glow", gc(a) * rr, oy, gs(a) * rr, orr * 4f, orr * 4f, 0, rgba(P3, .3f));
+                symPlane(((int) (t * .18f) * 5 + i * 3) % Tarot.PATHWAYS.length, gc(a) * rr, oy, gs(a) * rr, orr * 1.3f, -a + PI / 2, .85f);
+                column("line", gc(a) * rr, oy, cy0, gs(a) * rr, .07f * S, rgba(P3, .3f));
+            }
         }
         if (N == 2) for (int i = 0; i < 8; i++) { float a = i * TAU / 8 + .2f, rr = R * .88f; push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2);   // a ring of tall gilded mirrors, each showing a glow of its own
             torus(0, 3.2f * S, 0, 1.3f * S, 2.6f * S, .14f * S, 20, 5, 0, TAU, metal(.7f), 255); box(0, .2f * S, 0, .8f * S, .2f * S, .5f * S, metal(.4f), 255); pop();

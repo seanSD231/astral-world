@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.294
+
+- **Hunter 0**: an army's camp. Ten war banners round the rim, each on a pole most of the sphere's height with cloth
+  that ripples, a gilt edge, a device sewn on it and a burning finial; eighteen blades driven into the ground leaning
+  every way; and eight shields set among them.
+- **Mystery Prier 0**: a sky of its own, with seven constellations charted across it — four stars joined up, each
+  star twinkling on its own beat — and a crown of seven lesser scrying orbs turning round the great one, each holding
+  another pathway's mystery and strung back to the middle by a thread of light.
+
 ## 0.2.293
 
 - **Apothecary 1 and 0**: the sphere was a ring of altars at the rim and a scatter of potions far out with nothing
