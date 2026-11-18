@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.291
+
+- **Monster 0**: nine dice instead of twenty-six, and the wheel now pays out whatever the ticker stopped on. Coin
+  throws up a fountain of gold; clover spirals leaves out of a green haze with clover growing on the floor; gem
+  pushes a ring of crystal up through the floor with light standing off it; card flings the cards of fortune out
+  turning, with the pathway's own symbol circling overhead. The colour of the rings and the haze follows the prize.
+- **Corpse 0**: a scythe of bone most of the sphere's height planted behind the throne, seven coffins standing open
+  in a ring outside the tombstones with a soul lifting out of each, and a river of souls running round the whole
+  sphere at head height.
+
 ## 0.2.290
 
 - **Error 0** is its own scene now. Seq 1 stays the Worm of Time (stepped time, the clock, the worms); Seq 0 is the
