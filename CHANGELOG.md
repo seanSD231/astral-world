@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.305
+
+- **The pack sprites are back to what they were.** 0.2.285 redrew all 67 of them as 64px pixel art; they were worse,
+  and the whole point of the sprite is that it is recognisably the pouch you are about to tear open. They are
+  188px miniatures of each pack's own pouch art again, which is how they were always made.
+  `tools/art/pack_sprites.py` regenerates them that way; the pixel-art generator is gone.
+- The admin pack's sprite is made the same way now, from its own pouch, so it sits with the rest.
+- The pouch on the opening screen asks for bilinear filtering at load as well as in its `.mcmeta`, so it is
+  filtered rather than blocky where the meta is not picked up.
+
 ## 0.2.304
 
 - **An admin card's hologram has music.** Three tracks, one after another with a breath between them, round and

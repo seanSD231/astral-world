@@ -56,6 +56,16 @@ public final class PackScreen extends Screen {
         tm.getTexture(tex("shiny_foil"));
         for (String n : new String[]{"shine_common", "shine_rare", "shine_epic", "shine_legendary", "shine_mythic"}) tm.getTexture(tex(n));
         for (int i = 0; i < path.length; i++) tm.getTexture(tex("front_" + RARITY[rarity(seq[i])]));
+        smooth(tex("pack_" + pack));   // the pouch is drawn far larger than its 564px art, so it is filtered, not blocky
+    }
+
+    /** Turn bilinear filtering on for a texture the screen scales up. The .mcmeta asks for it, but asking here as
+     *  well costs nothing and covers the case where the meta is not picked up. */
+    private static void smooth(ResourceLocation rl) {
+        try {
+            var tx = net.minecraft.client.Minecraft.getInstance().getTextureManager().getTexture(rl);
+            if (tx != null) tx.setFilter(true, false);
+        } catch (Throwable ignored) { }
     }
 
     public static void open(String pack, String cards) { Minecraft.getInstance().setScreen(new PackScreen(pack, cards)); }
