@@ -1166,40 +1166,86 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
     private int gooDomeRgb;
     /**
-     * The admin card's hologram. The Bearing of Sins hanging at the heart of it, chains out of a red sky, seven
-     * pillars standing round the rim, and a drop that falls and rings the floor over and over.
+     * The admin card's hologram: the two pictures it was drawn from, with the man himself in them. He hangs upside
+     * down with his feet roped at the top, his legs bound in coils of chain, his arms straight out and a chain off
+     * each wrist, inside a burning sky with curtains of light coming down through it. Halo rings turn about him,
+     * a cross of light runs through him, and a drop of blood falls from his head and rings the floor.
      */
     private void adminScene(int a) {
-        dome(R * 3.6f, 0x090305, 252);
-        mcStars(130, R * 3.3f, 0xFFFFFF, 0xFF7A7A, .45f * S);
-        for (int i = 0; i < 16; i++) {   // red cloud turning slowly on the sky
-            float ang = h(i, 500) * TAU + t * .012f, el = .10f + 1.25f * h(i, 501), sz = (16f + 12f * h(i, 502)) * S;
-            domeQuad("smoke", R * 3.5f, ang, el, sz, sz * .55f, h(i, 503) * PI, rgba(0x8A1018, .18f));
+        String who = Tarot.ADMIN_NAMES[Math.max(0, Math.min(Tarot.ADMIN_NAMES.length - 1, a))];
+        float P = .19f * S;                      // blocks to a skin pixel
+        float yB = 6.3f;                         // the waist: his legs go up from here and his head hangs below
+        float feet = yB + 24f * P, head = yB - 8f * P, armY = yB + 2f * P, armX = 16f * P;
+
+        // --- the burning sky -------------------------------------------------------------------------
+        dome(R * 3.6f, 0x2A1206, 252);
+        for (int i = 0; i < 20; i++) {           // cloud lit from below, turning slowly
+            float ang = h(i, 520) * TAU + t * .012f, el = .06f + 1.2f * h(i, 521), sz = (18f + 14f * h(i, 522)) * S;
+            domeQuad("smoke", R * 3.5f, ang, el, sz, sz * .5f, h(i, 523) * PI,
+                     rgba(mix(0xFF8A20, 0x401004, el / 1.3f), .30f));
         }
+        for (int i = 0; i < 11; i++) {           // curtains of light falling through it
+            float ang = i * TAU / 11 + t * .015f, rr = R * (1.05f + .22f * h(i, 524));
+            float k2 = .40f + .60f * Math.abs(gs(t * .5f + i * 1.7f));
+            column("beam", gc(ang) * rr, 0, top * 1.25f, gs(ang) * rr, (1.1f + .9f * h(i, 525)) * S, rgba(0xFFD88A, .26f * k2));
+            bb("glow", gc(ang) * rr, top * .55f, gs(ang) * rr, 5f * S, top, 0, rgba(0xFFC060, .07f * k2));
+        }
+
+        // --- the floor -------------------------------------------------------------------------------
         sigil(R);
         for (int k = 0; k < 4; k++)
-            flat("ring", 0, .12f + k * .004f, 0, R * (.45f + .42f * k), t * (k % 2 == 0 ? .18f : -.18f), rgba(k % 2 == 0 ? P1 : P3, .5f));
-        flat("whirl", 0, .11f, 0, R * 1.6f, -t * .25f, rgba(P1, .4f));
-        for (int i = 0; i < 7; i++) {   // seven pillars of light standing round the rim, breathing
-            float ang = i * TAU / 7 + t * .02f, rr = R * 1.18f, k2 = .45f + .55f * Math.abs(gs(t * .6f + i * 1.3f));
-            column("beam", gc(ang) * rr, 0, top * 1.1f, gs(ang) * rr, 1.5f * S, rgba(P1, .22f * k2));
-            bb("glow", gc(ang) * rr, top * .45f, gs(ang) * rr, 5f * S, top * .8f, 0, rgba(P1, .10f * k2));
+            flat("ring", 0, .12f + k * .004f, 0, R * (.42f + .40f * k), t * (k % 2 == 0 ? .16f : -.16f), rgba(0xFFC048, .55f));
+        flat("whirl", 0, .11f, 0, R * 1.5f, -t * .22f, rgba(0xFFA030, .35f));
+        column("beam", 0, 0, top * 1.2f, 0, 1.3f * S, rgba(0xFFE0A0, .30f));          // the upright of the cross
+        flat("ring_thick", 0, armY, 0, R * 1.9f, 0, rgba(0xFFE0A0, .22f));            // and its bar, through his arms
+
+        // --- the rings that turn about him -----------------------------------------------------------
+        int goldr = 0xFFBE3C, goldl = 0xFFE6A8;
+        ringAt(armY - .3f * S, R * .92f, .13f * S, goldr, t * .25f);
+        ringAt(armY - .3f * S, R * .78f, .07f * S, goldl, -t * .35f);
+        ringAt(yB + 13f * P, R * .58f, .10f * S, goldr, -t * .3f);
+        ringAt(yB + 20f * P, R * .36f, .08f * S, goldr, t * .4f);
+
+        // --- the man ---------------------------------------------------------------------------------
+        ResourceLocation sk = skinNamed(who);
+        float zf = 0f;
+        hmD = 0f;
+        skinPart(sk, 0, 0, 8, 8, 8, 0, 4, 0, true, P, yB, zf);              // head, hanging below
+        skinPart(sk, 16, 16, 8, 12, 4, 0, -6, 0, true, P, yB, zf);          // body
+        skinPart(sk, 40, 16, 4, 12, 4, -10, -2, -PI / 2, true, P, yB, zf);  // right arm, straight out
+        skinPart(sk, 32, 48, 4, 12, 4, 10, -2, PI / 2, true, P, yB, zf);    // left arm
+        skinPart(sk, 0, 16, 4, 12, 4, -2, -18, 0, true, P, yB, zf);         // right leg, up
+        skinPart(sk, 16, 48, 4, 12, 4, 2, -18, 0, true, P, yB, zf);         // left leg
+
+        int iron = 0x2A2730;
+        for (int k = 0; k < 6; k++) {   // his legs bound together, coil after coil
+            float y = yB + (13f + k * 2.1f) * P;
+            push(); tr(0, y, 0); rX(PI / 2); torus(0, 0, 0, 4.6f * P, 4.6f * P, .5f * P, 12, 4, 0, TAU, iron, 255); pop();
         }
-        int iron = mix(0x6A6A74, P1, .2f);
-        for (int i = 0; i < 6; i++) {   // chains hanging out of the sky
-            float ang = i * TAU / 6 + .4f, rr = R * .62f;
-            push(); tr(gc(ang) * rr, top * 1.15f, gs(ang) * rr); rZ(gs(t * .4f + i) * .05f);
-            chain(top * .5f, .55f * S, iron); pop();
+        push(); tr(0, feet + .3f * S, 0); chain(1.6f * S, .5f * S, iron); pop();       // the rope he hangs by
+        for (int sd = -1; sd <= 1; sd += 2) {   // and a chain off each wrist
+            push(); tr(sd * armX, armY - .4f * S, 0); rZ(sd * .06f + gs(t * .5f + sd) * .03f);
+            chain((5.5f + (sd > 0 ? 1.2f : 0f)) * S, .55f * S, iron); pop();
         }
-        float sy = CY + 2.6f * S;
-        bearerSym(0, sy, 0, 9.5f * S, -face, true);
-        for (int i = 0; i < 3; i++) {   // the drop, falling again and again
-            float pw = fract(t * .35f + i / 3f), y0 = sy - 4.4f * S;
-            bb("drop", 0, y0 - pw * (y0 - .4f), 0, .9f * S, 1.5f * S, 0, rgba(0xD01828, 1f - pw * .3f));
+
+        // --- the blood, falling from his head --------------------------------------------------------
+        bb("glow", 0, head - .5f * S, 0, 3.4f * S, 3.4f * S, 0, rgba(0xD01828, .55f));
+        for (int i = 0; i < 4; i++) {
+            float pw = fract(t * .33f + i / 4f), y0 = head - .7f * S;
+            bb("drop", 0, y0 - pw * (y0 - .35f), 0, .85f * S, 1.4f * S, 0, rgba(0xD81C2C, 1f - pw * .25f));
         }
-        for (int i = 0; i < 2; i++) { float pw = fract(t * .35f + i / 2f); flat("ring_thick", 0, .13f, 0, pw * R * 1.5f, 0, rgba(P1, fd(pw))); }
-        sprites("mote", 60, RISEM, R * .9f, 0, top, .45f * S, P1, 1f, .3f, 95, false);
-        cardBeam(P1);
+        for (int i = 0; i < 2; i++) { float pw = fract(t * .33f + i / 2f); flat("ring_thick", 0, .13f, 0, pw * R * 1.3f, 0, rgba(0xC81828, fd(pw))); }
+
+        // --- rain and embers -------------------------------------------------------------------------
+        sprites("drop", 90, FALLM, R * 1.1f, 0, top * 1.2f, .55f * S, 0xFFD48A, .55f, .35f, 96, true);
+        sprites("mote", 50, RISEM, R * .95f, 0, top, .4f * S, 0xFF9A40, 1f, .3f, 97, false);
+        cardBeam(0xFFC048);
+    }
+    /** One flat halo ring lying level at height y, turning. */
+    private void ringAt(float y, float rr, float thick, int rgb, float spin) {
+        push(); tr(0, y, 0); rY(spin); rX(PI / 2);
+        torus(0, 0, 0, rr, rr, thick, 36, 5, 0, TAU, rgb, 255); pop();
+        bb("glow", 0, y, 0, rr * 2.3f, thick * 9f, 0, rgba(rgb, .22f));
     }
     private void gooScene(int g) {
         gooBase(g, g == 1 ? 0x100800 : g == 5 ? 0x020A18 : g == 6 ? 0x180804 : g == 3 ? 0x1A0204 : g == 7 ? 0x0C0012 : g == 8 ? 0x020A0C : g == 0 ? 0x08041A : g == 4 ? 0x04041A : 0x010204, 248);
@@ -2010,6 +2056,14 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         return mc.player != null ? mc.player.getSkin().texture() : ResourceLocation.withDefaultNamespace("textures/entity/player/wide/steve.png");
     }
     private String curOwner = "";
+    /** The named player's skin if they are online, else whoever put the card down. An admin card wears its own man. */
+    private ResourceLocation skinNamed(String who) {
+        var mc = Minecraft.getInstance();
+        if (who != null && !who.isEmpty() && mc.getConnection() != null)
+            for (var info : mc.getConnection().getListedOnlinePlayers())
+                if (info.getProfile().getName().equalsIgnoreCase(who)) return info.getSkin().texture();
+        return ownerSkin();
+    }
 
     private void pushFace() { push(); rY(face); }
     private int thQ;

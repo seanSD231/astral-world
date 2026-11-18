@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.303
+
+- **The admin hologram is the picture the card came from**, not the Hanged Man's scene. Rupex_123 himself hangs in
+  it, in his own skin, upside down: his feet roped at the top, his legs bound together in six coils of chain, his
+  arms straight out with a chain off each wrist, and his head hanging below. Around him a burning sky with cloud lit
+  from underneath, eleven curtains of light coming down through it, four halo rings turning at different heights and
+  speeds, a cross of light running up through him and out along his arms, gold rain falling, embers going up, and a
+  drop of blood falling from his head to ring the floor.
+- The scene takes the skin of the man the card names wherever it is placed, not of whoever placed it.
+
 ## 0.2.302
 
 - **Rupex_123**, with the capital, on the card and everywhere the name is read. The lower-case `rupex_123` stays as
