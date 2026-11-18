@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.310
+
+- Fixes the build: the scythe blade's back colour was declared among the floats.
+
 ## 0.2.309
 
 - **The Apothecary's middle is clear.** The benches stood at .55 of the radius and the potions began at .4,

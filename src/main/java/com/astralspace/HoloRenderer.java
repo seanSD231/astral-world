@@ -820,7 +820,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      * jointed bent rod and not a blade at all.
      */
     private void scytheBlade(float len, int bone) {
-        int n = 16; float A = 2.05f, th = .075f * S, back = mix(bone, 0x6A6458, .3f);
+        int n = 16, back = mix(bone, 0x6A6458, .3f); float A = 2.05f, th = .075f * S;
         float[][] bp = new float[n + 1][], bm = new float[n + 1][], ed = new float[n + 1][];
         for (int k = 0; k <= n; k++) {
             float u = k / (float) n, ph = u * A;
