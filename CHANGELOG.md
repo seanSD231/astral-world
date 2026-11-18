@@ -2,6 +2,23 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.283
+
+Both of these were doing the same thing over and over; now they do something.
+
+- **The ball of lightning bursts where it lands.** It used to fly, sit, and start pulsing six ticks later for 56 a
+  pulse over a 44 block ball — which was most of a battlefield and nothing to react to. Now the landing is the hit:
+  everything within 21 blocks takes 40 at once and is thrown off its feet, with six strokes of lightning on top.
+  What follows is a 26 block storm that holds for nine seconds, and once a second it finds everyone inside it,
+  sorts them by distance and **runs the charge from one to the next** — 14 for the first, 10 more for every link
+  after, up to six links. Standing in a crowd inside it is now far worse than standing in it alone, and the arc
+  between each pair is drawn in sparks so you can see the chain happen.
+- **The Book of Feathered Serpents does something of its own.** It was a five second switch for LOTM's Hands of
+  Death and nothing else. The serpents go out of it now: up to five, one after another six ticks apart, each to its
+  own enemy within 40 blocks, each taking **22% of that enemy's maximum health** (never less than 30) with bleeding
+  and Slowness III behind it. Against something big that is worth far more than a flat number. With nothing in range
+  they coil around the reader instead, and the hands are what the page buys. The hands still come either way.
+
 ## 0.2.282
 
 - **The Sword of Twilight finally shows while it is held.** It had no visual of its own: the aura it puts out was

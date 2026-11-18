@@ -64,14 +64,14 @@ public final class AstralFloor {
         case "starry_sniper" -> new DoorEyes();
         case "quill_of_alzuhod" -> new WornUniq(u[1], u[3], 100, "open the Storytelling screen (the Seq 1 Spectator prophecy)", WornUniq.QUILL);
         case "spear_of_sun" -> new WornUniq(u[1], u[3], 1200, "three flaring suns, one ahead and one to either side (Seq 1/0: five larger suns, then six more around you)", UniqAbilities::suns);
-        case "bone_greatsword" -> new WornUniq(u[1], u[3], 1200, "the book opens: for 5 seconds your hands are the Hands of Death, bare or armed (Seq 1/0: every hit also catches each foe within 4 blocks)", UniqAbilities::hands);
+        case "bone_greatsword" -> new WornUniq(u[1], u[3], 1200, "the book opens: up to five feathered serpents go out, each to its own enemy within 40 blocks for 22% of what that enemy has, and for 5 seconds your hands are the Hands of Death", UniqAbilities::hands);
         case "snake_rifle" -> new WornUniq(u[1], u[3], 600, "spin the wheel: 7 in 10 a strong boon (spirituality pouring back, +40 health with regeneration, Strength IV, Resistance III, Speed IV and Luck V, or the jackpot: all of them), else a short bane (Seq 1/0: 9 in 10, and two spins)", UniqAbilities::wheel);
         case "twilight_longsword" -> new TwilightSword(u[1], u[3],
             new net.minecraft.world.item.Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)
                 .attributes(net.minecraft.world.item.SwordItem.createAttributes(net.minecraft.world.item.Tiers.NETHERITE, 6, -2.4f))
                 .component(net.minecraft.core.component.DataComponents.TOOL, net.minecraft.world.item.SwordItem.createToolProperties()));
         case "shadow_sword" -> new WornUniq(u[1], u[3], 700, "the shadow spreads 20 blocks and cages everyone in it (Seq 1/0: 30 blocks, double damage, stun, then bleed, twilight, slowness and darkness)", UniqAbilities::cage);
-        case "storm_katana" -> new WornUniq(u[1], u[3], 1000, "throw a ball of lightning that swells into a storm (no shields while carried; Seq 1/0: a vast storm nobody can leave, 9 seconds, blinding)", UniqAbilities::storm);
+        case "storm_katana" -> new WornUniq(u[1], u[3], 1000, "throw a ball of lightning: it bursts where it lands, then a 26 block storm holds for 9 seconds and runs the charge from one caught enemy to the next, harder with every link", UniqAbilities::storm);
         case "chained_bow" -> new WornUniq(u[1], u[3], 700, "the doll walks to the nearest foe and binds them (Seq 1/0: a doll for every foe near, each appears beside its target after a second and stuns for 5)", UniqAbilities::doll);
         default -> new Uniqueness(u[1], u[3], false);
     })); }

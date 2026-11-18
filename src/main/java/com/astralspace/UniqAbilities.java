@@ -84,13 +84,49 @@ public final class UniqAbilities {
         }
         HANDS.put(sp.getUUID(), new long[]{sp.level().getGameTime() + HANDS_TICKS, lotm ? 1 : 0, mine ? 1 : 0});
         ServerLevel lv = sp.serverLevel();
+        serpents(sp, lv);
         lv.playSound(null, sp.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 2f, .6f);
         lv.playSound(null, sp.blockPosition(), SoundEvents.WARDEN_SONIC_CHARGE, SoundSource.PLAYERS, 1f, 1.6f);
         lv.sendParticles(ParticleTypes.SOUL, sp.getX(), sp.getY() + 1, sp.getZ(), 30, .5, .7, .5, .04);
         over(sp, 5, () -> lv.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, sp.getX(), sp.getY() + 1, sp.getZ(), 10, .45, .5, .45, .01));
-        sp.displayClientMessage(Component.literal("The book opens. For five seconds your hands are the Hands of Death.").withStyle(ChatFormatting.DARK_GREEN), true);
+        sp.displayClientMessage(Component.literal("The book opens: the serpents go out, and for five seconds your hands are the Hands of Death.").withStyle(ChatFormatting.DARK_GREEN), true);
         fx(sp, 1);
         later(HANDS_TICKS, () -> handsEnd(sp));
+    }
+
+
+    /**
+     * What the book does of its own, instead of only switching LOTM's Hands of Death on: feathered serpents go out of
+     * it one after another, each to its own enemy within 40 blocks, and each takes a share of what that enemy has
+     * rather than a flat number, so the book is worth opening against something big. With nothing to strike they coil
+     * around the reader instead and the hands alone are what the page buys.
+     */
+    private static void serpents(ServerPlayer sp, ServerLevel lv) {
+        List<LivingEntity> foes = lv.getEntitiesOfClass(LivingEntity.class, sp.getBoundingBox().inflate(40),
+            e -> foe(sp, e) && e.distanceToSqr(sp) <= 1600);
+        foes.sort((a, b) -> Double.compare(a.distanceToSqr(sp), b.distanceToSqr(sp)));
+        if (foes.isEmpty()) {
+            over(sp, 5, () -> lv.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, sp.getX(), sp.getY() + 1.1, sp.getZ(), 6, .6, .5, .6, .02));
+            return;
+        }
+        int n = Math.min(5, foes.size());
+        for (int i = 0; i < n; i++) {
+            final LivingEntity e = foes.get(i);
+            final int delay = i * 6;
+            later(delay, () -> {
+                if (!e.isAlive()) return;
+                world(lv, new DoorNet.World(1, sp.getId(), e.getId(), sp.getX(), sp.getY() + 1, sp.getZ(), e.getX(), e.getY(), e.getZ(), 16));
+                lv.playSound(null, sp.blockPosition(), SoundEvents.WARDEN_SONIC_CHARGE, SoundSource.PLAYERS, 1f, 1.5f);
+            });
+            later(delay + 8, () -> {
+                if (!e.isAlive()) return;
+                e.hurt(lv.damageSources().playerAttack(sp), Math.max(30f, e.getMaxHealth() * .22f));
+                e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 120, 2));
+                UniqPower.bleed(e, 100);
+                lv.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, e.getX(), e.getY() + e.getBbHeight() * .5, e.getZ(), 18, .35, .45, .35, .06);
+                lv.playSound(null, e.blockPosition(), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.PLAYERS, 1f, .55f);
+            });
+        }
     }
 
     private static void handsEnd(ServerPlayer sp) {
@@ -629,46 +665,89 @@ public final class UniqAbilities {
 
     /** Tyrant: a ball of lightning is thrown, then swells into a huge sphere of storm and chaos.
      *  At Seq 1/0 the storm covers ten times the ground, hits far harder, lasts nine seconds, lets no player out and blinds everyone in it for half a second every three. */
+    /**
+     * The ball of lightning. It flies, and where it lands it bursts: everything close is thrown and badly hurt at
+     * once, instead of waiting for the first slow pulse. What is left standing is a storm that holds its ground for
+     * nine seconds, and every second it finds whoever is inside it and runs the charge from one to the next, so a
+     * crowd is far worse to be in than one person alone.
+     */
     public static void storm(ServerPlayer sp, ItemStack st) {
         ServerLevel lv = sp.serverLevel();
-        boolean emp = UniqPower.emp(sp, "sailor");
         Vec3 eye = sp.getEyePosition(), dir = sp.getLookAngle();
         net.minecraft.world.phys.BlockHitResult hit = lv.clip(new net.minecraft.world.level.ClipContext(eye, eye.add(dir.scale(40)),
             net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, sp));
         Vec3 end = hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS ? eye.add(dir.scale(40)) : hit.getLocation().subtract(dir.scale(1.2));
         Vec3 start = eye.add(dir.scale(.8)).subtract(0, .4, 0);
         int fly = Math.max(4, (int) (eye.distanceTo(end) / 2.5));
-        final double R = emp ? 44 : 14;                 // ten times the ground is about 3.16 times the radius
-        final int life = emp ? 180 : 90;
-        final float dmg = emp ? 56f : 26f;
+
+        final double R = 26;                 // a storm you can be caught in, not half the map
+        final int life = 180;
+        final float burst = 40f, pulse = 14f, chain = 10f;
+
         world(lv, new DoorNet.World(4, fly, (int) (R * 10), start.x, start.y, start.z, end.x, end.y, end.z, fly + 22 + (life - 20) + 16));
         lv.playSound(null, sp.blockPosition(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1f, 1.6f);
+
         later(fly, () -> {
             lv.playSound(null, net.minecraft.core.BlockPos.containing(end), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 6f, 0.5f);
-            for (int t = 6; t < life; t += 2) {
+            for (LivingEntity e : inside(lv, end, R * .8, sp)) {          // the burst, the moment it lands
+                e.hurt(lv.damageSources().lightningBolt(), burst);
+                Vec3 away = e.position().subtract(end).normalize();
+                e.setDeltaMovement(away.x * 1.1, .7, away.z * 1.1);
+                e.hurtMarked = true;
+            }
+            for (int k = 0; k < 6; k++) bolt(lv, end, R * .7);
+
+            for (int t = 20; t < life; t += 20) {
                 final int tt = t;
                 later(t, () -> {
-                    double r = Math.min(R, 2 + R * tt / 22.0);
-                    if (emp) {   // nobody walks out of it
-                        UniqPower.contain(lv, end, r, sp);
-                        if (tt % 60 == 6) for (ServerPlayer pl : lv.players())
-                            if (pl != sp && pl.position().add(0, pl.getBbHeight() / 2, 0).distanceTo(end) <= r)
-                                pl.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 10, 0, false, false));
+                    double r = Math.min(R, 6 + R * tt / 40.0);
+                    UniqPower.contain(lv, end, r, sp);
+                    List<LivingEntity> caught = inside(lv, end, r, sp);
+                    caught.sort((a, b) -> Double.compare(a.distanceToSqr(end.x, end.y, end.z), b.distanceToSqr(end.x, end.y, end.z)));
+                    Vec3 from = end;
+                    int n = 0;
+                    for (LivingEntity e : caught) {
+                        float dmg = pulse + chain * n;                     // the charge gathers as it runs down the line
+                        e.hurt(lv.damageSources().lightningBolt(), dmg);
+                        e.setDeltaMovement(e.getDeltaMovement().add((lv.random.nextDouble() - .5) * .6, .18, (lv.random.nextDouble() - .5) * .6));
+                        e.hurtMarked = true;
+                        if (e instanceof ServerPlayer pl) pl.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 20, 0, false, false));
+                        arc(lv, from, e.position().add(0, e.getBbHeight() * .5, 0));
+                        from = e.position().add(0, e.getBbHeight() * .5, 0);
+                        if (++n >= 6) break;                               // six links is a long enough chain
                     }
-                    if (tt % 10 == 6) {
-                        for (LivingEntity e : lv.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(end, end).inflate(r), x -> x != sp && x.isAlive() && x.position().add(0, x.getBbHeight() / 2, 0).distanceTo(end) <= r)) {
-                            e.hurt(lv.damageSources().lightningBolt(), dmg);
-                            e.setDeltaMovement(e.getDeltaMovement().add((lv.random.nextDouble() - .5) * 1.2, 0.35, (lv.random.nextDouble() - .5) * 1.2));
-                            e.hurtMarked = true;
-                        }
-                        for (int k = 0; k < (emp ? 4 : 1); k++) {
-                            net.minecraft.world.entity.LightningBolt b = net.minecraft.world.entity.EntityType.LIGHTNING_BOLT.create(lv);
-                            if (b != null) { b.setVisualOnly(true); b.moveTo(end.x + (lv.random.nextDouble() - .5) * 2 * r * 0.8, end.y - Math.min(r, 14) * 0.3, end.z + (lv.random.nextDouble() - .5) * 2 * r * 0.8); lv.addFreshEntity(b); }
-                        }
-                    }
+                    if (caught.isEmpty() && tt % 60 == 20) bolt(lv, end, r * .6);
                 });
             }
         });
+    }
+
+    /** Everything alive and hostile inside a ball, the caster excepted. */
+    private static List<LivingEntity> inside(ServerLevel lv, Vec3 c, double r, ServerPlayer sp) {
+        return lv.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(c, c).inflate(r),
+            x -> x != sp && x.isAlive() && x.position().add(0, x.getBbHeight() / 2, 0).distanceTo(c) <= r);
+    }
+
+    /** One visual stroke somewhere in the storm. */
+    private static void bolt(ServerLevel lv, Vec3 c, double r) {
+        net.minecraft.world.entity.LightningBolt b = net.minecraft.world.entity.EntityType.LIGHTNING_BOLT.create(lv);
+        if (b == null) return;
+        b.setVisualOnly(true);
+        b.moveTo(c.x + (lv.random.nextDouble() - .5) * 2 * r, c.y - Math.min(r, 14) * .3, c.z + (lv.random.nextDouble() - .5) * 2 * r);
+        lv.addFreshEntity(b);
+    }
+
+    /** The charge running from one thing it has caught to the next. */
+    private static void arc(ServerLevel lv, Vec3 a, Vec3 b) {
+        int n = (int) Math.max(4, a.distanceTo(b) * 2);
+        for (int i = 0; i <= n; i++) {
+            double k = i / (double) n;
+            lv.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+                a.x + (b.x - a.x) * k + (lv.random.nextDouble() - .5) * .5,
+                a.y + (b.y - a.y) * k + (lv.random.nextDouble() - .5) * .5,
+                a.z + (b.z - a.z) * k + (lv.random.nextDouble() - .5) * .5, 1, 0, 0, 0, 0);
+        }
+        lv.playSound(null, net.minecraft.core.BlockPos.containing(b), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, .6f, 1.7f);
     }
 
     /** Tyrant's no-shield rule: while the lightning ball is carried, a shield blocks nothing. */
