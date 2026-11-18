@@ -2,6 +2,20 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.313
+
+- Fixes the build (a shadowed loop variable in Error 0), and:
+- **Jumping during the hunger games countdown no longer fires you into the sky.** It used jump boost at
+  amplifier 128, on the old trick that it wraps to a negative jump -- the amplifier is an int now, so that was
+  level 129 jump boost. The jump is taken off as it happens instead.
+- **There are chests out in the field again.** Every spot out there was tested against the generator's predicted
+  height, which is not where the ground actually ends up once grass, flowers and snow have grown on it, so
+  almost the whole outer ring was skipped. Spots come off the level's own heightmap now, and anything growing on
+  one is cleared.
+- **Starting the games does not stall the server.** The cover and the caches were laid in one tick -- up to
+  eighteen hundred spots, each loading the chunk it is in. They are spread a few pieces at a time across the
+  invitation and the countdown, along with the chests.
+
 ## 0.2.312
 
 - **The black cube in Error 0 is gone.** The "column of the world that is not there" was a solid near-black box

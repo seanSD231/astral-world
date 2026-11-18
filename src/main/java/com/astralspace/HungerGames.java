@@ -199,6 +199,15 @@ public final class HungerGames {
         else if (event.getEntity() instanceof ServerPlayer p && alive.contains(p.getUUID())) event.setCanceled(true);
     }
 
+    /** Nobody leaves the ground before GO: the jump is taken off them as it happens. */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onCountdownJump(net.neoforged.neoforge.event.entity.living.LivingEvent.LivingJumpEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer p) || !frozen(p)) return;
+        var v = p.getDeltaMovement();
+        p.setDeltaMovement(v.x * .2, Math.min(0, v.y), v.z * .2);
+        p.hasImpulse = true;
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onCountdownBreak(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent event) {
         if (frozen(event.getPlayer())) event.setCanceled(true);
@@ -340,7 +349,8 @@ public final class HungerGames {
         answers.clear(); alive.clear(); players.clear(); chests.clear();
         lv.getChunk(0, 0);
         groundY = PlanetGenerator.BASE + 1;   // the floor of the church (a roof covers the heightmap)
-        outerLeft = OUTER_CHESTS; centreLeft = CENTRE_CHESTS; churchLeft = CHURCH_CHESTS;
+        outerLeft = OUTER_CHESTS; centreLeft = CENTRE_CHESTS; churchLeft = CHURCH_CHESTS; coverLeft = 150;
+        cachesLeft = Settings.hgHiddenCaches; caches = 0;
         phase = Phase.INVITE;
         phaseEnd = s.getTickCount() + INVITE_TICKS;
         String rule = !seqEv ? "Not a sequence event: you lose your sequence for the games and get it back afterwards."
@@ -375,7 +385,8 @@ public final class HungerGames {
         long now = s.getTickCount();
         switch (phase) {
             case INVITE -> {
-                for (int i = 0; i < 6 && (outerLeft > 0 || centreLeft > 0 || churchLeft > 0); i++) placeChest(lv);   // chests are put out while people answer
+                for (int i = 0; i < 3 && (outerLeft > 0 || centreLeft > 0 || churchLeft > 0); i++) placeChest(lv);   // chests are put out while people answer
+                placeObstacles(lv); placeCaches(lv);
                 boolean allAnswered = s.getPlayerList().getPlayers().stream().allMatch(p -> answers.containsKey(p.getUUID()));
                 if ((allAnswered || now >= phaseEnd) && outerLeft == 0 && centreLeft == 0 && churchLeft == 0) begin(s, lv);
                 else if (now >= phaseEnd + 20 * 30) begin(s, lv);   // never wait forever for the chests
@@ -387,6 +398,8 @@ public final class HungerGames {
                     for (ServerPlayer p : onlinePlayers(s)) title(p, sec <= 3 ? ChatFormatting.RED : ChatFormatting.GOLD, String.valueOf(sec), "The games begin");
                 }
                 if (now % 20 == 0) lv.setDayTime(skyTime);
+                for (int i = 0; i < 3 && (outerLeft > 0 || centreLeft > 0 || churchLeft > 0); i++) placeChest(lv);   // and keep going through the countdown
+                placeObstacles(lv); placeCaches(lv);
                 if (left <= 0) go(s);
             }
             case RUNNING -> {
@@ -503,11 +516,18 @@ public final class HungerGames {
     // ------------------------------------------------------------------ chests and loot
 
     /** Cover scattered over the arena: stone pillars, broken walls and little hollow mounds you can duck into. The arena reset clears them with everything else. */
+    private static int coverLeft = 0;
+
+    /**
+     * Cover is laid a few pieces at a time from the tick, not all at once. Every spot calls surface(),
+     * which loads the chunk it is in, and eighteen hundred of those on one tick is what sent everybody's
+     * ping to a second when the games started.
+     */
     private static void placeObstacles(ServerLevel lv) {
         BlockState[] stone = {Blocks.COBBLESTONE.defaultBlockState(), Blocks.MOSSY_COBBLESTONE.defaultBlockState(), Blocks.STONE_BRICKS.defaultBlockState(),
             Blocks.CRACKED_STONE_BRICKS.defaultBlockState(), Blocks.MOSSY_STONE_BRICKS.defaultBlockState(), Blocks.DEEPSLATE_BRICKS.defaultBlockState()};
         int made = 0;
-        for (int tries = 0; tries < 1800 && made < 150; tries++) {
+        for (int tries = 0; tries < 40 && made < 4 && coverLeft > 0; tries++) {
             // the open middle, where the roof fell in: cover belongs where the fight is, and nothing pokes through the roof
             double a = rnd.nextDouble() * Math.PI * 2, r = 14 + rnd.nextDouble() * (PlanetGenerator.ROOF_IN - 29);
             int x = (int) Math.round(Math.cos(a) * r), z = (int) Math.round(Math.sin(a) * r);
@@ -540,9 +560,8 @@ public final class HungerGames {
                     }
                 }
             }
-            made++;
+            made++; coverLeft--;
         }
-        LOGGER.info("[hungergames] {} pieces of cover placed", made);
     }
 
     private static void placeChest(ServerLevel lv) {
@@ -577,10 +596,24 @@ public final class HungerGames {
     /** A free floor spot at (x, z): about the height of the arena floor, solid and dry underneath. Null inside walls, on top of them or in water. */
     private static BlockPos surface(ServerLevel lv, int x, int z) {
         lv.getChunk(x >> 4, z >> 4);
-        BlockPos p = new BlockPos(x, floorY(x, z), z);
+        // Out in the field the generator's predicted height is not what is actually there once grass,
+        // flowers and snow have grown on it, so almost every spot failed the air test and the whole
+        // outer ring of chests was skipped. The level's own heightmap is what is really there.
+        BlockPos p;
+        if (Math.hypot(x, z) <= PlanetGenerator.PLAT_R) p = new BlockPos(x, (int) groundY, z);
+        else {
+            int hy = lv.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+            p = new BlockPos(x, hy, z);
+        }
         BlockState below = lv.getBlockState(p.below());
         if (!below.isSolid() || !below.getFluidState().isEmpty()) return null;
-        if (!lv.getBlockState(p).isAir() || !lv.getBlockState(p.above()).isAir()) return null;
+        for (int k = 0; k < 2; k++) {   // clear whatever is growing on it, but never dig into anything
+            BlockPos q = p.above(k);
+            BlockState here = lv.getBlockState(q);
+            if (here.isAir()) continue;
+            if (!here.canBeReplaced() || !here.getFluidState().isEmpty()) return null;
+            lv.setBlock(q, Blocks.AIR.defaultBlockState(), 2);
+        }
         return p;
     }
 
@@ -661,14 +694,17 @@ public final class HungerGames {
      * the church, away from the middle, and hold the {@link #CACHE} table. Placed after the cover, so some end up tucked
      * behind it. The arena reset clears them with everything else.
      */
+    private static int cachesLeft = 0;
+
+    /** One cache a tick, for the same reason the cover is laid a few pieces at a time. */
     private static void placeCaches(ServerLevel lv) {
-        caches = 0;
         // out in the ring the roof still covers, past the open middle where everyone fights. Dark, out of the way,
         // and a real walk from the start, which is the point: the arena closes in, so a cache run costs you something.
         double inner = PlanetGenerator.ROOF_IN + 8, outer = PlanetGenerator.PLAT_R - 16;
-        for (int want = 0; want < Settings.hgHiddenCaches; want++) {
-            boolean far = want % 3 != 0;   // two in three are out in the field, the rest in the dark of the church ring
-            for (int tries = 0; tries < 240; tries++) {
+        for (int want = 0; want < 1 && cachesLeft > 0; want++) {
+            cachesLeft--;
+            boolean far = cachesLeft % 3 != 0;   // two in three are out in the field, the rest in the dark of the church ring
+            for (int tries = 0; tries < 60; tries++) {
                 double a = rnd.nextDouble() * Math.PI * 2;
                 double r = far ? PlanetGenerator.PLAT_R + 60 + rnd.nextDouble() * (PlanetGenerator.FIELD_R - 80 - (PlanetGenerator.PLAT_R + 60))
                                : inner + rnd.nextDouble() * (outer - inner);
@@ -676,7 +712,7 @@ public final class HungerGames {
                 if (!far && !PlanetGenerator.churchInside(x, z, 4)) continue;
                 BlockPos p = surface(lv, x, z);
                 if (p == null || chests.contains(p)) continue;
-                if (tries < 200 && cover(lv, p) < 2) continue;   // against something, not out in the open: a cache has to be found, not spotted
+                if (tries < 48 && cover(lv, p) < 2) continue;   // against something, not out in the open: a cache has to be found, not spotted
                 lv.setBlock(p, Blocks.BARREL.defaultBlockState(), 3);
                 if (lv.getBlockEntity(p) instanceof net.minecraft.world.level.block.entity.BarrelBlockEntity b) {
                     List<Integer> slots = new ArrayList<>();
@@ -783,14 +819,13 @@ public final class HungerGames {
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new Net.CutscenePayload(9, 0));   // there is no tree in the games: the client must not draw its stand-in
             p.setInvulnerable(true);
             p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, wait + 20, 7, false, false, false));
-            p.addEffect(new MobEffectInstance(MobEffects.JUMP, wait + 20, 128, false, false, false));   // level 129 jump boost is a negative jump: nobody leaves the ground before GO
+            // (no jump effect: amplifier 128 was meant to wrap to a negative jump, but the amplifier is an
+        //  int now, so it was level 129 jump boost and it fired people into the sky. onCountdownJump holds them.)
             p.sendSystemMessage(Component.literal("You are in the arena. Look at who you are up against: in " + (wait / 20)
                 + " seconds everyone is sent out into the field beyond the church and the games begin. Chests are everywhere,"
                 + " thickest in the middle of the church; a few hidden barrels out in the country and in the dark of the church ring hold the best of it,"
                 + " and the wall will close in from the rim of the world onto the middle of the church.").withStyle(ChatFormatting.GOLD));
         }
-        placeObstacles(lv);
-        placeCaches(lv);
         hideTree(lv);
         startCount = n;
         turned = false;
@@ -931,7 +966,6 @@ public final class HungerGames {
         for (ServerPlayer p : onlinePlayers(s)) {
             p.setInvulnerable(false);
             p.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
-            p.removeEffect(MobEffects.JUMP);
             title(p, ChatFormatting.GREEN, "GO", alive.size() + " players");
             p.playNotifySound(net.minecraft.sounds.SoundEvents.ENDER_DRAGON_GROWL, net.minecraft.sounds.SoundSource.MASTER, 0.6f, 1.2f);
         }
@@ -1398,6 +1432,6 @@ public final class HungerGames {
     private static void reset() {
         phase = Phase.OFF;
         answers.clear(); alive.clear(); players.clear(); chests.clear(); wantedPath.clear();
-        outerLeft = 0; centreLeft = 0; churchLeft = 0; caches = 0; startCount = 0; turned = false;
+        outerLeft = 0; centreLeft = 0; churchLeft = 0; coverLeft = 0; cachesLeft = 0; caches = 0; startCount = 0; turned = false;
     }
 }

@@ -2723,9 +2723,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             if (k > .2f) {   // what is left where the symbol was: a hollow frame with a slash through it
                 float nx2 = gc(a) * rr, nz2 = gs(a) * rr, w2 = 2.4f * S * k, e2w = .12f * S;
                 bb("glow", nx2, y, nz2, w2 * 1.5f, w2 * 1.5f, 0, rgba(PUR, .25f * k));
-                for (int q = -1; q <= 1; q += 2) {
-                    stand("solid", nx2, y + q * w2 * .5f, nz2, w2, e2w, -a + PI / 2, rgba(PLAT, .85f * k));
-                    stand("solid", nx2 - gs(a) * q * w2 * .5f, y, nz2 + gc(a) * q * w2 * .5f, e2w, w2, -a + PI / 2, rgba(PLAT, .85f * k)); }
+                for (int sd2 = -1; sd2 <= 1; sd2 += 2) {
+                    stand("solid", nx2, y + sd2 * w2 * .5f, nz2, w2, e2w, -a + PI / 2, rgba(PLAT, .85f * k));
+                    stand("solid", nx2 - gs(a) * sd2 * w2 * .5f, y, nz2 + gc(a) * sd2 * w2 * .5f, e2w, w2, -a + PI / 2, rgba(PLAT, .85f * k)); }
                 stand("solid", nx2, y, nz2, w2 * 1.3f, e2w, -a + PI / 2 + .78f, rgba(PUR, .9f * k)); }
             if (k > .02f && k < .98f) for (int m2 = 0; m2 < 3; m2++) {   // the thread it is dragged in along
                 float u = fract(t0 * 1.1f + m2 / 3f);
