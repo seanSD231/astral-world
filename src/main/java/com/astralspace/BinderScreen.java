@@ -29,7 +29,7 @@ import java.util.Map;
 public final class BinderScreen extends Screen {
 
     /** The canvas the page is laid out on; the window is fitted to it. */
-    private static final int DESIGN_W = 1180, DESIGN_H = 660;
+    private static final int DESIGN_W = 1000, DESIGN_H = 600;   // a smaller canvas fitted to the window: everything on it comes out bigger
 
     private static final int PANEL   = 0xFF141018;
     private static final int PANEL_2 = 0xFF1C1822;
@@ -178,7 +178,7 @@ public final class BinderScreen extends Screen {
 
         left = 16; top = 14; right = vw - 16; bottom = vh - 14;
         railX = left + 46;                                     // past the spine
-        railW = Math.max(176, Math.min(268, (right - left) / 5));
+        railW = Math.max(160, Math.min(236, (right - left) / 5));
 
         gridX = railX + railW + 24;
         gridY = top + 96;
@@ -379,10 +379,12 @@ public final class BinderScreen extends Screen {
         int gi = here().goo();
         if (here().isChapter()) {
             g.drawString(font, "CHAPTER " + roman(gi + 1), left + 48, top + 15, GREY_D, false);
-            g.drawString(font, Tarot.GOO_NAMES[gi], left + 48, top + 29, GOLD_HI, true);
+            gradient(g, Tarot.GOO_NAMES[gi], left + 48, top + 29, gooColours(gi), gooHeld(gi), true);
         } else {
-            g.drawString(font, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), left + 48, top + 15, GREY_D, false);
-            g.drawString(font, Tarot.pretty(path()) + " Pathway", left + 48, top + 29, GOLD_HI, true);
+            gradient(g, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), left + 48, top + 15,
+                     gooColours(gi), gooHeld(gi), false);
+            g.drawString(font, Tarot.pretty(path()) + " Pathway", left + 48, top + 29,
+                         allShiny(path()) ? GOLD : accentOf(path()), true);
         }
 
         boolean over = mx >= right - 190 && mx < right - 16 && my >= top + 10 && my < top + 50;
@@ -394,10 +396,64 @@ public final class BinderScreen extends Screen {
         if (over) hover = "Turn to the " + (shiny ? "normal" : "shiny") + " faces";
     }
 
-    private int held(String pathway) {
+    private int held(String pathway) { return heldOf(pathway, shiny); }
+
+    private int heldOf(String pathway, boolean sh) {
         int n = 0;
-        for (int s = 0; s <= 9; s++) if (have.getOrDefault(Binder.key(pathway, s, shiny), 0) > 0) n++;
+        for (int s = 0; s <= 9; s++) if (have.getOrDefault(Binder.key(pathway, s, sh), 0) > 0) n++;
         return n;
+    }
+
+    /** A pathway whose ten shiny faces are all in: its name and its bar go gold, on either page. */
+    private boolean allShiny(String pathway) { return heldOf(pathway, true) == 10; }
+
+    /** Whether the Great Old One's own face has been found. */
+    private boolean gooHeld(int gi) {
+        return have.getOrDefault(Binder.key("goo_" + Tarot.GOO_IDS[gi], 0, false), 0) > 0
+            || have.getOrDefault(Binder.key("goo_" + Tarot.GOO_IDS[gi], 0, true), 0) > 0;
+    }
+
+    /** The colours of a chapter: one per pathway under it. */
+    private static int[] gooColours(int gi) {
+        String[] ps = Tarot.GOO_PATHS[gi];
+        int[] out = new int[Math.max(2, ps.length)];
+        for (int i = 0; i < out.length; i++) out[i] = accentOf(ps[Math.min(i, ps.length - 1)]);
+        return out;
+    }
+
+    private static int mixc(int a, int b, float t) {
+        int ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
+        int br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
+        return 0xFF000000 | ((int) (ar + (br - ar) * t) << 16) | ((int) (ag + (bg - ag) * t) << 8) | (int) (ab + (bb - ab) * t);
+    }
+
+    /** Samples a run of colours, wrapping, so a gradient can be slid along without a seam. */
+    private static int sample(int[] cols, float t) {
+        t = t - (float) Math.floor(t);
+        float f = t * cols.length;
+        int i = (int) f;
+        return mixc(cols[i % cols.length], cols[(i + 1) % cols.length], f - i);
+    }
+
+    /**
+     * A line of text written in a run of colours rather than one. Once the chapter's own face is in the binder the
+     * run slides along the letters, so a finished chapter announces itself.
+     */
+    private void gradient(GuiGraphics g, String text, int x, int y, int[] cols, boolean moving, boolean shadow) {
+        float slide = moving ? (System.currentTimeMillis() % 4000L) / 4000f : 0f;
+        int cx = x;
+        for (int i = 0; i < text.length(); i++) {
+            String ch = text.substring(i, i + 1);
+            float t = text.length() <= 1 ? 0f : i / (float) (text.length() - 1);
+            g.drawString(font, ch, cx, y, sample(cols, t * 0.9f + slide), shadow);
+            cx += font.width(ch);
+        }
+    }
+
+    /** Dims a colour toward the page, for a row that is not the one being read. */
+    private static int dim(int argb, float k) {
+        int r = (int) (((argb >> 16) & 255) * k), gg = (int) (((argb >> 8) & 255) * k), b = (int) ((argb & 255) * k);
+        return 0xFF000000 | (r << 16) | (gg << 8) | b;
     }
 
     /** The whole collection: every pathway under its Great Old One, with a bar each. */
@@ -419,8 +475,13 @@ public final class BinderScreen extends Screen {
                 slant(g, railX - 8, y, railW + 6, railHead - 1, 4, 0xFF241C08);
                 g.renderOutline(railX - 8, y, railW + 6, railHead - 1, GOLD);
             }
-            g.drawString(font, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), railX, ht,
-                    chapOn ? GOLD_HI : chapOver ? GREY : 0xFF43404E, false);
+            boolean full = true;
+            for (String p : Tarot.GOO_PATHS[gi]) if (!allShiny(p)) { full = false; break; }
+            int[] cols = full ? new int[]{GOLD, GOLD_HI, GOLD} : gooColours(gi);
+            float k = chapOn ? 1f : chapOver ? .85f : .6f;
+            int[] shown = new int[cols.length];
+            for (int c = 0; c < cols.length; c++) shown[c] = dim(cols[c], k);
+            gradient(g, Tarot.GOO_NAMES[gi].toUpperCase(Locale.ROOT), railX, ht, shown, gooHeld(gi), false);
             int done = 0;
             for (String p : Tarot.GOO_PATHS[gi]) if (held(p) == 10) done++;
             String tally = done + "/" + Tarot.GOO_PATHS[gi].length;
@@ -437,19 +498,21 @@ public final class BinderScreen extends Screen {
                     slant(g, railX - 8, y, railW + 6, railLine - 1, 4, 0xFF241C08);
                     g.renderOutline(railX - 8, y, railW + 6, railLine - 1, GOLD);
                 }
-                g.drawString(font, Tarot.pretty(p), railX, ty, on ? GOLD_HI : over ? GREY : 0xFF8F8AA0, false);
+                boolean gold = allShiny(p);
+                int base = gold ? GOLD : accentOf(p);
+                g.drawString(font, Tarot.pretty(p), railX, ty, dim(base, on ? 1f : over ? .9f : .72f), false);
 
                 int got = held(p);
                 int bx = railX + railW - 116, bw = 74;
                 int by = y + (railLine - 7) / 2;
                 g.fill(bx, by, bx + bw, by + 6, 0xFF0C0B11);
                 g.renderOutline(bx, by, bw, 6, 0xFF2A2632);
-                if (got > 0) g.fill(bx, by, bx + bw * got / 10, by + 6, got == 10 ? GOLD : accentOf(p));
+                if (got > 0) g.fill(bx, by, bx + bw * got / 10, by + 6, gold ? GOLD : got == 10 ? GOLD_HI : accentOf(p));
                 String n = String.valueOf(got);
                 // right-aligned against the rail's edge, not the bar's: a two digit 10
                 // right-aligned ten pixels past a 78px bar lands back on top of it
                 g.drawString(font, n, railX + railW - 2 - font.width(n), ty,
-                        got == 10 ? GOLD : GREY_D, false);
+                        gold ? GOLD : got == 10 ? GOLD_HI : GREY_D, false);
                 y += railLine;
             }
             y += railGap;
@@ -506,7 +569,7 @@ public final class BinderScreen extends Screen {
         }
 
         int lx = chapterListX();
-        g.drawString(font, "PATHWAYS OF THIS CHAPTER", lx, y - 4, accent, false);
+        gradient(g, "PATHWAYS OF THIS CHAPTER", lx, y - 4, gooColours(gi), gooHeld(gi), false);
         g.fill(lx, y + 8, right - 40, y + 9, BRONZE);
         diamond(g, right - 36, y + 8, 3, GOLD);
 
@@ -520,12 +583,14 @@ public final class BinderScreen extends Screen {
                 hover = "Turn to " + Tarot.pretty(ps[i]);
             }
             int got = held(ps[i]);
-            g.drawString(font, Tarot.pretty(ps[i]), lx, ly + 5, got == 10 ? GOLD_HI : GREY, false);
+            boolean gold = allShiny(ps[i]);
+            g.drawString(font, Tarot.pretty(ps[i]), lx, ly + 5,
+                         gold ? GOLD : dim(accentOf(ps[i]), got == 10 ? 1f : .8f), false);
             g.drawString(font, seqName(ps[i], 0), lx, ly + 16, 0xFF43404E, false);
             int bx = right - 210, bw = 130, by = ly + 10;
             g.fill(bx, by, bx + bw, by + 7, 0xFF0C0B11);
             g.renderOutline(bx, by, bw, 7, 0xFF2A2632);
-            if (got > 0) g.fill(bx, by, bx + bw * got / 10, by + 7, got == 10 ? GOLD : accentOf(ps[i]));
+            if (got > 0) g.fill(bx, by, bx + bw * got / 10, by + 7, gold ? GOLD : got == 10 ? GOLD_HI : accentOf(ps[i]));
             String t = got + " / 10";
             g.drawString(font, t, right - 44 - font.width(t), ly + 7, got == 10 ? GOLD : GREY_D, false);
         }

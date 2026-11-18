@@ -2,6 +2,23 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.284
+
+The binder.
+
+- **Everything on it is bigger.** The page is fitted to a 1000 x 600 canvas instead of 1180 x 660, so every piece of
+  it — text, cards, bars — comes out about a fifth larger at the same window size, and the collection rail is a little
+  narrower to give the faces the room.
+- **Pathways are drawn in their own colour** in the rail and on a chapter page, not in grey. The row you are reading
+  is at full strength, the one under the cursor nearly so, the rest a little back from the page, so the colour sorts
+  the list instead of shouting over it.
+- **A pathway whose ten shiny faces are all in goes gold** — name, bar and count — and it stays gold whichever page
+  you are on, so you can see at a glance what is actually finished rather than only what is finished on this side.
+- **Great Old One titles are written in their own pathways' colours**, a gradient across the letters: in the rail, in
+  the header, and over the chapter's pathway list.
+- **Once a chapter's own face is in the binder, its title moves** — the gradient slides along the letters, so a chapter
+  you have completed announces itself from across the page.
+
 ## 0.2.283
 
 Both of these were doing the same thing over and over; now they do something.
