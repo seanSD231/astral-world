@@ -94,5 +94,11 @@
   "item.astral_world.shrink_shroom": "Mystic Shroom",
   "item.astral_world.slim_shroom": "Slim Shroom",
   "item.astral_world.wide_shroom": "Wide Shroom",
-  "item.astral_world.card_binder": "Card Binder"
+  "item.astral_world.card_binder": "Card Binder",
+  "item.astral_world.mask_black": "Black Mask",
+  "item.astral_world.mask_white": "Pale Mask",
+  "item.astral_world.mask_crimson": "Crimson Mask",
+  "item.astral_world.mask_azure": "Azure Mask",
+  "item.astral_world.mask_verdant": "Verdant Mask",
+  "item.astral_world.mask_gilded": "Gilded Mask"
 }

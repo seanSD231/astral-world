@@ -43,9 +43,19 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server to client: who is behind a mask, in what colour, under what name. Colour -1 means the mask came off. */
+    public record Mask(java.util.UUID id, int colour, String name) implements CustomPacketPayload {
+        public static final Type<Mask> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "mask"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, Mask> CODEC = StreamCodec.of(
+            (b, m) -> { b.writeUUID(m.id); b.writeVarInt(m.colour); b.writeUtf(m.name, 32); },
+            b -> new Mask(b.readUUID(), b.readVarInt(), b.readUtf(32)));
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static void register(PayloadRegistrar r) {
         r.playToClient(World.TYPE, World.CODEC, (p, ctx) -> ctx.enqueueWork(() -> UniqWorld.add(p.kind(), p.id(), p.id2(), p.x(), p.y(), p.z(), p.x2(), p.y2(), p.z2(), p.dur())));
         r.playToClient(Fx.TYPE, Fx.CODEC, (p, ctx) -> ctx.enqueueWork(() -> WornClient.fx(p.entity(), p.kind())));
+        r.playToClient(Mask.TYPE, Mask.CODEC, (p, ctx) -> ctx.enqueueWork(() -> MaskClient.set(p.id(), p.colour(), p.name())));
         r.playToClient(Nova.TYPE, Nova.CODEC, (p, ctx) -> ctx.enqueueWork(() -> NovaRender.add(p.x(), p.y(), p.z(), p.scale())));
         r.playToServer(Key.TYPE, Key.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) WornUniq.press(sp); }));
     }

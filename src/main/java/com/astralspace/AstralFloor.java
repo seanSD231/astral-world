@@ -85,6 +85,10 @@ public final class AstralFloor {
         }
     });
 
+    /** The masks: one per colour. Wearing one hides the skin under a robe and the name behind the mask's own. */
+    public static final java.util.List<DeferredItem<Item>> MASKS = new java.util.ArrayList<>();
+    static { for (int i = 0; i < Masks.COLOURS.length; i++) { final int c = i; MASKS.add(ITEMS.register("mask_" + Masks.COLOURS[i], () -> new Mask(c))); } }
+
     /** Invisible, like the barrier block. */
     private static final class FloorBlock extends Block {
         FloorBlock(Properties p) { super(p); }
@@ -99,7 +103,7 @@ public final class AstralFloor {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
-            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); }
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); for (var k : MASKS) e.accept(k.get()); }
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) e.accept(CABINET_ITEM.get());
         });
     }
