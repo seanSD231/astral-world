@@ -31,7 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The Door Uniqueness as a pair of eyes. It goes in the Uniqueness curios slot (or can simply be held); a keybind picks the
+ * The Door Uniqueness as a pair of eyes. It goes in the Astral Artifact curios slot (or can simply be held); a keybind picks the
  * creature you are looking at and opens doors around it, fills the space with stars that swell into real stars, and they go supernova.
  */
 public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it has its own trigger, but WornUniq.press knows it)
@@ -42,7 +42,7 @@ public final class DoorEyes extends Uniqueness {   // (not a WornUniq itself: it
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext ctx, List<Component> tip, net.minecraft.world.item.TooltipFlag flag) {
         super.appendHoverText(stack, ctx, tip, flag);
-        tip.add(Component.literal("Wear it in the Uniqueness curio slot.").withStyle(ChatFormatting.AQUA));
+        tip.add(Component.literal("Wear it in the Astral Artifact slot.").withStyle(ChatFormatting.AQUA));
         tip.add(Component.literal("Press the Door key while looking at a creature: doors open around it, stars flood in, swell, and go supernova.").withStyle(ChatFormatting.AQUA));
         tip.add(Component.literal("Costs " + UniqPower.cost(stack) + " spirituality. Seq 1/0 Door: you step 20 blocks clear first (sneak to step to the target instead), and the last blast lights a second, greater round of supernovas.").withStyle(ChatFormatting.DARK_AQUA));
     }

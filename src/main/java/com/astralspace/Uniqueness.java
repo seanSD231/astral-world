@@ -52,9 +52,9 @@ public class Uniqueness extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext ctx, List<Component> tip, net.minecraft.world.item.TooltipFlag flag) {
-        tip.add(Component.literal(title + " Uniqueness").withStyle(ChatFormatting.GOLD));
-        tip.add(Component.literal("A sealed artifact. It cannot be taken in.").withStyle(ChatFormatting.DARK_GRAY));
-        tip.add(Component.literal("Carrying it corrupts you a little, and using it more.").withStyle(ChatFormatting.DARK_RED));
+        tip.add(Component.literal(title).withStyle(ChatFormatting.GOLD));
+        tip.add(Component.literal("Astral artifact \u00b7 sealed").withStyle(ChatFormatting.DARK_GRAY));
+        tip.add(Component.literal("It asks something of whoever carries it.").withStyle(ChatFormatting.DARK_RED));
     }
 
 }

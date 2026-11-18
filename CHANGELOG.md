@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.279
+
+- **The Uniqueness slot is now the Astral Artifact slot.** The curios slot is `astral_artifact`, the item tag is
+  `astral_world:astral_artifact` (the curios slot tag points at it, so both names work), and the slot icon moved with it.
+  Anything already sitting in the old slot will drop out when the world loads, since the slot it was in no longer exists —
+  put it back in the new one.
+- **The word "Uniqueness" is out of the item text.** The tooltip is now the artifact's own name, "Astral artifact · sealed",
+  and a line saying it asks something of whoever carries it. The lines about taking one in and about costing half your
+  corruption limit are gone: these have been sealed artifacts for a while and the text had not caught up.
+
 ## 0.2.278
 
 - **A Secrets Supplicant starts the hunger games with a full Flesh and Blood bar.** It is their whole resource, the bar beside their health, and they were being carried into the arena with whatever was left of it from whatever they had been doing beforehand, while their health, food and sequence were all set up for them. It is now filled to the cap for the sequence they are fought at (LOTM's own `getMaxFleshAndBlood`), on entry and once more on the following tick after the sequence has settled. Reflection, so an older LOTM that keeps the bar elsewhere just leaves it alone and says so once in the log.

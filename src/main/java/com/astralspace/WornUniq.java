@@ -15,7 +15,7 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 /**
- * A Uniqueness you wear in the Uniqueness curio slot (or hold). It shows on your body (see {@link WornClient}) and the Uniqueness key (G)
+ * An astral artifact you wear in the Astral Artifact curio slot (or hold). It shows on your body (see {@link WornClient}) and the artifact key (G)
  * fires its ability. Like every Uniqueness it is a sealed artifact: it can never be taken in.
  */
 public class WornUniq extends Uniqueness {
@@ -39,10 +39,10 @@ public class WornUniq extends Uniqueness {
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext ctx, List<Component> tip, net.minecraft.world.item.TooltipFlag flag) {
         super.appendHoverText(stack, ctx, tip, flag);
-        tip.add(Component.literal("Wear it in the Uniqueness curio slot.").withStyle(ChatFormatting.AQUA));
-        tip.add(Component.literal("Press the Uniqueness key (G): " + blurb).withStyle(ChatFormatting.AQUA));
-        tip.add(Component.literal("Costs " + UniqPower.cost(stack) + " spirituality. A Seq 1 or 0 of its pathway draws out its full power.").withStyle(ChatFormatting.DARK_AQUA));
-        tip.add(Component.literal("Use it without taking it in and it costs half your corruption limit as well.").withStyle(ChatFormatting.DARK_RED));
+        tip.add(Component.literal("Wear it in the Astral Artifact slot.").withStyle(ChatFormatting.AQUA));
+        tip.add(Component.literal("Press the artifact key (G): " + blurb).withStyle(ChatFormatting.AQUA));
+        tip.add(Component.literal("Costs " + UniqPower.cost(stack) + " spirituality.").withStyle(ChatFormatting.DARK_AQUA));
+        
     }
 
     @Override
@@ -96,7 +96,7 @@ public class WornUniq extends Uniqueness {
         return findWorn(p);
     }
 
-    /** The Uniqueness key was pressed. */
+    /** The artifact key was pressed. */
     public static void press(ServerPlayer sp) {
         ItemStack st = findWorn(sp);
         if (st.isEmpty()) return;

@@ -1,7 +1,7 @@
 {
  "order": 5,
  "size": 1,
- "icon": "astral_world:slot/uniqueness",
+ "icon": "astral_world:slot/astral_artifact",
  "validators": [
   "curios:tag"
  ]
