@@ -886,14 +886,17 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         sphere(0, .68f * H, .08f * H, .035f * H, .035f * H, .02f * H, 4, 6, 0xE02020, 255);
     }
     /** A tube following points, for tentacles. */
-    private void tube(float[][] pts, float r0, float r1, int rgb) {
+    private void tube(float[][] pts, float r0, float r1, int rgb) { tube(pts, r0, r1, rgb, true); }
+    /** joints: a ball at every join, to round off a bend. A long smooth curve does not need them, and they cost
+     *  more than the tube itself (32 quads a ball against 8 a segment), which is most of what made the halls lag. */
+    private void tube(float[][] pts, float r0, float r1, int rgb, boolean joints) {
         int n = pts.length - 1;
         for (int i = 0; i < n; i++) {
             float dx = pts[i + 1][0] - pts[i][0], dy = pts[i + 1][1] - pts[i][1], dz = pts[i + 1][2] - pts[i][2], l = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
             if (l < 1e-4f) continue;
             float ra = r0 + (r1 - r0) * i / n, rb = r0 + (r1 - r0) * (i + 1) / n;
             push(); tr(pts[i][0], pts[i][1], pts[i][2]); aim(dx, dy, dz); frustum(0, l, ra, rb, 8, 1, 1, rgb, 255, false); pop();
-            sphere(pts[i + 1][0], pts[i + 1][1], pts[i + 1][2], rb * 1.02f, rb * 1.02f, rb * 1.02f, 4, 8, rgb, 255);
+            if (joints) sphere(pts[i + 1][0], pts[i + 1][1], pts[i + 1][2], rb * 1.02f, rb * 1.02f, rb * 1.02f, 4, 8, rgb, 255);
         }
     }
     /** A tentacle that rises from the ground and spirals around an orb centred at (cx,cy,cz). */
@@ -1100,7 +1103,12 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float yawR = (float) Math.toRadians(e.getYRot());
         float ffx = -(float) Math.sin(yawR), ffz = (float) Math.cos(yawR);
         float ssx = -ffz, ssz = ffx;
-        float hw = .3f, hl = .45f, y = e.goo() == 2 && !e.symbolOnly() ? .16f : .03f;
+        float hw = .3f, hl = .45f;
+        // Fool Seq 1: the round table top is at .84 * (F1_S * .6) blocks, and the card used to lie under it with a
+        // hole cut in the table to see it. It lies on the table now and the table is whole.
+        float y = e.goo() == 2 && !e.symbolOnly() ? .16f
+                : !e.symbolOnly() && e.goo() < 0 && e.seq() == 1 && pi == 18 ? .84f * (HoloCardEntity.F1_S * .6f) + .02f
+                : .03f;
         float[][] p = {{-hw, -hl}, {hw, -hl}, {hw, hl}, {-hw, hl}};
         float[][] uv = {{0, 1}, {1, 1}, {1, 0}, {0, 0}};
         for (int k = 0; k < 4; k++)
@@ -2817,14 +2825,14 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int k = 0; k < n; k++) {   // ribs, running down to the columns
             float g = k * TAU / n + TAU / (2 * n); float[][] pts = new float[14][];
             for (int a = 0; a < 14; a++) { float l = top * a / 13f; pts[a] = v3(Rc * (float) Math.cos(l) * (float) Math.cos(g), Hb + Ry * (float) Math.sin(l) + .05f, zc + Rc * (float) Math.cos(l) * (float) Math.sin(g)); }
-            tube(pts, .17f * tk, .1f * tk, stone);
+            tube(pts, .17f * tk, .1f * tk, stone, false);
         }
-        for (int k = 1; k <= 4; k++) { float l = top * k / 5f; float[][] pts = new float[49][];
-            for (int g = 0; g <= 48; g++) { float a = TAU * g / 48; pts[g] = v3(Rc * (float) Math.cos(l) * (float) Math.cos(a), Hb + Ry * (float) Math.sin(l) + .06f, zc + Rc * (float) Math.cos(l) * (float) Math.sin(a)); }
-            tube(pts, .1f * tk, .1f * tk, k == 2 ? mix(stone, edge, .3f) : stone); }
-        { float[][] pts = new float[49][];   // the lip of the eye
-            for (int g = 0; g <= 48; g++) { float a = TAU * g / 48; pts[g] = v3(Rc * (float) Math.cos(top) * (float) Math.cos(a), Hb + Ry * (float) Math.sin(top), zc + Rc * (float) Math.cos(top) * (float) Math.sin(a)); }
-            tube(pts, .2f * tk, .2f * tk, dark); }
+        for (int k = 1; k <= 4; k++) { float l = top * k / 5f; float[][] pts = new float[33][];
+            for (int g = 0; g <= 32; g++) { float a = TAU * g / 32; pts[g] = v3(Rc * (float) Math.cos(l) * (float) Math.cos(a), Hb + Ry * (float) Math.sin(l) + .06f, zc + Rc * (float) Math.cos(l) * (float) Math.sin(a)); }
+            tube(pts, .1f * tk, .1f * tk, k == 2 ? mix(stone, edge, .3f) : stone, false); }
+        { float[][] pts = new float[33][];   // the lip of the eye
+            for (int g = 0; g <= 32; g++) { float a = TAU * g / 32; pts[g] = v3(Rc * (float) Math.cos(top) * (float) Math.cos(a), Hb + Ry * (float) Math.sin(top), zc + Rc * (float) Math.cos(top) * (float) Math.sin(a)); }
+            tube(pts, .2f * tk, .2f * tk, dark, false); }
     }
     private static float[][] ring(float cx, float y, float cz, float r, int n) {
         float[][] p = new float[n + 1][]; for (int i = 0; i <= n; i++) { float a = TAU * i / n; p[i] = v3(cx + r * (float) Math.cos(a), y, cz + r * (float) Math.sin(a)); } return p;
@@ -2838,9 +2846,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float zc = HoloCardEntity.HALL_ZC, hl = HoloCardEntity.HALL_HL, W = HoloCardEntity.HALL_W, L = zc - hl, cs = HoloCardEntity.HALL_CHAIR;
         float Rc = 30f, Hb = 24f, Ry = 18f;
         pushThrone(); cur.scale(HK, HK, HK);
-        push(); frustum(-.12f, 0f, Rc + 1.2f, Rc + 1.2f, 56, 1, 1, mix(dark, 0x000000, .3f), 255, true); pop();   // the round dark floor, centred on the card
-        tube(ring(0, .04f, 0, Rc - .4f, 40), .09f, .09f, edge); tube(ring(0, .035f, 0, Rc - 2.2f, 40), .05f, .05f, mix(edge, dark, .5f)); tube(ring(0, .03f, 0, Rc * .55f, 32), .05f, .05f, mix(edge, dark, .55f));
-        for (int k = 0; k < 12; k++) { float a = k * TAU / 12; float[][] ln = {v3((float) Math.cos(a) * 4f, .03f, (float) Math.sin(a) * 4f), v3((float) Math.cos(a) * (Rc - .4f), .03f, (float) Math.sin(a) * (Rc - .4f))}; tube(ln, .03f, .03f, mix(edge, dark, .6f)); }
+        push(); tr(0, 0, zc); frustum(-.12f, 0f, Rc + 1.2f, Rc + 1.2f, 48, 1, 1, mix(dark, 0x000000, .3f), 255, true); pop();   // the round dark floor, centred on the middle of the table
+        tube(ring(0, .04f, zc, Rc - .4f, 32), .09f, .09f, edge, false); tube(ring(0, .035f, zc, Rc - 2.2f, 32), .05f, .05f, mix(edge, dark, .5f), false); tube(ring(0, .03f, zc, Rc * .55f, 24), .05f, .05f, mix(edge, dark, .55f), false);
+        for (int k = 0; k < 12; k++) { float a = k * TAU / 12; float[][] ln = {v3((float) Math.cos(a) * 4f, .03f, zc + (float) Math.sin(a) * 4f), v3((float) Math.cos(a) * (Rc - .4f), .03f, zc + (float) Math.sin(a) * (Rc - .4f))}; tube(ln, .03f, .03f, mix(edge, dark, .6f), false); }
         push(); tr(0, 0, zc); hallTable(W, hl); pop();   // the long bronze table
         for (int sd = -1; sd <= 1; sd += 2) for (int k = 0; k < 10; k++) { push(); tr(sd * HoloCardEntity.HALL_SX, 0, HoloCardEntity.HALL_Z0 - k * HoloCardEntity.HALL_PITCH); rY(sd < 0 ? PI / 2 : -PI / 2); cur.scale(cs, cs, cs); hallChair(stone, dark, edge, false); pop(); }
         push(); tr(0, 0, HoloCardEntity.HALL_HEAD); rY(PI); cur.scale(cs * 1.1f, cs * 1.1f, cs * 1.1f); hallChair(stone, dark, edge, true); pop();       // the Fool's seat, at the head
@@ -2968,7 +2976,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 int lc = i % 5 == 0 ? 0xFF3040 : i % 7 == 0 ? 0xFFC050 : hsv(.45f + .3f * h(i, 36), .6f);
                 float lx2 = (float) Math.cos(a) * d * (float) Math.cos(el), ly2 = (float) Math.sin(el) * d, lz2 = (float) Math.sin(a) * d * (float) Math.cos(el);
                 bb("glow", lx2, ly2, lz2, 2.2f * br + .6f, 2.2f * br + .6f, 0, rgba(lc, Math.min(1f, .55f * br) * tw)); bb("mote", lx2, ly2, lz2, .22f * br + .08f, .22f * br + .08f, 0, rgba(0xFFFFFF, Math.min(1f, br) * tw)); }
-            mcStars(260, SKY * .97f, 0xFFFFFF, 0xA8D8FF, .35f * S);
+            mcStars(170, SKY * .97f, 0xFFFFFF, 0xA8D8FF, .35f * S);
             offX = 0; offZ = 0; }
         int fn = m ? 2 : 1;
         if (!photonFog) for (int i = 0; i < 26 * fn; i++) { float a = t * .05f + i * TAU / (26 * fn), rr = R * (.15f + .95f * h(i, 6)); ebb("fog", (float) Math.cos(a) * rr, (.2f + 1.0f * h(i, 7)) * S, (float) Math.sin(a) * rr, 9 * S, 2.6f * S, h(i, 9) * 3f, rgba(fogc, .55f)); }

@@ -218,7 +218,6 @@ public class HoloCardEntity extends Entity {
             for (int ix = 0; ix < 6; ix++) for (int iz = 0; iz < 6; iz++) {
                 float x = -tr0 + cell * (ix + .5f), z = -tr0 + cell * (iz + .5f);
                 if (x * x + z * z > (tr0 + cell * .2f) * (tr0 + cell * .2f)) continue;
-                if (x * x + z * z < 1.3 * 1.3) continue;                       // the middle stays open: the card sits there
                 ThronePart tp = new ThronePart(ThronePart.TYPE.get(), level());
                 tp.setup(getUUID(), cell, .84f * k, false); tp.setTable();
                 tp.setPos(getX() + x, getY(), getZ() + z);

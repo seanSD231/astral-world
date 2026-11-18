@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.288
+
+- **Seer 1**: the card sits on top of the round table instead of inside it, and the table is solid all the way
+  through again — the hole in the middle was only there so the card could be seen.
+- **Seer 0**: the round floor, its rings and its spokes were centred on the card at the head of the table while the
+  dome, the sky and the fog were centred on the middle of the table. Everything is on the table's middle now.
+- **Seer 0 and Lord of Mysteries**: much lighter. A tube's joint balls cost four times the tube itself and were
+  drawn at every one of 48 joins on each ring of the dome; the long smooth rings do without them, run on fewer
+  segments, and the Fool's sky has fewer stars.
+
 ## 0.2.287
 
 - **Paragon 0**: the black prism slung between each pair of wheels is gone. There was already a steel axle in the
