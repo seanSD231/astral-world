@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.293
+
+- **Apothecary 1 and 0**: the sphere was a ring of altars at the rim and a scatter of potions far out with nothing
+  between. The middle is filled in now — work benches with three shelves of bottles over each, bundles of herbs hung
+  up to dry on long cords, and open books turning in the air. Many more potions (22 at Seq 1, 34 at Seq 0), more moon
+  phases round the edge, and more coffins and altars.
+- **Apothecary 0**: the moon is a moon. It was a flat white disc; it is a lit ball now, two thirds again as large,
+  with craters and dark maria laid on the face turned toward the sphere.
+
 ## 0.2.292
 
 - **Sailor 0**: the whirlpool is a real hole in the sea now — a funnel of turning water going down out of sight, with

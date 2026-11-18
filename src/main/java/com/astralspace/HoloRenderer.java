@@ -1944,15 +1944,23 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         dome(R * 4f, 0x02030C, m ? 252 : 246);
         sigil(R); float my = top * .92f, mx = sideX(R * .62f), mz = sideZ(R * .62f);
         if (m) {
-            float mr = 1.9f * S; mx = sideX(R * 1.5f); mz = sideZ(R * 1.5f); my = top * 1.05f;   // a full moon, small and far away
-            standIn("disc", mx, my, mz, mr * 2f, mr * 2f, rgba(0xEAF0FF, 1f));
-            standIn("corona", mx, my, mz, mr * 4.5f, mr * 4.5f, rgba(P1, .5f));
+            float mr = 3.1f * S; mx = sideX(R * 1.35f); mz = sideZ(R * 1.35f); my = top * 1.05f;   // a full moon hanging off beyond the rim
+            solid(true); sphere(mx, my, mz, mr, mr, mr, 10, 18, 0xE2E6F0, 255); solid(false);
+            float ix = -sx0, iz = -sz0, rxp = -sz0, rzp = sx0;                                      // toward the middle of the sphere, and a right vector in that plane
+            for (int i = 0; i < 15; i++) {   // craters and dark maria, each laid on the surface where it would sit
+                float ca = h(i, 170) * TAU, d = mr * .8f * (float) Math.sqrt(h(i, 171)), cr = mr * (.07f + .17f * h(i, 172));
+                float ox = rxp * gc(ca) * d, oz = rzp * gc(ca) * d, oy = gs(ca) * d;
+                float out = (float) Math.sqrt(Math.max(0f, mr * mr - d * d)) + .02f * S;
+                standIn("disc", mx + ox + ix * out, my + oy, mz + oz + iz * out, cr * 2f, cr * 2f, rgba(i % 3 == 0 ? 0x9AA0B4 : 0xC2C8D8, .9f));
+                if (i % 4 == 0) standIn("ring", mx + ox + ix * (out + .01f * S), my + oy, mz + oz + iz * (out + .01f * S), cr * 2.4f, cr * 2.4f, rgba(0xF2F4FA, .5f));
+            }
+            standIn("corona", mx, my, mz, mr * 3.4f, mr * 3.4f, rgba(P1, .45f));
         } else {
             facing("crescent", mx, my, mz, 9 * S, 9 * S, 0.5f, rgba(mix(P1, 0xFFFFFF, .6f), 1f));
         }
         column("beam", mx, 0, my - 3 * S, mz, 1.6f * S, rgba(P1, .35f));
         sym(CY, m ? 2.8f * S : 3.8f * S, 0);
-        int nf = m ? 18 : 8;
+        int nf = m ? 34 : 22;
         for (int i = 0; i < nf; i++) {   // potions: spread right across the dome, at every distance and height, every colour
             int ring = m ? i % 3 : 0; float a = t * (.12f + .06f * h(i, 64)) * (i % 2 == 0 ? 1 : -1) + i * TAU / nf * 1.0f, r = R * (.4f + 2.2f * h(i, 62)), y = 1.2f * S + h(i, 63) * top * 1.2f + (float) Math.sin(t * 1.3f + i) * .9f * S;
             int liq = m ? (i % 4 == 0 ? 0xC01020 : mix(hsv(h(i, 61), .8f), P1, .25f)) : (i % 2 == 0 ? P1 : mix(P1, P2, .5f));
@@ -1960,8 +1968,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             flask((m ? .26f + .07f * (i % 3) : .5f) * S, mix(P3, 0xFFFFFF, .3f), liq); pop();
             glint((float) Math.cos(a) * r, y + .4f * S, (float) Math.sin(a) * r, .9f * S, liq, 1f);
         }
-        for (int i = 0; i < (m ? 12 : 8); i++) {   // a ring of moon phases standing round the edge
-            int nph = m ? 12 : 8; float a = i * TAU / nph + t * .06f, r = R * .85f, py = 2.2f * S + (float) Math.sin(t * .8f + i) * .4f * S;
+        apothFurniture(m);
+        for (int i = 0; i < (m ? 16 : 14); i++) {   // a ring of moon phases standing round the edge
+            int nph = m ? 16 : 14; float a = i * TAU / nph + t * .06f, r = R * .85f, py = 2.2f * S + (float) Math.sin(t * .8f + i) * .4f * S;
             stand(i % 4 == 0 ? "disc" : "crescent", (float) Math.cos(a) * r, py, (float) Math.sin(a) * r, 1.8f * S, 1.8f * S, -a + PI / 2, rgba(mix(P1, 0xFFFFFF, .5f), .9f));
             bb("glow", (float) Math.cos(a) * r, py, (float) Math.sin(a) * r, 3.2f * S, 3.2f * S, 0, rgba(P1, .25f));
         }
@@ -1981,8 +1990,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             for (int i = 0; i < 3; i++) { float pw = fract(t * .22f + i / 3f); flat("ring", 0, .1f, 0, pw * 2.4f * R, 0, rgba(0xC01020, fd(pw))); }
             sprites("drop", 40, FALLM, R, 0, top, .5f * S, 0xB01020, 1f, .35f, 77, false);
         }
-        for (int i = 0; i < (m ? 10 : 8); i++) {   // the Moon's own things round the edge: vampires' coffins standing open a crack, and altars where a crimson crescent turns over moonflowers
-            int n2 = m ? 10 : 8; float a = i * TAU / n2 + .2f, r = R * .82f, cxp = gc(a) * r, czp = gs(a) * r; int wood = 0x2A1810, trim = mix(0xC8A040, P1, .2f), crim = 0xC01828;
+        for (int i = 0; i < (m ? 14 : 12); i++) {   // the Moon's own things round the edge: vampires' coffins standing open a crack, and altars where a crimson crescent turns over moonflowers
+            int n2 = m ? 14 : 12; float a = i * TAU / n2 + .2f, r = R * .82f, cxp = gc(a) * r, czp = gs(a) * r; int wood = 0x2A1810, trim = mix(0xC8A040, P1, .2f), crim = 0xC01828;
             push(); tr(cxp, 0, czp); rY(-a + PI / 2);
             if (i % 2 == 0) {
                 rX(-.12f);
@@ -2006,6 +2015,50 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         sprites("petal", 40 * N, SPIRALM, R * .8f, 0, top * .8f, .7f * S, P1, 1f, .14f, 40, true);
         sprites("leaf", 24 * N, FALLM, R, 0, top, .8f * S, P2, 1f, .12f, 20, true);
         clouds(5 * N, R, top * .55f, P2, .35f, R);
+    }
+    /**
+     * The Apothecary's own things, filling the middle of the sphere between the ring of altars at the rim and the
+     * potions scattered far out: work benches with shelves of bottles over them, bundles of herbs hung up to dry on
+     * long cords, and open books turning in the air.
+     */
+    private void apothFurniture(boolean m) {
+        int wood = 0x3A2A1E, woodD = 0x241810, glass = 0xC8D8E0;
+        int nb = m ? 8 : 6;
+        for (int i = 0; i < nb; i++) {
+            float a = i * TAU / nb + .35f, rr = R * .55f;
+            push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2);
+            box(0, .9f * S, 0, 1.5f * S, .09f * S, .45f * S, wood, 255);                                  // the bench top
+            for (int l = -1; l <= 1; l += 2) box(l * 1.35f * S, .45f * S, 0, .11f * S, .45f * S, .4f * S, woodD, 255);
+            for (int sh = 0; sh < 3; sh++) {                                                              // three shelves over it
+                float sy2 = (1.5f + sh * .85f) * S;
+                box(0, sy2, -.3f * S, 1.5f * S, .07f * S, .3f * S, wood, 255);
+                for (int b = 0; b < 7; b++) { float bx = (-1.25f + b * .42f) * S, bh = .2f + .12f * h(i * 7 + sh * 11 + b, 150);
+                    int liq = mix(hsv(h(i * 13 + sh * 5 + b, 151), .75f), P1, .2f);
+                    box(bx, sy2 + (.1f + bh) * S, -.3f * S, .13f * S, bh * S, .13f * S, glass, 195);
+                    box(bx, sy2 + (.1f + bh * .7f) * S, -.3f * S, .1f * S, bh * .6f * S, .1f * S, liq, 240); }
+            }
+            for (int b = 0; b < 4; b++) { float bx = (-1.1f + b * .72f) * S, bh = .26f + .14f * h(i * 3 + b, 152);
+                box(bx, (1.0f + bh) * S, .12f * S, .16f * S, bh * S, .16f * S, glass, 195);
+                box(bx, (1.0f + bh * .7f) * S, .12f * S, .12f * S, bh * .6f * S, .12f * S, mix(hsv(h(i * 5 + b, 153), .7f), P1, .2f), 240); }
+            pop();
+            bb("glow", gc(a) * rr, 1.6f * S, gs(a) * rr, 5f * S, 4f * S, 0, rgba(P1, .1f));
+        }
+        for (int i = 0; i < (m ? 16 : 11); i++) {   // bundles of herbs hung up to dry
+            float a = h(i, 160) * TAU, rr = R * (.3f + .6f * h(i, 161)), y = top * (.5f + .35f * h(i, 162));
+            column("line", gc(a) * rr, y, top * 1.15f, gs(a) * rr, .06f * S, rgba(0x6A5A40, .55f));
+            push(); tr(gc(a) * rr, y, gs(a) * rr); rZ(gs(t * .5f + i) * .07f);
+            taper(-1.3f * S, 0, .06f * S, .06f * S, .3f * S, .3f * S, i % 3 == 0 ? 0x4A3A22 : 0x35632E, 255); pop();
+            bb("leaf", gc(a) * rr, y - 1.0f * S, gs(a) * rr, 1.3f * S, 1.3f * S, i, rgba(0x4E8A3C, .9f));
+        }
+        int ng = m ? 7 : 5;
+        for (int i = 0; i < ng; i++) {   // open books turning in the air
+            float a = -t * .08f + i * TAU / ng, rr = R * .72f, y = top * (.45f + .12f * (i % 3)) + gs(t + i) * .4f * S;
+            push(); tr(gc(a) * rr, y, gs(a) * rr); rY(-a + t * .3f); rX(.35f);
+            box(0, 0, 0, .9f * S, .07f * S, .65f * S, 0x5A2A20, 255);
+            box(-.46f * S, .1f * S, 0, .44f * S, .03f * S, .6f * S, 0xF0E8D0, 255);
+            box(.46f * S, .1f * S, 0, .44f * S, .03f * S, .6f * S, 0xF0E8D0, 255); pop();
+            bb("glow", gc(a) * rr, y + .4f * S, gs(a) * rr, 3f * S, 2f * S, 0, rgba(P3, .2f));
+        }
     }
     private void door(int N, boolean m) {
         sigil(R);
