@@ -54,5 +54,32 @@
     "stream": true
    }
   ]
+ },
+ "admin.track_1": {
+  "category": "record",
+  "sounds": [
+   {
+    "name": "astral_world:admin/track_1",
+    "stream": true
+   }
+  ]
+ },
+ "admin.track_2": {
+  "category": "record",
+  "sounds": [
+   {
+    "name": "astral_world:admin/track_2",
+    "stream": true
+   }
+  ]
+ },
+ "admin.track_3": {
+  "category": "record",
+  "sounds": [
+   {
+    "name": "astral_world:admin/track_3",
+    "stream": true
+   }
+  ]
  }
 }

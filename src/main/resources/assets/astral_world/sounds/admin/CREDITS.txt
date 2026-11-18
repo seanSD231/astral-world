@@ -1,0 +1,8 @@
+The three tracks an admin card's hologram plays. Supplied as copyright-free by the pack owner.
+
+track_1.ogg  Echoes of Lumen - "Ominous Music"            (source file: echoes_of_lumen-ominous-music-595730.mp3)
+track_2.ogg  Cyberwave Orchestra - "Ominous Horror Music" (source file: cyberwave-orchestra-ominous-horror-music-background-288128.mp3)
+track_3.ogg  Alex Morgan - "Dark Shadows"                 (source file: alex-morgan-dark-shadows-ominous-underscore-573942.mp3)
+
+Each was converted from MP3 to mono Ogg Vorbis (q3, 44.1 kHz) and loudness-matched to -18 LUFS.
+Mono is required: a stereo sound in Minecraft plays at full volume everywhere instead of fading with distance.

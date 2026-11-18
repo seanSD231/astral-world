@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.304
+
+- **An admin card's hologram has music.** Three tracks, one after another with a breath between them, round and
+  round for as long as the card stands: Echoes of Lumen, Cyberwave Orchestra, Alex Morgan. Taking the card away
+  takes the music with it rather than leaving the last track playing on over nothing.
+- They are converted to mono Ogg Vorbis and loudness-matched. Mono matters: a stereo sound in Minecraft plays at
+  full volume everywhere instead of fading with distance, so it would have followed you across the world.
+- They play on the Jukebox/Note Block volume slider, so they can be turned down without touching anything else.
+
 ## 0.2.303
 
 - **The admin hologram is the picture the card came from**, not the Hanged Man's scene. Rupex_123 himself hangs in

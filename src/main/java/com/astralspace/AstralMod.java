@@ -41,6 +41,7 @@ public class AstralMod {
         HoloCardEntity.register(modBus);
         Tarot.register(modBus);
         AstralTab.register(modBus);
+        AstralSounds.register(modBus);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(DoorEyes::tickBursts);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqAbilities::tick);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ShadowGear::tick);

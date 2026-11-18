@@ -86,6 +86,30 @@ public class HoloCardEntity extends Entity {
         t.putString("realPath", realPath); t.putInt("realSeq", realSeq); t.putBoolean("realShiny", realShiny);
     }
 
+    private int musicLeft, musicIdx;
+
+    /** An admin card's hologram plays its three tracks one after another, over and over, for as long as it stands. */
+    private void adminMusic() {
+        if (musicLeft > 0) { musicLeft--; return; }
+        int i = Math.floorMod(musicIdx++, AstralSounds.ADMIN_LEN.length);
+        musicLeft = AstralSounds.ADMIN_LEN[i] + 40;                       // a breath between one and the next
+        level().playSound(null, getX(), getY() + 6, getZ(), AstralSounds.ADMIN.get(i).get(),
+                net.minecraft.sounds.SoundSource.RECORDS, 3.6f, 1f);
+    }
+
+    /** Taking the card away takes its music with it; otherwise the last track would play on to its end over nothing. */
+    @Override
+    public void remove(RemovalReason reason) {
+        if (!level().isClientSide && admin() >= 0 && level() instanceof net.minecraft.server.level.ServerLevel sl) {
+            for (net.minecraft.server.level.ServerPlayer p : sl.players())
+                if (p.distanceToSqr(this) < 160 * 160)
+                    for (int i = 0; i < AstralSounds.ADMIN_LEN.length; i++)
+                        p.connection.send(new net.minecraft.network.protocol.game.ClientboundStopSoundPacket(
+                                AstralSounds.adminId(i), net.minecraft.sounds.SoundSource.RECORDS));
+        }
+        super.remove(reason);
+    }
+
     @Override public boolean isPickable() { return true; }
     @Override public float getPickRadius() { return 0.3f; }
     @Override public boolean isPushable() { return false; }
@@ -299,6 +323,7 @@ public class HoloCardEntity extends Entity {
     @Override
     public void tick() {
         super.tick();
+        if (!level().isClientSide && admin() >= 0 && !symbolOnly()) adminMusic();
         if (!level().isClientSide && tickCount == 2 && hasThrone()) spawnThrone();
         if (!level().isClientSide && !symbolOnly()) {
             if (goo() < 0 && pathIndex() == 1 && seq() == 0) doorways(doorRing(), true);
