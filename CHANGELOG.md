@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.282
+
+- **The Sword of Twilight finally shows while it is held.** It had no visual of its own: the aura it puts out was
+  server-side only, so there was nothing to see. Now the ground around whoever holds it carries two counter-turning
+  rings at the edge of its reach — 7 blocks sealed, 10 unsealed — a low wash of light between them, and motes of dusk
+  lifting off the floor. Gold while it is sealed, black and red once it is not, and the rings grow when it is unsealed,
+  so the aura shows its real reach.
+- **The ball of lightning at the hand is hand-drawn too.** It was the one Photon effect left on the Storm Katana; it
+  now uses the same ball the thrown one does, with more arcs and more cloud, and it shows whether or not Photon is installed.
+
 ## 0.2.281
 
 - **The ball of lightning is drawn by hand now.** It was a Photon effect file, so it looked like whatever that file

@@ -29,6 +29,7 @@ public final class WornClient {
     private static final Map<UUID, Object> SUNFX = new HashMap<>();
     private static final Map<UUID, String> SUNKIND = new HashMap<>();
     private static final Map<UUID, Float> SHADOWR = new HashMap<>();
+    private static final Map<UUID, Boolean> TWDARK = new HashMap<>();
 
     private static float since(UUID id, Map<UUID, Long> m, float pt) {
         Long t = m.get(id); Minecraft mc = Minecraft.getInstance();
@@ -40,21 +41,26 @@ public final class WornClient {
         if (mc.level == null || mc.player == null) return;
         if (mc.player.tickCount % 10 == 0) for (net.minecraft.client.player.AbstractClientPlayer p : mc.level.players()) {
             ItemStack st = WornUniq.findShown(p);
-            if (st.isEmpty()) WORN.remove(p.getUUID()); else WORN.put(p.getUUID(), BuiltInRegistries.ITEM.getKey(st.getItem()).getPath());
+            if (st.isEmpty()) { WORN.remove(p.getUUID()); TWDARK.remove(p.getUUID()); }
+            else {
+                WORN.put(p.getUUID(), BuiltInRegistries.ITEM.getKey(st.getItem()).getPath());
+                if (st.getItem() instanceof TwilightSword) TWDARK.put(p.getUUID(), TwilightSword.unsealed(st));
+                else TWDARK.remove(p.getUUID());
+            }
         }
         for (net.minecraft.client.player.AbstractClientPlayer p : mc.level.players()) {
             String worn = WORN.get(p.getUUID());
-            boolean sun = "spear_of_sun".equals(worn) && !p.isInvisible(), ball = "storm_katana".equals(worn) && !p.isInvisible();
-            String want = sun ? "sun" : ball ? "ball" : null;
+            boolean sun = "spear_of_sun".equals(worn) && !p.isInvisible();
+            String want = sun ? "sun" : null;   // the ball of lightning is drawn here now, not by Photon
             Object h = SUNFX.get(p.getUUID());
             String have = SUNKIND.get(p.getUUID());
             if (h != null && !java.util.Objects.equals(want, have)) { if (!"none".equals(h)) LotmFx.kill(h); SUNFX.remove(p.getUUID()); SUNKIND.remove(p.getUUID()); h = null; }
             if (want != null && h == null) {
                 UUID id = p.getUUID();
-                Object nh = LotmFx.carry(sun ? "bard/flaring_sun" : "astral_world:storm_ball", pt -> {
+                Object nh = LotmFx.carry("bard/flaring_sun", pt -> {
                     Entity e = Minecraft.getInstance().level == null ? null : Minecraft.getInstance().level.getPlayerByUUID(id);
-                    return e == null ? Vec3.ZERO : sun ? shoulder(e, pt) : hand(e, pt);
-                }, sun ? .1f : .035f);
+                    return e == null ? Vec3.ZERO : shoulder(e, pt);
+                }, .1f);
                 SUNFX.put(p.getUUID(), nh == null ? "none" : nh); SUNKIND.put(p.getUUID(), want);
             }
         }
@@ -110,9 +116,14 @@ public final class WornClient {
                     UniqGfx.doll(pose, buf, t, 0, true, false); pose.popPose();
                 }
                 case "storm_katana" -> {
-                    if (!"none".equals(SUNFX.get(p.getUUID()))) break;
                     pose.pushPose(); getParentModel().leftArm.translateAndRotate(pose); UniqGfx.tr(pose, 1f, 11f, 0);
-                    UniqGfx.stormBall(pose, buf, t, 3.6f, 4, 5); pose.popPose();
+                    UniqGfx.stormBall(pose, buf, t, 3.8f, 6, 7); pose.popPose();
+                }
+                case "twilight_longsword" -> {
+                    boolean dark = Boolean.TRUE.equals(TWDARK.get(p.getUUID()));
+                    pose.pushPose(); body(pose); UniqGfx.tr(pose, 0, 24f, 0); pose.mulPose(Axis.XP.rotationDegrees(180));
+                    UniqGfx.twilightAura(pose, buf, t, (dark ? 10f : 7f) * 16f, dark);
+                    pose.popPose();
                 }
                 case "shadow_sword" -> shadows(pose, buf, light, p, t, pt);
                 default -> { }

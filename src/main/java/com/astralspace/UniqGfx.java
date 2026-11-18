@@ -471,6 +471,43 @@ final class UniqGfx {
         }
     }
 
+    /**
+     * What the Sword of Twilight does to the ground around whoever holds it: two counter-turning rings at the edge of
+     * its reach, a low wash of light between them, and motes of dusk lifting off the floor. Gold while it is sealed,
+     * black and red once it is not.
+     */
+    static void twilightAura(PoseStack p, MultiBufferSource b, float t, float r, boolean dark) {
+        int ring = dark ? 0xFF2030 : 0xFFD978, mote = dark ? 0xE01020 : 0xFFE9A0, wash = dark ? 0x30060C : 0x3A2E12;
+        float beat = .55f + .25f * (float) Math.sin(t * .11f);
+
+        for (int k = 0; k < 2; k++) {
+            float rr = r * (k == 0 ? 1f : .74f), spin = t * (k == 0 ? .9f : -1.4f);
+            float w = k == 0 ? 1.4f : .9f;
+            float px = 0, pz = 0;
+            for (int i = 0; i <= 48; i++) {
+                float a = (float) Math.toRadians(spin + i * (360f / 48f));
+                float wob = 1f + .03f * (float) Math.sin(t * .2f + i * .7f);
+                float nx = (float) Math.cos(a) * rr * wob, nz = (float) Math.sin(a) * rr * wob;
+                if (i > 0) seg(p, b, px, 0, pz, nx, 0, nz, w, rgba(ring, beat * (k == 0 ? .85f : .6f)));
+                px = nx; pz = nz;
+            }
+        }
+        p.pushPose(); tr(p, 0, .6f, 0); box(p, b, r * 1.5f, .6f, r * 1.5f, rgba(wash, .22f * beat)); p.popPose();
+
+        for (int i = 0; i < 16; i++) {                                    // dusk lifting off the floor
+            float seed = rnd(i * 13);
+            float cycle = (t * (.9f + seed) + i * 11f) % 60f;
+            float up = cycle / 60f;
+            float a = (float) Math.toRadians(i * (360f / 16f) + t * .4f);
+            float d = r * (.3f + .65f * rnd(i + 31));
+            float sz = (1.1f + 1.3f * rnd(i + 7)) * (1f - up * .6f);
+            p.pushPose();
+            tr(p, (float) Math.cos(a) * d, up * r * .9f, (float) Math.sin(a) * d);
+            box(p, b, sz, sz, sz, rgba(mote, (1f - up) * .8f));
+            p.popPose();
+        }
+    }
+
     /** The great storm only: strokes that reach down out of it and earth themselves. */
     static void stormGround(PoseStack p, MultiBufferSource b, float t, float r, float toGround) {
         int s = (int) Math.floor(t * 1.1f);
