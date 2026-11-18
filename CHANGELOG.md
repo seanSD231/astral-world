@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.314
+
+- **The bottles of luck have luck in them.** LOTM keeps the amount in the stack's custom data under
+  `luckAmount`, and a bottle built from the item alone holds nothing -- which is what every bottle in every
+  hunger games chest was. The number being passed was the stack size. Chest bottles now carry 12-42, the rich
+  ones 30-55, and a cache bottle 70-120.
+- **A Secrets Supplicant starts with their flesh and blood full.** LOTM grants the pool when the sequence is
+  set but leaves it empty, so a Hanged Man had nothing to spend. It is filled to the sequence's maximum
+  whenever this mod sets a pathway or a sequence, and for every contestant carried into the hunger games.
+
 ## 0.2.313
 
 - Fixes the build (a shadowed loop variable in Error 0), and:

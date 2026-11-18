@@ -639,6 +639,20 @@ public final class HungerGames {
         var it = BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));
         return it == Items.AIR ? ItemStack.EMPTY : new ItemStack(it, n);
     }
+    /**
+     * A bottle of luck with luck actually in it. LOTM keeps the amount in the stack's custom data under
+     * "luckAmount", and a bottle built from the item alone holds nothing -- which is what every bottle in
+     * every chest was. The number that used to be passed here was the stack size, not the luck.
+     */
+    private static ItemStack luckBottle(int count, int luck) {
+        ItemStack st = lotm("lotm:luckbottleitem", count);
+        if (st.isEmpty()) return st;
+        CompoundTag tag = st.getOrDefault(DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.EMPTY).copyTag();
+        tag.putInt("luckAmount", luck);
+        st.set(DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(tag));
+        return st;
+    }
+
     private static ItemStack potion(net.minecraft.world.item.Item base, net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion> p) { return PotionContents.createItemStack(base, p); }
 
     private static final List<Entry> COMMON = List.of(
@@ -653,7 +667,7 @@ public final class HungerGames {
             e(4, () -> st(Items.OAK_LOG, 8 + rnd.nextInt(9))), e(4, () -> st(Items.DIRT, 16 + rnd.nextInt(17))), e(3, () -> st(Items.LADDER, 8 + rnd.nextInt(9))),
             e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 2 + rnd.nextInt(3))), e(3, () -> st(Items.FISHING_ROD, 1)), e(3, () -> st(Items.SNOWBALL, 8)),
             e(2, () -> st(Items.FLINT_AND_STEEL, 1)), e(6, () -> st(Items.TORCH, 6 + rnd.nextInt(11))), e(5, () -> st(Items.WIND_CHARGE, 3 + rnd.nextInt(5))),
-            e(4, () -> lotm("lotm:luckbottleitem", 1)), e(5, () -> lotm("lotm:dagger", 1)), e(4, () -> potion(Items.SPLASH_POTION, Potions.HEALING)), e(3, () -> potion(Items.SPLASH_POTION, Potions.HARMING)),
+            e(4, () -> luckBottle(1, 12 + rnd.nextInt(10))), e(5, () -> lotm("lotm:dagger", 1)), e(4, () -> potion(Items.SPLASH_POTION, Potions.HEALING)), e(3, () -> potion(Items.SPLASH_POTION, Potions.HARMING)),
             e(3, () -> potion(Items.POTION, Potions.SWIFTNESS)), e(2, () -> st(Items.TNT, 2)));
 
     private static final List<Entry> RICH = List.of(
@@ -666,7 +680,7 @@ public final class HungerGames {
             e(4, () -> potion(Items.SPLASH_POTION, Potions.STRONG_HARMING)), e(3, () -> potion(Items.POTION, Potions.LONG_SWIFTNESS)), e(3, () -> potion(Items.POTION, Potions.STRONG_STRENGTH)),
             e(3, () -> st(Items.TNT, 4)), e(2, () -> st(Items.FLINT_AND_STEEL, 1)), e(5, () -> st(Items.TORCH, 12)), e(6, () -> st(Items.WIND_CHARGE, 6 + rnd.nextInt(7))),
             e(7, () -> st(Items.COBBLESTONE, 48 + rnd.nextInt(17))), e(5, () -> st(Items.OAK_PLANKS, 32 + rnd.nextInt(17))), e(4, () -> st(Items.SCAFFOLDING, 12 + rnd.nextInt(9))), e(3, () -> st(Items.OBSIDIAN, 4 + rnd.nextInt(5))),
-            e(6, () -> lotm("lotm:luckbottleitem", 1 + rnd.nextInt(2))), e(7, () -> lotm("lotm:dagger", 1)), e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 4)));
+            e(6, () -> luckBottle(1, 24 + rnd.nextInt(18))), e(7, () -> lotm("lotm:dagger", 1)), e(3, () -> st(Items.WATER_BUCKET, 1)), e(3, () -> st(Items.COBWEB, 4)));
 
     /** The hidden caches: what the middle chests do not hold. Worth the walk out to the edge and the time away from the fight. */
     private static final List<Entry> CACHE = List.of(
@@ -678,7 +692,7 @@ public final class HungerGames {
             e(4, () -> potion(Items.POTION, Potions.LONG_SWIFTNESS)), e(3, () -> potion(Items.POTION, Potions.LONG_FIRE_RESISTANCE)),
             e(5, () -> st(Items.WIND_CHARGE, 12 + rnd.nextInt(9))), e(4, () -> st(Items.TNT, 6)), e(4, () -> st(Items.COBWEB, 8)),
             e(4, () -> st(Items.OBSIDIAN, 8 + rnd.nextInt(9))), e(4, () -> st(Items.SCAFFOLDING, 24)), e(3, () -> st(Items.COBBLESTONE, 64)),
-            e(6, () -> lotm("lotm:luckbottleitem", 3 + rnd.nextInt(3))), e(6, () -> lotm("lotm:dagger", 1)), e(5, () -> st(Items.ARROW, 32)), e(3, () -> st(Items.BOW, 1)));
+            e(6, () -> luckBottle(1 + rnd.nextInt(2), 30 + rnd.nextInt(25))), e(6, () -> lotm("lotm:dagger", 1)), e(5, () -> st(Items.ARROW, 32)), e(3, () -> st(Items.BOW, 1)));
 
     /** What every cache is guaranteed to hold. A barrel is a long walk out and back, so it always pays for the trip. */
     private static final List<Entry> CACHE_TOP = List.of(
@@ -687,7 +701,7 @@ public final class HungerGames {
             e(5, () -> st(Items.NETHERITE_LEGGINGS, 1)), e(4, () -> st(Items.NETHERITE_BOOTS, 1)),
             e(6, () -> st(Items.TOTEM_OF_UNDYING, 1)), e(6, () -> st(Items.ENCHANTED_GOLDEN_APPLE, 2 + rnd.nextInt(3))),
             e(4, () -> st(Items.TRIDENT, 1)), e(4, () -> st(Items.ENDER_PEARL, 8)),
-            e(5, () -> lotm("lotm:luckbottleitem", 6 + rnd.nextInt(5))));
+            e(5, () -> luckBottle(2, 70 + rnd.nextInt(50))));
 
     /**
      * Hidden caches: barrels, not chests, so they read differently at a glance. They sit out in the far ring and inside
@@ -813,6 +827,7 @@ public final class HungerGames {
             double ang = Math.PI * 2 * i / n, cr = Math.max(3.5, n * 0.9);   // everyone starts in a circle in the middle, facing the others
             double cx = 0.5 + Math.cos(ang) * cr, cz = 0.5 + Math.sin(ang) * cr;
             float yaw = (float) Math.toDegrees(Math.atan2(cx - 0.5, -(cz - 0.5)));
+            Lotm.fillFleshAndBlood(p);   // a Hanged Man with an empty pool has no abilities at all
             p.setGameMode(GameType.SURVIVAL);
             lv.getChunk((int) cx >> 4, (int) cz >> 4);
             p.teleportTo(lv, cx, groundY, cz, yaw, 0f);
