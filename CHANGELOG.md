@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.281
+
+- **The ball of lightning is drawn by hand now.** It was a Photon effect file, so it looked like whatever that file
+  said and could not be changed from here. It is geometry again, and the same with or without Photon installed:
+  a white-hot heart that pulses, a rolling storm cloud around it, three tilted rings of charge turning at different
+  speeds, and forked bolts that whip out, branch and die every couple of ticks instead of flickering in place.
+- **The great storm earths itself.** Six strokes reach down out of it to the ground and re-cut themselves as it burns,
+  so the big form reads as a storm standing on the world rather than a sphere hanging in the air.
+
 ## 0.2.280
 
 - **Every astral artifact now asks something of its own.** Corruption and the two hearts of weight were the only price,

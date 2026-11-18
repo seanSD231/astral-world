@@ -40,7 +40,7 @@ public final class UniqWorld {
         if (mc.level == null) return;
         if (kind == DOLL && dur < 0) { LIVE.add(new Fx(DOLLTP, id, id2, x, y, z, x2, y2, z2, -dur, mc.level.getGameTime())); return; }   // a Seq 1/0 doll: it does not walk, it appears
         Fx f = new Fx(kind, id, id2, x, y, z, x2, y2, z2, dur, mc.level.getGameTime());
-        if (kind == FXPOINT || kind == FXPATH || (kind == STORM && LotmFx.available())) { photon(f, mc); return; }
+        if (kind == FXPOINT || kind == FXPATH) { photon(f, mc); return; }   // the storm is drawn here now, not by Photon
         LIVE.add(f);
     }
 
@@ -282,7 +282,9 @@ public final class UniqWorld {
         float u = t - fly, g = ease(u / 22f) * Mth.clamp((f.dur - fly - u) / 16f, 0f, 1f);
         if (g <= .02f) return;
         ps.pushPose(); ps.translate(f.x2 - cam.x, f.y2 - cam.y, f.z2 - cam.z);
-        UniqGfx.stormBall(ps, buf, t, R * 16f * g, R > 20 ? 40 : 16, R > 20 ? 60 : 26);
+        float rr = R * 16f * g;
+        UniqGfx.stormBall(ps, buf, t, rr, R > 20 ? 40 : 18, R > 20 ? 60 : 26);
+        UniqGfx.stormGround(ps, buf, t, rr, rr * .9f);
         ps.popPose();
     }
 }

@@ -405,23 +405,87 @@ final class UniqGfx {
     }
 
     /** A ball of storms, rPx across: a white-hot core wrapped in dark rolling cloud with lightning arcing out of it. */
+    /**
+     * The ball of lightning: a white-hot heart inside a turning storm, three tilted rings of charge around it, and
+     * forked bolts that whip out, branch and die every few ticks. Drawn from scratch rather than handed to Photon,
+     * so it looks the same with or without that mod and can actually be tuned.
+     */
     static void stormBall(PoseStack p, MultiBufferSource b, float t, float r, int bolts, int blobs) {
-        sphere(p, b, r * .38f, 9, 14, 0xFFEAF4FF);
-        sphere(p, b, r * .62f, 10, 16, rgba(0x6A90FF, .55f));
-        for (int i = 0; i < blobs; i++) {   // rolling cloud
-            float a = t * (.05f + .03f * rnd(i)) * (i % 2 == 0 ? 1 : -1) + i * 2.4f, el = (rnd(i + 40) - .5f) * 2.4f, d = r * (.5f + .3f * rnd(i + 90)), cr = r * (.16f + .12f * rnd(i + 7));
-            p.pushPose(); tr(p, (float) Math.cos(a) * (float) Math.cos(el) * d, (float) Math.sin(el) * d, (float) Math.sin(a) * (float) Math.cos(el) * d);
-            sphere(p, b, cr, 6, 9, i % 3 == 0 ? rgba(0x4A5270, .85f) : rgba(0x2A2F44, .85f)); p.popPose();
+        float pulse = 1f + .07f * (float) Math.sin(t * .8f) + .04f * (float) Math.sin(t * 2.3f);
+
+        sphere(p, b, r * .20f * pulse, 10, 16, 0xFFFFFFFF);                  // the heart
+        sphere(p, b, r * .33f * pulse, 10, 16, rgba(0xCCE6FF, .92f));
+        sphere(p, b, r * .48f, 10, 16, rgba(0x6E97FF, .48f));
+
+        for (int i = 0; i < blobs; i++) {                                    // the cloud, rolling round it
+            float a = t * (.05f + .03f * rnd(i)) * (i % 2 == 0 ? 1 : -1) + i * 2.4f;
+            float el = (rnd(i + 40) - .5f) * 2.4f;
+            float d = r * (.52f + .3f * rnd(i + 90)), cr = r * (.15f + .13f * rnd(i + 7));
+            p.pushPose();
+            tr(p, (float) Math.cos(a) * (float) Math.cos(el) * d, (float) Math.sin(el) * d, (float) Math.sin(a) * (float) Math.cos(el) * d);
+            sphere(p, b, cr, 6, 9, i % 3 == 0 ? rgba(0x4A5270, .8f) : rgba(0x242941, .82f));
+            p.popPose();
         }
-        sphere(p, b, r, 10, 18, rgba(0x2A3050, .22f));
-        int s = (int) Math.floor(t * 1.4f);
-        for (int k = 0; k < bolts; k++) {   // jagged arcs, a new shape every few ticks
-            float az = rnd(s * 31 + k) * 6.283f, el = (rnd(s * 17 + k * 5) - .5f) * 2.6f, len = r * (.9f + .5f * rnd(k + s));
+        sphere(p, b, r * .98f, 10, 18, rgba(0x232A4C, .18f));                // the shell
+
+        for (int ring = 0; ring < 3; ring++) {                               // rings of charge, each on its own tilt
+            float tilt = .5f + ring * 1.0f, spin = t * (.09f + .03f * ring) * (ring % 2 == 0 ? 1 : -1);
+            float rr = r * (.72f + .11f * ring), w = Math.max(.25f, r * .012f);
+            int argb = rgba(ring == 1 ? 0xBFE4FF : 0x8FC4FF, .5f + .25f * (float) Math.sin(t * .5f + ring));
+            p.pushPose();
+            p.mulPose(com.mojang.math.Axis.ZP.rotation(tilt));
+            p.mulPose(com.mojang.math.Axis.XP.rotation(tilt * .6f));
+            float px = rr, py = 0, pz = 0;
+            for (int k = 1; k <= 18; k++) {
+                float a = spin + k * (6.2832f / 18f);
+                float jitter = 1f + (rnd(ring * 97 + k + (int) (t * 2)) - .5f) * .12f;
+                float nx = (float) Math.cos(a) * rr * jitter, ny = (float) Math.sin(a * 2) * r * .06f, nz = (float) Math.sin(a) * rr * jitter;
+                seg(p, b, px, py, pz, nx, ny, nz, w, argb);
+                px = nx; py = ny; pz = nz;
+            }
+            p.popPose();
+        }
+
+        int s = (int) Math.floor(t * 1.6f);                                  // a fresh set of bolts every few ticks
+        for (int k = 0; k < bolts; k++) {
+            float fade = 1f - ((t * 1.6f) - s);
+            float az = rnd(s * 31 + k) * 6.283f, el = (rnd(s * 17 + k * 5) - .5f) * 2.6f;
+            float len = r * (.95f + .55f * rnd(k + s));
             float dx = (float) (Math.cos(az) * Math.cos(el)), dy = (float) Math.sin(el), dz = (float) (Math.sin(az) * Math.cos(el));
             float x = 0, y = 0, z = 0;
+            for (int j = 1; j <= 7; j++) {
+                float f = j / 7f;
+                float nx = dx * len * f + (rnd(s * 7 + k * 13 + j) - .5f) * r * .38f;
+                float ny = dy * len * f + (rnd(s * 3 + k * 11 + j) - .5f) * r * .38f;
+                float nz = dz * len * f + (rnd(s * 5 + k * 7 + j) - .5f) * r * .38f;
+                float w = Math.max(.25f, r * .018f * (1.25f - f));
+                seg(p, b, x, y, z, nx, ny, nz, w, rgba(0xF2F8FF, .55f + .45f * fade));
+                if (j == 4 && rnd(s * 101 + k) > .45f) {                     // a fork off the main stroke
+                    float bx = nx + (rnd(s + k * 3) - .5f) * r * .5f;
+                    float by = ny + (rnd(s + k * 5) - .5f) * r * .5f;
+                    float bz = nz + (rnd(s + k * 9) - .5f) * r * .5f;
+                    seg(p, b, nx, ny, nz, bx, by, bz, w * .7f, rgba(0xDCEBFF, .4f + .4f * fade));
+                }
+                x = nx; y = ny; z = nz;
+            }
+        }
+    }
+
+    /** The great storm only: strokes that reach down out of it and earth themselves. */
+    static void stormGround(PoseStack p, MultiBufferSource b, float t, float r, float toGround) {
+        int s = (int) Math.floor(t * 1.1f);
+        for (int k = 0; k < 6; k++) {
+            float az = rnd(s * 53 + k) * 6.283f;
+            float d = r * (.25f + .7f * rnd(s * 29 + k));
+            float ex = (float) Math.cos(az) * d, ez = (float) Math.sin(az) * d;
+            float x = 0, y = 0, z = 0;
             for (int j = 1; j <= 6; j++) {
-                float f = j / 6f, nx = dx * len * f + (rnd(s * 7 + k * 13 + j) - .5f) * r * .35f, ny = dy * len * f + (rnd(s * 3 + k * 11 + j) - .5f) * r * .35f, nz = dz * len * f + (rnd(s * 5 + k * 7 + j) - .5f) * r * .35f;
-                seg(p, b, x, y, z, nx, ny, nz, Math.max(.3f, r * .016f * (1.2f - f)), 0xFFE8F2FF); x = nx; y = ny; z = nz;
+                float f = j / 6f;
+                float nx = ex * f + (rnd(s * 11 + k * 7 + j) - .5f) * r * .18f;
+                float ny = -toGround * f;
+                float nz = ez * f + (rnd(s * 13 + k * 5 + j) - .5f) * r * .18f;
+                seg(p, b, x, y, z, nx, ny, nz, Math.max(.3f, r * .012f), rgba(0xEAF4FF, .75f));
+                x = nx; y = ny; z = nz;
             }
         }
     }
