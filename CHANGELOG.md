@@ -2,6 +2,11 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.302
+
+- **Rupex_123**, with the capital, on the card and everywhere the name is read. The lower-case `rupex_123` stays as
+  the id behind it: the pathway string and the texture names.
+
 ## 0.2.301
 
 - **The admin pack looks like the rest of the set now.** The pouch on the opening screen was drawn from scratch and

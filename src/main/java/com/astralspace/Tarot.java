@@ -56,7 +56,8 @@ public final class Tarot {
      * They are never rolled by any pack and never appear in the odds; the only source is an admin pack, which is
      * itself only ever given out.
      */
-    public static final String[] ADMIN_IDS = {"rupex_123"};
+    public static final String[] ADMIN_IDS = {"rupex_123"};          // the id: the pathway string and the texture names
+    public static final String[] ADMIN_NAMES = {"Rupex_123"};        // how it is written wherever a person reads it
     public static final String[] ADMIN_TITLES = {"Bearer of Sins"};
     public static int adminIndex(String pathway) {
         if (pathway == null || !pathway.startsWith("admin_")) return -1;
@@ -131,7 +132,7 @@ public final class Tarot {
 
     public static String pretty(String id) {
         if (gooIndex(id) >= 0) return GOO_NAMES[gooIndex(id)];
-        if (adminIndex(id) >= 0) return ADMIN_IDS[adminIndex(id)];
+        if (adminIndex(id) >= 0) return ADMIN_NAMES[adminIndex(id)];
         StringBuilder b = new StringBuilder();
         for (String w : id.split("_")) b.append(b.length() > 0 ? " " : "").append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
         return b.toString();
@@ -208,7 +209,7 @@ public final class Tarot {
             boolean mim = canMimic(t) && t.contains("mimicPath") && !t.getString("mimicPath").isEmpty();   // wearing another card's face: its name too, in a slightly different shade
             String pw = mim ? t.getString("mimicPath") : t.getString("pathway");
             if (gooIndex(pw) >= 0) return Component.literal("Great Old One - " + GOO_NAMES[gooIndex(pw)]).withStyle(mim ? net.minecraft.network.chat.Style.EMPTY.withBold(true).withColor(net.minecraft.network.chat.TextColor.fromRgb(0xDCDCEC)) : net.minecraft.network.chat.Style.EMPTY.withBold(true).withColor(ChatFormatting.WHITE));
-            if (adminIndex(pw) >= 0) return Component.literal(ADMIN_TITLES[adminIndex(pw)] + " - " + ADMIN_IDS[adminIndex(pw)])
+            if (adminIndex(pw) >= 0) return Component.literal(ADMIN_TITLES[adminIndex(pw)] + " - " + ADMIN_NAMES[adminIndex(pw)])
                     .withStyle(net.minecraft.network.chat.Style.EMPTY.withBold(true).withColor(net.minecraft.network.chat.TextColor.fromRgb(0xE23030)));
             int seq = Math.max(0, Math.min(9, mim ? t.getInt("mimicSeq") : t.getInt("seq")));
             Component nm = Component.literal((t.getBoolean("shiny") ? "Shiny " : "") + pretty(pw) + " - Seq " + seq);
