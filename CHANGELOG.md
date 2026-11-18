@@ -2,6 +2,13 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.300
+
+- **The admin pack.** One card, and that card is an admin card. It is in no creative tab, has no recipe and is
+  rolled by nothing: `/give <player> astral_world:admin_pack` is the only way one exists, which is the only way an
+  admin card exists. It opens with the usual pack animation, on a black and gold pouch with the Bearing of Sins on
+  it, and the card behind it wears the Hanged Man's back until it turns over.
+
 ## 0.2.299
 
 - **The admin cards.** A tier of their own above the Great Old Ones. A card's pathway is `admin_<id>` and its

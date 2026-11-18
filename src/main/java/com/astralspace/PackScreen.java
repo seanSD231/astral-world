@@ -61,7 +61,7 @@ public final class PackScreen extends Screen {
     public static void open(String pack, String cards) { Minecraft.getInstance().setScreen(new PackScreen(pack, cards)); }
 
     /** A Great Old One hides behind the back of one of its own pathways until it is clicked. */
-    private static String backOf(String p) { int g = Tarot.gooIndex(p); return g >= 0 ? Tarot.GOO_PATHS[g][0] : p; }
+    private static String backOf(String p) { if (Tarot.adminIndex(p) >= 0) return "secrets_supplicant"; int g = Tarot.gooIndex(p); return g >= 0 ? Tarot.GOO_PATHS[g][0] : p; }
     private boolean isGoo(int i) { return path[i].startsWith("goo_"); }
     /** Which ordinary rarity shine its disguise wears (uncommon, rare or epic). */
     private int disguise(int i) { return 1 + Math.floorMod(path[i].hashCode() + i, 3); }
