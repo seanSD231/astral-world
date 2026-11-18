@@ -239,6 +239,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     /** A model out of the LOTM mod (Bedrock .geo.json), loaded from its resources. Missing mod or model: draws nothing. */
     private static final class Geo {
         final java.util.List<float[]> q = new java.util.ArrayList<>();
+        /** The bone each quad came from, and every bone's pivot in the same space as q, so one bone can be moved on its own. */
+        final java.util.List<String> qb = new java.util.ArrayList<>();
+        final Map<String, float[]> pivots = new HashMap<>();
         float minX = 1e9f, maxX = -1e9f, minY = 1e9f, maxY = -1e9f, minZ = 1e9f, maxZ = -1e9f;
     }
     private static final Map<String, Geo> GEOS = new HashMap<>();
@@ -279,6 +282,12 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (var e : go.getAsJsonArray("bones")) bm.put(e.getAsJsonObject().get("name").getAsString(), e.getAsJsonObject());
         Map<String, Matrix4f> cache = new HashMap<>();
         Geo g = new Geo(); Vector3f tmp = new Vector3f();
+        for (var be : bm.entrySet()) {   // a bone's pivot, carried through its parents, in the same space the quads end up in
+            Matrix4f pm = boneM(be.getKey(), bm, cache);
+            float[] pv0 = arr(be.getValue(), "pivot", 0);
+            pm.transformPosition(-pv0[0], pv0[1], pv0[2], tmp);
+            g.pivots.put(be.getKey(), new float[]{tmp.x / 16f, tmp.y / 16f, tmp.z / 16f});
+        }
         for (var be : bm.entrySet()) {
             com.google.gson.JsonObject b = be.getValue();
             if (!b.has("cubes")) continue;
@@ -326,7 +335,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                         g.minX = Math.min(g.minX, qd[k * 5]); g.maxX = Math.max(g.maxX, qd[k * 5]); g.minY = Math.min(g.minY, qd[k * 5 + 1]); g.maxY = Math.max(g.maxY, qd[k * 5 + 1]);
                         g.minZ = Math.min(g.minZ, qd[k * 5 + 2]); g.maxZ = Math.max(g.maxZ, qd[k * 5 + 2]);
                     }
-                    g.q.add(qd);
+                    g.q.add(qd); g.qb.add(be.getKey());
                 }
             }
         }
@@ -339,20 +348,35 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float sc = targetH / Math.max(.001f, g.maxY - g.minY), cx = (g.minX + g.maxX) / 2, cz = (g.minZ + g.maxZ) / 2;
         VertexConsumer vc = buf.getBuffer(RenderType.entityCutoutNoCull(gt(ResourceLocation.fromNamespaceAndPath(ns, texPath))));
         int gr = GOLDMODE ? 255 : 255, gg = GOLDMODE ? 214 : 255, gb = GOLDMODE ? 110 : 255;
-        for (float[] q : g.q) {
-            float ex = q[5] - q[0], ey = q[6] - q[1], ez = q[7] - q[2], fx2 = q[15] - q[0], fy2 = q[16] - q[1], fz2 = q[17] - q[2];
+        Matrix4f sw = null;
+        if (geoBone != null && g.pivots.containsKey(geoBone)) {
+            float[] pv = g.pivots.get(geoBone);
+            sw = new Matrix4f().translate(pv[0], pv[1], pv[2]).rotateY(geoBoneYaw).translate(-pv[0], -pv[1], -pv[2]);
+        }
+        float[] p4 = new float[12];
+        for (int qi = 0; qi < g.q.size(); qi++) {
+            float[] q = g.q.get(qi);
+            boolean swing = sw != null && geoBone.equals(g.qb.get(qi));
+            for (int k = 0; k < 4; k++) {
+                if (swing) { sw.transformPosition(q[k * 5], q[k * 5 + 1], q[k * 5 + 2], tp); p4[k * 3] = tp.x; p4[k * 3 + 1] = tp.y; p4[k * 3 + 2] = tp.z; }
+                else { p4[k * 3] = q[k * 5]; p4[k * 3 + 1] = q[k * 5 + 1]; p4[k * 3 + 2] = q[k * 5 + 2]; }
+            }
+            float ex = p4[3] - p4[0], ey = p4[4] - p4[1], ez = p4[5] - p4[2], fx2 = p4[9] - p4[0], fy2 = p4[10] - p4[1], fz2 = p4[11] - p4[2];
             float nx = ey * fz2 - ez * fy2, ny = ez * fx2 - ex * fz2, nz = ex * fy2 - ey * fx2, l = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
             if (l < 1e-9f) { nx = 0; ny = 1; nz = 0; } else { nx /= l; ny /= l; nz /= l; }
             cur.transformDirection(nx, ny, nz, tn);
             float tnx = tn.x, tny = tn.y, tnz = tn.z;
             for (int k = 0; k < 4; k++) {
-                cur.transformPosition((q[k * 5] - cx) * sc, (q[k * 5 + 1] - g.minY) * sc, (q[k * 5 + 2] - cz) * sc, tp);
+                cur.transformPosition((p4[k * 3] - cx) * sc, (p4[k * 3 + 1] - g.minY) * sc, (p4[k * 3 + 2] - cz) * sc, tp);
                 vc.addVertex(mat, tp.x, tp.y, tp.z).setColor(gr, gg, gb, 255).setUv(q[k * 5 + 3], q[k * 5 + 4])
                   .setOverlay(OverlayTexture.NO_OVERLAY).setLight(LIGHT).setNormal(tnx, tny, tnz);
             }
         }
         return true;
     }
+    /** Set to move one bone of the next drawGeo on its own (the door's leaf, swinging on its hinge). Cleared after use. */
+    private String geoBone;
+    private float geoBoneYaw;
 
     // ================= lit 3D models =================
     private final ArrayDeque<Matrix4f> mstack = new ArrayDeque<>();
@@ -376,7 +400,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void rY(float a) { cur.rotateY(a); }
     private void rX(float a) { cur.rotateX(a); }
     private void rZ(float a) { cur.rotateZ(a); }
-    private void clear() { cur = new Matrix4f(); mstack.clear(); }
+    private void clear() { cur = new Matrix4f(); mstack.clear(); geoBone = null; }
     private void solid(boolean translucent) { strans = translucent; }
 
     private void sv(float[] p, float[] n, int rgb, int a, VertexConsumer vc) {
@@ -2105,17 +2129,31 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             bb("glow", gc(a) * rr, y + .4f * S, gs(a) * rr, 3f * S, 2f * S, 0, rgba(P3, .2f));
         }
     }
+    /** How far a door that begins to open at `delay` seconds has swung: 0 shut, 1 wide, over a second and a half. */
+    private float doorSwing(float delay) { return Math.max(0f, Math.min(1f, (t - delay) / 1.5f)); }
+
     private void door(int N, boolean m) {
         sigil(R);
         float H = m ? 3.6f : 2.3f;
+        // Seq 0 starts with every door shut and opens them one after another; Seq 1's single door stands open.
+        float mid = m ? doorSwing(.5f) : 1f, midE = mid * mid * (3f - 2f * mid);
         pushFace(); rY(PI);
+        geoBone = "panel"; geoBoneYaw = (float) Math.toRadians(90f * midE);
         boolean ok = m ? drawGeo("high_sequence_door", "lotm", "textures/entity/high_sequence_door.png", H) : drawGeo("mid_sequence_door", "lotm", "textures/entity/mid_sequence_door.png", H);
+        geoBone = null;
         pop();
-        if (!ok) { pushFace(); doorModel(H * .7f, H, mix(P2, 0x182030, .3f), mix(P2, 0x0A1428, .2f), P3, -1.15f); pop(); }
-        facing("rays", 0, H * .55f, 0, H * 4.5f, H * 4.5f, t * .08f, rgba(P1, .5f));
-        column("beam", 0, 0, H * 1.3f, 0, H * .5f, rgba(P1, .3f));
-        if (m) for (int i = 0; i < 6; i++) { float a = i * TAU / 6 + HoloCardEntity.DOOR_PHASE, rr = R * HoloCardEntity.DOOR_RING; int dc = hsv(i / 6f, .6f); push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2); boolean hi = i % 2 == 0; if (!drawGeo(hi ? "high_sequence_door" : "mid_sequence_door", "lotm", "textures/entity/" + (hi ? "high" : "mid") + "_sequence_door.png", 3.0f * S)) doorModel(1.3f * S, 2.2f * S, mix(P2, 0x182030, .3f), mix(P2, 0x0A1428, .2f), P3, -1.15f); pop();
-            stand("door", gc(a) * rr, 1.1f * S, gs(a) * rr, 1.2f * S, 2.0f * S, a - PI / 2, rgba(dc, .85f)); bb("glow", gc(a) * rr, 1.1f * S, gs(a) * rr, 4f * S, 4f * S, 0, rgba(dc, .3f)); }   // Seq 0: every other door in a ring round it, each its own colour
+        if (!ok) { pushFace(); doorModel(H * .7f, H, mix(P2, 0x182030, .3f), mix(P2, 0x0A1428, .2f), P3, -1.15f * midE); pop(); }
+        facing("rays", 0, H * .55f, 0, H * 4.5f, H * 4.5f, t * .08f, rgba(P1, .5f * midE));
+        column("beam", 0, 0, H * 1.3f, 0, H * .5f, rgba(P1, .3f * midE));
+        if (m) for (int i = 0; i < 6; i++) { float a = i * TAU / 6 + HoloCardEntity.DOOR_PHASE, rr = R * HoloCardEntity.DOOR_RING; int dc = hsv(i / 6f, .6f);
+            float k2 = doorSwing(1.1f + i * .32f), ke = k2 * k2 * (3f - 2f * k2);
+            push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2); boolean hi = i % 2 == 0;
+            geoBone = "panel"; geoBoneYaw = (float) Math.toRadians(90f * ke);
+            if (!drawGeo(hi ? "high_sequence_door" : "mid_sequence_door", "lotm", "textures/entity/" + (hi ? "high" : "mid") + "_sequence_door.png", 3.0f * S))
+                doorModel(1.3f * S, 2.2f * S, mix(P2, 0x182030, .3f), mix(P2, 0x0A1428, .2f), P3, -1.15f * ke);
+            geoBone = null; pop();
+            if (ke > .01f) { stand("door", gc(a) * rr, 1.1f * S, gs(a) * rr, 1.2f * S, 2.0f * S, a - PI / 2, rgba(dc, .85f * ke));
+                             bb("glow", gc(a) * rr, 1.1f * S, gs(a) * rr, 4f * S * (.4f + .6f * ke), 4f * S * (.4f + .6f * ke), 0, rgba(dc, .3f * ke)); } }   // Seq 0: every other door in a ring round it, each its own colour
         sym(H + 3.4f * S, 3.6f * S, 0);
         if (m) {   // a small galaxy turning above the door
             float gyy = top * .62f; bb("glow", 0, gyy, 0, 5f * S, 5f * S, 0, rgba(mix(P3, 0xFFFFFF, .5f), .8f)); bb("corona", 0, gyy, 0, 3f * S, 3f * S, t * .3f, rgba(0xFFFFFF, .9f));

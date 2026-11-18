@@ -2,6 +2,14 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.297
+
+- **Door 0** starts with every door shut and opens them. The model loader now keeps which bone each face came from
+  and where every bone's hinge is, so the door's leaf swings on its hinge exactly as the mod's own door-opening
+  animation turns it — ninety degrees about the left edge — instead of the whole model being drawn open from the
+  start. The middle door goes first, then the six in the ring one after another a third of a second apart, and the
+  light in each opening comes up as its leaf swings clear. Seq 1's single door still stands open.
+
 ## 0.2.296
 
 - **Assassin**: the thorn hoops are gone. In their place are real rose arches — two vines twisting round each other
