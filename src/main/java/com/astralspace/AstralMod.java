@@ -42,6 +42,14 @@ public class AstralMod {
         Tarot.register(modBus);
         AstralTab.register(modBus);
         AstralSounds.register(modBus);
+        ArtifactItem.register(modBus);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onLogin);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onLogout);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onRespawn);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onDimension);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onHurt);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
+            (net.neoforged.neoforge.event.RegisterCommandsEvent e) -> ArtifactCommands.register(e.getDispatcher()));
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(DoorEyes::tickBursts);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqAbilities::tick);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ShadowGear::tick);

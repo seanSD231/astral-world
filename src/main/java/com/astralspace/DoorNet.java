@@ -70,7 +70,27 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server to client: one of the five artifact slots, so the menu can show what is on. */
+    public record Artifact(int slot, net.minecraft.world.item.ItemStack stack) implements CustomPacketPayload {
+        public static final Type<Artifact> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "artifact"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, Artifact> CODEC = StreamCodec.of(
+            (b, m) -> { b.writeVarInt(m.slot); net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(b, m.stack); },
+            b -> new Artifact(b.readVarInt(), net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(b)));
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    /** Client to server: move a piece between a slot and the bag. -1 for the slot means take it off. */
+    public record ArtifactAct(int slot, int invSlot) implements CustomPacketPayload {
+        public static final Type<ArtifactAct> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "artifact_act"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, ArtifactAct> CODEC = StreamCodec.of(
+            (b, m) -> { b.writeVarInt(m.slot); b.writeVarInt(m.invSlot); },
+            b -> new ArtifactAct(b.readVarInt(), b.readVarInt()));
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static void register(PayloadRegistrar r) {
+        r.playToClient(Artifact.TYPE, Artifact.CODEC, (p, ctx) -> ctx.enqueueWork(() -> ArtifactSlots.setClient(p.slot(), p.stack())));
+        r.playToServer(ArtifactAct.TYPE, ArtifactAct.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactCommands.act(sp, p.slot(), p.invSlot()); }));
         r.playToClient(MaskAsk.TYPE, MaskAsk.CODEC, (p, ctx) -> ctx.enqueueWork(() -> MaskNameScreen.open(p.colour())));
         r.playToServer(MaskWear.TYPE, MaskWear.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) Masks.wear(sp, p.colour(), p.name()); }));
         r.playToClient(World.TYPE, World.CODEC, (p, ctx) -> ctx.enqueueWork(() -> UniqWorld.add(p.kind(), p.id(), p.id2(), p.x(), p.y(), p.z(), p.x2(), p.y2(), p.z2(), p.dur())));

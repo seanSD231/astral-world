@@ -1,3 +1,11 @@
+## 0.2.337
+- Artifacts, part one: the system underneath. Five pieces worn at once (Flower, Plume, Sands, Goblet, Circlet), each with a main stat set by its slot, up to four sub-stats, twenty levels that roll a sub-stat again every fourth, and five rarities.
+- Twenty-six sets, twenty-two of them pathways and four from this mod's own corners, each paying out at two pieces and again at four.
+- Lord of the Mysteries compatible: spirituality, regen, cost, ability power, area, duration, resistance and cooldown are all stats an artifact can roll. Those are looked up by name at runtime, so without that mod they go quiet and nothing breaks.
+- Crit rate and crit damage have no attribute anywhere, so they are kept per player and read when a blow lands.
+- Pieces are worn in their own five slots in player data, not the inventory, so they are not dropped on death and they survive a relog. /artifact give, random, sets and clear until the ways of finding them are in.
+- Stands beside Sol's Relic System rather than inside it: Sol's defines sets in a config file over items that already exist and has no slots of its own, so there is nowhere in it to put a Flower of Life. Both run together and both land on the player's attributes the ordinary way.
+
 ## 0.2.336
 - Putting a mask on asks what you want to be called, there and then, instead of taking the name off the item. A mask handed round a party is a different person each time somebody wears it. The server still checks the name and that you are actually holding that mask.
 - The hooded robe is a business suit: jacket with lapels narrowing to a button, shirt and tie in the mask colour, cuffs showing at the wrist, turn-ups and polished shoes.
