@@ -21,10 +21,23 @@ Run: python3 tools/art/pack_hires.py          (all of them)
 """
 import os, sys, glob, math
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageDraw, ImageFont
+
+SERIF = '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf'
+SANS = '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'
+
+# The inside of each lettered plate, in the 564px space the art was drawn in -- the lettering only,
+# well clear of the gold frame round it. Take in the frame and it is read as part of the text: the
+# whole plate is then erased and the new words are set at the size of the plate.
+TITLE_BOX, SUB_BOX, FOOT_BOX = (128, 88, 448, 129), (120, 433, 444, 463), (231, 478, 351, 499)
+
+PRETTY = {'corpse_collector': 'CORPSE COLLECTOR', 'mystery_pryer': 'MYSTERY PRYER',
+          'secrets_supplicant': 'SECRETS SUPPLICANT'}
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GUI = os.path.join(HERE, '../../src/main/resources/assets/astral_world/textures/gui/tarot')
+SRC = os.path.join(HERE, 'pack_src')   # the hand-made 564px art, kept apart so this can be run again:
+                                       # reading the pouches it had already written doubled everything
 SYM = GUI                      # the 384px sharpened symbols live beside the pouches
 K = 2                          # work at 1128, then settle at OUT_SZ
 OUT_SZ = 1024                  # what gets written: a power of two, and still above what the
@@ -120,6 +133,99 @@ def over(base, tile, cx, cy, opacity=1.0):
     return base
 
 
+def words(path):
+    return PRETTY.get(path, path.replace('_', ' ').upper())
+
+
+def plate_text(rgb, alpha, box):
+    """Where the lettering is in a plate, and what colour it is: the bright pixels inside it."""
+    x0, y0, x1, y1 = box
+    sub = rgb[y0:y1, x0:x1]
+    lum = sub.max(-1)
+    if lum.size == 0:
+        return None
+    hi = np.percentile(lum, 97)
+    if hi < .35:
+        return None
+    m = lum > (hi * .62)
+    if m.sum() < 60:
+        return None
+    ys, xs = np.nonzero(m)
+    col = np.percentile(sub[m].reshape(-1, 3), 80, axis=0)
+    return (x0 + xs.min(), y0 + ys.min(), x0 + xs.max() + 1, y0 + ys.max() + 1), col, m
+
+
+def draw_text(img, box, text, col, serif):
+    """Set `text` into `box` at full resolution, in the colour the old lettering was."""
+    x0, y0, x1, y1 = box
+    w, hgt = x1 - x0, y1 - y0
+    if w < 8 or hgt < 6:
+        return
+    path = SERIF if serif else SANS
+    size = max(8, int(hgt * 1.62))
+    while size > 8:
+        f = ImageFont.truetype(path, size)
+        bb = f.getbbox(text)
+        if bb[2] - bb[0] <= w and bb[3] - bb[1] <= hgt * 1.08:
+            break
+        size -= 1
+    f = ImageFont.truetype(path, size)
+    bb = f.getbbox(text)
+    cx = x0 + (w - (bb[2] - bb[0])) / 2 - bb[0]
+    cy = y0 + (hgt - (bb[3] - bb[1])) / 2 - bb[1]
+    d = ImageDraw.Draw(img)
+    r, g2, b = [int(max(0, min(255, c * 255))) for c in col]
+    o = max(1, int(round(size * .07)))
+    d.text((cx, cy), text, font=f, fill=(10, 8, 14, 235), stroke_width=o, stroke_fill=(10, 8, 14, 235))
+    d.text((cx, cy), text, font=f, fill=(r, g2, b, 255))
+
+
+def retext(big, rgb, alpha, stem, mid):
+    """Erase the soft lettering and set it again at the size the texture is really drawn at.
+
+    The pouches carry about 280px of real detail, so every word on them was a three times
+    upscale of something blurred. The strings are known from the file name, the plates are at
+    fixed places, and the colour is read off what was there."""
+    name = stem[len('pack_'):]
+    shiny, rainbow = name.endswith('_shiny'), name.endswith('_rainbow')
+    special = name in ('admin', 'ancient_one')
+    title = ('SHINY PACK' if shiny else 'RAINBOW PACK' if rainbow else
+             'ANCIENT ONE' if name == 'ancient_one' else 'ADMIN PACK' if name == 'admin' else 'TAROT PACK')
+    sub = 'BEARER OF SINS' if name == 'admin' else None if name == 'ancient_one' else words(mid) if mid else None
+    foot = '1 CARD' if name == 'admin' else '3 CARDS'
+    jobs = [(TITLE_BOX, title, not (shiny or rainbow or name == 'ancient_one')),
+            (SUB_BOX, sub, True), (FOOT_BOX, foot, True)]
+
+    h, w = alpha.shape
+    hole = np.zeros((h, w), np.float32)
+    found = []
+    for box, text, serif in jobs:
+        if not text:
+            continue
+        got = plate_text(rgb, alpha, box)
+        if got is None:
+            continue
+        bbox, col, m = got
+        x0, y0, x1, y1 = box
+        hole[y0:y1, x0:x1] = np.maximum(hole[y0:y1, x0:x1], m.astype(np.float32))
+        found.append((bbox, text, col, serif))
+    if not found:
+        return big
+    # widen the hole a little so the old letters' dark outlines go with them
+    hole = np.asarray(Image.fromarray((hole * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3))).astype(np.float32) / 255.
+    clean = inpaint(rgb, hole, rounds=40)
+    patch = np.asarray(Image.fromarray((np.clip(clean, 0, 1) * 255).astype(np.uint8))
+                       .resize((w * K, h * K), Image.LANCZOS)).astype(np.float32) / 255.
+    spread = np.asarray(Image.fromarray((hole * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3))
+                        .resize((w * K, h * K), Image.LANCZOS)).astype(np.float32)[..., None] / 255.
+    big = big * (1 - spread) + patch * spread
+
+    img = Image.fromarray((np.clip(big, 0, 1) * 255).astype(np.uint8), 'RGB').convert('RGBA')
+    for bbox, text, col, serif in found:
+        draw_text(img, tuple(int(v * K) for v in bbox), text, col, serif)
+    return np.asarray(img.convert('RGB')).astype(np.float32) / 255.
+
+
 def pathway_of(stem):
     """Which pathway's symbol sits in the middle of this pouch."""
     name = stem[len('pack_'):]
@@ -184,6 +290,7 @@ def rebuild(src, dst):
                    - disc(H, W, x * K, y * K, r2, 1.3))[..., None]
             big = big * (1 - ann * .9) + np.array([.86, .70, .30], np.float32) * ann * .9
 
+    big = retext(big, rgb, alpha, stem, mid)
     save(np.concatenate([big, bigA[..., None]], -1), dst)
     return stem
 
@@ -203,8 +310,8 @@ def place(tile, H, W, cx, cy):
 
 if __name__ == '__main__':
     only = sys.argv[1] if len(sys.argv) > 1 else None
-    files = sorted(glob.glob(os.path.join(GUI, 'pack_*.png')))
+    files = sorted(glob.glob(os.path.join(SRC, 'pack_*.png')))
     if only:
         files = [f for f in files if only in os.path.basename(f)]
     for f in files:
-        print('rebuilt', rebuild(f, f))
+        print('rebuilt', rebuild(f, os.path.join(GUI, os.path.basename(f))))

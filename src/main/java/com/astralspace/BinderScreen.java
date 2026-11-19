@@ -124,14 +124,18 @@ public final class BinderScreen extends Screen {
     private static int accentOf(String pathway) {
         return switch (pathway) {
             case "spectator" -> 0xFF55FFFF;
-            case "bard", "warrior" -> 0xFFFFFF55;
-            case "sailor", "marauder", "apprentice" -> 0xFF5555FF;
-            case "seer", "mystery_pryer", "prisoner" -> 0xFFAA00AA;
+            case "bard" -> 0xFFFFFF55;
+            case "warrior" -> 0xFFFF8A1E;                 // orange, not the Bard's yellow
+            case "sailor" -> 0xFF5555FF;
+            case "apprentice" -> 0xFF6FA2FF;              // a lighter blue than the Tyrant's
+            case "marauder" -> 0xFF9B82B8;                // purple and grey, which is what the Error is
+            case "mystery_pryer", "prisoner" -> 0xFFAA00AA;
+            case "seer" -> 0xFFC566E6;                    // the Fool, in a lighter purple
             case "secrets_supplicant", "hunter", "criminal" -> 0xFFAA0000;
             case "assassin" -> 0xFFFF55FF;
             case "corpse_collector", "planter" -> 0xFF55FF55;
             case "apothecary" -> 0xFF00AA00;
-            case "lawyer" -> 0xFF0000AA;
+            case "lawyer" -> 0xFF2A2ACC;                  // slightly lighter: it was almost black on the page
             case "savant", "arbiter" -> 0xFFFFAA00;
             case "reader" -> 0xFFFFFFFF;
             case "monster" -> 0xFFAAAAAA;
@@ -490,6 +494,14 @@ public final class BinderScreen extends Screen {
         return allShiny(pathway) ? "MASTERED" : shiny ? "ALL SHINY" : "COMPLETE";
     }
 
+    /** A name trimmed to the room it has, so a long pathway never runs under the bar beside it. */
+    private String fit(String name, int maxW) {
+        if (font.width(name) <= maxW) return name;
+        StringBuilder b = new StringBuilder(name);
+        while (b.length() > 2 && font.width(b.toString() + ".") > maxW) b.setLength(b.length() - 1);
+        return b.append('.').toString();
+    }
+
     /** Dims a colour toward the page, for a row that is not the one being read. */
     private static int dim(int argb, float k) {
         int r = (int) (((argb >> 16) & 255) * k), gg = (int) (((argb >> 8) & 255) * k), b = (int) ((argb & 255) * k);
@@ -540,7 +552,8 @@ public final class BinderScreen extends Screen {
                 }
                 boolean gold = allShiny(p);
                 int base = gold ? GOLD : accentOf(p);
-                g.drawString(font, Tarot.pretty(p), railX, ty, dim(base, on ? 1f : over ? .9f : .72f), false);
+                // kept clear of the bar: "Secrets Supplicant" ran its last letter under it
+                g.drawString(font, fit(Tarot.pretty(p), railW - 122), railX, ty, dim(base, on ? 1f : over ? .9f : .72f), false);
 
                 int got = held(p);
                 int bx = railX + railW - 116, bw = 74;
@@ -550,7 +563,7 @@ public final class BinderScreen extends Screen {
                 // right-aligned against the rail's edge, not the bar's: a two digit 10
                 // right-aligned ten pixels past a 78px bar lands back on top of it
                 g.drawString(font, n, railX + railW - 2 - font.width(n), ty,
-                        gold ? GOLD : got == 10 ? GOLD_HI : GREY_D, false);
+                        gold ? GOLD : dim(base, got == 10 ? 1f : .8f), false);
                 y += railLine;
             }
             y += railGap;

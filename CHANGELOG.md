@@ -2,6 +2,21 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.324
+
+- **Every word on a pack pouch is set at full resolution.** The lettering was the last of the old 280px art
+  still being stretched three times over, which is what the title plate, the pathway name and the card count
+  all looked like. Each plate's words are erased and set again in Liberation Serif Bold -- or Sans for the
+  Shiny, Rainbow and Ancient One titles, which were always sans -- fitted to the box the old ones occupied and
+  in the colour read off them, so every pouch keeps its own tint.
+- **The pouch pipeline is repeatable.** It was reading the pouches it had already written, so a second run
+  upscaled its own output and the ring of symbols came out as a spiral. The hand-made 564px art is kept in
+  `tools/art/pack_src/` and the generator only ever reads from there.
+- **Binder colours:** Warrior is orange rather than the Bard's yellow, Apprentice a lighter blue than the
+  Tyrant's, the Fool a lighter purple, Marauder the Error's purple-grey, and the Lawyer slightly lighter -- it
+  was almost black on the page. Each pathway's count is drawn in its own colour, and a long name is trimmed so
+  "Secrets Supplicant" no longer runs its last letter under the bar beside it.
+
 ## 0.2.323
 
 - Fixes the build: the profile cache's async lookup returns a future rather than taking a callback.
