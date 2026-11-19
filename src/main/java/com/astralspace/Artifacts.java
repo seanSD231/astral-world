@@ -17,7 +17,7 @@ import net.minecraft.core.component.DataComponents;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.random.RandomGenerator;
+
 
 /**
  * Artifacts: five pieces worn at once, each with one main stat and up to four sub-stats, levelled
@@ -148,7 +148,7 @@ public final class Artifacts {
     }
 
     /** One roll of a sub-stat, before however many times it has since been rolled again. */
-    public static double subRoll(Stat s, int rarity, RandomGenerator r) {
+    public static double subRoll(Stat s, int rarity, net.minecraft.util.RandomSource r) {
         double band = .78 + r.nextDouble() * .44;                 // the roll itself, high or low
         return round(s.roll * .62 * rarityScale(rarity) * band, s);
     }
@@ -213,7 +213,7 @@ public final class Artifacts {
     // ---- rolling a new one ----
 
     /** A fresh piece of the given set, slot and rarity, at level nought. */
-    public static ItemStack roll(String set, Slot slot, int rarity, RandomGenerator r) {
+    public static ItemStack roll(String set, Slot slot, int rarity, net.minecraft.util.RandomSource r) {
         ItemStack st = new ItemStack(ArtifactItem.of(slot));
         Stat[] pool = mains(slot);
         Stat main = pool[r.nextInt(pool.length)];
@@ -225,7 +225,7 @@ public final class Artifacts {
     }
 
     /** Picks a sub-stat that is neither the main stat nor one already on the piece, by weight. */
-    private static void addSub(List<Sub> subs, Stat main, int rarity, RandomGenerator r) {
+    private static void addSub(List<Sub> subs, Stat main, int rarity, net.minecraft.util.RandomSource r) {
         double total = 0;
         List<Stat> pool = new ArrayList<>();
         for (Stat s : Stat.values()) {
@@ -251,7 +251,7 @@ public final class Artifacts {
      * Levels a piece. Every fourth level either hands it a sub-stat it does not have yet or rolls
      * one of the four it does have again, which is the whole gamble of the thing.
      */
-    public static ItemStack levelUp(ItemStack st, int by, RandomGenerator r) {
+    public static ItemStack levelUp(ItemStack st, int by, net.minecraft.util.RandomSource r) {
         Piece p = read(st);
         if (p == null) return st;
         int level = p.level(), max = p.maxLevel();

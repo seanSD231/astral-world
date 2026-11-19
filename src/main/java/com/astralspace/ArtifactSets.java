@@ -118,7 +118,7 @@ public final class ArtifactSets {
 
     public static List<Set> all() { return java.util.Collections.unmodifiableList(ORDER); }
 
-    public static Set random(java.util.random.RandomGenerator r) { return ORDER.get(r.nextInt(ORDER.size())); }
+    public static Set random(net.minecraft.util.RandomSource r) { return ORDER.get(r.nextInt(ORDER.size())); }
 
     /** How many pieces of each set are being worn. */
     public static Map<String, Integer> counts(ItemStack[] worn) {

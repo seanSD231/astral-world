@@ -1,3 +1,6 @@
+## 0.2.338
+- Build fix: Minecraft RandomSource is not a java.util RandomGenerator.
+
 ## 0.2.337
 - Artifacts, part one: the system underneath. Five pieces worn at once (Flower, Plume, Sands, Goblet, Circlet), each with a main stat set by its slot, up to four sub-stats, twenty levels that roll a sub-stat again every fourth, and five rarities.
 - Twenty-six sets, twenty-two of them pathways and four from this mod's own corners, each paying out at two pieces and again at four.
