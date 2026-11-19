@@ -43,6 +43,8 @@ public class AstralMod {
         AstralTab.register(modBus);
         AstralSounds.register(modBus);
         ArtifactItem.register(modBus);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactDomain::tick);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactDomain::onLogout);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onLogin);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onLogout);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onRespawn);

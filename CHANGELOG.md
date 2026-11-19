@@ -1,3 +1,9 @@
+## 0.2.341
+- Domains. A Domain Gate you right-click to pick a set and a depth, then three waves in a sealed room, then out with what you earned. The picker is a wall of pathway symbols in their own colours, with the chosen set named and its two- and four-piece lines spelled out, because the set is the thing actually being chosen.
+- A domain is cut for one set and pays that set most of the time, so going in is how you decide what you are farming rather than hoping the world hands it to you. Depth decides how many pieces and how high they roll.
+- The room is built high above the world on a column of its own, walled in barrier so it cannot be seen from outside or walked out of, and taken down again the moment the run ends however it ends: cleared, timed out, died, or logged out. A player who somehow falls out is put back in the middle.
+- Each player gets their own column, taken from where they stand, so two people running at once never land in the same room.
+
 ## 0.2.340
 - The Artifact Altar: a block you right-click to raise a piece by burning others into it. The piece on the left, what is going in on the right, and the level it will come out at written where you can see it before you commit.
 - Experience, not currency. Every artifact is worth something as fodder, worth more the rarer it is and more again for every level already put into it. Whatever a run does not spend stays banked on the piece, so feeding it past what it needs never throws the difference away.

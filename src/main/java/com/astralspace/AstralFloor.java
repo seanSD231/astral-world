@@ -47,6 +47,11 @@ public final class AstralFloor {
             BlockBehaviour.Properties.of().strength(3.0F, 9.0F).requiresCorrectToolForDrops().lightLevel(s -> 9)));
     public static final DeferredItem<Item> ALTAR_ITEM = ITEMS.register("artifact_altar", () -> new BlockItem(ALTAR.get(), new Item.Properties()));
 
+    /** The way into a domain. */
+    public static final DeferredBlock<Block> GATE = BLOCKS.register("domain_gate", () -> new DomainGateBlock(
+            BlockBehaviour.Properties.of().strength(4.0F, 12.0F).requiresCorrectToolForDrops().lightLevel(s -> 11)));
+    public static final DeferredItem<Item> GATE_ITEM = ITEMS.register("domain_gate", () -> new BlockItem(GATE.get(), new Item.Properties()));
+
     /** Testing: a creative-only item. Every hit on the Mother Tree takes 10% of her maximum health (see EndGame.smite). */
     public static final DeferredItem<Item> SMITER = ITEMS.register("tree_smiter",
             () -> new Item(new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)) {
@@ -109,7 +114,7 @@ public final class AstralFloor {
         ITEMS.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); for (var k : MASKS) e.accept(k.get()); }
-            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(CABINET_ITEM.get()); e.accept(ALTAR_ITEM.get()); }
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(CABINET_ITEM.get()); e.accept(ALTAR_ITEM.get()); e.accept(GATE_ITEM.get()); }
         });
     }
 

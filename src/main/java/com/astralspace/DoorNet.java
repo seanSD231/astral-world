@@ -115,7 +115,25 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server to client: pick a domain. */
+    public record DomainOpen() implements CustomPacketPayload {
+        public static final Type<DomainOpen> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "domain_open"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, DomainOpen> CODEC = StreamCodec.of((b, m) -> { }, b -> new DomainOpen());
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    /** Client to server: this set, this deep. */
+    public record DomainEnter(String set, int difficulty) implements CustomPacketPayload {
+        public static final Type<DomainEnter> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "domain_enter"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, DomainEnter> CODEC = StreamCodec.of(
+            (b, m) -> { b.writeUtf(m.set, 48); b.writeVarInt(m.difficulty); },
+            b -> new DomainEnter(b.readUtf(48), b.readVarInt()));
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static void register(PayloadRegistrar r) {
+        r.playToClient(DomainOpen.TYPE, DomainOpen.CODEC, (p, ctx) -> ctx.enqueueWork(DomainScreen::open));
+        r.playToServer(DomainEnter.TYPE, DomainEnter.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactDomain.enter(sp, p.set(), p.difficulty()); }));
         r.playToClient(AltarOpen.TYPE, AltarOpen.CODEC, (p, ctx) -> ctx.enqueueWork(ArtifactAltarScreen::open));
         r.playToServer(AltarUpgrade.TYPE, AltarUpgrade.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactAltar.upgrade(sp, p.target(), p.fodder()); }));
         r.playToClient(ArtifactOpen.TYPE, ArtifactOpen.CODEC, (p, ctx) -> ctx.enqueueWork(ArtifactScreen::open));
