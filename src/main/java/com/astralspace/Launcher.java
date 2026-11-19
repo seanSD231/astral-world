@@ -56,11 +56,7 @@ public final class Launcher {
             if (Boolean.getBoolean("astral.allowSingleplayer")) return;
 
             LOGGER.info("[astral] refusing a singleplayer login; set allow_singleplayer=true to permit it");
-            player.connection.disconnect(Component.literal(
-                    "Astral World is a server pack.\n\n"
-                  + "Join the server through the launcher rather than playing offline.\n"
-                  + "If you are developing, set allow_singleplayer=true in\n"
-                  + "config/astral_world/settings.properties."));
+            player.connection.disconnect(Component.literal("Astral World is a server pack"));
         }
     }
 

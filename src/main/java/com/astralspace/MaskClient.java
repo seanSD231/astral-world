@@ -66,21 +66,37 @@ public final class MaskClient {
             PlayerModel<AbstractClientPlayer> m = getParentModel();
 
             // The face and the mask on it. Head space: the cube runs y -8..0, z -4..4, face at -z.
+            // Every box here is cut wider than the part it hides: a player's hat, jacket and sleeve
+            // overlay layers sit a little outside the base model, and anything drawn to the base
+            // model's own size lets a stripe of their real skin through at every seam.
             pose.pushPose();
             m.head.translateAndRotate(pose);
-            pose.pushPose(); UniqGfx.tr(pose, 0, -4f, 0); UniqGfx.box(pose, buf, 9.1f, 9.1f, 9.1f, SKIN); pose.popPose();
-            pose.pushPose(); UniqGfx.tr(pose, 0, -7.4f, .2f); UniqGfx.box(pose, buf, 9.4f, 2.6f, 9.4f, HAIR); pose.popPose();        // hair: a cap,
-            pose.pushPose(); UniqGfx.tr(pose, 0, -4.4f, 3.7f); UniqGfx.box(pose, buf, 9.4f, 7.6f, 2.2f, HAIR); pose.popPose();       // the back of the head,
-            for (int sd = -1; sd <= 1; sd += 2) { pose.pushPose(); UniqGfx.tr(pose, sd * 4.3f, -5.2f, 1.2f); UniqGfx.box(pose, buf, 1.2f, 6f, 6.6f, HAIR); pose.popPose(); }
-            pose.pushPose(); UniqGfx.tr(pose, 0, -2.2f, -4.7f); UniqGfx.box(pose, buf, 2.4f, .55f, .45f, MOUTH); pose.popPose();     // and a mouth, which is all the face it gets
+            pose.pushPose(); UniqGfx.tr(pose, 0, -4f, 0); UniqGfx.box(pose, buf, 9.6f, 9.6f, 9.6f, SKIN); pose.popPose();
+            // the brow and the features under the mask: a face with nothing on it reads as broken
+            pose.pushPose(); UniqGfx.tr(pose, 0, -6.4f, -4.7f); UniqGfx.box(pose, buf, 8.4f, 1.3f, .5f, shade(SKIN, .88f)); pose.popPose();
+            for (int sd = -1; sd <= 1; sd += 2) {
+                pose.pushPose(); UniqGfx.tr(pose, sd * 2.1f, -6.5f, -4.95f); UniqGfx.box(pose, buf, 2.6f, .8f, .4f, BROW); pose.popPose();
+                pose.pushPose(); UniqGfx.tr(pose, sd * 2.1f, -5.4f, -4.95f); UniqGfx.box(pose, buf, 2.4f, 1.3f, .4f, EYE_W); pose.popPose();
+                pose.pushPose(); UniqGfx.tr(pose, sd * 1.7f, -5.4f, -5.1f); UniqGfx.box(pose, buf, 1.0f, 1.1f, .3f, EYE); pose.popPose();
+            }
+            pose.pushPose(); UniqGfx.tr(pose, 0, -4.2f, -5.2f); UniqGfx.box(pose, buf, 1.5f, 2.6f, 1.2f, shade(SKIN, .94f)); pose.popPose();   // the nose
+            pose.pushPose(); UniqGfx.tr(pose, 0, -2.2f, -4.9f); UniqGfx.box(pose, buf, 2.8f, .6f, .5f, MOUTH); pose.popPose();
+            pose.pushPose(); UniqGfx.tr(pose, 0, -1.4f, -4.8f); UniqGfx.box(pose, buf, 3.6f, 1.2f, .5f, shade(SKIN, .9f)); pose.popPose();     // the chin
+            // hair: back and sides only, and the cap kept above the brow so it leaves the face alone
+            pose.pushPose(); UniqGfx.tr(pose, 0, -8.1f, .2f); UniqGfx.box(pose, buf, 9.9f, 1.9f, 9.9f, HAIR); pose.popPose();
+            pose.pushPose(); UniqGfx.tr(pose, 0, -4.6f, 4.0f); UniqGfx.box(pose, buf, 9.9f, 7.4f, 2.0f, HAIR); pose.popPose();
+            for (int sd = -1; sd <= 1; sd += 2) {
+                pose.pushPose(); UniqGfx.tr(pose, sd * 4.6f, -5.6f, 1.0f); UniqGfx.box(pose, buf, 1.0f, 5.4f, 7.4f, HAIR); pose.popPose();
+                pose.pushPose(); UniqGfx.tr(pose, sd * 3.4f, -7.4f, -4.6f); UniqGfx.box(pose, buf, 3.0f, 1.6f, 1.0f, HAIR); pose.popPose();   // a fringe at the corners only
+            }
             masquerade(pose, buf, trim);
             pose.popPose();
 
             // The suit: jacket, shirt and tie.
             pose.pushPose();
             m.body.translateAndRotate(pose);
-            pose.pushPose(); UniqGfx.tr(pose, 0, 6f, 0); UniqGfx.box(pose, buf, 9.3f, 13.2f, 5.3f, cloth); pose.popPose();
-            pose.pushPose(); UniqGfx.tr(pose, 0, 1.3f, 0); UniqGfx.box(pose, buf, 10.1f, 2.4f, 6.1f, shade); pose.popPose();         // the shoulders
+            pose.pushPose(); UniqGfx.tr(pose, 0, 6f, 0); UniqGfx.box(pose, buf, 9.8f, 13.6f, 5.8f, cloth); pose.popPose();
+            pose.pushPose(); UniqGfx.tr(pose, 0, 1.3f, 0); UniqGfx.box(pose, buf, 10.4f, 2.6f, 6.4f, shade); pose.popPose();         // the shoulders
             pose.pushPose(); UniqGfx.tr(pose, 0, 4.4f, -2.8f); UniqGfx.box(pose, buf, 3.2f, 7.4f, .5f, SHIRT); pose.popPose();       // the shirt, open between the lapels
             for (int sd = -1; sd <= 1; sd += 2) {   // the lapels, narrowing to the button
                 for (int k = 0; k < 5; k++) {
@@ -177,10 +193,10 @@ public final class MaskClient {
         private void sleeve(PoseStack pose, MultiBufferSource buf, net.minecraft.client.model.geom.ModelPart arm, float side, int cloth, int shade) {
             pose.pushPose();
             arm.translateAndRotate(pose);
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 3.4f, 0); UniqGfx.box(pose, buf, 4.9f, 11.6f, 4.9f, cloth); pose.popPose();
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 1f, 0); UniqGfx.box(pose, buf, 5.3f, 2.6f, 5.3f, shade); pose.popPose();   // the shoulder of it
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 9.6f, 0); UniqGfx.box(pose, buf, 4.7f, 1.5f, 4.7f, SHIRT); pose.popPose(); // the cuff
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 11.2f, 0); UniqGfx.box(pose, buf, 4.4f, 2.4f, 4.4f, SKIN); pose.popPose(); // and the hand
+            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 3.2f, 0); UniqGfx.box(pose, buf, 5.4f, 12.4f, 5.4f, cloth); pose.popPose();
+            pose.pushPose(); UniqGfx.tr(pose, side * .2f, .6f, 0); UniqGfx.box(pose, buf, 5.8f, 3.2f, 5.8f, shade); pose.popPose();   // the shoulder of it
+            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 9.8f, 0); UniqGfx.box(pose, buf, 5.1f, 1.6f, 5.1f, SHIRT); pose.popPose(); // the cuff
+            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 11.3f, 0); UniqGfx.box(pose, buf, 4.9f, 2.8f, 4.9f, SKIN); pose.popPose(); // and the hand
             pose.popPose();
         }
 
@@ -188,14 +204,15 @@ public final class MaskClient {
         private void skirt(PoseStack pose, MultiBufferSource buf, net.minecraft.client.model.geom.ModelPart leg, int cloth, int shade) {
             pose.pushPose();
             leg.translateAndRotate(pose);
-            pose.pushPose(); UniqGfx.tr(pose, 0, 5f, 0); UniqGfx.box(pose, buf, 5f, 10.6f, 5f, cloth); pose.popPose();
-            pose.pushPose(); UniqGfx.tr(pose, 0, 10f, 0); UniqGfx.box(pose, buf, 5.2f, 1.4f, 5.2f, shade); pose.popPose();          // the turn-up
-            pose.pushPose(); UniqGfx.tr(pose, 0, 11.4f, -.9f); UniqGfx.box(pose, buf, 5.1f, 2.1f, 6.6f, SHOE); pose.popPose();      // the shoe
+            pose.pushPose(); UniqGfx.tr(pose, 0, 4.6f, 0); UniqGfx.box(pose, buf, 5.5f, 10.4f, 5.5f, cloth); pose.popPose();
+            pose.pushPose(); UniqGfx.tr(pose, 0, 10f, 0); UniqGfx.box(pose, buf, 5.7f, 1.6f, 5.7f, shade); pose.popPose();          // the turn-up
+            pose.pushPose(); UniqGfx.tr(pose, 0, 11.4f, -.9f); UniqGfx.box(pose, buf, 5.6f, 2.4f, 7.0f, SHOE); pose.popPose();      // the shoe
             pose.popPose();
         }
 
         private static final int SKIN = 0xFFC9A086, HAIR = 0xFF2B2521, MOUTH = 0xFF7A5247,
-                                 SHIRT = 0xFFF2F2F2, SHOE = 0xFF141318;
+                                 SHIRT = 0xFFF2F2F2, SHOE = 0xFF141318,
+                                 BROW = 0xFF241E1A, EYE_W = 0xFFEDE6DE, EYE = 0xFF3A2A22;
 
         private static int shade(int argb, float k) {
             int a = argb >>> 24, r = (int) (((argb >> 16) & 0xFF) * k), g = (int) (((argb >> 8) & 0xFF) * k), b = (int) ((argb & 0xFF) * k);

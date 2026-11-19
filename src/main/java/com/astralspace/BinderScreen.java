@@ -54,7 +54,7 @@ public final class BinderScreen extends Screen {
     /** The admin page sits one past the last chapter: it belongs to no Great Old One. */
     private static final int ADMIN_GOO = Tarot.GOO_PATHS.length;
     /** Eleven places: the Bearer of Sins, and ten kept for whoever comes after him. */
-    private static final int ADMIN_SLOTS = 11;
+    private static final int ADMIN_SLOTS = 10;
 
     private static final Page[] ORDER = order();
 

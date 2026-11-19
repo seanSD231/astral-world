@@ -1,3 +1,10 @@
+## 0.2.347
+- The singleplayer kick says "Astral World is a server pack" and nothing else.
+- Ten admin slots in the binder, not eleven.
+- The admin reveal track is twice as loud.
+- The mask covers properly. Every piece of the suit is cut wider than the part it hides: a player's hat, jacket and sleeve overlay layers sit outside the base model, and anything drawn to the base model's own size let a stripe of their real skin through at every seam.
+- The face under it has features now rather than a mouth and nothing else: brow, eyebrows, eyes behind the mask's openings, a nose and a chin. The hair is back and sides with the cap kept above the brow, so it stops eating the eyebrows.
+
 ## 0.2.346
 - Build fix: the rewrite had cut the constructor and the tick out along with the old attacks.
 

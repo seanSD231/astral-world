@@ -308,7 +308,7 @@ public final class PackScreen extends Screen {
         long t = gooFlipAt[i] >= 0 ? G_FLIP + (now - gooFlipAt[i]) : Math.min(now - flipAt[i], G_FLIP - 1);
         float al = r[4] / 255f;
         int st = gooStage[i];
-        if (st < 1 && t >= G_GOLD) { gooStage[i] = 1; ui(AstralSounds.ADMIN_REVEAL.get(), 1f, .85f); ui(SoundEvents.CHAIN_PLACE, .8f, 1f); }
+        if (st < 1 && t >= G_GOLD) { gooStage[i] = 1; ui(AstralSounds.ADMIN_REVEAL.get(), 1f, 1.7f); ui(SoundEvents.CHAIN_PLACE, .8f, 1f); }
         if (st < 2 && t >= G_PEEL) { gooStage[i] = 2; ui(SoundEvents.CHAIN_BREAK, .7f, 1.1f); ui(SoundEvents.ANVIL_LAND, .8f, .5f); ui(SoundEvents.TRIDENT_THUNDER.value(), .9f, .45f); }
         if (st < 3 && t >= G_FLIP) { gooStage[i] = 3; ui(SoundEvents.TOTEM_USE, .8f, .8f); ui(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, .85f, .7f); }
         if (st < 4 && t >= G_FLIP + 900) { gooStage[i] = 4; ui(SoundEvents.BEACON_ACTIVATE, 1.4f, .45f); }
