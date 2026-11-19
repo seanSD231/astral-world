@@ -74,7 +74,7 @@ public final class Duel {
     }
     private static boolean ownDim(MinecraftServer server) { return server.getLevel(DUEL) != null; }
 
-    private static final int ARENA_Y = 100, ARENA_R = 20, SLOT_GAP = 80;
+    private static final int ARENA_Y = 100, ARENA_R = 34, SLOT_GAP = 110;   // room to actually fight in: it was 20 across the radius
     private static final String BACK = "astral_duel_back";
     private static final Map<UUID, Long> returns = new HashMap<>();   // player -> server tick at which they go back
 
@@ -104,9 +104,9 @@ public final class Duel {
                         : r >= ARENA_R - 1.5 ? Blocks.POLISHED_BLACKSTONE.defaultBlockState()
                         : ((dx & 3) == 0 && (dz & 3) == 0) ? Blocks.SEA_LANTERN.defaultBlockState() : Blocks.SMOOTH_STONE.defaultBlockState();
                     lv.setBlock(pos.set(c.getX() + dx, c.getY(), c.getZ() + dz), f, 2);
-                    lv.setBlock(pos.set(c.getX() + dx, c.getY() + 31, c.getZ() + dz), Blocks.BARRIER.defaultBlockState(), 2);
+                    lv.setBlock(pos.set(c.getX() + dx, c.getY() + 46, c.getZ() + dz), Blocks.BARRIER.defaultBlockState(), 2);
                 } else if (r <= ARENA_R + 2.5) {
-                    for (int y = 1; y <= 30; y++) lv.setBlock(pos.set(c.getX() + dx, c.getY() + y, c.getZ() + dz), Blocks.BARRIER.defaultBlockState(), 2);
+                    for (int y = 1; y <= 45; y++) lv.setBlock(pos.set(c.getX() + dx, c.getY() + y, c.getZ() + dz), Blocks.BARRIER.defaultBlockState(), 2);
                 }
             }
     }
@@ -114,7 +114,7 @@ public final class Duel {
     /** Where a duelist stands in the arena: opposite ends, facing each other. */
     private static double[] spot(MinecraftServer server, int slot, boolean first) {
         BlockPos c = centre(server, slot);
-        return new double[]{c.getX() + 0.5 + (first ? -14 : 14), c.getY() + 1, c.getZ() + 0.5, first ? -90 : 90};
+        return new double[]{c.getX() + 0.5 + (first ? -25 : 25), c.getY() + 1, c.getZ() + 0.5, first ? -90 : 90};
     }
 
     private static void carryToArena(ServerPlayer p, int slot, boolean first) {

@@ -369,7 +369,7 @@ SPEC = [int(x, 16) for x in re.findall(r'0x([0-9A-Fa-f]{6})', SRC[SRC.index('SPE
 FN = {'moon': 'p0', 'door': 'p1', 'justiciar': 'p2', 'demoness': 'p3', 'rare': 'p3', 'epic': 'p3', 'sun': 'p4', 'death': 'p5', 'abyss': 'p6', 'redPriest': 'p7', 'blackEmperor': 'p8',
       'error': 'p9', 'wheel': 'p10', 'hermit': 'p11', 'mother': 'p12', 'chained': 'p13', 'whiteTower': 'p14', 'sailor': 'p15', 'paragon': 'p16', 'hangedMan': 'p17', 'fool': 'p18',
       'darkness': 'p19', 'visionary': 'p20', 'twilight': 'p21', 'gooLord': 'g0', 'gooAlmighty': 'g1', 'gooDarkness2': 'g2', 'gooCalamity': 'g3', 'gooKnowledge': 'g4', 'gooKey': 'g5',
-      'gooGoddess': 'g6', 'gooDevils': 'g7', 'gooAnarchy': 'g8', 'gooScene': 'g*'}
+      'gooGoddess': 'g6', 'gooDevils': 'g7', 'gooAnarchy': 'g8', 'gooScene': 'g*', 'adminAir': 'a0'}
 def mix(a, b, f):
     return (int(((a >> 16) & 255) * (1 - f) + ((b >> 16) & 255) * f) << 16) | (int(((a >> 8) & 255) * (1 - f) + ((b >> 8) & 255) * f) << 8) | int((a & 255) * (1 - f) + (b & 255) * f)
 def gmap(rgb):
@@ -405,6 +405,14 @@ def sprite_fx(tex, mode, h, size, rgb, alpha, speed, n):
     else:           o = emitter('drift #area', texture, col, sz, (70, 130), radius=1.0, sscale=(1, max(.05, h / 2), 1), pos=(0, h / 2, 0), rate=n / 100 / MPF, maxp=int(n * 1.7 / MPF) + 8, add=not smoke, noise=(.05, .2))
     return o
 def scene_env(key, gold):
+    if key[0] == 'a':                                   # the admin card: its own tier and its own size
+        R, top, S, CY = 17.0, 34.0, 3.2, 18.0
+        P = [0xFF3038, 0x7A0C14, 0xFFC8B8]
+        env = dict(R=R, top=top, S=S, CY=CY, N=1.0, P1=P[0], P2=P[1], P3=P[2], PUR=0xA050FF, mix=mix, max=max, min=min,
+                   SPECTRUM=SPEC, H=2.3, gy=CY, ADM_EMBER=0xFF7A20, ADM_GOLD=0xFFC250, ADM_PALE=0xFFE9BC,
+                   ADM_DEEP=0x9A1A06, ADM_BLOOD=0xC8121F, ADM_IRON=0x24222B)
+        env['iron'] = mix(0x707890, P[0], .15); env['wy'] = top * .5
+        return env
     goo = key[0] == 'g'; pal = (GOOPALS if goo else PALS)[int(key[1:])]
     P = [0xFFD448, 0x9A6A10, 0xFFF0B8] if gold else pal
     R, top, S, CY = (12.0, 19.0, 2.35, 7.4) if goo else (6.0, 8.5, 1.15, 3.2)
@@ -418,7 +426,7 @@ for mt in re.finditer(r'sprites\("(\w+)", ([^;]*)\);', SRC):
     args = split_args(mt.group(2))
     keys = ['g%d' % i for i in range(9)] if FN[fn] == 'g*' else [FN[fn]]
     for key in keys:
-        for gold in ((False, True) if key[0] == 'p' else (False,)):
+        for gold in ((False, True) if key[0] == 'p' else (False,)):   # 'a' and 'g' have no shiny variant
             for k in (range(7) if re.search(r'\bk\b', mt.group(2)) else (None,)):
                 env = scene_env(key, gold)
                 if k is not None: env['k'] = k

@@ -2,6 +2,29 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.321
+
+- **The Bearing of Sins, rebuilt again.**
+  - **Its own textures.** The floor circles were LOTM particle textures, which is a bet on which build of LOTM
+    is installed -- where they are missing the game draws a plain square, which is what the floor turned into.
+    `tools/art/admin_tex.py` writes four of ours: a seven-pointed spell circle, a band of writing, a halo band
+    (a bright line standing in its own glow) and a spread of rays. Nothing in the scene is LOTM's any more.
+  - **The halos are the card's.** Flat concentric rings of light lying level -- two close together through his
+    arms, two above, and three more on the ground beneath him -- instead of wire torus rings with sparks on them.
+  - **He is half again as big**, with five bands of chain passing round the beam and his body, three wound
+    across the chest each side, one off each wrist and one off each ankle.
+  - **No sun.** A disc hanging there read as a light in the room; the light comes out of the cloud now, as nine
+    broad shafts of gold that brighten and fade on their own under a spread of rays at the zenith.
+  - **The bells are gone**, and the rainbow of the Hanged Man covers the ground outside the circles.
+  - **The air is Photon.** Embers, ash, smoke and cinders are four effects of this mod's own, generated into
+    `fx/sp/a0_*` under a key of the admin card's own, not hundreds of drawn billboards.
+- **The Hanged Man 0's chain reaches the roof.** It stopped at 1.18 of `top` with the dome at four times the
+  radius, so it hung in mid-air; it runs to the roof of the sphere now, with two more off the ends of the
+  crossbar.
+- **The duel arena is much bigger**: 34 blocks of radius instead of 20, the duelists start 50 apart, and the
+  lid is at 46 rather than 31.
+- **A contestant's Flesh and Blood is filled once** at the start of the hunger games and not again.
+
 ## 0.2.320
 
 - Fixes the build (0.2.319 took the weighed heart's model out with the scythe's), and:

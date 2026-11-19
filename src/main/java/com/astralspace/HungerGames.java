@@ -934,10 +934,13 @@ public final class HungerGames {
         LOGGER.warn("[hungergames] no way found to restore attachments");
     }
 
-    /** Fills the Flesh and Blood bar of anyone who has one, now and once more next tick, after the sequence has settled. */
+    /**
+     * Fills the Flesh and Blood bar of anyone who has one. Once, at the start, and that is all: it used to
+     * fill again on the next tick, which was there to catch a sequence that had not settled yet, but the fill
+     * now happens after the pathway is applied so there is nothing left to catch.
+     */
     private static void fillFleshAndBlood(ServerPlayer p) {
         Lotm.maxFleshAndBlood(p);
-        p.server.execute(() -> { if (p.isAlive() && !p.hasDisconnected() && alive.contains(p.getUUID())) Lotm.maxFleshAndBlood(p); });
     }
 
     private static void applySeq(ServerPlayer p) {
