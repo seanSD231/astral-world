@@ -113,6 +113,94 @@ public class MoonCorruption extends Monster {
 
     private int lance, bloom, threads, call, feed, fold;
 
+    public MoonCorruption(EntityType<? extends Monster> type, Level level) {
+        super(type, level);
+        this.xpReward = 250;
+        setPersistenceRequired();
+        setNoGravity(true);          // it hangs; nothing holds it up that anyone can see
+    }
+
+    @Override
+    protected void registerGoals() {
+        goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 32f));
+        targetSelector.addGoal(1, new HurtByTargetGoal(this));
+        targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+    }
+
+    @Override
+    public boolean removeWhenFarAway(double d) { return false; }
+
+    @Override
+    public boolean causeFallDamage(float a, float b, DamageSource s) { return false; }
+
+    @Override
+    protected void checkFallDamage(double y, boolean onGround, net.minecraft.world.level.block.state.BlockState st, BlockPos pos) { }
+
+    @Override
+    public boolean canBeAffected(MobEffectInstance e) {
+        return e.getEffect() != MobEffects.WITHER && e.getEffect() != MobEffects.POISON && super.canBeAffected(e);
+    }
+
+    @Override
+    public void startSeenByPlayer(ServerPlayer p) { super.startSeenByPlayer(p); bar.addPlayer(p); }
+
+    @Override
+    public void stopSeenByPlayer(ServerPlayer p) { super.stopSeenByPlayer(p); bar.removePlayer(p); }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (level().isClientSide) { clientTick(); return; }
+
+        bar.setProgress(getHealth() / getMaxHealth());
+        int want = getHealth() > getMaxHealth() * .66f ? 0 : (getHealth() > getMaxHealth() * .33f ? 1 : 2);
+        if (want != phase()) turn(want);
+
+        float m = moon();
+        float target = phase() == 0 ? .35f : (phase() == 1 ? .75f : 1f);
+        if (m != target) entityData.set(MOON, m + Math.signum(target - m) * Math.min(.012f, Math.abs(target - m)));
+        if (act() > 0) entityData.set(ACT, act() - 1);
+
+        drift();
+        corrupt();
+        if (fold > 0) { fold--; petals(0f); return; }    // shut, it does nothing but wait
+        petals(1f);
+
+        if (--lance <= 0) lance();
+        if (--bloom <= 0) bloom();
+        if (phase() >= 1 && --threads <= 0) threads();
+        if (--call <= 0) call();
+        if (phase() >= 2 && --feed <= 0) feed();
+    }
+
+    /** A turn of its moon: it folds over itself, the light changes, and it opens again harder. */
+    private void turn(int to) {
+        entityData.set(PHASE, to);
+        entityData.set(ACT, 40);
+        fold = 60;
+        ServerLevel lv = (ServerLevel) level();
+        lv.playSound(null, blockPosition(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, 2f, to == 2 ? .6f : .8f);
+        lv.sendParticles(ParticleTypes.SCULK_SOUL, getX(), getY() + 1, getZ(), 140, 2, 2, 2, .3);
+        addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, 3, false, false));
+        heal(getMaxHealth() * .04f);
+        for (Player p : nearby(30))
+            p.displayClientMessage(Component.literal(to == 1
+                    ? "The moon comes up behind it." : "The petals will not close again.").withColor(0xE0384A), true);
+    }
+
+    /** Standing in its light corrupts you; the count is what does the damage, and only leaving sheds it. */
+    private void corrupt() {
+        if (tickCount % 20 != 0) return;
+        double r = phase() == 2 ? 20 : (phase() == 1 ? 15 : 10);
+        for (Player p : nearby(r)) {
+            if (p.isCreative() || p.isSpectator()) continue;
+            int c = Corruption.add(p, phase() + 1);
+            if (c >= 6) p.hurt(level().damageSources().magic(), 1f + (c - 6) * .8f);
+            if (c >= 10) p.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 60, 1, false, true));
+        }
+    }
+
+
     /** It drifts rather than walks: it keeps its distance and keeps its height. */
     private void drift() {
         LivingEntity t = getTarget();
