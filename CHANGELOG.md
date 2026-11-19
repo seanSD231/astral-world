@@ -1,3 +1,7 @@
+## 0.2.333
+- The swirl is a band at the rim now: it was masked clear only to under half its radius, which left it washing across most of the field. The middle is blank grass with the spell circle on it.
+- The ground stopped glitching: everything drawn on the field sat a few hundredths of a block up, which the depth buffer could not separate from the grass out at distance. The whole stack is lifted and spread out.
+
 ## 0.2.332
 - The rings about him are built the way the rest of the mod builds rings of light: layered ring textures turning against each other with light going out through them, rather than geometry (a hoop of metal) or billboards (a white polygon).
 - The ground is the field again, grass and all, with the spell circle drawn on it out of the same ring textures every other card uses. No disc laid over it.

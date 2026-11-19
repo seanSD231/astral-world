@@ -1272,19 +1272,19 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void adminGround() {
         // The field is left as it is -- grass, no disc laid over it -- and the circles are drawn
         // on it with the same ring textures every other card's spell circle uses.
-        if (gold) flat("whirl", 0, .04f, 0, R * 9.2f, t * .06f, rgba(0xFFD448, .55f));
-        else flat("adm_sea", 0, .04f, 0, R * 9.2f, t * .06f, rgba(0xFFFFFF, .65f));
-        flat("ring_thick", 0, .07f, 0, R * 2.3f, t * .06f, rgba(ADM_GOLD, .7f));
-        flat("ring_dash", 0, .09f, 0, R * 1.8f, -t * .18f, rgba(ADM_PALE, .8f));
-        flat("adm_runes", 0, .11f, 0, R * 1.35f, t * .09f, rgba(ADM_GOLD, .7f));
-        flat("ring", 0, .13f, 0, R * .95f, -t * .3f, rgba(ADM_PALE, .8f));
+        if (gold) flat("whirl", 0, .10f, 0, R * 9.2f, t * .06f, rgba(0xFFD448, .55f));
+        else flat("adm_sea", 0, .10f, 0, R * 9.2f, t * .06f, rgba(0xFFFFFF, .65f));
+        flat("ring_thick", 0, .17f, 0, R * 2.3f, t * .06f, rgba(ADM_GOLD, .7f));
+        flat("ring_dash", 0, .22f, 0, R * 1.8f, -t * .18f, rgba(ADM_PALE, .8f));
+        flat("adm_runes", 0, .27f, 0, R * 1.35f, t * .09f, rgba(ADM_GOLD, .7f));
+        flat("ring", 0, .32f, 0, R * .95f, -t * .3f, rgba(ADM_PALE, .8f));
         for (int i = 0; i < 3; i++) {   // and light going out from the middle of it
             float pw = fract(t * .18f + i / 3f);
-            flat("ring", 0, .15f, 0, pw * R * 2.6f, 0, rgba(ADM_GOLD, fd(pw) * .8f));
+            flat("ring", 0, .37f, 0, pw * R * 2.6f, 0, rgba(ADM_GOLD, fd(pw) * .8f));
         }
         float c = gc(t * .04f) * R * .3f, s2 = gs(t * .04f) * R * .3f;
         eq(ResourceLocation.fromNamespaceAndPath("lotm", "textures/effect/hanged_man_symbol.png"),
-           0, .17f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .8f), 0, 0, 1, 1);
+           0, .42f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .8f), 0, 0, 1, 1);
     }
 
     /** The cross of light he hangs on, and the rope above him. */
