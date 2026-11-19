@@ -318,7 +318,8 @@ public final class ArtifactScreen extends Screen {
             ly = setLine(g, x, ly, w, "2  " + set.twoLine(), have >= 2);
             ly = setLine(g, x, ly, w, "4  " + set.fourLine(), have >= 4);
             ly = cost(g, x, ly, w, set.fourCost(), have >= 4);
-            ly = setLine(g, x, ly, w, "5  " + set.fiveLine(), have >= 5);
+            String ab = SetAbilities.name(set.id(), SetAbilities.rung(Minecraft.getInstance().player, set.id()));
+            ly = setLine(g, x, ly, w, "5  " + (ab.isEmpty() ? set.fiveLine() : "Grants " + ab), have >= 5);
             ly = cost(g, x, ly, w, set.fiveCost(), have >= 5);
             ly += 4;
             for (String line : wrap(set.flavour(), w - 16)) {

@@ -86,8 +86,10 @@ public class ArtifactItem extends Item {
             tip.add(Component.literal("  4  ").withStyle(ChatFormatting.DARK_GRAY)
                     .append(Component.literal(set.fourLine()).withStyle(ChatFormatting.GRAY)));
             tip.add(Component.literal("     \u2013 " + set.fourCost()).withColor(0xC07070));
+            String ab = SetAbilities.name(set.id(), p.rarity() - 1);
             tip.add(Component.literal("  5  ").withStyle(ChatFormatting.DARK_GRAY)
-                    .append(Component.literal(set.fiveLine()).withStyle(ChatFormatting.GRAY)));
+                    .append(Component.literal(ab.isEmpty() ? set.fiveLine() : "Grants " + ab)
+                            .withStyle(ChatFormatting.GRAY)));
             tip.add(Component.literal("     \u2013 " + set.fiveCost()).withColor(0xC07070));
             tip.add(Component.literal(set.flavour()).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         }

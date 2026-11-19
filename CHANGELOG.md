@@ -1,3 +1,10 @@
+## 0.2.358
+- Five fragments of one set hand over an actual Beyonder authority out of Lord of the Mysteries. That mod keeps its abilities as items — a Scribe's whole trade is carrying other people's around — so there was nothing to invent: the ability is the real one, and it works the way it works there.
+- Which one depends on the set and on how fine the fragments are. Every set has a ladder of five, weakest first, and the rung is the average class of your five pieces: five 4-class scraps of the Storms give you the lightning toggle, five 0-class pieces give you an ocean of it. The shadow ladder runs from a sense of danger to a world of shadows; the fate ladder from prophecy to reincarnation; the underworld ladder from speaking with the dead to ruling them.
+- The authority is marked as ours when it is handed over, and only marked ones are ever taken back, so an ability earned the ordinary way is never swept up. It arrives when the fifth fragment goes on, changes rung when the fragments do, and is gone when one comes off.
+- Carrying it costs a standing stat penalty for as long as all five are on. Without that mod installed there is no authority to give, so a stand-in is handed over that says exactly that.
+- Both menus name the authority at your rung, and the containment picker lists the whole ladder with the class each rung needs.
+
 ## 0.2.357
 - Five fragments of one set now hand you the thing itself: a Scribed Fragment, an ability you carry and right-click to spend, the way a Scribe carries one. It arrives the moment the fifth piece goes on and is taken back the moment it comes off, so nobody keeps an ability they are not wearing.
 - Eighteen of them, one a set. Call the Squall drops lightning on everything in front of you. Vent throws the room off and leaves you very quick. Take the Stage puts you in the role for ten seconds whatever lands on you. Pull Taut drags everything within ten blocks to your feet and holds it. Let Go doubles your damage for eight seconds and takes a quarter of the health you are standing on. Lie Still mends you almost whole and will not let you act while it does.

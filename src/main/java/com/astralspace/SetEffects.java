@@ -102,7 +102,7 @@ public final class SetEffects {
         float mult = 1f;
 
         if (four(p, "acting")) {
-            if (now - s.untouched >= 160 || SetAbilities.onStage(p)) {
+            if (now - s.untouched >= 160) {
                 mult *= 1.33f;
                 lv.sendParticles(ParticleTypes.ENCHANT, target.getX(), target.getY() + 1, target.getZ(), 10, .3, .5, .3, .1);
             } else if (now - s.roleBroke < 80) mult *= .8f;
@@ -171,7 +171,6 @@ public final class SetEffects {
             }
 
         if (four(p, "gloves")) {
-            if (SetAbilities.firstBlood(p)) s.struck.clear();
             int hits = s.struck.merge(target.getUUID(), 1, Integer::sum);
             mult *= hits == 1 ? 1.5f : Math.max(.67f, 1f - (hits - 1) * .08f);
         }
@@ -199,7 +198,6 @@ public final class SetEffects {
         if (four(p, "evernight")) s.marked.put(target.getUUID(), now);
 
         if (four(p, "lamp") && !light) mult *= .75f;
-        if (SetAbilities.burnsInLight(p) && light) mult *= .85f;
 
         if (four(p, "ascetic")) {
             boolean low = p.getHealth() < p.getMaxHealth() * .5f;
@@ -227,9 +225,6 @@ public final class SetEffects {
             }
         }
 
-        mult *= SetAbilities.dealt(p);
-        if (SetAbilities.readBack(p)) mult *= 1.25f;
-        if (SetAbilities.onStage(p)) mult *= 1.33f;
         if (mult != 1f) e.setNewDamage(e.getNewDamage() * mult);
     }
 
@@ -289,7 +284,6 @@ public final class SetEffects {
             p.displayClientMessage(Component.literal("The fog closes over you.").withColor(0xAAAAAA), true);
         }
 
-        mult *= SetAbilities.taken(p);
         if (mult != 1f) e.setNewDamage(e.getNewDamage() * mult);
     }
 
@@ -306,8 +300,6 @@ public final class SetEffects {
             s.alchemyAt = p.level().getGameTime();
         }
         if (four(p, "harvest") && p.level().getGameTime() - s.movedAt < 20) k *= .67f;
-        k *= SetAbilities.healing(p);
-        if (k <= 0f) { e.setCanceled(true); return; }
         if (k != 1f) e.setAmount(e.getAmount() * k);
     }
 
@@ -367,8 +359,8 @@ public final class SetEffects {
     /** What the alchemy stacks are worth, less what the letter's blows have cost. */
     public static double abilityShift(Player p) {
         State s = S.get(p.getUUID());
-        double v = SetAbilities.ability(p);
-        if (s == null) return v;
+        if (s == null) return 0;
+        double v = 0;
         if (four(p, "alchemy")) v += s.alchemy * .06;
         if (four(p, "sealwax")) v -= s.letterBlows * .05;
         return v;

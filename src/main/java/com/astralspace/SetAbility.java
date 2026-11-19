@@ -3,27 +3,20 @@ package com.astralspace;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.level.Level;
 
 import java.util.List;
 
 /**
- * The thing five fragments hand you: an ability you carry and use, the way a Scribe carries one.
+ * A stand-in for an authority.
  *
- * <p>One item does for all of them, with the set written into its data, because eighteen registered
- * items would be eighteen models and eighteen textures for what is the same object wearing a
- * different name. It is not craftable, cannot be dropped out of the world by hand and is given and
- * taken away by {@link ArtifactSlots} as the fifth fragment goes on and comes off, so it can never
- * be carried by somebody who has not earned it.</p>
+ * <p>Only when Lord of the Mysteries is not installed. With it, five fragments hand over one of
+ * that mod's own authorities and this is never made; without it there is no authority to give, so
+ * this stands in its place and says so.</p>
  */
 public final class SetAbility extends Item {
     private static final String TAG = "astral_set_ability";
@@ -70,16 +63,12 @@ public final class SetAbility extends Item {
         tip.add(Component.literal(dot > 0 ? line.substring(dot + 1).trim() : line).withStyle(ChatFormatting.GRAY));
         tip.add(Component.literal("– " + s.fiveCost()).withColor(0xC07070));
         tip.add(Component.empty());
-        tip.add(Component.literal("Right click to spend it.").withStyle(ChatFormatting.AQUA));
+        tip.add(Component.literal("Lord of the Mysteries is not installed, so there is no")
+                .withStyle(ChatFormatting.AQUA));
+        tip.add(Component.literal("authority here to hand over. This stands in its place.")
+                .withStyle(ChatFormatting.AQUA));
         tip.add(Component.literal("It is yours only while all five fragments are on you.")
                 .withStyle(ChatFormatting.DARK_GRAY));
     }
 
-    @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player p, InteractionHand hand) {
-        ItemStack st = p.getItemInHand(hand);
-        if (!level.isClientSide && p instanceof ServerPlayer sp) SetAbilities.cast(sp, setOf(st));
-        p.swing(hand, true);
-        return InteractionResultHolder.sidedSuccess(st, level.isClientSide);
-    }
 }

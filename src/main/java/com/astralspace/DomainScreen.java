@@ -141,6 +141,13 @@ public final class DomainScreen extends Screen {
         ly = tier(g, x, ly, w, c, "TWO FRAGMENTS", s.twoLine(), null);
         ly = tier(g, x, ly, w, c, "FOUR \u00b7 THE INCIDENT REPEATS", s.fourLine(), s.fourCost());
         ly = tier(g, x, ly, w, c, "FIVE \u00b7 ALL OF IT", s.fiveLine(), s.fiveCost());
+        String[] rungs = SetAbilities.names(s.id());
+        for (int i = 0; i < 5; i++) {
+            if (rungs[i] == null || rungs[i].isEmpty()) continue;
+            g.drawString(font, Component.literal("\u2726".repeat(i + 1)).withColor(0xFFC24A), x + 14, ly, 0xFFFFFF, false);
+            g.drawString(font, Component.literal(rungs[i]).withStyle(ChatFormatting.GRAY), x + 50, ly, 0xFFFFFF, false);
+            ly += 10;
+        }
 
         // the depth gauge
         int dy = y + h - 64;
