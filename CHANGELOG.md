@@ -1,3 +1,6 @@
+## 0.2.342
+- Build fix: setPersistenceRequired is on Mob, not LivingEntity.
+
 ## 0.2.341
 - Domains. A Domain Gate you right-click to pick a set and a depth, then three waves in a sealed room, then out with what you earned. The picker is a wall of pathway symbols in their own colours, with the chosen set named and its two- and four-piece lines spelled out, because the set is the thing actually being chosen.
 - A domain is cut for one set and pays that set most of the time, so going in is how you decide what you are farming rather than hoping the world hands it to you. Depth decides how many pieces and how high they roll.

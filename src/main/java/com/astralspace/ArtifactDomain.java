@@ -131,10 +131,11 @@ public final class ArtifactDomain {
             if (!(e instanceof LivingEntity le)) continue;
             le.moveTo(run.origin.getX() + .5 + Math.cos(a) * rr, run.origin.getY() + 1,
                       run.origin.getZ() + .5 + Math.sin(a) * rr, (float) (a * 180 / Math.PI), 0);
-            if (le instanceof net.minecraft.world.entity.Mob mob)
+            if (le instanceof net.minecraft.world.entity.Mob mob) {
                 mob.finalizeSpawn(lv, lv.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.EVENT, null);
+                mob.setPersistenceRequired();        // nothing in a domain despawns out from under the run
+            }
             scale(le, boost);
-            le.setPersistenceRequired();
             lv.addFreshEntity(le);
             run.alive.add(le.getUUID());
         }
