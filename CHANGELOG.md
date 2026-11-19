@@ -1,3 +1,10 @@
+## 0.2.350
+- Every pack face redrawn from nothing at full size. They were all 564-pixel originals blown up to 1024, and no amount of sharpening puts back detail that was never there, which is why the lettering went soft and the ring of symbols went to mush. The frame, the banner, the type, the ring, the medallion and the plates are all drawn at 1024 now, so every edge is as crisp as the canvas allows.
+- The layout is deliberately unchanged, down to the centre and the ring radius, because the pack is drawn into a fixed rectangle in the GUI and anything that moved would have to be chased in the Java too. Only the quality changes.
+- New to the face: a dial of faint rings and dashes under the symbols so the field is not an empty wash, a corner flourish at each turn of the frame, and a lit halo behind each symbol in its own pathway colour.
+- Shiny lays a sheet of foil across it; rainbow runs the spectrum over the whole face. The Ancient One, which has no pathway symbol of its own, gets a mark drawn for it rather than an empty disc.
+- The admin pack is untouched.
+
 ## 0.2.349
 - The Moon's Corruption rebuilt at the size it is meant to be. It was five blocks tall; it is sixteen, and five across, so you stand under it rather than next to it.
 - The petals are the thing now, as they are in the reference: nine of them in a fan thrown back and out behind it, each one over nine blocks long, curling along its length, deep crimson at the root through to near-white at the tip, with a shorter row in front. The gown falls out of them in fourteen long panels and tapers away below without reaching a floor. The figure in the middle of it is deliberately slight — a long dark torso, a head tipped back under a wheel of eighteen spines, and arms raised with long open fingers.
