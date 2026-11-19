@@ -2,6 +2,16 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.325
+
+- **The binder has a leaf for admin cards**, at the back of the book past the last chapter: the Bearer of Sins
+  and ten places kept empty for whoever comes after him. It is white until one of them is in the book and then
+  takes that card's colour -- the average of them, once there is more than one -- in the rail, the heading and
+  the count. Admin cards can be filed in a binder again now that there is somewhere for them to go.
+- **The Fool's sphere sits on its own platform.** The shell is solid geometry, which follows the model matrix
+  and not the scene's offset, so while the nebula, the hanging lights and the stars all stood over the hall the
+  sphere itself stayed back on the card and hung half off the edge.
+
 ## 0.2.324
 
 - **Every word on a pack pouch is set at full resolution.** The lettering was the last of the old 280px art

@@ -59,6 +59,8 @@ public final class Tarot {
     public static final String[] ADMIN_IDS = {"rupex_123"};          // the id: the pathway string and the texture names
     public static final String[] ADMIN_NAMES = {"Rupex_123"};        // how it is written wherever a person reads it
     public static final String[] ADMIN_TITLES = {"Bearer of Sins"};
+    /** What the binder's admin leaf takes its colour from once a card is in it. */
+    public static final int[] ADMIN_COLOURS = {0xE23030};
     public static int adminIndex(String pathway) {
         if (pathway == null || !pathway.startsWith("admin_")) return -1;
         for (int i = 0; i < ADMIN_IDS.length; i++) if (pathway.equals("admin_" + ADMIN_IDS[i])) return i;

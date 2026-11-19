@@ -3770,7 +3770,10 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 : LotmFx.hold(curId, "astral_world:seer_fog", ex, ey + .2f * S, ez, R * 1.7f);   // our own Photon fog: one filling the whole sphere, one thick around the hall
         if (m) { offX = hxk(0, HoloCardEntity.HALL_ZC); offZ = hzk(0, HoloCardEntity.HALL_ZC);
             LotmFx.hold(curId + 1, "astral_world:fool_hall_fog", ex + offX, ey, ez + offZ, 31f);   // a second, wider bank of fog
-            dome(SKY, 0x1A2448, 240);
+            // The sphere is built out of solid geometry, which follows the model matrix and not offX/offZ,
+            // so while the nebula, the lights and the stars all stood over the hall the shell itself stayed
+            // on the card -- the sphere sat half off its own platform. It gets the same shift.
+            push(); tr(offX, 0, offZ); dome(SKY, 0x1A2448, 240); pop();
             int[] nc = {0x3A6CFF, 0xC040C8, 0x30D0E8, 0x6A50FF, 0x20B890};   // the nebula: soft glows melting into each other, no hard-edged clouds
             for (int i = 0; i < 26; i++) { float a = i * TAU / 26 + h(i, 8), el = .05f + .9f * h(i, 9), d = SKY * .93f, sz = SKY * (.5f + .5f * h(i, 10)); bb("glow", (float) Math.cos(a) * d * (float) Math.cos(el), (float) Math.sin(el) * d, (float) Math.sin(a) * d * (float) Math.cos(el), sz, sz * (.6f + .4f * h(i, 11)), 0, rgba(nc[i % 5], .2f + .18f * h(i, 12))); }
             for (int i = 0; i < 40; i++) {   // lights hung in the fog: a few bright, most dim, some of them red

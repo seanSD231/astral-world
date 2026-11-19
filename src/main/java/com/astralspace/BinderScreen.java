@@ -51,6 +51,11 @@ public final class BinderScreen extends Screen {
         boolean isChapter() { return path == null; }
     }
 
+    /** The admin page sits one past the last chapter: it belongs to no Great Old One. */
+    private static final int ADMIN_GOO = Tarot.GOO_PATHS.length;
+    /** Eleven places: the Bearer of Sins, and ten kept for whoever comes after him. */
+    private static final int ADMIN_SLOTS = 11;
+
     private static final Page[] ORDER = order();
 
     private static Page[] order() {
@@ -59,7 +64,37 @@ public final class BinderScreen extends Screen {
             out.add(new Page(g, null));                       // the chapter itself
             for (String p : Tarot.GOO_PATHS[g]) out.add(new Page(g, p));
         }
+        out.add(new Page(ADMIN_GOO, "admin"));                // and the admin leaf at the back
         return out.toArray(new Page[0]);
+    }
+
+    private boolean isAdmin() { return here().goo() == ADMIN_GOO; }
+    private static int adminPage() { return ORDER.length - 1; }
+
+    /** How many of the admin cards are held, and which. */
+    private int adminHeld(int i) {
+        return have.getOrDefault(Binder.key("admin_" + Tarot.ADMIN_IDS[i], 0, false), 0)
+             + have.getOrDefault(Binder.key("admin_" + Tarot.ADMIN_IDS[i], 0, true), 0);
+    }
+
+    private int adminCount() {
+        int n = 0;
+        for (int i = 0; i < Tarot.ADMIN_IDS.length; i++) if (adminHeld(i) > 0) n++;
+        return n;
+    }
+
+    /**
+     * White until one is held, and then the colour of what is held: with one admin card in the
+     * book it takes that card's colour, and with several it is their average.
+     */
+    private int adminAccent() {
+        int r = 0, g2 = 0, b = 0, n = 0;
+        for (int i = 0; i < Tarot.ADMIN_IDS.length; i++) {
+            if (adminHeld(i) <= 0) continue;
+            int c = Tarot.ADMIN_COLOURS[i];
+            r += (c >> 16) & 255; g2 += (c >> 8) & 255; b += c & 255; n++;
+        }
+        return n == 0 ? 0xFFFFFFFF : 0xFF000000 | ((r / n) << 16) | ((g2 / n) << 8) | (b / n);
     }
 
     private Page here() { return ORDER[page]; }
@@ -242,6 +277,16 @@ public final class BinderScreen extends Screen {
                     }
                 }
             }
+        } else if (isAdmin()) {
+            int percol = 6, aw = Math.max(34, Math.min(cw, (right - 24 - gridX - colGap * (percol - 1)) / percol));
+            int ah = aw * 3 / 2;
+            for (int i = 0; i < Tarot.ADMIN_IDS.length; i++) {
+                int x = gridX + (i % percol) * (aw + colGap), y = gridY + (i / percol) * (ah + rowGap);
+                if (mx >= x && mx < x + aw && my >= y && my < y + ah) {
+                    take(Binder.key("admin_" + Tarot.ADMIN_IDS[i], 0, false));
+                    return true;
+                }
+            }
         } else {
             for (int i = 0; i < 10; i++) {
                 int x = cardX(i), y = cardY(i);
@@ -295,6 +340,7 @@ public final class BinderScreen extends Screen {
             }
             y += railGap;
         }
+        if (my >= y && my < y + railHead) return new int[]{0, adminPage()};   // the admin leaf
         return null;
     }
 
@@ -345,7 +391,8 @@ public final class BinderScreen extends Screen {
         shell(g, accent);
         head(g, mx, my, accent);
         rail(g, mx, my, accent);
-        if (here().isChapter()) chapter(g, mx, my, accent);
+        if (isAdmin()) adminFaces(g, mx, my);
+        else if (here().isChapter()) chapter(g, mx, my, accent);
         else faces(g, mx, my, accent);
         foot(g, mx, my);
     }
@@ -381,6 +428,14 @@ public final class BinderScreen extends Screen {
         slant(g, left + 31, top + 59, right - left - 38, 2, 0, GOLD);
 
         int gi = here().goo();
+        if (isAdmin()) {
+            int ac = adminAccent();
+            g.drawString(font, "ADMINISTRATION", left + 48, top + 15, GREY_D, false);
+            g.drawString(font, "The Bearers", left + 48, top + 29, ac, true);
+            String held = adminCount() + " / " + ADMIN_SLOTS;
+            g.drawString(font, held, right - 22 - font.width(held), top + 30, ac, false);
+            return;
+        }
         if (here().isChapter()) {
             g.drawString(font, "CHAPTER " + roman(gi + 1), left + 48, top + 15, GREY_D, false);
             gradient(g, Tarot.GOO_NAMES[gi], left + 48, top + 29, gooColours(gi), gooHeld(gi), true);
@@ -568,6 +623,21 @@ public final class BinderScreen extends Screen {
             }
             y += railGap;
         }
+
+        // the admin leaf, at the back of the book
+        int ac = adminAccent();
+        boolean aOn = isAdmin();
+        boolean aOver = mx >= railX - 8 && mx <= railX + railW && my >= y && my < y + railHead;
+        if (aOn || aOver) {
+            slant(g, railX - 8, y, railW + 6, railHead - 1, 4, 0xFF241C08);
+            g.renderOutline(railX - 8, y, railW + 6, railHead - 1, aOn ? GOLD : dim(ac, .6f));
+        }
+        int aty = y + (railHead - 9) / 2;
+        g.drawString(font, "ADMIN", railX, aty, dim(ac, aOn ? 1f : aOver ? .9f : .72f), true);
+        String atally = adminCount() + "/" + ADMIN_SLOTS;
+        g.drawString(font, atally, railX + railW - 2 - font.width(atally), aty,
+                     adminCount() > 0 ? ac : 0xFF3A3744, false);
+        if (aOver) hover = "The Bearers";
     }
 
     private int chapterCardH() { return Math.min(bottom - 60 - (top + 96), 330); }
@@ -683,6 +753,51 @@ public final class BinderScreen extends Screen {
             g.drawString(font, name, x + (cw - font.width(name)) / 2, y + ch + 8, n > 0 ? GOLD : GREY_D, false);
             String s = "SEQUENCE " + seq;
             g.drawString(font, s, x + (cw - font.width(s)) / 2, y + ch + 20, 0xFF43404E, false);
+        }
+    }
+
+    /**
+     * The admin leaf: the Bearer of Sins first, and ten places kept empty for whoever comes
+     * after him. Six to a row, on the same cell as every other page.
+     */
+    private void adminFaces(GuiGraphics g, int mx, int my) {
+        int ac = adminAccent();
+        int percol = 6, aw = Math.max(34, Math.min(cw, (right - 24 - gridX - colGap * (percol - 1)) / percol));
+        int ah = aw * 3 / 2;
+        for (int i = 0; i < ADMIN_SLOTS; i++) {
+            int x = gridX + (i % percol) * (aw + colGap), y = gridY + (i / percol) * (ah + rowGap);
+            boolean real = i < Tarot.ADMIN_IDS.length;
+            int n = real ? adminHeld(i) : 0;
+            boolean over = mx >= x && mx < x + aw && my >= y && my < y + ah;
+
+            g.fill(x - 2, y - 2, x + aw + 2, y + ah + 2, 0xFF050407);
+            if (n > 0) {
+                g.blit(CardArt.ready("admin_" + Tarot.ADMIN_IDS[i], 0, false), x, y, 0, 0, aw, ah, aw, ah);
+                g.renderOutline(x, y, aw, ah, ac);
+                if (n > 1) {
+                    String c = String.valueOf(n);
+                    g.drawString(font, c, x + aw - 4 - font.width(c), y + ah - 11, GOLD_HI, true);
+                }
+            } else {
+                g.fill(x, y, x + aw, y + ah, 0xFF100E14);
+                for (int d = 6; d < Math.min(aw, ah) - 6; d++) {
+                    g.fill(x + d, y + d, x + d + 1, y + d + 1, 0xFF191520);
+                    g.fill(x + aw - 1 - d, y + d, x + aw - d, y + d + 1, 0xFF191520);
+                }
+                String s2 = real ? "?" : "-";
+                g.drawString(font, s2, x + (aw - font.width(s2)) / 2, y + ah / 2 - 4, 0xFF2A2636, false);
+                g.renderOutline(x, y, aw, ah, 0xFF1C1A24);
+            }
+            if (over) {
+                g.renderOutline(x, y, aw, ah, ac);
+                hover = real ? Tarot.ADMIN_NAMES[i] + " - " + Tarot.ADMIN_TITLES[i]
+                               + (n > 0 ? "  (" + n + ")" : "  - missing")
+                             : "Kept empty";
+            }
+            String name = real ? Tarot.ADMIN_NAMES[i].toUpperCase(Locale.ROOT) : "EMPTY";
+            g.drawString(font, name, x + (aw - font.width(name)) / 2, y + ah + 8, n > 0 ? ac : GREY_D, false);
+            String s3 = real ? Tarot.ADMIN_TITLES[i].toUpperCase(Locale.ROOT) : "RESERVED";
+            g.drawString(font, s3, x + (aw - font.width(s3)) / 2, y + ah + 20, 0xFF43404E, false);
         }
     }
 
