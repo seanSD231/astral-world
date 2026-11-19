@@ -1,3 +1,7 @@
+## 0.2.331
+- The rings are circles again: real geometry, but drawn as a faint band of light with three bright arcs chasing each other round it and a haze outside, instead of a hoop of metal or a line of square sprites.
+- The old pillars of light are properly back. They were being drawn as a single quad when `column` drew two crossed through the shaft, so they came out half as bright and vanished edge-on; the rest of the sky is back to its old brightness too. They still lean.
+
 ## 0.2.330
 - Build fix: TRIDENT_THUNDER is a Holder, not a SoundEvent.
 

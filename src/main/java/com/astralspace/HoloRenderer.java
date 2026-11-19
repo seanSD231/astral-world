@@ -1202,7 +1202,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      */
     private void adminSky() {
         float D = R * 4.6f;
-        dome(D, 0x8A5E22, 246);         // deeper than it was: the rings have to read against it
+        dome(D, 0xBC7F30, 246);
 
         for (int layer = 0; layer < 3; layer++) {   // banks of cloud, mostly along the horizon
             int n = 22 - layer * 5;
@@ -1214,7 +1214,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 float sz2 = (30f + 26f * h(i, sd + 2)) * S * (1f - .14f * layer);
                 int c = mix(mix(ADM_LOW, ADM_PALE, Math.min(1f, el / .95f)), ADM_CLOUD, .35f);
                 domeQuad("cloud", rad, ang, el, sz2, sz2 * .36f, (h(i, sd + 3) - .5f) * .7f,
-                         rgba(c, layer == 0 ? .10f : .05f));
+                         rgba(c, layer == 0 ? .16f : .085f));
             }
         }
 
@@ -1230,7 +1230,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             rayBeam("beam", x0, hgt, z0, dx, -1f, dz, hgt, wdt, rgba(ADM_WARM, .13f * k2));
             rayBeam("beam", x0, hgt, z0, dx, -1f, dz, hgt, wdt * .3f, rgba(ADM_PALE, .2f * k2));
         }
-        flat("adm_rays", 0, top * 2.0f, 0, D * 1.3f, t * .01f, rgba(ADM_GOLD, .13f));
+        flat("adm_rays", 0, top * 2.0f, 0, D * 1.3f, t * .01f, rgba(ADM_GOLD, .16f));
 
         int slot = (int) Math.floor(t * .5f);
         if (h(slot, 600) < .2f) {   // light breaking through, now and then
@@ -1239,11 +1239,11 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 int sd = slot * 3 + i;
                 domeQuad("streak", D * .93f, h(sd, 601) * TAU, .35f + .7f * h(sd, 602),
                          (6f + 5f * h(sd, 603)) * S, (30f + 20f * h(sd, 604)) * S, (h(sd, 605) - .5f) * .7f,
-                         rgba(ADM_PALE, .3f * fa));
+                         rgba(ADM_PALE, .5f * fa));
             }
         }
         float bx = fx * R * 2.6f, bz2 = fz * R * 2.6f, bs = 40f * S * (.97f + .03f * gs(t * .8f));
-        facing("sin_cross", bx, top * 1.05f, bz2, bs, bs, 0, rgba(ADM_WARM, .10f));   // his own mark, behind him
+        facing("sin_cross", bx, top * 1.05f, bz2, bs, bs, 0, rgba(ADM_WARM, .14f));   // his own mark, behind him
     }
 
     /**
@@ -1260,15 +1260,15 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float bm = (float) Math.sqrt(bx * bx + by * by + bz * bz);
         if (bm < 1e-4f) { bx = 1f; by = 0f; bz = 0f; bm = 1f; }
         bx /= bm; by /= bm; bz /= bm;
+        float ex = dy * bz - dz * by, ey = dz * bx - dx * bz, ez = dx * by - dy * bx;   // and again, for the cross
         float hx = dx * len * .5f, hy = dy * len * .5f, hz = dz * len * .5f;
-        eq(tex(tx), x0 + hx, y0 + hy, z0 + hz, hx, hy, hz,
-           bx * w * .5f, by * w * .5f, bz * w * .5f, argb, 0, 0, 1, 1);
+        float cx2 = x0 + hx, cy2 = y0 + hy, cz2 = z0 + hz, hw = w * .5f;
+        // two quads crossed through the shaft, as `column` drew its pillars -- one quad alone
+        // turned half as bright and thinned out to nothing from the side
+        eq(tex(tx), cx2, cy2, cz2, hx, hy, hz, bx * hw, by * hw, bz * hw, argb, 0, 0, 1, 1);
+        eq(tex(tx), cx2, cy2, cz2, hx, hy, hz, ex * hw, ey * hw, ez * hw, argb, 0, 0, 1, 1);
     }
 
-    /**
-     * The ground: the spell circles under him, and the rainbow sea outside them. A disc of lit sand
-     * holds the middle so the rainbow is a shore round the circles rather than a floor beneath them.
-     */
     private void adminGround() {
         float inner = R * 2.0f;
         // a wash of shade over the whole floor, so the circles and the rings have something to be
@@ -1315,20 +1315,17 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      * which at this size read as a gold hoop hanging in the air -- nothing like the card.
      */
     private void admRing(float y, float rr, int rgb, float spin, float k) {
-        flat("adm_halo", 0, y, 0, rr * 2f, spin * .3f, rgba(rgb, .22f * k));
-        int n = 76;
-        for (int i = 0; i < n; i++) {
-            float a = i * TAU / n + spin;
-            float ph = fract(i / (float) n - t * .17f);
-            float br = (float) Math.pow(Math.max(0f, gs(ph * PI)), 5) * .95f + .14f;
-            float px = gc(a) * rr, pz = gs(a) * rr;
-            // small and faint: these were a fifth of the ring's radius across at .34 apiece, and
-            // seventy-odd of them overlapping burned out into one white polygon with square edges
-            bb("glow", px, y, pz, rr * .07f * (.7f + br * .6f), rr * .05f * (.7f + br * .6f), 0,
-               rgba(rgb, .11f * br * k));
-            if (br > .6f)
-                bb("spark", px, y, pz, rr * .035f, rr * .035f, t * .6f + i, rgba(ADM_PALE, (br - .6f) * 1.1f * k));
+        float th = rr * .028f;
+        push(); tr(0, y, 0); rY(spin); rX(PI / 2);
+        torus(0, 0, 0, rr, rr, th * 4.2f, 48, 5, 0, TAU, rgb, (int) (30 * k));   // the haze around it
+        torus(0, 0, 0, rr, rr, th, 72, 5, 0, TAU, rgb, (int) (110 * k));         // the band itself, faint
+        for (int q = 0; q < 3; q++) {   // bright arcs chasing each other round it
+            float a0 = fract(t * .13f + q / 3f) * TAU;
+            float br = .55f + .45f * gs(t * 1.1f + q * 2f);
+            torus(0, 0, 0, rr, rr, th * 1.8f, 16, 5, a0, a0 + TAU * .1f, ADM_PALE, (int) (225 * br * k));
+            torus(0, 0, 0, rr, rr, th * 3.4f, 16, 5, a0, a0 + TAU * .1f, rgb, (int) (70 * br * k));
         }
+        pop();
     }
 
     /**
