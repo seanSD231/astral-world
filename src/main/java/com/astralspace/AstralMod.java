@@ -55,6 +55,12 @@ public class AstralMod {
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onRespawn);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onDimension);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onHurt);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(SetEffects::onDeal);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(SetEffects::onTake);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(SetEffects::onHeal);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(SetEffects::onKill);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(SetEffects::tick);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(SetEffects::onLogout);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
             (net.neoforged.neoforge.event.RegisterCommandsEvent e) -> ArtifactCommands.register(e.getDispatcher()));
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(DoorEyes::tickBursts);

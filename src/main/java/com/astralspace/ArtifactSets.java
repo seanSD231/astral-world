@@ -11,36 +11,40 @@ import java.util.Map;
 import com.astralspace.Artifacts.Stat;
 
 /**
- * The sets, and what wearing two or four of one pays.
+ * The sets: what two pieces pay, and what four pieces do.
  *
- * <p>Most are the pathways, so a set reads as a way of fighting rather than a pile of numbers: the
- * Sun burns and holds its ground, the Assassin wants a knife in the dark, the Sleepless never runs
- * out. A few more are drawn from this mod's own corners.</p>
+ * <p>Two pieces is a number -- crit, attack, health, defence -- because a half set should be a
+ * small legible push in one direction and nothing more. Four pieces is a mechanic: something that
+ * watches what you do and answers it, so the set changes how you fight rather than what your sheet
+ * says. The mechanics themselves live in {@link SetEffects}; what is kept here is the name of one
+ * and the line that describes it.</p>
  *
- * <p>Bonuses are stats, not scripts. A stat is a number that stacks cleanly with everything else in
- * the game, survives a reload and can be shown to the player, and a four-piece worth having can be
- * written as one. Keeping them to stats also means a set never half-works because some other mod
- * got to the event first.</p>
+ * <p>They are named for organisations and for Beyonder practice rather than for pathways. A pathway
+ * already has a card and a hologram of its own, and naming a set after one says nothing about what
+ * wearing it does. A church, a school of thought or a habit of mind does: the Evernight fights in
+ * the dark, Steam takes a beating and gives it back, the Acting Method only works for as long as
+ * nobody has laid a finger on you.</p>
  */
 public final class ArtifactSets {
     private ArtifactSets() { }
 
-    /** A set: the pathway it belongs to, what it is called, and what it pays at two and at four. */
+    /**
+     * A set. {@code pathway} is only where its colour and its symbol come from, so the menu has
+     * something to draw with; it says nothing about what the set is for.
+     */
     public record Set(String id, String pathway, String title, String flavour,
-                      Map<Stat, Double> two, Map<Stat, Double> four) {
+                      Map<Stat, Double> two, String four, String fourText) {
         public int colour() { return Pathways.colour(pathway); }
-        /** The pathway symbol already in the mod, used as the face of the set in the menu. */
         public String symbol() { return "sym_" + pathway; }
-        public String twoLine() { return line(two); }
-        public String fourLine() { return line(four); }
-        private static String line(Map<Stat, Double> m) {
+        public String twoLine() {
             StringBuilder b = new StringBuilder();
-            for (var e : m.entrySet()) {
+            for (var e : two.entrySet()) {
                 if (b.length() > 0) b.append(", ");
                 b.append(e.getKey().line(e.getValue()));
             }
             return b.toString();
         }
+        public String fourLine() { return fourText; }
     }
 
     private static final Map<String, Set> SETS = new LinkedHashMap<>();
@@ -52,76 +56,73 @@ public final class ArtifactSets {
         return out;
     }
 
-    private static void set(String pathway, String title, String flavour,
-                            Map<Stat, Double> two, Map<Stat, Double> four) {
-        Set s = new Set(pathway, pathway, title, flavour, two, four);
-        SETS.put(pathway, s);
+    private static void set(String id, String pathway, String title, String flavour,
+                            Map<Stat, Double> two, String fourText) {
+        Set s = new Set(id, pathway, title, flavour, two, id, fourText);
+        SETS.put(id, s);
         ORDER.add(s);
     }
 
     static {
-        // ---- one for each of the twenty-two pathways, keyed by the same ids the rest of the mod uses ----
-        set("seer", "Mask of the Fool", "Every part is a part you can play.",
-            m(Stat.ABILITY_DUR, .15), m(Stat.ABILITY_POWER, .18, Stat.COOLDOWN, .08));
-        set("apprentice", "Lintel of the Door", "Arriving is the whole of the trick.",
-            m(Stat.SPEED_PCT, .12), m(Stat.COOLDOWN, .18, Stat.SPEED_PCT, .08));
-        set("marauder", "Ledger of the Error", "Someone always pays, and it is rarely you.",
-            m(Stat.CRIT_RATE, .08), m(Stat.CRIT_DMG, .30));
-        set("spectator", "Dream of the Visionary", "Everyone agrees, eventually.",
-            m(Stat.ABILITY_AREA, .18), m(Stat.ABILITY_AREA, .20, Stat.ABILITY_DUR, .16));
-        set("bard", "Crown of the Sun", "Nothing unclean stands in the light.",
-            m(Stat.ATK_PCT, .14), m(Stat.ABILITY_POWER, .14, Stat.HP_PCT, .12));
-        set("sailor", "Tide of the Tyrant", "The sea does not negotiate.",
-            m(Stat.ATK_PCT, .14), m(Stat.ATK_PCT, .14, Stat.ABILITY_AREA, .20));
-        set("monster", "Turn of the White Tower", "Luck is a thing that can be taken.",
-            m(Stat.CRIT_RATE, .08), m(Stat.CRIT_RATE, .12, Stat.ABILITY_RESIST, .14));
-        set("sleepless", "Veil of Darkness", "What is not seen is not stopped.",
-            m(Stat.SPIRIT_REGEN, .18), m(Stat.ABILITY_POWER, .16, Stat.SPIRIT_COST, -.12));
-        set("corpse_collector", "Pall of Death", "An ending, arranged.",
-            m(Stat.ATK_PCT, .14), m(Stat.CRIT_DMG, .24, Stat.ABILITY_POWER, .10));
-        set("warrior", "Mail of the Twilight Giant", "Older than the walls, and still standing.",
-            m(Stat.DEF_PCT, .20), m(Stat.HP_PCT, .18, Stat.ABILITY_RESIST, .14));
-        set("assassin", "Dance of the Demoness", "Change the rules while they read them.",
-            m(Stat.CRIT_RATE, .08), m(Stat.CRIT_DMG, .26, Stat.SPEED_PCT, .08));
-        set("criminal", "Brand of the Red Priest", "Burn it down and see what stands.",
-            m(Stat.ATK_PCT, .14), m(Stat.ATK_PCT, .20, Stat.CRIT_DMG, .14));
-        set("secrets_supplicant", "Chains of the Hanged Man", "Borne, because someone has to bear it.",
-            m(Stat.HP_PCT, .16), m(Stat.ABILITY_RESIST, .16, Stat.DEF_PCT, .14));
-        set("planter", "Bloom of the Mother", "Everything grows back.",
-            m(Stat.HP_PCT, .16), m(Stat.HP_PCT, .18, Stat.SPIRIT_REGEN, .22));
-        set("apothecary", "Phase of the Moon", "It comes round whether you watch or not.",
-            m(Stat.SPIRIT_MAX, 160), m(Stat.SPIRIT_REGEN, .20, Stat.HP_PCT, .14));
-        set("prisoner", "Hunger of the Abyss", "It eats, and it is never finished.",
-            m(Stat.ABILITY_POWER, .14), m(Stat.ABILITY_POWER, .18, Stat.SPIRIT_REGEN, .20));
-        set("hunter", "Wheel of the Paragon", "Turn it far enough and it comes out right.",
-            m(Stat.CRIT_RATE, .08), m(Stat.CRIT_RATE, .10, Stat.CRIT_DMG, .18));
-        set("reader", "Seal of the Black Emperor", "Everything spoken, kept.",
-            m(Stat.SPIRIT_MAX, 160), m(Stat.ABILITY_POWER, .16, Stat.COOLDOWN, .10));
-        set("savant", "Lamp of the Hermit", "Knowing the word is most of the work.",
-            m(Stat.SPIRIT_MAX, 160), m(Stat.SPIRIT_COST, -.16, Stat.ABILITY_POWER, .12));
-        set("arbiter", "Scales of the Justiciar", "Weighed, and found wanting.",
-            m(Stat.DEF_PCT, .20), m(Stat.ATK_PCT, .16, Stat.ABILITY_RESIST, .12));
-        set("lawyer", "Links of the Chained", "Held down is not the same as held.",
-            m(Stat.DEF_PCT, .20), m(Stat.ABILITY_RESIST, .20, Stat.HP_PCT, .12));
-        set("mystery_pryer", "Silence of the Mystery Pryer", "Ask quietly. Ask once.",
-            m(Stat.ABILITY_DUR, .15), m(Stat.ABILITY_POWER, .14, Stat.ABILITY_DUR, .14));
+        set("evernight", "sleepless", "Rite of the Evernight",
+            "She watches at night, and so do they.",
+            m(Stat.CRIT_RATE, .12),
+            "Your blows mark what they land on. Killing something marked gives back spirituality and hides you for two seconds.");
 
-        // ---- and four from this mod's own corners, each borrowing a pathway's colour ----
-        set2("tingen", "monster", "Soot of Tingen", "A city that keeps its own counsel.",
-            m(Stat.DEF_PCT, .18), m(Stat.HP_PCT, .14, Stat.COOLDOWN, .10));
-        set2("arena", "warrior", "Honour of the Arena", "Won in front of witnesses.",
-            m(Stat.ATK_PCT, .14), m(Stat.CRIT_RATE, .10, Stat.ATK_PCT, .14));
-        set2("cosmos", "spectator", "Drift of the Cosmos", "Very far away, and not indifferent.",
-            m(Stat.ABILITY_AREA, .18), m(Stat.ABILITY_POWER, .14, Stat.ABILITY_AREA, .16));
-        set2("masquerade", "assassin", "Grace of the Masquerade", "Nobody here is anybody.",
-            m(Stat.SPEED_PCT, .12), m(Stat.CRIT_DMG, .20, Stat.ABILITY_DUR, .12));
-    }
+        set("storms", "sailor", "Hymn of the Storms",
+            "Nobody argues with the weather.",
+            m(Stat.ATK_PCT, .18),
+            "Every ten seconds your next blow calls lightning down on it. Standing in water halves the wait.");
 
-    private static void set2(String id, String pathway, String title, String flavour,
-                             Map<Stat, Double> two, Map<Stat, Double> four) {
-        Set s = new Set(id, pathway, title, flavour, two, four);
-        SETS.put(id, s);
-        ORDER.add(s);
+        set("steam", "savant", "Gearwork of Steam",
+            "Pressure is only a problem if it has nowhere to go.",
+            m(Stat.DEF_PCT, .22),
+            "Being hurt builds pressure. At five your next blow vents it as a shockwave, and leaves you quick for four seconds.");
+
+        set("acting", "seer", "The Acting Method",
+            "Be the part. Nobody looks for the man under it.",
+            m(Stat.CRIT_DMG, .28),
+            "Eight seconds untouched and you are in the role: a third more damage, until something lands on you.");
+
+        set("harvest", "planter", "Mother's Harvest",
+            "Stand still long enough and you belong to the ground.",
+            m(Stat.HP_PCT, .20),
+            "Stand still two seconds to root: healing over time and a great deal of defence, until you move.");
+
+        set("ledger", "reader", "Wisdom's Ledger",
+            "It is all written down, and it is all read back.",
+            m(Stat.SPIRIT_MAX, 220),
+            "Every blow is recorded. A different kind of blow within six seconds hits a quarter harder; repeating yourself does nothing.");
+
+        set("alchemy", "apothecary", "Psychology Alchemy",
+            "A mind is a thing you can put in a bottle.",
+            m(Stat.ABILITY_POWER, .16),
+            "Healing, given or taken, turns into ability power for eight seconds. It stacks.");
+
+        set("fog", "monster", "The Grey Fog",
+            "Somewhere above all of it, and quite unbothered.",
+            m(Stat.COOLDOWN, .16),
+            "Falling under half your health puts the fog round you: a step clear, and a second and a half nobody can touch you. Once a minute.");
+
+        set("thread", "mystery_pryer", "Spirit Thread",
+            "0-08. It was sealed for a reason.",
+            m(Stat.ABILITY_AREA, .20),
+            "What you hit is threaded to what else you have hit, for six seconds. A fifth of what you deal to one is dealt to the rest.");
+
+        set("control", "criminal", "Loss of Control",
+            "It is not that you cannot stop. It is that you will not.",
+            m(Stat.CRIT_RATE, .12),
+            "Under two fifths of your health: half again the attack, and half the healing.");
+
+        set("tarot", "spectator", "The Tarot Club",
+            "Above the fog, under false names, trading what cannot be bought.",
+            m(Stat.SPIRIT_REGEN, .22),
+            "Every twenty seconds your next blow strikes for a third more and gives you back a good deal of spirituality.");
+
+        set("ascetic", "warrior", "The Moses Ascetic Order",
+            "Faith is what is left when everything else has been taken away.",
+            m(Stat.ABILITY_RESIST, .18),
+            "Below half health you take a fifth less from everything, and mend a little every second you stay there.");
     }
 
     public static Set get(String id) { return SETS.get(id); }
@@ -142,14 +143,13 @@ public final class ArtifactSets {
         return out;
     }
 
-    /** Everything the sets being worn pay out, added together. */
+    /** Only the two-piece halves are stats. The four-piece halves are mechanics and are not added up here. */
     public static Map<Stat, Double> bonuses(ItemStack[] worn) {
         EnumMap<Stat, Double> out = new EnumMap<>(Stat.class);
         for (var e : counts(worn).entrySet()) {
             Set s = SETS.get(e.getKey());
-            if (s == null) continue;
-            if (e.getValue() >= 2) for (var b : s.two().entrySet()) out.merge(b.getKey(), b.getValue(), Double::sum);
-            if (e.getValue() >= 4) for (var b : s.four().entrySet()) out.merge(b.getKey(), b.getValue(), Double::sum);
+            if (s == null || e.getValue() < 2) continue;
+            for (var b : s.two().entrySet()) out.merge(b.getKey(), b.getValue(), Double::sum);
         }
         return out;
     }
