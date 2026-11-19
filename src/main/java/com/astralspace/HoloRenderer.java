@@ -1857,9 +1857,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float gy = CY + 2.4f * S, gr = 4f * S;
         pushFace(); tr(0, gy, -1f * S);
         ring(gr, .24f * S, metal(.7f), 255); ring(gr * .82f, .08f * S, mix(P1, 0xFFFFFF, .3f), 255);
-        for (int i = 0; i < 24; i++) { float a = i * TAU / 24; box(gc(a) * gr * .91f, gs(a) * gr * .91f, 0, .05f * S, (i % 2 == 0 ? .4f : .22f) * S, .05f * S, mix(P1, 0xFFFFFF, .3f), 255); }
         pop();
-        bb("glow", gx(0, -1f * S), gy, gz(0, -1f * S), 12f * S, 12f * S, 0, rgba(0xFFFFFF, .4f));
         float kl = 7f * S, sw = gs(t * .4f) * .08f;
         pushFace(); tr(0, .8f * S, 0); rZ(sw);
         frustum(0, kl, .18f * S, .18f * S, 12, 1, 1, metal(.8f), 255, true);
@@ -1867,7 +1865,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         push(); tr(0, kl + 1.2f * S, 0); torus(0, 0, 0, 1.2f * S, 1.2f * S, .22f * S, 24, 6, 0, TAU, metal(.85f), 255); torus(0, 0, 0, .8f * S, .8f * S, .08f * S, 24, 4, 0, TAU, mix(P1, 0xFFFFFF, .5f), 255); pop();
         for (int k = 0; k < 3; k++) box(.7f * S, (.08f + .07f * k) * kl, 0, .7f * S, .18f * S, .13f * S, metal(.8f), 255);
         pop();
-        for (int k = 0; k < 7; k++) bb("rays", 0, gy, 0, R * 2.4f, R * 2.4f, t * (.04f + .02f * k) * (k % 2 == 0 ? 1 : -1), rgba(SPECTRUM[k], .2f));   // coloured light streaming out of the key
         for (int i = 0; i < 46; i++) { float a = h(i, 71) * TAU + t * .05f, r = R * (.15f + .8f * h(i, 72)), y = 1f * S + h(i, 73) * top, tw = .6f + .4f * gs(t * 1.5f + i); bb("glow", gc(a) * r, y, gs(a) * r, 3.2f * S, 3.2f * S, 0, rgba(SPECTRUM[i % 7], .5f * tw)); bb("mote", gc(a) * r, y, gs(a) * r, .3f * S, .3f * S, 0, rgba(0xFFFFFF, tw)); }
         for (int i = 0; i < 7; i++) { float pw = fract(t * .2f + i / 7f); flat("ring", 0, .12f + i * .01f, 0, pw * 1.8f * R, 0, rgba(SPECTRUM[i], fd(pw))); }
         for (int k = 0; k < 7; k++) { float a = k * TAU / 7 + t * .1f; column("beam", gc(a) * R * .7f, 0, top * 1.2f, gs(a) * R * .7f, 1.0f * S, rgba(SPECTRUM[k], .35f)); }
@@ -1880,8 +1877,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
           push(); tr(0, ah, 0); torus(0, 0, 0, aw, aw, .55f * S, 20, 5, 0, PI, st2, 255); pop();
           for (int k = 0; k < 7; k++) { float a = PI * (k + .5f) / 7; box(gc(a) * aw, ah + gs(a) * aw, .5f * S, .18f * S, .18f * S, .1f * S, mix(SPECTRUM[k], 0xFFFFFF, .3f), 255); }
           pop();
-          stand("glow", gx(0, az), ah * .58f, gz(0, az), aw * 1.85f, ah * 1.16f, -face, rgba(0xFFFFFF, .5f));
-          stand("glow", gx(0, az), ah * .58f, gz(0, az), aw * 1.2f, ah * .8f, -face, rgba(0xFFFFFF, .6f)); }
+        }
         for (int i = 0; i < 7; i++) {   // seven locks round the rim, each turning open when its moment comes
             float a = i * TAU / 7 + .3f, rr = R * .92f, ly2 = 3.2f * S, q = fract(t * .08f + i / 7f);
             float open = q > .68f ? Math.min(1f, (q - .68f) / .14f) : 0f;
@@ -2309,7 +2305,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             // as an angle, so they hang at every height from the ground to over your head and out to
             // the dome, and the middle is never a thicket of them.
             float a = t * (.1f + .05f * h(i, 64)) * (i % 2 == 0 ? 1 : -1) + i * TAU / nf * 1.0f;
-            float el = (h(i, 66) - .35f) * 1.5f, d = R * (.85f + 2.4f * h(i, 62));
+            float el = (h(i, 66) - .35f) * 1.9f, d = R * (1.25f + 2.5f * h(i, 62));
             float r = d * (float) Math.cos(el), y = 1.0f * S + Math.max(0f, (float) Math.sin(el)) * d + h(i, 63) * 3f * S + (float) Math.sin(t * 1.3f + i) * .8f * S;
             int liq = m ? (i % 4 == 0 ? 0xC01020 : mix(hsv(h(i, 61), .8f), P1, .25f)) : (i % 2 == 0 ? P1 : mix(P1, P2, .5f));
             push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(t + i); rZ((float) Math.sin(t + i) * .3f);
@@ -2319,27 +2315,27 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int i = 0; i < (m ? 22 : 16); i++) {   // charts and dried leaves turning high up, so the sky has something in it
             int n2 = m ? 22 : 16;
             float a = t * .03f * (i % 2 == 0 ? 1 : -1) + i * TAU / n2, el = .25f + 1.0f * h(i, 240);
-            float d = R * (1.5f + 1.6f * h(i, 241)), r = d * (float) Math.cos(el), y = top * .4f + (float) Math.sin(el) * d;
+            float d = R * (2.1f + 1.9f * h(i, 241)), r = d * (float) Math.cos(el), y = top * .4f + (float) Math.sin(el) * d;
             standIn(i % 3 == 0 ? "page" : i % 3 == 1 ? "leaf" : "crescent", (float) Math.cos(a) * r, y, (float) Math.sin(a) * r,
                     (2.2f + 1.6f * h(i, 242)) * S, (2.2f + 1.6f * h(i, 242)) * S, rgba(i % 3 == 2 ? mix(P1, 0xFFFFFF, .5f) : 0xE8DCC0, .5f));
             bb("glow", (float) Math.cos(a) * r, y, (float) Math.sin(a) * r, 4f * S, 4f * S, 0, rgba(P1, .12f));
         }
         apothFurniture(m);
         for (int i = 0; i < (m ? 16 : 14); i++) {   // a ring of moon phases standing round the edge
-            int nph = m ? 16 : 14; float a = i * TAU / nph + t * .06f, r = R * 1.25f, py = 2.2f * S + (float) Math.sin(t * .8f + i) * .4f * S;
+            int nph = m ? 16 : 14; float a = i * TAU / nph + t * .06f, r = R * 2.1f, py = 2.2f * S + (float) Math.sin(t * .8f + i) * .4f * S;
             stand(i % 4 == 0 ? "disc" : "crescent", (float) Math.cos(a) * r, py, (float) Math.sin(a) * r, 1.8f * S, 1.8f * S, -a + PI / 2, rgba(mix(P1, 0xFFFFFF, .5f), .9f));
             bb("glow", (float) Math.cos(a) * r, py, (float) Math.sin(a) * r, 3.2f * S, 3.2f * S, 0, rgba(P1, .25f));
         }
         if (!m) {
-            float cs = .6f * S; push(); tr(gx(0, R * .42f), 0, gz(0, R * .42f)); cauldron(cs, mix(P3, 0x000000, .55f), P1); pop();
-            for (int i = 0; i < 6; i++) { float p = fract(t * .4f + h(i, 71)); bb("drop", gx(0, R * .42f) + (h(i, 72) - .5f) * cs, cs * .85f + p * 2.4f * S, gz(0, R * .42f) + (h(i, 73) - .5f) * cs, .3f * S, .3f * S, 0, rgba(P1, fd(p))); }
+            float cs = .6f * S; push(); tr(gx(0, R * 1.0f), 0, gz(0, R * 1.0f)); cauldron(cs, mix(P3, 0x000000, .55f), P1); pop();
+            for (int i = 0; i < 6; i++) { float p = fract(t * .4f + h(i, 71)); bb("drop", gx(0, R * 1.0f) + (h(i, 72) - .5f) * cs, cs * .85f + p * 2.4f * S, gz(0, R * 1.0f) + (h(i, 73) - .5f) * cs, .3f * S, .3f * S, 0, rgba(P1, fd(p))); }
             for (int i = 0; i < 5; i++) { float a = -t * (.5f + .2f * h(i, 81)) + i * TAU / 5, r = R * (.4f + .4f * h(i, 82)), y = top * (.35f + .4f * h(i, 83)); push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(-a); bat(.4f * S, t * 9f + i); pop(); }
             sprites("star", 20, FALLM, R, 0, top, .5f * S, 0xFFFFFF, 1f, .3f, 78, true);
         }
         if (m) {
-            float cs = .55f * S; push(); tr(gx(0, R * .42f), 0, gz(0, R * .42f)); cauldron(cs, mix(P3, 0x000000, .55f), 0xC01020); pop();   // a bubbling blood cauldron
-            for (int i = 0; i < 12; i++) { float p = fract(t * .4f + h(i, 71)); bb("drop", gx(0, R * .42f) + (h(i, 72) - .5f) * cs, cs * .85f + p * 3f * S, gz(0, R * .42f) + (h(i, 73) - .5f) * cs, .35f * S, .35f * S, 0, rgba(0xC01020, fd(p))); }
-            bb("glow", gx(0, R * .42f), cs * .9f, gz(0, R * .42f), 2.4f * S, 2.4f * S, 0, rgba(0xC01020, .5f));
+            float cs = .55f * S; push(); tr(gx(0, R * 1.0f), 0, gz(0, R * 1.0f)); cauldron(cs, mix(P3, 0x000000, .55f), 0xC01020); pop();   // a bubbling blood cauldron
+            for (int i = 0; i < 12; i++) { float p = fract(t * .4f + h(i, 71)); bb("drop", gx(0, R * 1.0f) + (h(i, 72) - .5f) * cs, cs * .85f + p * 3f * S, gz(0, R * 1.0f) + (h(i, 73) - .5f) * cs, .35f * S, .35f * S, 0, rgba(0xC01020, fd(p))); }
+            bb("glow", gx(0, R * 1.0f), cs * .9f, gz(0, R * 1.0f), 2.4f * S, 2.4f * S, 0, rgba(0xC01020, .5f));
             for (int i = 0; i < 12; i++) {   // vampire bats circling the moon
                 float a = -t * (.5f + .2f * h(i, 81)) + i * TAU / 12, r = R * (.5f + .5f * h(i, 82)), y = top * (.45f + .45f * h(i, 83)) + (float) Math.sin(t * 2 + i) * S;
                 push(); tr((float) Math.cos(a) * r, y, (float) Math.sin(a) * r); rY(-a); bat(.5f * S, t * 9f + i); pop(); }
@@ -2347,7 +2343,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             sprites("drop", 40, FALLM, R, 0, top, .5f * S, 0xB01020, 1f, .35f, 77, false);
         }
         for (int i = 0; i < (m ? 14 : 12); i++) {   // the Moon's own things round the edge: vampires' coffins standing open a crack, and altars where a crimson crescent turns over moonflowers
-            int n2 = m ? 14 : 12; float a = i * TAU / n2 + .2f, r = R * .82f, cxp = gc(a) * r, czp = gs(a) * r; int wood = 0x2A1810, trim = mix(0xC8A040, P1, .2f), crim = 0xC01828;
+            int n2 = m ? 14 : 12; float a = i * TAU / n2 + .2f, r = R * 1.5f, cxp = gc(a) * r, czp = gs(a) * r; int wood = 0x2A1810, trim = mix(0xC8A040, P1, .2f), crim = 0xC01828;
             push(); tr(cxp, 0, czp); rY(-a + PI / 2);
             if (i % 2 == 0) {
                 rX(-.12f);
@@ -2383,7 +2379,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         int wood = 0x3A2A1E, woodD = 0x241810, glass = 0xC8D8E0;
         int nb = m ? 8 : 6;
         for (int i = 0; i < nb; i++) {
-            float a = i * TAU / nb + .35f, rr = R * .94f;   // right back against the wall: at .55R the benches walled the middle in
+            float a = i * TAU / nb + .35f, rr = R * 1.6f;   // right out against the wall of the sphere
             push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2);
             box(0, .9f * S, 0, 1.5f * S, .09f * S, .45f * S, wood, 255);                                  // the bench top
             for (int l = -1; l <= 1; l += 2) box(l * 1.35f * S, .45f * S, 0, .11f * S, .45f * S, .4f * S, woodD, 255);
@@ -2697,32 +2693,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             push(); tr((float) Math.cos(a) * rr, L * .9f, (float) Math.sin(a) * rr); rY(-a); rZ(PI + .1f + .12f * h(i, 6)); drawGeo(sp[v], "lotm", spt[v], L); pop(); }   // point down, in the ground
         if (N == 2) {   // Seq 0: an army's camp. War banners round the rim and a thinner field of blades.
             int gold2 = mix(0xC8A040, P1, .25f);
-            for (int i = 0; i < 8; i++) {
-                // The banner hangs from the crossbar it is nailed to, squarely in front of its own
-                // pole. It used to be pushed a block and a third off to one side with a gold hem on
-                // only one edge, which is why it read as flapping loose of the staff.
-                float a = i * TAU / 8 + .3f, rr = R * 1.06f, ph = top * .78f;
-                push(); tr(gc(a) * rr, 0, gs(a) * rr); rY(-a + PI / 2); rZ((h(i, 180) - .5f) * .06f);
-                frustum(0, ph, .15f * S, .1f * S, 8, 1, 1, 0x2A1C12, 255, true);                           // the pole
-                box(0, ph * .97f, 0, 1.25f * S, .07f * S, .07f * S, gold2, 255);                           // the crossbar, across the pole
-                for (int sd = -1; sd <= 1; sd += 2) sphere(sd * 1.25f * S, ph * .97f, 0, .11f * S, .11f * S, .11f * S, 4, 6, gold2, 255);
-                float bw = 1.15f, bh = ph * .052f;
-                for (int k = 0; k < 9; k++) {   // the cloth, hanging still: it was rippling, and twenty of them
-                                                // all waving at once was the busiest thing in the scene
-                    float ky = ph * .95f - k * bh * 2f, wv = gs(k * .7f + i * 2.1f) * .2f * S;
-                    float wd = bw * (1f - .035f * k);
-                    box(0, ky, wv, wd * S, bh, .05f * S, k % 2 == 0 ? mix(P2, 0x200804, .25f) : mix(P2, 0x401008, .15f), 255);
-                    for (int sd = -1; sd <= 1; sd += 2) box(sd * wd * S, ky, wv, .055f * S, bh, .055f * S, gold2, 255);   // a hem down both edges
-                }
-                float tipY = ph * .95f - 9 * bh * 2f, tw = gs(6.3f + i * 2.1f) * .2f * S;
-                for (int k = 0; k < 3; k++) box(0, tipY - k * bh, tw, bw * (.62f - .2f * k) * S, bh, .05f * S, gold2, 255);   // a tapered gold foot
-                push(); tr(0, ph * .62f, gs(i * 2.1f) * .2f * S + .06f * S); rX(-PI / 2);
-                flat("sun", 0, 0, 0, .78f * S, t * .1f, rgba(gold2, .95f)); pop();                         // the device on it
-                sphere(0, ph + .2f * S, 0, .18f * S, .26f * S, .18f * S, 5, 8, gold2, 255);
-                pop();
-                flameAt(gc(a) * rr, ph + .4f * S, gs(a) * rr, 1.6f * S, 40 + i, P2, P1, P3, .9f);          // the finial burning
-                bb("glow", gc(a) * rr, ph * .6f, gs(a) * rr, 6f * S, top * .6f, 0, rgba(P2, .1f));
-            }
+            // the war banners are gone: eight poles of cloth round the rim were the busiest
+            // thing in a scene that is supposed to read as a field of blades
+
             for (int i = 0; i < 8; i++) {   // blades driven into the ground, leaning every way
                 float a = i * TAU / 8 + .17f, rr = R * (.52f + .3f * h(i, 182)), L = (3.4f + 1.8f * h(i, 183)) * S;
                 push(); tr(gc(a) * rr, L * .88f, gs(a) * rr); rY(-a + h(i, 184) * 2f); rZ(PI + (h(i, 185) - .5f) * .3f);
@@ -3513,7 +3486,11 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             for (int k = 0; k < 4; k++) {   // bands of chain passing round the beam and the body, holding it against the wood
                 push(); tr(0, (24f + k * 6f) * P, 5.2f * P); rX(PI / 2);
                 torus(0, 0, 0, (5.4f - .3f * k) * P, (3.4f - .2f * k) * P, .95f * P, 18, 5, 0, TAU, iron, 255); pop(); }
-            push(); tr(0, 10f * P, 4.6f * P); rX(PI / 2); torus(0, 0, 0, 4.2f * P, 3f * P, 1f * P, 18, 5, 0, TAU, iron, 255); pop();   // and round the ankles above
+            // the legs, bound: one continuous run of links winding up them rather than a single
+            // hoop at the ankles, which read as a ring floating clear of him
+            push(); tr(0, 0, 4.6f * P);
+            chainWrap(8f * P, 26f * P, 5.6f * P, 3.6f * P, 3.2f, 1.5f * P);
+            pop();
             pop(); pop();
             // One great chain from the top of the cross right up to the roof of the sphere. It used to
             // stop at 1.18 of `top`, which is nowhere near it -- the dome is at four times the radius --

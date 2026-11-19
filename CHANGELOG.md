@@ -1,3 +1,10 @@
+## 0.2.351
+- Apothecary, both sequences: everything pushed out off the middle. The benches, the moon-phase ring, the coffins and altars, the cauldron, the flasks and the drifting charts all sit further out and over a wider spread of height, so the sphere is used rather than crowded at its centre.
+- The war banners are gone from Hunter 0. Eight poles of cloth round the rim were the busiest thing in a scene meant to read as a field of blades.
+- Key of Light: the seven square ray billboards, the twelve-block square glow over the gate, the two square glows behind the arch and the spoked ring are all gone.
+- The Hanged Man's legs are bound with a continuous run of links winding up them instead of one hoop at the ankles, which read as a ring floating clear of him.
+- The duel arena actually widens. The guard looked only at the middle block, so a platform built at the old radius was taken for a finished one and never rebuilt, and anyone walking out to where the floor should now be fell off the edge. It checks the rim too.
+
 ## 0.2.350
 - Every pack face redrawn from nothing at full size. They were all 564-pixel originals blown up to 1024, and no amount of sharpening puts back detail that was never there, which is why the lettering went soft and the ring of symbols went to mush. The frame, the banner, the type, the ring, the medallion and the plates are all drawn at 1024 now, so every edge is as crisp as the canvas allows.
 - The layout is deliberately unchanged, down to the centre and the ring radius, because the pack is drawn into a fixed rectangle in the GUI and anything that moved would have to be chased in the Java too. Only the quality changes.

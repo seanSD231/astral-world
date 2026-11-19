@@ -94,7 +94,12 @@ public final class Duel {
     private static void buildArena(ServerLevel lv, int slot) {
         BlockPos c = centre(lv.getServer(), slot);
         BlockState mark = Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState();
-        if (lv.getBlockState(c).is(mark.getBlock())) return;
+        // The guard used to look only at the middle, so a platform built at the old radius was
+        // taken for a finished one and never widened -- and anyone walking out to where the floor
+        // should now be fell off the edge of it. Check the rim as well as the middle.
+        boolean rim = !lv.getBlockState(c.offset(ARENA_R - 2, 0, 0)).isAir()
+                   && !lv.getBlockState(c.offset(0, 0, ARENA_R - 2)).isAir();
+        if (lv.getBlockState(c).is(mark.getBlock()) && rim) return;
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (int dx = -ARENA_R - 3; dx <= ARENA_R + 3; dx++)
             for (int dz = -ARENA_R - 3; dz <= ARENA_R + 3; dz++) {
