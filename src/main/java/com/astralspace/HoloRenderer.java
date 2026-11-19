@@ -1008,6 +1008,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
     }
     private double ex, ey, ez;
+    private float camY;
     /** Top surface of the ground in the block column at x,z (searching near y), so flat things lie on the real terrain. */
     private double groundTop(int x, int y, int z) {
         net.minecraft.client.multiplayer.ClientLevel lv = Minecraft.getInstance().level;
@@ -1101,6 +1102,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
 
         Camera cam = Minecraft.getInstance().gameRenderer.getMainCamera();
         camDist = (float) cam.getPosition().distanceTo(e.getPosition(pt));
+        camY = (float) cam.getPosition().y;
         Vector3f left = cam.getLeftVector(), up = cam.getUpVector();
         rx = -left.x; ry = -left.y; rz = -left.z; ux = up.x; uy = up.y; uz = up.z;
         fyaw = (float) Math.toRadians(e.getYRot());
@@ -1218,19 +1220,18 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             }
         }
 
-        // The old pillars of light, at every distance round him -- but tipped a little off
-        // vertical instead of every one of them dropping dead straight down.
+        // pillars of light, falling the whole height of the sky at every distance round him
         for (int i = 0; i < 34; i++) {
             float ang = h(i, 580) * TAU + t * .006f, rr = R * (.45f + 3.4f * h(i, 581) * h(i, 582));
             float k2 = .35f + .65f * (.5f + .5f * gs(t * .28f + i * 1.9f));
             float wdt = (1.4f + 2.6f * h(i, 583)) * S;
-            float la = h(i, 584) * TAU, lean = .07f + .13f * h(i, 585);      // which way it tips, and how far
-            float dx = gc(la) * lean, dz = gs(la) * lean;
-            float x0 = gc(ang) * rr, z0 = gs(ang) * rr, hgt = top * 2.1f;
-            rayBeam("beam", x0, hgt, z0, dx, -1f, dz, hgt, wdt, rgba(ADM_WARM, .13f * k2));
-            rayBeam("beam", x0, hgt, z0, dx, -1f, dz, hgt, wdt * .3f, rgba(ADM_PALE, .2f * k2));
+            column("beam", gc(ang) * rr, 0, top * 2.1f, gs(ang) * rr, wdt, rgba(ADM_WARM, .13f * k2));
+            column("beam", gc(ang) * rr, 0, top * 2.1f, gs(ang) * rr, wdt * .3f, rgba(ADM_PALE, .2f * k2));
         }
-        flat("adm_rays", 0, top * 2.0f, 0, D * 1.3f, t * .01f, rgba(ADM_GOLD, .16f));
+        // The fan of rays over the sky, drawn only from below it. It is a hundred blocks across
+        // with a bright core, so looked down on it is a white sheet laid over the whole field.
+        if (camY < ey + top * 1.9f)
+            flat("adm_rays", 0, top * 2.0f, 0, D * 1.3f, t * .01f, rgba(ADM_GOLD, .16f));
 
         int slot = (int) Math.floor(t * .5f);
         if (h(slot, 600) < .2f) {   // light breaking through, now and then
@@ -1272,17 +1273,17 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void adminGround() {
         // The field is left as it is -- grass, no disc laid over it -- and the circles are drawn
         // on it with the same ring textures every other card's spell circle uses.
-        if (gold) flat("whirl", 0, .10f, 0, R * 9.2f, t * .06f, rgba(0xFFD448, .55f));
-        else flat("adm_sea", 0, .10f, 0, R * 9.2f, t * .06f, rgba(0xFFFFFF, .65f));
-        flat("ring_thick", 0, .17f, 0, R * 2.3f, t * .06f, rgba(ADM_GOLD, .7f));
-        flat("ring_dash", 0, .22f, 0, R * 1.8f, -t * .18f, rgba(ADM_PALE, .8f));
-        flat("adm_runes", 0, .27f, 0, R * 1.35f, t * .09f, rgba(ADM_GOLD, .7f));
-        flat("ring", 0, .32f, 0, R * .95f, -t * .3f, rgba(ADM_PALE, .8f));
+        if (gold) flat("whirl", 0, .10f, 0, R * 15f, t * .04f, rgba(0xFFD448, .55f));
+        else flat("adm_sea", 0, .10f, 0, R * 15f, t * .04f, rgba(0xFFFFFF, .65f));
+        flat("ring_thick", 0, .17f, 0, R * 4.2f, t * .06f, rgba(ADM_GOLD, .7f));
+        flat("ring_dash", 0, .22f, 0, R * 3.3f, -t * .18f, rgba(ADM_PALE, .8f));
+        flat("adm_runes", 0, .27f, 0, R * 2.5f, t * .09f, rgba(ADM_GOLD, .7f));
+        flat("ring", 0, .32f, 0, R * 1.7f, -t * .3f, rgba(ADM_PALE, .8f));
         for (int i = 0; i < 3; i++) {   // and light going out from the middle of it
             float pw = fract(t * .18f + i / 3f);
-            flat("ring", 0, .37f, 0, pw * R * 2.6f, 0, rgba(ADM_GOLD, fd(pw) * .8f));
+            flat("ring", 0, .37f, 0, pw * R * 4.6f, 0, rgba(ADM_GOLD, fd(pw) * .8f));
         }
-        float c = gc(t * .04f) * R * .3f, s2 = gs(t * .04f) * R * .3f;
+        float c = gc(t * .04f) * R * .55f, s2 = gs(t * .04f) * R * .55f;
         eq(ResourceLocation.fromNamespaceAndPath("lotm", "textures/effect/hanged_man_symbol.png"),
            0, .42f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .8f), 0, 0, 1, 1);
     }
@@ -1336,8 +1337,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         skinPart(sk, 0, 16, 4, 12, 4, -2, -18, 0, true, P, yB, 0f);         // right leg, up
         skinPart(sk, 16, 48, 4, 12, 4, 2, -18, 0, true, P, yB, 0f);         // left leg
 
-        chainWrap(yB + 10.5f * P, yB + 23f * P, 3.0f * P, 2.6f * P, 3.4f, 1.25f * P);  // the legs, roped together
-        chainWrap(yB - 7f * P, yB + 9f * P, 4.7f * P, 2.8f * P, 2.8f, 1.4f * P);       // and round the chest
+        chainWrap(yB + 10.5f * P, yB + 23f * P, 7.4f * P, 4.2f * P, 3.4f, 1.3f * P);   // the legs, roped together
+        chainWrap(yB - 7f * P, yB + 9f * P, 6.4f * P, 4.4f * P, 2.8f, 1.5f * P);       // and round the chest
 
         for (int sd = -1; sd <= 1; sd += 2) {
             // the wrist: a cuff round the arm, and the chain starting inside it rather than

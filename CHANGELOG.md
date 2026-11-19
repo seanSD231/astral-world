@@ -1,3 +1,9 @@
+## 0.2.348
+- The white square over Rupex's field was the fan of rays: a hundred-block quad with a bright core hung over the scene. Looked up at it is light through cloud; looked down on it is a sheet laid over everything. It is now drawn only from below it.
+- The field is much bigger: the swirl runs to fifteen times the scene radius and the spell circles are scaled with it.
+- The pillars of light are the old ones again, upright, exactly as they were.
+- The chains stopped sitting inside him. The wraps were drawn narrower than the body they go round — three skin-pixels across the legs, which are six — so the links were inside the model. Both wraps now clear it.
+
 ## 0.2.347
 - The singleplayer kick says "Astral World is a server pack" and nothing else.
 - Ten admin slots in the binder, not eleven.
