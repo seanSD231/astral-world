@@ -2867,15 +2867,29 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      */
     private void errorZero(float t0) {
         int PLAT = 0xF2F5FA, PUR = 0xBE78FF;   // (the dome went up at the top of error(), before everything it used to hide)
-        for (int i = 0; i < 26; i++) {   // the dome in panes, each slid out of true and flickering
-            float a = h(i, 300) * TAU, el = .08f + 1.25f * h(i, 301);
+        // Fog that stutters rather than panes that slide. Twenty-six pale slabs of "solid" hung on
+        // the dome read as grey clouds parked in the sky; soft fog with the same jitter on it keeps
+        // the broken-world feel without putting anything solid up there to look at.
+        floorFog(4, .7f, .62f, 0x2A1A46, .34f);
+        for (int i = 0; i < 34; i++) {
+            float a = h(i, 300) * TAU + t0 * .02f * (i % 2 == 0 ? 1 : -1), el = .04f + 1.1f * h(i, 301);
             int slot = (int) Math.floor(t0 * .8f + h(i, 302) * 7);
-            if (h(slot * 7 + i, 303) < .18f) continue;                                   // this pane is gone this moment
-            float jx = (h(slot * 3 + i, 304) - .5f) * .5f, jr = 1f + (h(slot * 5 + i, 305) - .5f) * .14f, sz = (9f + 7f * h(i, 306)) * S;
-            domeQuad("solid", R * 3.5f * jr, a + jx * .12f, el + jx * .06f, sz, sz * (.6f + .5f * h(i, 307)), h(i, 308) * PI,
-                     rgba(i % 4 == 0 ? PUR : PLAT, .2f + .2f * h(slot + i, 309)));
-            if (h(slot * 11 + i, 310) < .25f)
-                domeQuad("solid", R * 3.46f, a + jx * .12f, el + jx * .06f, sz * 1.04f, sz * .06f, h(i, 308) * PI, rgba(PLAT, .6f));   // the bright seam where it tore
+            if (h(slot * 7 + i, 303) < .14f) continue;                                   // this bank is gone this moment
+            float jx = (h(slot * 3 + i, 304) - .5f) * .5f, jr = 1f + (h(slot * 5 + i, 305) - .5f) * .1f;
+            float sz = (16f + 13f * h(i, 306)) * S;
+            domeQuad("fog", R * 3.3f * jr, a + jx * .1f, el + jx * .05f, sz, sz * (.4f + .3f * h(i, 307)), h(i, 308) * PI,
+                     rgba(i % 5 == 0 ? PUR : 0x3A2A62, .10f + .09f * h(slot + i, 309)));
+            if (h(slot * 11 + i, 310) < .22f)   // and the seam where it tears, still bright for a frame
+                domeQuad("solid", R * 3.26f, a + jx * .1f, el + jx * .05f, sz * .9f, sz * .035f, h(i, 308) * PI,
+                         rgba(PLAT, .45f));
+        }
+        for (int i = 0; i < 16; i++) {   // low fog crawling the floor, jittering with everything else
+            int slot = (int) Math.floor(t0 * 1.1f + h(i, 320) * 5);
+            float a = h(i, 321) * TAU + t0 * .05f + (h(slot + i, 322) - .5f) * .3f;
+            float rr = R * (.4f + 2.4f * h(i, 323));
+            bb("fog", gc(a) * rr, (.5f + 2.6f * h(i, 324)) * S, gs(a) * rr,
+               (13f + 9f * h(i, 325)) * S, (4f + 3f * h(i, 326)) * S, 0,
+               rgba(i % 4 == 0 ? PUR : 0x32245A, h(slot * 3 + i, 327) < .2f ? 0f : .13f));
         }
         for (int i = 0; i < 8; i++) {   // the theft of authority: a pathway's symbol slides in, shrinks, and a null is left hanging where it was
             float a = i * TAU / 8 + .2f, rr = R * .9f, y = 2.4f * S + 2.6f * S * (i % 3), q = t0 * .07f + i / 8f, ph = fract(q);

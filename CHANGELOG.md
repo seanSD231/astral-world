@@ -1,3 +1,6 @@
+## 0.2.353
+- Error 0 is foggy now. What read as grey clouds parked in the sky was the dome drawn as twenty-six pale slabs slid out of true; it is soft violet fog with the same stutter on it instead, banked over the dome and crawling the floor, with the bright seam still flashing for a frame where it tears. Nothing solid left up there to look at.
+
 ## 0.2.352
 - The artifact menu is the whole screen now rather than a window on it: a lit field with a drift of motes over it, slot tabs along the top with the worn piece's colour under each, every piece you own for the chosen slot laid out as a wall of tiles with its set's symbol behind it and its stars and level on it, and the one in hand written out in full down the right with the main stat large, the sub-stats with a pip per roll, and the set's two- and four-piece lines ticked green when they are actually paying. The sets paying out right now are listed along the top.
 - Dust of Enlightenment: rolls a piece's sub-stats again. How many it has and how many rolls have gone into each are both kept, so a piece carried to twenty does not lose what was spent getting it there — only which stats those rolls landed on and how high they came out. Spent from the menu; /artifact dust to get some.
