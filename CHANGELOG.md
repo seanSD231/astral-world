@@ -1,3 +1,8 @@
+## 0.2.329
+- The admin reveal's track runs 28 seconds instead of 7, so it keeps playing well after the card turns over.
+- The reveal has a lot more to it: rings closing in out of the dark before it is taken hold of, the pull growing and the shake quickening while it is held, sparks running down the straining links, a white frame and a shockwave sweeping out when the chains give, and the turn landing with an overshoot.
+- After it turns it sits burning: twelve long beams turning slowly behind it, a ring going out from it over and over, and embers rising off it, all of it running on to seven and a half seconds and fading out rather than stopping dead.
+
 ## 0.2.328
 - Rupex's rings aren't squares any more: the lights running round them were a fifth of the ring's radius across at full strength apiece, and seventy of them overlapping burned out into one white polygon. Small and faint now, so the ring reads as a line of light.
 - The rainbow runs from half way out to the wall of the sky, so it is the outer edge; the spell circles sit on bare grass inside it.

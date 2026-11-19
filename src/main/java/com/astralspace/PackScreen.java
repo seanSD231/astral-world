@@ -35,6 +35,9 @@ public final class PackScreen extends Screen {
     private final int[] gooStage;     // which sounds of a Great Old One reveal have played
     // Great Old One reveal, ms after the click: shake, turn gold, peel the gold away to show the pathway coloured back, hold, flip to the card
     private static final int G_GOLD = 650, G_PEEL = 1450, G_PEEL_END = 2250, G_FLIP = 2750, G_DONE = 3200, G_END = 3900;
+    // the admin reveal runs on well past the turn: the track keeps playing and the card sits in it
+    private static final int A_END = 7600;
+    private static float hs(int k) { int x = k * 374761393 + 668265263; x = (x ^ (x >> 13)) * 1274126177; return ((x ^ (x >> 16)) & 0xFFFFFF) / (float) 0xFFFFFF; }
 
     private PackScreen(String pack, String cards) {
         super(Component.literal("Tarot Pack"));
@@ -79,7 +82,7 @@ public final class PackScreen extends Screen {
     /** Which ordinary rarity shine its disguise wears (uncommon, rare or epic). */
     private int disguise(int i) { return 1 + Math.floorMod(path[i].hashCode() + i, 3); }
     private boolean turned(int i) { return bigReveal(i) ? gooFlipAt[i] >= 0 : flipAt[i] >= 0; }
-    private boolean cardDone(int i, long now) { return bigReveal(i) ? gooFlipAt[i] >= 0 && now - gooFlipAt[i] >= G_END - G_FLIP : flipAt[i] >= 0 && now - flipAt[i] >= 450; }
+    private boolean cardDone(int i, long now) { return bigReveal(i) ? gooFlipAt[i] >= 0 && now - gooFlipAt[i] >= (isAdmin(i) ? A_END : G_END) - G_FLIP : flipAt[i] >= 0 && now - flipAt[i] >= 450; }
     private void give(int i) { if (!pack.equals("view")) net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Net.PackRevealPayload(i)); }
     /**
      * The pouch art is 1024 square -- four megabytes of it once the driver has it -- and there are
@@ -306,13 +309,24 @@ public final class PackScreen extends Screen {
         float al = r[4] / 255f;
         int st = gooStage[i];
         if (st < 1 && t >= G_GOLD) { gooStage[i] = 1; ui(AstralSounds.ADMIN_REVEAL.get(), 1f, .85f); ui(SoundEvents.CHAIN_PLACE, .8f, 1f); }
-        if (st < 2 && t >= G_PEEL) { gooStage[i] = 2; ui(SoundEvents.CHAIN_BREAK, .7f, 1.1f); ui(SoundEvents.ANVIL_LAND, .8f, .5f); }
+        if (st < 2 && t >= G_PEEL) { gooStage[i] = 2; ui(SoundEvents.CHAIN_BREAK, .7f, 1.1f); ui(SoundEvents.ANVIL_LAND, .8f, .5f); ui(SoundEvents.TRIDENT_THUNDER, .9f, .45f); }
         if (st < 3 && t >= G_FLIP) { gooStage[i] = 3; ui(SoundEvents.TOTEM_USE, .8f, .8f); ui(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, .85f, .7f); }
+        if (st < 4 && t >= G_FLIP + 900) { gooStage[i] = 4; ui(SoundEvents.BEACON_ACTIVATE, 1.4f, .45f); }
 
         int x = r[0], y = r[1], w = r[2], h = r[3];
         float cx = x + w / 2f, cy = y + h / 2f;
 
-        // the rings of the card, opening out one after another once it has been taken hold of
+        // ---- before it is taken hold of: rings closing in on it out of the dark ----
+        if (t < G_GOLD) {
+            for (int k = 0; k < 4; k++) {
+                float p = fr((t - k * 150f) / 620f);
+                if (p <= 0 || p >= 1) continue;
+                float rad = w * (2.3f - 1.7f * p), a2 = p * p * .5f * al;
+                ringAt(g, cx, cy, rad, rad * .42f, 0x8E0A12, a2);
+            }
+        }
+
+        // ---- the rings of the card, opening out one after another once it is held ----
         if (t >= G_GOLD) {
             for (int k = 0; k < 3; k++) {
                 float p = (t - G_GOLD - k * 190f) / 900f;
@@ -327,13 +341,60 @@ public final class PackScreen extends Screen {
             float gp = Math.min(1f, Math.max(0f, t / (float) G_PEEL));
             int e = (int) (4 + gp * 20), a2 = (int) (gp * gp * 110 * al);
             g.fill(x - e, y - e, x + w + e, y + h + e, (a2 << 24) | 0x8E0A12); g.flush();
+            if (t >= G_GOLD) {   // it pulls harder the longer it is held
+                float pl = (t - G_GOLD) / (float) (G_PEEL - G_GOLD);
+                for (int k = 0; k < 10; k++) {
+                    double ang = k * Math.PI * 2 / 10 + t * .0013;
+                    float d1 = w * (1.9f - pl * .8f);
+                    rayAt(g, cx, cy, ang, w * .62f, d1, 0xE02030, pl * pl * .3f * al);
+                }
+            }
         } else if (t < G_FLIP) {
             float bp = (t - G_PEEL) / (float) (G_FLIP - G_PEEL);
             int e = (int) (10 + bp * 46), a2 = (int) ((1 - bp) * 150 * al);
             g.fill(x - e, y - e, x + w + e, y + h + e, (a2 << 24) | 0xE02030); g.flush();
+            // the shockwave of the chains letting go, sweeping out across everything
+            float sw = (t - G_PEEL) / 520f;
+            if (sw < 1) {
+                float rad = w * (.3f + sw * 7f);
+                ringAt(g, cx, cy, rad, rad * .55f, 0xFFF6D2, (1 - sw) * (1 - sw) * .8f * al);
+                ringAt(g, cx, cy, rad * .88f, rad * .48f, 0xE02030, (1 - sw) * (1 - sw) * .5f * al);
+            }
+            if (t - G_PEEL < 110) {   // the frame it gives
+                int fa = (int) ((1 - (t - G_PEEL) / 110f) * 200 * al);
+                g.fill(x - w * 2, y - h, x + w * 3, y + h * 2, (fa << 24) | 0xFFF6D2); g.flush();
+            }
         }
-        if (t >= G_FLIP + 220 && t < G_END) {
-            float bp = (t - G_FLIP - 220) / (float) (G_END - G_FLIP - 220);
+        // ---- after the turn: it sits burning in the light ----
+        if (t >= G_FLIP) {
+            float ap = Math.min(1f, (t - G_FLIP) / (float) (A_END - G_FLIP));
+            float fade = Math.min(1f, (1 - ap) * 2.4f);
+            if (t - G_FLIP < 130) {
+                int fa = (int) ((1 - (t - G_FLIP) / 130f) * 215 * al);
+                g.fill(x - w * 2, y - h, x + w * 3, y + h * 2, (fa << 24) | 0xFFF6D2); g.flush();
+            }
+            for (int k = 0; k < 12; k++) {   // long beams turning slowly behind it
+                double ang = k * Math.PI * 2 / 12 + t * .00035;
+                float pul = .55f + .45f * (float) Math.sin(t * .0022 + k);
+                rayAt(g, cx, cy, ang, w * .6f, w * (1.3f + 1.1f * pul), 0xFFD24A, .16f * pul * fade * al);
+            }
+            float ring = fr(((t - G_FLIP) % 1700) / 1700f);   // a ring going out from it, over and over
+            float rad = w * (.5f + ring * 1.9f);
+            ringAt(g, cx, cy, rad, rad * .42f, 0xFFF6D2, (1 - ring) * (1 - ring) * .4f * fade * al);
+            for (int k = 0; k < 26; k++) {   // embers going up off it
+                float sp = .35f + hs(k * 3) * .5f;
+                float ep = fr(((t - G_FLIP) * .00045f * sp + hs(k * 3 + 1)));
+                float ex = cx + (hs(k * 3 + 2) - .5f) * w * 2.1f + (float) Math.sin(t * .001 + k) * w * .07f;
+                float ey = cy + h * .75f - ep * h * 1.9f;
+                int sz = ep < .7f ? 2 : 1;
+                int ea = (int) (Math.min(1f, (1 - ep) * 2.2f) * 190 * fade * al);
+                if (ea > 3) { g.fill((int) ex - sz, (int) ey - sz, (int) ex + sz, (int) ey + sz,
+                                     (ea << 24) | (k % 3 == 0 ? 0xFFF6D2 : 0xFFD24A)); }
+            }
+            g.flush();
+        }
+        if (t >= G_FLIP + 220 && t < G_DONE + 700) {
+            float bp = (t - G_FLIP - 220) / (float) (G_DONE + 700 - G_FLIP - 220);
             int e = (int) (8 + bp * 60), a2 = (int) ((1 - bp) * 150 * al);
             g.fill(x - e, y - e, x + w + e, y + h + e, (a2 << 24) | 0xFFD24A); g.flush();
             for (int k = 0; k < 18; k++) {   // rays of gold going out from it
@@ -347,16 +408,25 @@ public final class PackScreen extends Screen {
         g.setColor(1, 1, 1, al);
         g.pose().pushPose();
         g.pose().translate(cx, cy, 0);
-        float sx = 1f; boolean front = false;
+        float sx = 1f, sy = 1f; boolean front = false;
         if (t < G_FLIP) {
             float amp = Math.min(1f, t / 500f) * (t < G_PEEL ? 1f : Math.max(0f, 1f - (t - G_PEEL) / 260f));
-            g.pose().mulPose(Axis.ZP.rotationDegrees((float) Math.sin(t * 0.07) * 3.2f * amp));
-            g.pose().translate((float) Math.sin(t * 0.11) * 2.4f * amp, (float) Math.cos(t * 0.09) * 1.3f * amp, 0);
+            // the shake tightens and quickens as it is held, and it is drawn a little closer
+            float rate = .07f + (t < G_PEEL ? Math.max(0f, (t - G_GOLD) / (float) (G_PEEL - G_GOLD)) * .06f : 0f);
+            g.pose().mulPose(Axis.ZP.rotationDegrees((float) Math.sin(t * rate) * 3.2f * amp));
+            g.pose().translate((float) Math.sin(t * (rate + .04f)) * 2.4f * amp, (float) Math.cos(t * .09) * 1.3f * amp, 0);
+            if (t >= G_GOLD && t < G_PEEL) sx = sy = 1f + .09f * (t - G_GOLD) / (float) (G_PEEL - G_GOLD);
+            else if (t >= G_PEEL) sx = sy = 1.09f - .09f * Math.min(1f, (t - G_PEEL) / 300f);
         } else {
             float fp = Math.min(1f, (t - G_FLIP) / 450f);
             sx = (float) Math.abs(Math.cos(Math.PI * fp)); front = fp >= 0.5f;
+            if (fp >= 1f) {   // it overshoots on the way in and settles
+                float op = Math.min(1f, (t - G_FLIP - 450) / 520f);
+                float k2 = (float) (Math.sin(op * Math.PI) * (1 - op) * .17f);
+                sx = 1f + k2; sy = 1f + k2;
+            } else sy = 1f;
         }
-        g.pose().scale(Math.max(0.02f, sx), 1f, 1);
+        g.pose().scale(Math.max(0.02f, sx), sy, 1);
         g.pose().translate(-cx, -cy, 0);
         blend();
         if (front) {
@@ -381,17 +451,31 @@ public final class PackScreen extends Screen {
                 double ang = Math.PI / 4 + k * Math.PI / 2;
                 chainTo(g, cx, cy, ang, w * .62f + slack, w * .18f, al);
             }
+            if (t >= G_GOLD) {   // sparks running down the links as they strain
+                float pl = (t - G_GOLD) / (float) (G_PEEL - G_GOLD);
+                for (int k = 0; k < 8; k++) {
+                    double ang = Math.PI / 4 + (k / 2) * Math.PI / 2;
+                    float d = w * .18f + (w * .62f - w * .18f) * fr(hs(k) + t * .0012f * (1 + hs(k + 9)));
+                    int px = (int) (cx + Math.cos(ang) * d), py = (int) (cy + Math.sin(ang) * d);
+                    g.fill(px - 1, py - 1, px + 2, py + 2, (((int) (pl * 220 * al)) << 24) | 0xFFC256);
+                }
+                g.flush();
+            }
         } else if (t < G_FLIP) {   // the links fly apart
             float bp = (t - G_PEEL) / (float) (G_FLIP - G_PEEL);
-            for (int k = 0; k < 14; k++) {
-                double ang = k * Math.PI * 2 / 14 + k;
-                float d = w * (.2f + bp * 1.1f), sz = Math.max(1f, w * .05f * (1 - bp));
+            for (int k = 0; k < 22; k++) {
+                double ang = k * Math.PI * 2 / 22 + k;
+                float sp2 = .7f + hs(k) * .8f;
+                float d = w * (.2f + bp * 1.1f * sp2), sz = Math.max(1f, w * .05f * (1 - bp));
                 int px = (int) (cx + Math.cos(ang) * d), py = (int) (cy + Math.sin(ang) * d * .9f + bp * bp * h * .25f);
                 g.fill(px - (int) sz, py - (int) sz, px + (int) sz, py + (int) sz,
-                       (((int) ((1 - bp) * 230 * al)) << 24) | 0x1C1A22); g.flush();
+                       (((int) ((1 - bp) * 230 * al)) << 24) | 0x1C1A22);
             }
+            g.flush();
         }
     }
+
+    private static float fr(float v) { return v - (float) Math.floor(v); }
 
     /** A thin bright ellipse, drawn as a run of short bars round it. */
     private void ringAt(GuiGraphics g, float cx, float cy, float rx, float ry, int rgb, float a) {
