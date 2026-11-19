@@ -1,3 +1,6 @@
+## 0.2.330
+- Build fix: TRIDENT_THUNDER is a Holder, not a SoundEvent.
+
 ## 0.2.329
 - The admin reveal's track runs 28 seconds instead of 7, so it keeps playing well after the card turns over.
 - The reveal has a lot more to it: rings closing in out of the dark before it is taken hold of, the pull growing and the shake quickening while it is held, sparks running down the straining links, a white frame and a shockwave sweeping out when the chains give, and the turn landing with an overshoot.
