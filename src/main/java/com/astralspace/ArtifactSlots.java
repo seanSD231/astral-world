@@ -91,9 +91,36 @@ public final class ArtifactSlots {
             if (v != 0) inst.addTransientModifier(new AttributeModifier(id, v, Artifacts.op(s)));
         }
         CRIT.put(p.getUUID(), new double[]{rate, dmg});
+        if (p instanceof ServerPlayer sp) abilities(sp);
         // Raising max health does not raise what is in the bar, and lowering it can leave a player
         // standing above their own maximum, which the game will not tidy up on its own.
         if (p.getHealth() > p.getMaxHealth()) p.setHealth(p.getMaxHealth());
+    }
+
+    /**
+     * Hands out the ability for every set they have all five of, and takes back any they no longer
+     * have. The item is the whole of the five-fragment tier, so it has to arrive and leave exactly
+     * when the fifth piece does -- otherwise somebody keeps an ability they have taken off.
+     */
+    private static void abilities(ServerPlayer p) {
+        var want = new java.util.HashSet<String>();
+        for (var e : ArtifactSets.counts(worn(p)).entrySet()) if (e.getValue() >= 5) want.add(e.getKey());
+        var inv = p.getInventory();
+        var held = new java.util.HashSet<String>();
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            String set = SetAbility.setOf(inv.getItem(i));
+            if (set.isEmpty()) continue;
+            if (!want.contains(set) || !held.add(set)) inv.setItem(i, ItemStack.EMPTY);
+        }
+        for (String set : want) {
+            if (held.contains(set)) continue;
+            ItemStack st = SetAbility.of(set);
+            if (!inv.add(st)) p.drop(st, false);
+            ArtifactSets.Set s = ArtifactSets.get(set);
+            if (s != null) p.displayClientMessage(
+                    net.minecraft.network.chat.Component.literal("All five. " + SetAbility.name(s))
+                            .withColor(s.colour()), false);
+        }
     }
 
     /** Takes every artifact modifier back off, for when they log out or the pieces are cleared. */

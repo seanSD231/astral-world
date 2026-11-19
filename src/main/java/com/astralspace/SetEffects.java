@@ -102,12 +102,8 @@ public final class SetEffects {
         float mult = 1f;
 
         if (four(p, "acting")) {
-            if (now - s.untouched >= 160) {
+            if (now - s.untouched >= 160 || SetAbilities.onStage(p)) {
                 mult *= 1.33f;
-                if (five(p, "acting")) {
-                    mult *= 1f + .25f * tier(p, "acting");
-                    p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 30, 1, false, false));
-                }
                 lv.sendParticles(ParticleTypes.ENCHANT, target.getX(), target.getY() + 1, target.getZ(), 10, .3, .5, .3, .1);
             } else if (now - s.roleBroke < 80) mult *= .8f;
         }
@@ -118,7 +114,6 @@ public final class SetEffects {
                 if (!kind.equals(s.lastBlow)) {
                     mult *= 1.25f;
                     s.streak = kind.equals(s.prevBlow) ? 1 : s.streak + 1;
-                    if (five(p, "ledger") && s.streak >= 3) mult *= 1f + .5f * tier(p, "ledger");
                 } else { mult *= .8f; s.streak = 0; }
             } else s.streak = 0;
             s.prevBlow = s.lastBlow;
@@ -128,8 +123,6 @@ public final class SetEffects {
 
         if (four(p, "control") && p.getHealth() < p.getMaxHealth() * .4f) {
             mult *= 1.5f;
-            if (five(p, "control") && p.getRandom().nextDouble() < ArtifactSlots.critRate(p) + .05)
-                mult *= 1f + .5f * tier(p, "control");
         }
 
         if (four(p, "tarot")) {
@@ -138,16 +131,11 @@ public final class SetEffects {
                 s.tarotAt = now;
                 mult *= 1.33f;
                 spirit(p, 60);
-                if (five(p, "tarot")) p.heal(p.getMaxHealth() * .08f * tier(p, "tarot"));
                 lv.playSound(null, p.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, .7f, 1.6f);
             } else mult *= .9f;
         }
 
         if (four(p, "steam")) {
-            if (five(p, "steam")) {
-                var armour = p.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
-                if (armour != null) mult += (float) armour.getValue() * .25f * tier(p, "steam") / Math.max(1f, e.getNewDamage());
-            }
             if (s.pressure >= 5) {
                 s.pressure = 0;
                 p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 80, 1, false, true));
@@ -170,13 +158,6 @@ public final class SetEffects {
                 target.hurt(lv.damageSources().playerAttack(p), 8f);
                 p.hurt(lv.damageSources().magic(), .8f);
             }
-            if (five(p, "storms") && p.getRandom().nextDouble() < .25)
-                for (LivingEntity x : lv.getEntitiesOfClass(LivingEntity.class, new AABB(target.blockPosition()).inflate(7),
-                        q -> q.isAlive() && q != target && q != p && !(q instanceof Player))) {
-                    x.hurt(lv.damageSources().indirectMagic(p, p), e.getNewDamage() * .5f * (.5f + tier(p, "storms") * .5f));
-                    bolt(lv, x);
-                    break;
-                }
         }
 
         if (four(p, "mirror") && now - s.mirrorAt >= 300)
@@ -190,6 +171,7 @@ public final class SetEffects {
             }
 
         if (four(p, "gloves")) {
+            if (SetAbilities.firstBlood(p)) s.struck.clear();
             int hits = s.struck.merge(target.getUUID(), 1, Integer::sum);
             mult *= hits == 1 ? 1.5f : Math.max(.67f, 1f - (hits - 1) * .08f);
         }
@@ -198,42 +180,30 @@ public final class SetEffects {
             boolean seen = target instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() == p;
             if (!seen) {
                 mult *= 1.6f;
-                if (five(p, "knife") && target.getHealth() >= target.getMaxHealth() * .99f)
-                    mult *= 1f + .8f * tier(p, "knife");
                 lv.sendParticles(ParticleTypes.CRIT, target.getX(), target.getY() + 1, target.getZ(), 20, .3, .4, .3, .2);
             }
         }
 
         if (four(p, "bell")) {
             target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 120, 1, false, true));
-            if (five(p, "bell")) target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 120, 1, false, true));
         }
 
         if (four(p, "sealwax")) {
             if (now - s.idleSince >= 200) {
                 mult *= 2f;
                 s.letterBlows = 0;
-                if (five(p, "sealwax")) {
-                    for (LivingEntity x : lv.getEntitiesOfClass(LivingEntity.class, new AABB(target.blockPosition()).inflate(6),
-                            q -> q.isAlive() && q != target && q != p && !(q instanceof Player)))
-                        x.hurt(lv.damageSources().indirectMagic(p, p), e.getNewDamage() * (.4f + .4f * tier(p, "sealwax")));
-                    lv.sendParticles(ParticleTypes.SONIC_BOOM, target.getX(), target.getY() + 1, target.getZ(), 1, 0, 0, 0, 0);
-                }
             } else s.letterBlows = Math.min(4, s.letterBlows + 1);
             s.idleSince = now;
         }
 
-        if (four(p, "evernight")) {
-            s.marked.put(target.getUUID(), now);
-            if (five(p, "evernight") && !light) mult *= 1f + .4f * tier(p, "evernight");
-        }
+        if (four(p, "evernight")) s.marked.put(target.getUUID(), now);
 
         if (four(p, "lamp") && !light) mult *= .75f;
+        if (SetAbilities.burnsInLight(p) && light) mult *= .85f;
 
         if (four(p, "ascetic")) {
             boolean low = p.getHealth() < p.getMaxHealth() * .5f;
             if (!low) mult *= .84f;
-            else if (five(p, "ascetic")) mult *= 1f + .33f * tier(p, "ascetic");
         }
 
         if (four(p, "fog") && now - s.fogSpent < 100) mult *= .67f;
@@ -257,6 +227,9 @@ public final class SetEffects {
             }
         }
 
+        mult *= SetAbilities.dealt(p);
+        if (SetAbilities.readBack(p)) mult *= 1.25f;
+        if (SetAbilities.onStage(p)) mult *= 1.33f;
         if (mult != 1f) e.setNewDamage(e.getNewDamage() * mult);
     }
 
@@ -279,13 +252,6 @@ public final class SetEffects {
         boolean light = lit(p);
         float mult = 1f;
 
-        if (four(p, "acting") && now - s.untouched >= 160) {
-            s.roleBroke = now;
-            if (five(p, "acting")) {
-                p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 3, false, true));
-                p.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 40, 2, false, true));
-            }
-        }
         s.untouched = now;
 
         if (four(p, "steam")) {
@@ -294,16 +260,9 @@ public final class SetEffects {
         }
         if (four(p, "ascetic") && p.getHealth() < p.getMaxHealth() * .5f) mult *= .8f;
         if (four(p, "thread") && now - s.threadedAt < 120) mult *= 1.1f;
-        if (five(p, "evernight") && light) mult *= 1.25f;
-        if (four(p, "lamp")) mult *= light ? .9f : (five(p, "lamp") ? 1.25f : 1f);
         if (four(p, "knife") && e.getSource().getEntity() instanceof net.minecraft.world.entity.Mob mob
                 && mob.getTarget() == p) mult *= 1.2f;
 
-        if (five(p, "mirror") && e.getSource().getEntity() instanceof LivingEntity src && src != p)
-            src.hurt(lv.damageSources().magic(), e.getNewDamage() * (.1f + .1f * tier(p, "mirror")));
-        if (five(p, "harvest") && s.stillSince >= 0 && now - s.stillSince >= 40
-                && e.getSource().getEntity() instanceof LivingEntity src2 && src2 != p)
-            src2.hurt(lv.damageSources().magic(), e.getNewDamage() * .33f * tier(p, "harvest"));
 
         float after = p.getHealth() - e.getNewDamage() * mult;
 
@@ -312,10 +271,6 @@ public final class SetEffects {
             s.quietSpent = now;
             e.setNewDamage(0f);
             p.setHealth(Math.max(1f, p.getMaxHealth() * .04f));
-            if (five(p, "quiet")) {
-                p.removeAllEffects();
-                p.heal(p.getMaxHealth() * .4f * tier(p, "quiet"));
-            }
             lv.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, p.getX(), p.getY() + 1, p.getZ(), 120, .6, 1, .6, .4);
             lv.playSound(null, p.blockPosition(), SoundEvents.TOTEM_USE, SoundSource.PLAYERS, .9f, .8f);
             p.displayClientMessage(Component.literal("Not yet.").withColor(0x9AB0C8), true);
@@ -334,6 +289,7 @@ public final class SetEffects {
             p.displayClientMessage(Component.literal("The fog closes over you.").withColor(0xAAAAAA), true);
         }
 
+        mult *= SetAbilities.taken(p);
         if (mult != 1f) e.setNewDamage(e.getNewDamage() * mult);
     }
 
@@ -342,7 +298,6 @@ public final class SetEffects {
     public static void onHeal(net.neoforged.neoforge.event.entity.living.LivingHealEvent e) {
         if (!(e.getEntity() instanceof ServerPlayer p)) return;
         State s = st(p);
-        if (five(p, "control")) { e.setCanceled(true); return; }   // it does not mend at all any more
         float k = 1f;
         if (four(p, "control")) k *= .5f;
         if (four(p, "alchemy")) {
@@ -350,9 +305,9 @@ public final class SetEffects {
             s.alchemy = Math.min(5, s.alchemy + 1);
             s.alchemyAt = p.level().getGameTime();
         }
-        if (five(p, "mirror")) k *= .75f;
         if (four(p, "harvest") && p.level().getGameTime() - s.movedAt < 20) k *= .67f;
-        if (five(p, "ascetic") && p.getHealth() >= p.getMaxHealth() * .8f) { e.setCanceled(true); return; }
+        k *= SetAbilities.healing(p);
+        if (k <= 0f) { e.setCanceled(true); return; }
         if (k != 1f) e.setAmount(e.getAmount() * k);
     }
 
@@ -365,11 +320,6 @@ public final class SetEffects {
             spirit(p, 80);
             p.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 40, 0, false, false));
             p.serverLevel().sendParticles(ParticleTypes.SCULK_SOUL, p.getX(), p.getY() + 1, p.getZ(), 24, .4, .6, .4, .04);
-        }
-        if (five(p, "gloves")) {
-            s.struck.clear();
-            p.heal(p.getMaxHealth() * .12f * tier(p, "gloves"));
-            p.serverLevel().sendParticles(ParticleTypes.HEART, p.getX(), p.getY() + 1.4, p.getZ(), 6, .3, .3, .3, 0);
         }
     }
 
@@ -387,8 +337,6 @@ public final class SetEffects {
             boolean moved = Math.abs(p.getX() - s.lastX) > .04 || Math.abs(p.getZ() - s.lastZ) > .04
                          || Math.abs(p.getY() - s.lastY) > .04;
             if (moved) {
-                if (s.stillSince >= 0 && gt - s.stillSince >= 40 && five(p, "harvest"))
-                    p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1, false, true));
                 s.stillSince = -1;
                 s.movedAt = gt;
             } else if (s.stillSince < 0) s.stillSince = gt;
@@ -407,14 +355,6 @@ public final class SetEffects {
                 s.lampAt = gt;
                 p.heal(Math.max(.5f, p.getMaxHealth() * .01f));
             }
-            if (five(p, "fog")) p.resetFallDistance();
-            if (five(p, "bell"))
-                for (LivingEntity x : lv.getEntitiesOfClass(LivingEntity.class, new AABB(p.blockPosition()).inflate(7),
-                        q -> q.isAlive() && q != p && !(q instanceof Player))) {
-                    x.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 1, false, true));
-                    Vec3 to = p.position().subtract(x.position()).normalize().scale(.04 * tier(p, "bell"));
-                    x.push(to.x, 0, to.z);
-                }
 
             if (s.alchemy > 0 && gt - s.alchemyAt > 160) s.alchemy = 0;
             if (gt - s.lastBlowAt > 200) s.struck.clear();
@@ -427,8 +367,8 @@ public final class SetEffects {
     /** What the alchemy stacks are worth, less what the letter's blows have cost. */
     public static double abilityShift(Player p) {
         State s = S.get(p.getUUID());
-        if (s == null) return 0;
-        double v = 0;
+        double v = SetAbilities.ability(p);
+        if (s == null) return v;
         if (four(p, "alchemy")) v += s.alchemy * .06;
         if (four(p, "sealwax")) v -= s.letterBlows * .05;
         return v;
@@ -457,6 +397,12 @@ public final class SetEffects {
         if (inst != null) inst.removeModifier(
                 net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "set_spirit_burst"));
     }
+
+    /** The Tarot Club's free blow, made ready at once. */
+    public static void refreshTarot(Player p) { State s = st(p); s.tarotAt = p.level().getGameTime() - 100000; }
+
+    /** The Unopened Letter's held blow, made ready at once. */
+    public static void refreshLetter(Player p) { State s = st(p); s.idleSince = p.level().getGameTime() - 100000; }
 
     public static void onLogout(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent e) {
         forget(e.getEntity().getUUID());

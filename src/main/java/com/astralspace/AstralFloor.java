@@ -70,6 +70,9 @@ public final class AstralFloor {
                 }
             });
 
+    /** What five fragments of one set hand you: an ability to carry and spend. */
+    public static final DeferredItem<Item> SET_ABILITY = ITEMS.register("set_ability", SetAbility::new);
+
     /** Calls the Moon's Corruption up where you are standing. */
     public static final DeferredItem<Item> CRIMSON_OFFERING = ITEMS.register("crimson_offering", CrimsonOffering::new);
 

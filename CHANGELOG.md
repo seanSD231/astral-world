@@ -1,3 +1,9 @@
+## 0.2.357
+- Five fragments of one set now hand you the thing itself: a Scribed Fragment, an ability you carry and right-click to spend, the way a Scribe carries one. It arrives the moment the fifth piece goes on and is taken back the moment it comes off, so nobody keeps an ability they are not wearing.
+- Eighteen of them, one a set. Call the Squall drops lightning on everything in front of you. Vent throws the room off and leaves you very quick. Take the Stage puts you in the role for ten seconds whatever lands on you. Pull Taut drags everything within ten blocks to your feet and holds it. Let Go doubles your damage for eight seconds and takes a quarter of the health you are standing on. Lie Still mends you almost whole and will not let you act while it does.
+- Every one of them charges for itself afterwards, for about as long as it lasted, and none of them come round faster than every thirty seconds. How fine the five fragments are decides how strong it lands.
+- The old five-fragment passives are gone; that tier is the ability now.
+
 ## 0.2.356
 - Artifacts are fragments of sealed artifacts, not whole ones. A whole one would be a story to itself and far too dangerous to hand out; a fragment carries a piece of what the thing did without the thing's judgement about when to do it, which is why every tier now costs you something.
 - Three tiers. Two fragments: two stats up and a third down. Four: a mechanic, and a drawback that rides along with it. Five: an ability, as strong as the five fragments are fine, with a price set by that ability — a set of five-star pieces gives the whole of it and charges the whole price.

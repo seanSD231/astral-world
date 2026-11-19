@@ -107,5 +107,6 @@
   "block.astral_world.domain_gate": "Domain Gate",
   "item.astral_world.crimson_offering": "Crimson Offering",
   "entity.astral_world.moon_corruption": "The Moon's Corruption",
-  "item.astral_world.dust_of_enlightenment": "Dust of Enlightenment"
+  "item.astral_world.dust_of_enlightenment": "Dust of Enlightenment",
+  "item.astral_world.set_ability": "Scribed Fragment"
 }

@@ -77,136 +77,136 @@ public final class ArtifactSets {
             m(Stat.CRIT_RATE, .12, Stat.ABILITY_POWER, .10, Stat.HP_PCT, -.12),
             "Your blows mark what they land on for ten seconds. Finishing something marked hides you for two seconds and gives spirituality back.",
             "In daylight your crit rate is halved.",
-            "Nightfall: in the dark you deal 40% more.",
-            "In the light you take 25% more.");
+            "Nightfall. Puts out the light around you: everything near is blinded, and you go unseen and quick for eight seconds.",
+            "For twenty seconds after, daylight burns: you take a quarter more in it.");
 
         set("storms", "sailor", "Hymn of the Storms", "Case PH-007",
             "Off Pritz Harbour a congregation sang the hymn through a squall and the squall answered. Eleven objects came back aboard. Four of them are still wet.",
             m(Stat.ATK_PCT, .18, Stat.SPEED_PCT, .08, Stat.ABILITY_RESIST, -.14),
             "Every ten seconds your next blow calls lightning down on it. Being wet halves the wait.",
             "The bolt finds you too, for a tenth of what it deals.",
-            "Squall: every blow has a one-in-four chance to strike a second thing nearby for half.",
-            "A fifth off your maximum health.");
+            "Call the Squall. Lightning falls on everything in front of you, out to sixteen blocks.",
+            "For fifteen seconds after, a fifth off your maximum health.");
 
         set("steam", "savant", "Gearwork of Steam", "Case BK-902",
             "A boiler house that held a pressure it had no business holding, for eight days, and then did not. Nothing recovered from it will sit still under a load.",
             m(Stat.DEF_PCT, .22, Stat.HP_PCT, .10, Stat.SPEED_PCT, -.12),
             "Being hurt builds pressure. At five your next blow vents it as a shockwave and leaves you quick for four seconds.",
             "While it is at five and unvented you take 15% more.",
-            "Overpressure: a quarter of your armour is added to what you hit for.",
-            "A quarter off your attack speed.");
+            "Vent. Everything within eight blocks is thrown off and burned, and you are left very quick.",
+            "For fifteen seconds after, your armour is worth a third less.");
 
         set("acting", "seer", "The Acting Method", "Case TN-031",
             "A Tingen dressing room where somebody held a part for nine weeks without once breaking it. The part is still in the clothes.",
             m(Stat.CRIT_DMG, .28, Stat.ABILITY_DUR, .12, Stat.DEF_PCT, -.18),
             "Eight seconds untouched and you are in the role: a third more damage, until something lands on you.",
             "For four seconds after it breaks you deal a fifth less.",
-            "Full immersion: in the role you are also a quarter faster and crit far more often.",
-            "Breaking the role while in it leaves you reeling for two seconds.");
+            "Take the Stage. You are in the role at once, and stay in it ten seconds whatever lands on you.",
+            "When it ends you are left reeling for two seconds, and cannot act.");
 
         set("harvest", "planter", "Mother's Harvest", "Case CO-046",
             "A field that went on yielding four winters after it was salted. The men sent to dig it up were found standing in it, unhurt, and unwilling to leave.",
             m(Stat.HP_PCT, .20, Stat.SPIRIT_REGEN, .12, Stat.SPEED_PCT, -.12),
             "Stand still two seconds to root: healing over time and a great deal of defence, until you move.",
             "While you are moving, healing on you is cut by a third.",
-            "Deep root: rooted, a third of what is dealt to you is dealt back.",
-            "Tearing free leaves you slowed for three seconds.");
+            "Take Root. You cannot move for six seconds, and for those six seconds you mend fast and can hardly be hurt.",
+            "You cannot move for those six seconds, and are slowed for four after.");
 
         set("ledger", "reader", "Wisdom's Ledger", "Case BK-250",
             "Every page of it is a different hand and none of them repeat. The archivist who noticed that is the last entry.",
             m(Stat.SPIRIT_MAX, 220, Stat.ABILITY_POWER, .12, Stat.CRIT_RATE, -.08),
             "A different kind of blow within six seconds of the last hits a quarter harder.",
             "Repeating yourself inside six seconds hits a fifth softer.",
-            "Full account: a third different kind in a row hits half again as hard.",
-            "A sixth off your maximum health.");
+            "Read Back. Your next three blows each count as a kind you have not used, whatever they are.",
+            "For fifteen seconds after, a sixth off your maximum health.");
 
         set("alchemy", "apothecary", "Psychology Alchemy", "Case BY-018",
             "A Bayam clinic where the treatment worked. Patients left better than they came, and what was taken out of them had to go somewhere.",
             m(Stat.ABILITY_POWER, .16, Stat.SPIRIT_REGEN, .10, Stat.ABILITY_RESIST, -.14),
             "Healing, given or taken, turns into ability power for eight seconds, up to five times over.",
             "All healing on you is a quarter weaker.",
-            "Transmutation: at five stacks your blows mend you for a tenth of what they deal.",
-            "A fifth off your armour.");
+            "Transmute. Everyone near you is mended, and you are left at full stacks.",
+            "For fifteen seconds after, a quarter off your armour.");
 
         set("fog", "monster", "The Grey Fog", "Case 0-00",
             "No incident site. No recovery team. The file holds four objects and the note that they were already in the vault when the vault was built.",
             m(Stat.COOLDOWN, .16, Stat.ABILITY_AREA, .12, Stat.ATK_PCT, -.14),
             "Falling under half your health puts the fog round you: a step clear, and a second and a half nobody can touch you. Once a minute.",
             "For five seconds afterwards you deal a third less.",
-            "Above it all: you take no fall damage and come down slowly, and your abilities land a quarter harder.",
-            "A quarter off your maximum health.");
+            "Step Above. You are put twelve blocks ahead and nothing can touch you for two seconds.",
+            "For eight seconds after you deal a third less.");
 
         set("thread", "mystery_pryer", "Spirit Thread", "Case 0-08",
             "Sealed, catalogued and buried twice. The second burial was because the first one came back up attached to something.",
             m(Stat.ABILITY_AREA, .20, Stat.CRIT_RATE, .08, Stat.HP_PCT, -.14),
             "What you hit is threaded to what else you have hit for six seconds. A fifth of what you deal to one is dealt to the rest.",
             "While the threads are live you take a tenth more.",
-            "Taut: the threads carry twice as much and hold what they touch still.",
-            "While the threads are live you are a third slower.");
+            "Pull Taut. Everything within ten blocks is dragged to you and held still for three seconds.",
+            "You are a third slower for six seconds after.");
 
         set("control", "criminal", "Loss of Control", "Case FP-073",
             "Whatever he was before, he was not that for long. The objects were on him when it finished and they have not calmed down since.",
             m(Stat.CRIT_RATE, .12, Stat.ATK_PCT, .14, Stat.ABILITY_RESIST, -.20),
             "Under two fifths of your health you deal half again as much.",
             "All healing on you is halved, always.",
-            "Nothing left: under two fifths you also crit for half again as much.",
-            "You no longer mend on your own.");
+            "Let Go. Double damage for eight seconds.",
+            "It costs a quarter of the health you have, and you cannot be mended for twenty seconds.");
 
         set("tarot", "spectator", "The Tarot Club", "Case 0-19",
             "Nobody recovered these. They arrived, one at a time, correctly addressed, from a place the Church has no name for.",
             m(Stat.SPIRIT_REGEN, .22, Stat.COOLDOWN, .12, Stat.DEF_PCT, -.16),
             "Every twenty seconds your next blow strikes a third harder and gives a great deal of spirituality back.",
             "Between those blows you deal a tenth less.",
-            "The whole table: it comes every twelve seconds instead, and mends you as well.",
-            "A fifth off your maximum health.");
+            "Draw. The free blow is ready at once, and you are given a great deal of spirituality back.",
+            "For ten seconds after you deal a tenth less.");
 
         set("ascetic", "warrior", "The Moses Ascetic Order", "Case IN-012",
             "They fasted until the siege broke. It broke. Everything they were still wearing when the walls came down holds its edge best when there is nothing left.",
             m(Stat.ABILITY_RESIST, .18, Stat.DEF_PCT, .14, Stat.ATK_PCT, -.16),
             "Below half health you take a fifth less from everything, and mend a little every second you stay there.",
             "Above half health you deal a sixth less.",
-            "The siege holds: below half you deal a third more as well.",
-            "You cannot be mended past four fifths of your health.");
+            "Endure. Nothing can hurt you for three seconds.",
+            "You cannot be mended at all for twenty seconds after.");
 
         set("mirror", "lawyer", "The Mirror Sea", "Case 0-21",
             "Taken from a drawing room with one mirror in it and two sets of footprints leading away.",
             m(Stat.ABILITY_POWER, .16, Stat.CRIT_DMG, .14, Stat.SPEED_PCT, -.12),
             "Every fifteen seconds your next blow is copied onto something else nearby for three quarters.",
             "The copy is dealt to you as well, at a tenth.",
-            "Reflection: a sixth of what is dealt to you goes back where it came from.",
-            "A quarter off all healing on you.");
+            "Mirror. For four seconds everything dealt to you is dealt back where it came from instead.",
+            "A quarter off all healing on you for twenty seconds after.");
 
         set("gloves", "hunter", "The Red Gloves", "Case LO-088",
             "A hunting party of six went out. The gloves came back. The file does not say how.",
             m(Stat.ATK_PCT, .16, Stat.CRIT_RATE, .09, Stat.HP_PCT, -.12),
             "The first blow you land on anything hits half again as hard.",
             "Every blow after that on the same thing softens, to a third less.",
-            "Fresh quarry: finishing something mends you and makes everything first again.",
-            "A fifth off your armour.");
+            "First Blood. Everything within twelve blocks counts as untouched again.",
+            "For fifteen seconds after, a fifth off your armour.");
 
         set("quiet", "corpse_collector", "The Quiet Hours", "Case TN-004",
             "An undertaker's back room where the work was done properly and the clients did not always stay down.",
             m(Stat.HP_PCT, .18, Stat.DEF_PCT, .12, Stat.ABILITY_POWER, -.16),
             "A blow that would finish you leaves you at a sliver instead. Once every five minutes.",
             "For twenty seconds afterwards you deal two fifths less.",
-            "Second breath: it mends you to two fifths as well, and clears what is on you.",
-            "A quarter off your maximum health, always.");
+            "Lie Still. Four seconds in which you cannot act and are mended almost whole.",
+            "You cannot act for those four seconds, and deal two fifths less for twenty after.");
 
         set("bell", "bard", "The Sound of the Bell", "Case IN-055",
             "It was rung once, at the wrong hour, and the town below it agreed about something for a week.",
             m(Stat.ABILITY_AREA, .16, Stat.ABILITY_DUR, .16, Stat.CRIT_DMG, -.20),
             "What you hit deals a fifth less for six seconds.",
             "A fifth off your own crit rate.",
-            "The toll: everything near you is slowed, and comes to you a little.",
-            "A fifth off your ability power.");
+            "The Toll. Everything within twelve blocks is weakened, slowed and driven off.",
+            "For fifteen seconds after, a fifth off your ability power.");
 
         set("knife", "assassin", "The Assassin's Study", "Case BK-370",
             "Nothing in the room was out of place, which was how they knew.",
             m(Stat.CRIT_DMG, .26, Stat.SPEED_PCT, .09, Stat.DEF_PCT, -.20),
             "Striking something that has not yet seen you hits three fifths harder.",
             "Anything that is looking at you hits you a fifth harder.",
-            "One cut: a crit on something at full health carries half its missing fear with it, for a great deal more.",
-            "A third off your maximum health.");
+            "Unseen. Six seconds nothing can find you, and your next blow strikes as though it never saw you coming.",
+            "For ten seconds after you take a fifth more.");
 
         set("lamp", "arbiter", "The Last Lamp", "Case LO-140",
             "The lamp was still burning. It had been burning for nine years and there was nothing in it.",
@@ -221,8 +221,8 @@ public final class ArtifactSets {
             m(Stat.SPIRIT_MAX, 200, Stat.COOLDOWN, .14, Stat.CRIT_RATE, -.10),
             "Going ten seconds without striking anything makes your next blow land for double.",
             "Every blow you land cuts your ability power a twentieth, to a fifth, until you stop again.",
-            "What was sealed: the held blow also strikes everything round what it hits.",
-            "A quarter off your armour.");
+            "Break the Seal. The held blow is ready at once and carries to everything around what it lands on.",
+            "For fifteen seconds after, a fifth off your ability power.");
     }
 
     public static Set get(String id) { return SETS.get(id); }
