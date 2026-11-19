@@ -34,6 +34,8 @@ public class HoloCardEntity extends Entity {
     private static final EntityDataAccessor<Integer> GOO = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> ADMIN = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> SYMBOL = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
+    /** The admin's own account id, looked up on the server: their card wears their face wherever it is put down. */
+    private static final EntityDataAccessor<String> SKINID = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<String> OWNERN = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.STRING);   // the one who put it down, so the scene can wear their face
     private UUID owner;
     private String realPath = ""; private int realSeq; private boolean realShiny;   // a disguised card (Marauder / Lord of Mysteries): what to give back
@@ -60,6 +62,22 @@ public class HoloCardEntity extends Entity {
     public void setOwner(Player p) { owner = p.getUUID(); ownerName = p.getGameProfile().getName(); entityData.set(OWNERN, ownerName); }
     /** The name of whoever put this card down, on the client too ("" if it is not known). */
     public String ownerName() { return entityData.get(OWNERN); }
+    public String skinId() { return entityData.get(SKINID); }
+
+    /**
+     * An admin card always shows the admin, not whoever laid it down, so the server looks their
+     * account up once and tells the clients which one it is. Without this the scene fell back to
+     * the owner's skin whenever that player was not online to be read off the tab list.
+     */
+    private void resolveAdminSkin() {
+        if (level().isClientSide || admin() < 0 || !entityData.get(SKINID).isEmpty() || tickCount % 60 != 1) return;
+        var server = level().getServer();
+        if (server == null) return;
+        String name = Tarot.ADMIN_NAMES[Math.max(0, Math.min(Tarot.ADMIN_NAMES.length - 1, admin()))];
+        server.getProfileCache().getAsync(name, opt -> opt.ifPresent(gp -> {
+            if (isAlive()) entityData.set(SKINID, gp.getId().toString());
+        }));
+    }
     /** Index of the Great Old One this card is (0..8), or -1 for an ordinary card. */
     public int goo() { return entityData.get(GOO); }
     /** Index of the admin card this is, or -1. A tier of its own, above the Great Old Ones. */
@@ -72,7 +90,7 @@ public class HoloCardEntity extends Entity {
     public boolean symbolOnly() { return entityData.get(SYMBOL); }
     public void setSymbolOnly(boolean b) { entityData.set(SYMBOL, b); }
 
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); b.define(SYMBOL, false); b.define(GOO, -1); b.define(ADMIN, -1); b.define(OWNERN, ""); }
+    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); b.define(SYMBOL, false); b.define(GOO, -1); b.define(ADMIN, -1); b.define(OWNERN, ""); b.define(SKINID, ""); }
 
     @Override protected void readAdditionalSaveData(CompoundTag t) {
         setCard(t.getString("pathway"), t.getInt("seq"), t.getBoolean("shiny"));
@@ -342,7 +360,7 @@ public class HoloCardEntity extends Entity {
     @Override
     public void tick() {
         super.tick();
-        if (!level().isClientSide && admin() >= 0 && !symbolOnly()) adminMusic();
+        if (!level().isClientSide && admin() >= 0 && !symbolOnly()) { adminMusic(); resolveAdminSkin(); }
         if (!level().isClientSide && tickCount == 2 && hasThrone()) spawnThrone();
         if (!level().isClientSide && !symbolOnly()) {
             if (goo() < 0 && pathIndex() == 1 && seq() == 0) doorways(doorRing(), true);

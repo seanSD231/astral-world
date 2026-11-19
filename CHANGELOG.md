@@ -2,6 +2,24 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.322
+
+- **The admin hologram's circles and rings were squares** because they were quads of light. Eight big emissive
+  quads stacked on each other and turning at their own rates saturate into an eight-sided white blob, which is
+  exactly what was on the floor and round his arms. Every ring is a thin band of metal now -- torus geometry,
+  lit, with only a whisper of glow behind it -- and the floor is two circle layers instead of nine.
+- **The rainbow sea is outside the circles**, with a shore of lit sand holding the middle.
+- **An open gold sky.** The shell is far out and warm instead of near and brown, the ground under it is lit sand
+  rather than night, the cloud is gold with a little orange only low down, and **34 pillars of light** stand
+  through it at every distance -- which is the thing the card is really made of.
+- **The chains are attached.** Every one starts inside a cuff on the limb it hangs from, the bindings round his
+  legs and chest are real links wound round an ellipse rather than smooth hoops, and the chains out of the sky
+  begin at the cloud itself (4.3 radii up) instead of a little above his head.
+- **The blood is thick, dark and ours**: a bead that hangs at his brow, drops that draw out as they fall, and a
+  spread of beads and a ring where they strike. No particle textures in it at all.
+- **An admin card always wears the admin's face.** The tab list only holds people who are online, so a card put
+  down while they were away wore the owner's skin; the server looks the account up and sends its id with the card.
+
 ## 0.2.321
 
 - **The Bearing of Sins, rebuilt again.**
