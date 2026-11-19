@@ -1,3 +1,6 @@
+## 0.2.334
+- The swirl band at the rim is brought back up to full strength: the source image fades out at its own edge, which is exactly where the new mask was turning it on, so the band would have come through washed out.
+
 ## 0.2.333
 - The swirl is a band at the rim now: it was masked clear only to under half its radius, which left it washing across most of the field. The middle is blank grass with the spell circle on it.
 - The ground stopped glitching: everything drawn on the field sat a few hundredths of a block up, which the depth buffer could not separate from the grass out at distance. The whole stack is lifted and spread out.
