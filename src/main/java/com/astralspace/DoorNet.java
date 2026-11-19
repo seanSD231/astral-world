@@ -95,7 +95,29 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server to client: open the altar. */
+    public record AltarOpen() implements CustomPacketPayload {
+        public static final Type<AltarOpen> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "altar_open"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, AltarOpen> CODEC = StreamCodec.of((b, m) -> { }, b -> new AltarOpen());
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    /** Client to server: raise this piece on what is in this list. */
+    public record AltarUpgrade(int target, java.util.List<Integer> fodder) implements CustomPacketPayload {
+        public static final Type<AltarUpgrade> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "altar_upgrade"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, AltarUpgrade> CODEC = StreamCodec.of(
+            (b, m) -> { b.writeVarInt(m.target); b.writeVarInt(Math.min(64, m.fodder.size()));
+                        for (int i = 0; i < Math.min(64, m.fodder.size()); i++) b.writeVarInt(m.fodder.get(i)); },
+            b -> { int t = b.readVarInt(); int n = Math.min(64, b.readVarInt());
+                   java.util.List<Integer> f = new java.util.ArrayList<>();
+                   for (int i = 0; i < n; i++) f.add(b.readVarInt());
+                   return new AltarUpgrade(t, f); });
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static void register(PayloadRegistrar r) {
+        r.playToClient(AltarOpen.TYPE, AltarOpen.CODEC, (p, ctx) -> ctx.enqueueWork(ArtifactAltarScreen::open));
+        r.playToServer(AltarUpgrade.TYPE, AltarUpgrade.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactAltar.upgrade(sp, p.target(), p.fodder()); }));
         r.playToClient(ArtifactOpen.TYPE, ArtifactOpen.CODEC, (p, ctx) -> ctx.enqueueWork(ArtifactScreen::open));
         r.playToClient(Artifact.TYPE, Artifact.CODEC, (p, ctx) -> ctx.enqueueWork(() -> ArtifactSlots.setClient(p.slot(), p.stack())));
         r.playToServer(ArtifactAct.TYPE, ArtifactAct.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactCommands.act(sp, p.slot(), p.invSlot()); }));

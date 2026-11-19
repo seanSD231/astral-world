@@ -1,0 +1,1 @@
+{"type": "minecraft:block", "pools": [{"rolls": 1, "entries": [{"type": "minecraft:item", "name": "astral_world:artifact_altar"}], "conditions": [{"condition": "minecraft:survives_explosion"}]}]}

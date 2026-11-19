@@ -1,3 +1,8 @@
+## 0.2.340
+- The Artifact Altar: a block you right-click to raise a piece by burning others into it. The piece on the left, what is going in on the right, and the level it will come out at written where you can see it before you commit.
+- Experience, not currency. Every artifact is worth something as fodder, worth more the rarer it is and more again for every level already put into it. Whatever a run does not spend stays banked on the piece, so feeding it past what it needs never throws the difference away.
+- Worn pieces can be raised without taking them off. The preview is worked out on the client so it is honest, but nothing it works out is sent: the packet carries which piece and which fodder, and every sum that counts is done on the server.
+
 ## 0.2.339
 - The artifact menu. Three columns, as the games lay it out: the five pieces down the left, whichever is picked blown up in the middle with its main stat, its sub-stats and a pip for every roll that went into each, and everything they come to on the right with the sets being worn and which half of each is paying.
 - The whole panel takes its colour from the pathway of the set in hand, so a Hanged Man piece turns it red and a Fool piece violet; with nothing picked it falls back to your own pathway. The pathway symbol sits behind each piece as its face.
