@@ -1192,7 +1192,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         adminCross(armY, feet);
         adminRings(yB, armY, head, P);
         adminFigure(who, P, yB, armY, armX, feet);
-        adminBlood(head);
         adminAir();
     }
 
@@ -1203,10 +1202,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      */
     private void adminSky() {
         float D = R * 4.6f;
-        dome(D, 0xC98A34, 246);
+        dome(D, 0x8A5E22, 246);         // deeper than it was: the rings have to read against it
 
-        // banks of cloud: mostly along the horizon where they read as distance, a few high and faint
-        for (int layer = 0; layer < 3; layer++) {
+        for (int layer = 0; layer < 3; layer++) {   // banks of cloud, mostly along the horizon
             int n = 22 - layer * 5;
             float rad = D * (.985f - layer * .05f), sp = (layer % 2 == 0 ? 1f : -1f) * (.005f + .005f * layer);
             for (int i = 0; i < n; i++) {
@@ -1216,18 +1214,24 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 float sz2 = (30f + 26f * h(i, sd + 2)) * S * (1f - .14f * layer);
                 int c = mix(mix(ADM_LOW, ADM_PALE, Math.min(1f, el / .95f)), ADM_CLOUD, .35f);
                 domeQuad("cloud", rad, ang, el, sz2, sz2 * .36f, (h(i, sd + 3) - .5f) * .7f,
-                         rgba(c, layer == 0 ? .17f : .09f));
+                         rgba(c, layer == 0 ? .10f : .05f));
             }
         }
-        // pillars of light, falling the whole height of the sky at every distance round him
-        for (int i = 0; i < 34; i++) {
-            float ang = h(i, 580) * TAU + t * .006f, rr = R * (.45f + 3.4f * h(i, 581) * h(i, 582));
-            float k2 = .35f + .65f * (.5f + .5f * gs(t * .28f + i * 1.9f));
-            float wdt = (1.4f + 2.6f * h(i, 583)) * S;
-            column("beam", gc(ang) * rr, 0, top * 2.1f, gs(ang) * rr, wdt, rgba(ADM_WARM, .13f * k2));
-            column("beam", gc(ang) * rr, 0, top * 2.1f, gs(ang) * rr, wdt * .3f, rgba(ADM_PALE, .2f * k2));
+
+        // Shafts of light leaning across the place, out of the cloud and down past him. They used
+        // to be upright columns standing on every spot at once, which closed the scene in and lit
+        // it so flat that nothing else in it could be seen.
+        for (int i = 0; i < 16; i++) {
+            float ang = h(i, 580) * TAU, rr = R * (.4f + 3.2f * h(i, 581));
+            float lean = .42f + .5f * h(i, 582);                       // how far off upright it falls
+            float la = h(i, 583) * TAU;                                // and which way it leans
+            float x0 = gc(ang) * rr, z0 = gs(ang) * rr, y0 = top * (1.9f + .5f * h(i, 584));
+            float len = top * (1.7f + .9f * h(i, 585));
+            float k2 = .4f + .6f * (.5f + .5f * gs(t * .26f + i * 1.9f));
+            float dx = gc(la) * lean, dz = gs(la) * lean;
+            rayBeam("beam", x0, y0, z0, dx, -1f, dz, len, (2.6f + 2.4f * h(i, 586)) * S, rgba(ADM_WARM, .10f * k2));
+            rayBeam("beam", x0, y0, z0, dx, -1f, dz, len, (.9f + .7f * h(i, 586)) * S, rgba(ADM_PALE, .14f * k2));
         }
-        flat("adm_rays", 0, top * 2.0f, 0, D * 1.3f, t * .01f, rgba(ADM_GOLD, .16f));
 
         int slot = (int) Math.floor(t * .5f);
         if (h(slot, 600) < .2f) {   // light breaking through, now and then
@@ -1236,11 +1240,30 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 int sd = slot * 3 + i;
                 domeQuad("streak", D * .93f, h(sd, 601) * TAU, .35f + .7f * h(sd, 602),
                          (6f + 5f * h(sd, 603)) * S, (30f + 20f * h(sd, 604)) * S, (h(sd, 605) - .5f) * .7f,
-                         rgba(ADM_PALE, .5f * fa));
+                         rgba(ADM_PALE, .3f * fa));
             }
         }
         float bx = fx * R * 2.6f, bz2 = fz * R * 2.6f, bs = 40f * S * (.97f + .03f * gs(t * .8f));
-        facing("sin_cross", bx, top * 1.05f, bz2, bs, bs, 0, rgba(ADM_WARM, .14f));   // his own mark, behind him
+        facing("sin_cross", bx, top * 1.05f, bz2, bs, bs, 0, rgba(ADM_WARM, .10f));   // his own mark, behind him
+    }
+
+    /**
+     * A beam of light running in any direction, not just straight down. `column` draws an upright
+     * quad and nothing else did a leaning one, so every shaft in the scene stood vertical.
+     * The width axis is turned to face the front of the hologram so the beam keeps its body.
+     */
+    private void rayBeam(String tx, float x0, float y0, float z0, float dx, float dy, float dz,
+                         float len, float w, int argb) {
+        float m = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (m < 1e-4f) return;
+        dx /= m; dy /= m; dz /= m;
+        float bx = dy * fz, by = dz * fx - dx * fz, bz = -dy * fx;     // the beam crossed with the way it is faced
+        float bm = (float) Math.sqrt(bx * bx + by * by + bz * bz);
+        if (bm < 1e-4f) { bx = 1f; by = 0f; bz = 0f; bm = 1f; }
+        bx /= bm; by /= bm; bz /= bm;
+        float hx = dx * len * .5f, hy = dy * len * .5f, hz = dz * len * .5f;
+        eq(tex(tx), x0 + hx, y0 + hy, z0 + hz, hx, hy, hz,
+           bx * w * .5f, by * w * .5f, bz * w * .5f, argb, 0, 0, 1, 1);
     }
 
     /**
@@ -1249,14 +1272,18 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      */
     private void adminGround() {
         float inner = R * 2.0f;
-        if (gold) flat("whirl", 0, .055f, 0, R * 6.2f, t * .1f, rgba(0xFFD448, .75f));
-        else flat("rainbow_swirl", 0, .055f, 0, R * 6.2f, t * .1f, rgba(0xFFFFFF, .8f));
-        flat("disc", 0, .075f, 0, inner * 2f, 0, rgba(0xB8822E, 255));      // the shore it stops at
-        flat("adm_circle", 0, .095f, 0, inner * .96f, t * .04f, rgba(ADM_PALE, .55f));
-        flat("adm_runes", 0, .115f, 0, inner * .62f, -t * .08f, rgba(ADM_GOLD, .5f));
+        // a wash of shade over the whole floor, so the circles and the rings have something to be
+        // bright against -- it was lit to white and nothing on it could be made out
+        flat("disc", 0, .03f, 0, R * 5.6f, 0, rgba(0x3A2608, .34f));
+        // the sea is the outer half and the grass shows through the inner half: a filled disc of
+        // either one paints over the other, so the swirl is masked to a ring (adm_sea)
+        if (gold) flat("whirl", 0, .05f, 0, R * 5.4f, t * .08f, rgba(0xFFD448, .6f));
+        else flat("adm_sea", 0, .05f, 0, R * 5.4f, t * .08f, rgba(0xFFFFFF, .7f));
+        flat("adm_circle", 0, .09f, 0, inner * 1.26f, t * .04f, rgba(ADM_PALE, .6f));   // out to where the sea starts
+        flat("adm_runes", 0, .11f, 0, inner * .8f, -t * .08f, rgba(ADM_GOLD, .55f));
         float c = gc(t * .04f) * R * .3f, s2 = gs(t * .04f) * R * .3f;
         eq(ResourceLocation.fromNamespaceAndPath("lotm", "textures/effect/hanged_man_symbol.png"),
-           0, .135f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .8f), 0, 0, 1, 1);
+           0, .13f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .8f), 0, 0, 1, 1);
     }
 
     /** The cross of light he hangs on, and the rope above him. */
@@ -1274,26 +1301,38 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      * of glow at this size is a square of light and nothing like a ring.
      */
     private void adminRings(float yB, float armY, float head, float P) {
-        admRing(armY, R * 1.22f, .11f * S, ADM_PALE, t * .10f);
-        admRing(armY + .55f * S, R * 1.02f, .08f * S, ADM_GOLD, -t * .14f);
-        admRing(head - 1.2f * S, R * .46f, .07f * S, ADM_PALE, t * .2f);
-        admRing(yB + 17f * P, R * .58f, .08f * S, ADM_GOLD, -t * .17f);
+        admRing(armY, R * 1.22f, ADM_PALE, t * .10f, 1f);
+        admRing(armY + .55f * S, R * 1.02f, ADM_GOLD, -t * .14f, .9f);
+        admRing(head - 1.2f * S, R * .46f, ADM_PALE, t * .2f, .8f);
+        admRing(yB + 17f * P, R * .58f, ADM_GOLD, -t * .17f, .85f);
         for (int k = 0; k < 3; k++)
-            admRing(.30f + k * .05f, R * (.52f + .34f * k), .07f * S, k == 1 ? ADM_PALE : ADM_GOLD,
-                 (k % 2 == 0 ? 1f : -1f) * t * .08f);
-    }
-
-    /** One ring: a thin band of metal lit from inside, and the faintest wash of light under it. */
-    private void admRing(float y, float rr, float thick, int rgb, float spin) {
-        push(); tr(0, y, 0); rY(spin); rX(PI / 2);
-        torus(0, 0, 0, rr, rr, thick, 56, 6, 0, TAU, rgb, 255); pop();
-        bb("glow", 0, y, 0, rr * 2.3f, thick * 13f, 0, rgba(rgb, .16f));
+            admRing(.26f + k * .04f, R * (.52f + .34f * k), k == 1 ? ADM_PALE : ADM_GOLD,
+                    (k % 2 == 0 ? 1f : -1f) * t * .08f, .8f);
     }
 
     /**
-     * Him: his own skin, upside down, arms straight out. Bound at the legs with chain wound round
-     * them rather than a stack of smooth hoops, and every chain starts at the cuff it hangs from so
-     * none of them float free of the body.
+     * A ring of light with light running round it: a soft band for the body of it, and a bright
+     * crest that travels the circumference so it flows rather than sits. It was a torus of metal,
+     * which at this size read as a gold hoop hanging in the air -- nothing like the card.
+     */
+    private void admRing(float y, float rr, int rgb, float spin, float k) {
+        flat("adm_halo", 0, y, 0, rr * 2f, spin * .3f, rgba(rgb, .30f * k));
+        int n = 44;
+        for (int i = 0; i < n; i++) {
+            float a = i * TAU / n + spin;
+            float ph = fract(i / (float) n - t * .17f);
+            float br = (float) Math.pow(Math.max(0f, gs(ph * PI)), 5) * .95f + .14f;
+            float px = gc(a) * rr, pz = gs(a) * rr;
+            bb("glow", px, y, pz, rr * .17f * (.55f + br), rr * .1f * (.55f + br), 0, rgba(rgb, .34f * br * k));
+            if (br > .55f)
+                bb("spark", px, y, pz, rr * .055f, rr * .055f, t * .6f + i, rgba(ADM_PALE, (br - .55f) * 1.5f * k));
+        }
+    }
+
+    /**
+     * Him: his own skin, upside down, arms straight out, wound about with chain. Every chain
+     * begins inside a cuff on the limb it hangs from and the bindings are one continuous run of
+     * links following a helix, not a stack of separate hoops scattered round him.
      */
     private void adminFigure(String who, float P, float yB, float armY, float armX, float feet) {
         ResourceLocation sk = skinNamed(who);
@@ -1305,63 +1344,39 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         skinPart(sk, 0, 16, 4, 12, 4, -2, -18, 0, true, P, yB, 0f);         // right leg, up
         skinPart(sk, 16, 48, 4, 12, 4, 2, -18, 0, true, P, yB, 0f);         // left leg
 
-        for (int k = 0; k < 9; k++)                                          // chain wound round both legs
-            chainBand(yB + (10.5f + k * 1.75f) * P, 5.0f * P, 3.0f * P, .95f * P, k * .6f);
-        for (int k = 0; k < 4; k++)                                          // and round the beam and his chest
-            chainBand(yB + (-5f + k * 4.6f) * P, 6.3f * P, 3.8f * P, 1.05f * P, k * .9f);
+        chainWrap(yB + 10.5f * P, yB + 23f * P, 3.6f * P, 3.0f * P, 2.6f, 2.1f * P);   // the legs, roped together
+        chainWrap(yB - 7f * P, yB + 9f * P, 5.6f * P, 3.6f * P, 2.2f, 2.3f * P);       // and round the chest
 
         for (int sd = -1; sd <= 1; sd += 2) {
-            // the wrist: a cuff on the arm itself, and the chain starting inside it
+            // the wrist: a cuff round the arm, and the chain starting inside it rather than
+            // a little below and off to one side, which left it hanging clear of him
             float wx = sd * armX, wy = armY;
-            push(); tr(wx, wy, 0); rZ(PI / 2); torus(0, 0, 0, 2.6f * P, 2.6f * P, .9f * P, 14, 5, 0, TAU, ADM_IRON, 255); pop();
-            push(); tr(wx, wy - 1.6f * P, 0); rZ(sd * .06f + gs(t * .45f + sd) * .03f);
-            chain(10f * S, .8f * S, ADM_IRON); pop();
-            // the ankle: the same, up at the top of the legs
-            float ax = sd * 2.2f * P, ay = feet - 1.2f * P;
-            push(); tr(ax, ay, 0); rX(PI / 2); torus(0, 0, 0, 2.2f * P, 2.2f * P, .8f * P, 12, 5, 0, TAU, ADM_IRON, 255); pop();
-            push(); tr(ax, ay - 1.4f * P, 0); rZ(sd * .2f); chain(6.5f * S, .6f * S, ADM_IRON); pop();
+            push(); tr(wx, wy, 0); rZ(PI / 2);
+            torus(0, 0, 0, 2.8f * P, 2.8f * P, .85f * P, 14, 5, 0, TAU, ADM_IRON, 255); pop();
+            push(); tr(wx, wy, 0); chain(10f * S, .8f * S, ADM_IRON); pop();
+            // the ankle, up at the top of him
+            float ax = sd * 2.2f * P, ay = feet - 1.0f * P;
+            push(); tr(ax, ay, 0); rX(PI / 2);
+            torus(0, 0, 0, 2.4f * P, 2.4f * P, .8f * P, 12, 5, 0, TAU, ADM_IRON, 255); pop();
+            push(); tr(ax, ay, 0); chain(6.5f * S, .6f * S, ADM_IRON); pop();
         }
-        bb("glow", 0, yB, 0, 36f * P, 44f * P, 0, rgba(ADM_WARM, .1f));
+        bb("glow", 0, yB, 0, 36f * P, 44f * P, 0, rgba(ADM_WARM, .08f));
     }
 
     /**
-     * A band of chain wound round the body: real links going round the ellipse, each turned against
-     * the last. A torus is a smooth hoop and reads as a bangle, not as something binding him.
+     * Chain wound round the body: one run of links following a helix from y0 up to y1, each turned
+     * against the last so they interlock, and spaced to overlap so the run never breaks. Separate
+     * rings laid at intervals read as a scatter of hoops floating beside him.
      */
-    private void chainBand(float y, float rx2, float rz2, float link, float phase) {
-        int n = 14;
-        for (int i = 0; i < n; i++) {
-            float a = phase + i * TAU / n;
-            float px = gc(a) * rx2, pz = gs(a) * rz2;
-            push(); tr(px, y + gs(a * 2f + phase) * link * .35f, pz);
-            rY(-a); if ((i & 1) == 1) rX(PI / 2);
-            torus(0, 0, 0, link * .34f, link * .62f, link * .13f, 8, 4, 0, TAU, ADM_IRON, 255);
+    private void chainWrap(float y0, float y1, float rx2, float rz2, float turns, float link) {
+        float path = turns * TAU * (rx2 + rz2) * .5f;
+        int n = Math.max(10, Math.min(96, (int) (path / (link * .78f))));
+        for (int i = 0; i <= n; i++) {
+            float u = i / (float) n, a = u * turns * TAU;
+            push(); tr(gc(a) * rx2, y0 + (y1 - y0) * u, gs(a) * rz2); rY(-a);
+            if ((i & 1) == 1) rX(PI / 2);
+            torus(0, 0, 0, link * .32f, link * .6f, link * .13f, 6, 4, 0, TAU, ADM_IRON, 255);
             pop();
-        }
-    }
-
-    /** The blood: thick and dark and slow, built out of beads rather than drawn with a particle. */
-    private void adminBlood(float head) {
-        float y0 = head - .5f * S;
-        sphere(0, y0, 0, .42f * S, .5f * S, .42f * S, 6, 10, ADM_BLOOD, 255);          // the bead that hangs at his brow
-        sphere(0, y0 + .18f * S, 0, .3f * S, .34f * S, .3f * S, 5, 8, 0xC01822, 255);
-        for (int i = 0; i < 3; i++) {
-            float pw = fract(t * .2f + i / 3f), yy = y0 - pw * (y0 - .5f);
-            float st = 1f + 1.1f * pw;                                                  // it draws out as it falls
-            sphere(0, yy, 0, .34f * S, .34f * S * st, .34f * S, 6, 10, ADM_BLOOD, 255);
-            sphere(0, yy + .3f * S * st, 0, .17f * S, .5f * S, .17f * S, 4, 8, ADM_BLOOD, 255);
-            bb("glow", 0, yy, 0, 1.9f * S, 2.4f * S * st, 0, rgba(0xE0202C, .14f));
-        }
-        float land = fract(t * .2f);
-        if (land > .88f) {                                                              // and spreads where it strikes
-            float k = (land - .88f) / .12f;
-            for (int i = 0; i < 7; i++) {
-                float ang = i * TAU / 7 + .4f, d = k * 3.4f * S;
-                sphere(gc(ang) * d, .3f * S + gs(k * PI) * 1.6f * S, gs(ang) * d,
-                       (.3f - .14f * k) * S, (.3f - .14f * k) * S, (.3f - .14f * k) * S, 4, 7, ADM_BLOOD, 255);
-            }
-            push(); tr(0, .16f, 0); rX(PI / 2);
-            torus(0, 0, 0, k * 2.6f * S, k * 2.6f * S, (1f - k) * .3f * S, 24, 5, 0, TAU, ADM_BLOOD, 255); pop();
         }
     }
 
@@ -2205,16 +2220,23 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      */
     private ResourceLocation skinNamed(String who) {
         var mc = Minecraft.getInstance();
-        if (who != null && !who.isEmpty() && mc.getConnection() != null)
-            for (var info : mc.getConnection().getListedOnlinePlayers())
-                if (info.getProfile().getName().equalsIgnoreCase(who)) return info.getSkin().texture();
+        if (who != null && !who.isEmpty() && mc.getConnection() != null) {
+            // by name, whether or not he is listed in the tab list
+            var info = mc.getConnection().getPlayerInfo(who);
+            if (info != null) return info.getSkin().texture();
+        }
         if (!curSkinId.isEmpty()) {
             ResourceLocation got = skinById.get(curSkinId);
             if (got != null) return got;
             try {
-                var profile = new com.mojang.authlib.GameProfile(java.util.UUID.fromString(curSkinId), who);
+                java.util.UUID id = java.util.UUID.fromString(curSkinId);
+                var profile = new com.mojang.authlib.GameProfile(id, who == null ? "" : who);
+                // The first call hands back the default skin and fetches the real one in the
+                // background. Caching whatever comes back on that first frame nailed him to Steve
+                // for the rest of the session, which is why he never wore Rupex's skin.
                 ResourceLocation rl = mc.getSkinManager().getInsecureSkin(profile).texture();
-                skinById.put(curSkinId, rl);
+                if (!rl.equals(net.minecraft.client.resources.DefaultPlayerSkin.get(id).texture()))
+                    skinById.put(curSkinId, rl);
                 return rl;
             } catch (Throwable ignored) { }
         }

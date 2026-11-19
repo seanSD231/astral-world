@@ -1,3 +1,12 @@
+## 0.2.327
+- Rupex's rings are flowing light now instead of gold hoops: a soft band with a bright crest that travels round it.
+- The sky, the cross and the floor are all dimmed down, so the rings and the circles have something to read against.
+- Light now leans across the place diagonally from the cloud, sixteen shafts spread over it, instead of standing upright on every spot.
+- The floor is the spell circles over bare grass in the middle and the rainbow swirl round the outside; the sand disc that covered the lot is gone.
+- The chains that bind him are one continuous wound run of links instead of loose hoops, and the wrist and ankle chains start inside their cuffs.
+- The blood is gone.
+- He wears Rupex_123's skin: the first skin lookup hands back Steve while it downloads, and that was being cached for good.
+
 # Astral World — Changelog
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.

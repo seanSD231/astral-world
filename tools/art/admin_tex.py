@@ -123,3 +123,22 @@ im = Image.composite(im, Image.new('L', (S, S), 0), fade.point(lambda t: 255 if 
 white = Image.new('L', (S, S), 255)
 Image.merge('RGBA', (white, white, white, im)).save(os.path.join(OUT, 'adm_rays.png'), optimize=True)
 print('adm_rays.png')
+
+
+# ---- the rainbow sea: the Hanged Man's own swirl, with its middle cut out ---------------------
+# The sea belongs outside the spell circles, and a full disc of it paints over the grass they
+# are supposed to stand on. One texture, masked to an annulus, is simpler than tiling quads
+# round a ring and leaves no seams.
+src = Image.open(os.path.join(OUT, 'rainbow_swirl.png')).convert('RGBA')
+N = src.size[0]
+yy, xx = [[(i - N / 2.0) for i in range(N)]], None
+import numpy as np
+gy, gx = np.mgrid[0:N, 0:N]
+d = np.sqrt((gx - N / 2.0) ** 2 + (gy - N / 2.0) ** 2) / (N / 2.0)
+# clear inside .46 of the radius, fade in to full by .60, and keep the outer edge's own falloff
+k = np.clip((d - 0.46) / 0.14, 0, 1) ** 1.3
+a = np.asarray(src)[..., 3].astype(np.float32) * k
+out = np.asarray(src).copy()
+out[..., 3] = np.clip(a, 0, 255).astype(np.uint8)
+Image.fromarray(out, 'RGBA').save(os.path.join(OUT, 'adm_sea.png'), optimize=True)
+print('adm_sea.png')
