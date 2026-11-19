@@ -1,3 +1,10 @@
+## 0.2.343
+- The Moon's Corruption: a boss that fights in three turns of its own moon. Waxing, where it still has arms and hunts you down; crimson, where it pulls a moon up over the fight; and eclipse, where what is left of it stops pretending and feeds.
+- Its corruption is a count, not a damage type. Standing in its light adds to it, the count is what hurts you, and the only way it comes off is getting out of the light — so the fight is about where you stand rather than how much health you have. In eclipse it takes back everything the corruption has been storing up and heals on it.
+- A howl that throws you out of its reach, shafts of moonlight marked on the ground a second and a quarter before they land, and thralls that get worse as its moon rises.
+- Drawn out of the same primitives as the rest of the mod rather than a model file, so it changes shape as the fight turns: it hunches, its horns come up, its ribs open, and the moon rises over its shoulder.
+- Everyone in the fight gets their own drops rather than racing for a pile: two or three artifacts each, four or five stars, weighted to the Moon's own pathway. Called up with a Crimson Offering used on the ground under an open sky.
+
 ## 0.2.342
 - Build fix: setPersistenceRequired is on Mob, not LivingEntity.
 

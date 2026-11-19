@@ -52,6 +52,9 @@ public final class AstralFloor {
             BlockBehaviour.Properties.of().strength(4.0F, 12.0F).requiresCorrectToolForDrops().lightLevel(s -> 11)));
     public static final DeferredItem<Item> GATE_ITEM = ITEMS.register("domain_gate", () -> new BlockItem(GATE.get(), new Item.Properties()));
 
+    /** Calls the Moon's Corruption up where you are standing. */
+    public static final DeferredItem<Item> CRIMSON_OFFERING = ITEMS.register("crimson_offering", CrimsonOffering::new);
+
     /** Testing: a creative-only item. Every hit on the Mother Tree takes 10% of her maximum health (see EndGame.smite). */
     public static final DeferredItem<Item> SMITER = ITEMS.register("tree_smiter",
             () -> new Item(new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.EPIC)) {

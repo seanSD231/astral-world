@@ -43,7 +43,12 @@ public class AstralMod {
         AstralTab.register(modBus);
         AstralSounds.register(modBus);
         ArtifactItem.register(modBus);
+        MoonCorruption.register(modBus);
+        modBus.addListener((net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent e) ->
+            e.put(MoonCorruption.TYPE.get(), MoonCorruption.attributes().build()));
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactDomain::tick);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(Corruption::tick);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(MoonBeam::tick);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactDomain::onLogout);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onLogin);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onLogout);

@@ -131,7 +131,16 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server to client: how far the moon has got into you. */
+    public record Corrupt(int level) implements CustomPacketPayload {
+        public static final Type<Corrupt> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "corrupt"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, Corrupt> CODEC = StreamCodec.of(
+            (b, m) -> b.writeVarInt(m.level), b -> new Corrupt(b.readVarInt()));
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static void register(PayloadRegistrar r) {
+        r.playToClient(Corrupt.TYPE, Corrupt.CODEC, (p, ctx) -> ctx.enqueueWork(() -> Corruption.setClient(p.level())));
         r.playToClient(DomainOpen.TYPE, DomainOpen.CODEC, (p, ctx) -> ctx.enqueueWork(DomainScreen::open));
         r.playToServer(DomainEnter.TYPE, DomainEnter.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactDomain.enter(sp, p.set(), p.difficulty()); }));
         r.playToClient(AltarOpen.TYPE, AltarOpen.CODEC, (p, ctx) -> ctx.enqueueWork(ArtifactAltarScreen::open));

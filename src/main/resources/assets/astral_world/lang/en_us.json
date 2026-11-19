@@ -104,5 +104,7 @@
   "item.astral_world.admin_pack": "Admin Pack",
   "key.astral_world.artifacts": "Artifacts",
   "block.astral_world.artifact_altar": "Artifact Altar",
-  "block.astral_world.domain_gate": "Domain Gate"
+  "block.astral_world.domain_gate": "Domain Gate",
+  "item.astral_world.crimson_offering": "Crimson Offering",
+  "entity.astral_world.moon_corruption": "The Moon's Corruption"
 }
