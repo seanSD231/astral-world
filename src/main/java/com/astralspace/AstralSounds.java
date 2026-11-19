@@ -25,6 +25,9 @@ public final class AstralSounds {
     /** How long each of them runs, in ticks, so the next one starts when the last has finished. */
     public static final int[] ADMIN_LEN = {3544, 1636, 2684};
 
+    /** Seven seconds cut from the first track, at its strongest passage: the admin pack's own reveal. */
+    public static final DeferredHolder<SoundEvent, SoundEvent> ADMIN_REVEAL = reg("admin.reveal");
+
     public static ResourceLocation adminId(int i) {
         return ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "admin.track_" + (i + 1));
     }

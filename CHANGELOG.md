@@ -2,6 +2,15 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.326
+
+- **The admin pack has a pull of its own**, built out of the card: four chains close in on it from every side
+  and draw tight while it darkens, the rings of the Bearing of Sins open out one after another, the chains give
+  all at once in a red flash and their links fly apart, and the card turns over in a burst of gold rays.
+- **It plays its own music while it does.** Seven seconds cut from the first of the hologram's three tracks, at
+  the strongest and steadiest passage in it (1:34), loudness-matched and faded at both ends, shipped as
+  `admin/reveal.ogg`.
+
 ## 0.2.325
 
 - **The binder has a leaf for admin cards**, at the back of the book past the last chapter: the Bearer of Sins

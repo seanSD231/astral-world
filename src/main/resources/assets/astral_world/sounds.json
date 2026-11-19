@@ -73,6 +73,16 @@
    }
   ]
  },
+ "admin.reveal": {
+  "category": "record",
+  "subtitle": "The Bearing of Sins",
+  "sounds": [
+   {
+    "name": "astral_world:admin/reveal",
+    "stream": false
+   }
+  ]
+ },
  "admin.track_3": {
   "category": "record",
   "sounds": [

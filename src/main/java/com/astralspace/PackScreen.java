@@ -73,10 +73,13 @@ public final class PackScreen extends Screen {
     /** A Great Old One hides behind the back of one of its own pathways until it is clicked. */
     private static String backOf(String p) { if (Tarot.adminIndex(p) >= 0) return "secrets_supplicant"; int g = Tarot.gooIndex(p); return g >= 0 ? Tarot.GOO_PATHS[g][0] : p; }
     private boolean isGoo(int i) { return path[i].startsWith("goo_"); }
+    private boolean isAdmin(int i) { return path[i].startsWith("admin_"); }
+    /** Both of these turn over in two stages, with a reveal of their own between them. */
+    private boolean bigReveal(int i) { return isGoo(i) || isAdmin(i); }
     /** Which ordinary rarity shine its disguise wears (uncommon, rare or epic). */
     private int disguise(int i) { return 1 + Math.floorMod(path[i].hashCode() + i, 3); }
-    private boolean turned(int i) { return isGoo(i) ? gooFlipAt[i] >= 0 : flipAt[i] >= 0; }
-    private boolean cardDone(int i, long now) { return isGoo(i) ? gooFlipAt[i] >= 0 && now - gooFlipAt[i] >= G_END - G_FLIP : flipAt[i] >= 0 && now - flipAt[i] >= 450; }
+    private boolean turned(int i) { return bigReveal(i) ? gooFlipAt[i] >= 0 : flipAt[i] >= 0; }
+    private boolean cardDone(int i, long now) { return bigReveal(i) ? gooFlipAt[i] >= 0 && now - gooFlipAt[i] >= G_END - G_FLIP : flipAt[i] >= 0 && now - flipAt[i] >= 450; }
     private void give(int i) { if (!pack.equals("view")) net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Net.PackRevealPayload(i)); }
     /**
      * The pouch art is 1024 square -- four megabytes of it once the driver has it -- and there are
@@ -127,8 +130,8 @@ public final class PackScreen extends Screen {
             if (mx >= r[0] && mx <= r[0] + r[2] && my >= r[1] && my <= r[1] + r[3]) {
                 if (flipAt[i] < 0) {
                     flipAt[i] = System.currentTimeMillis();
-                    if (isGoo(i)) ui(SoundEvents.AMETHYST_BLOCK_RESONATE, .7f, 1f); else { ui(SoundEvents.BOOK_PAGE_TURN, 1.1f, 1f); give(i); }
-                } else if (isGoo(i) && gooFlipAt[i] < 0 && System.currentTimeMillis() - flipAt[i] >= G_PEEL_END) {
+                    if (isAdmin(i)) ui(SoundEvents.CHAIN_PLACE, .6f, 1f); else if (isGoo(i)) ui(SoundEvents.AMETHYST_BLOCK_RESONATE, .7f, 1f); else { ui(SoundEvents.BOOK_PAGE_TURN, 1.1f, 1f); give(i); }
+                } else if (bigReveal(i) && gooFlipAt[i] < 0 && System.currentTimeMillis() - flipAt[i] >= G_PEEL_END) {
                     gooFlipAt[i] = System.currentTimeMillis(); give(i);   // the second click: turn it over, and only now is the card handed over
                 }
                 return true;
@@ -138,7 +141,7 @@ public final class PackScreen extends Screen {
         return true;
     }
 
-    private boolean waitingGoo(long now) { for (int i = 0; i < flipAt.length; i++) if (isGoo(i) && flipAt[i] >= 0 && gooFlipAt[i] < 0 && now - flipAt[i] >= G_PEEL_END) return true; return false; }
+    private boolean waitingGoo(long now) { for (int i = 0; i < flipAt.length; i++) if (bigReveal(i) && flipAt[i] >= 0 && gooFlipAt[i] < 0 && now - flipAt[i] >= G_PEEL_END) return true; return false; }
     private boolean allFlipped() { for (int i = 0; i < flipAt.length; i++) if (!turned(i)) return false; return true; }
     private long lastFlip() { long m = 0; for (int i = 0; i < flipAt.length; i++) m = Math.max(m, Math.max(flipAt[i], gooFlipAt[i])); return m; }
 
@@ -236,8 +239,8 @@ public final class PackScreen extends Screen {
                 if (r[4] <= 0) continue;
                 float fp = flipAt[i] < 0 ? 0 : Math.min(1f, (now - flipAt[i]) / 450f);
                 int rar = rarity(seq[i]);
-                if (isGoo(i) && flipAt[i] >= 0) {
-                    drawGoo(g, i, r, now);
+                if (bigReveal(i) && flipAt[i] >= 0) {
+                    if (isAdmin(i)) drawAdmin(g, i, r, now); else drawGoo(g, i, r, now);
                     g.setColor(1, 1, 1, 1);
                     continue;
                 }
@@ -290,6 +293,145 @@ public final class PackScreen extends Screen {
         blend();
         g.setColor(rr, gg, bb, a);
         g.blit(t, x, y, w, h, u, 0, uw, 360, 240, 360);
+    }
+
+    /**
+     * The admin card's own pull. It is bound: chains close in on it from every side and draw tight,
+     * the rings of the Bearing of Sins open out one after another, the chains give all at once in a
+     * red flash, and the card turns over in a burst of gold. The track the hologram plays comes in
+     * at its strongest passage as the rings begin.
+     */
+    private void drawAdmin(GuiGraphics g, int i, int[] r, long now) {
+        long t = gooFlipAt[i] >= 0 ? G_FLIP + (now - gooFlipAt[i]) : Math.min(now - flipAt[i], G_FLIP - 1);
+        float al = r[4] / 255f;
+        int st = gooStage[i];
+        if (st < 1 && t >= G_GOLD) { gooStage[i] = 1; ui(AstralSounds.ADMIN_REVEAL.get(), 1f, .85f); ui(SoundEvents.CHAIN_PLACE, .8f, 1f); }
+        if (st < 2 && t >= G_PEEL) { gooStage[i] = 2; ui(SoundEvents.CHAIN_BREAK, .7f, 1.1f); ui(SoundEvents.ANVIL_LAND, .8f, .5f); }
+        if (st < 3 && t >= G_FLIP) { gooStage[i] = 3; ui(SoundEvents.TOTEM_USE, .8f, .8f); ui(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, .85f, .7f); }
+
+        int x = r[0], y = r[1], w = r[2], h = r[3];
+        float cx = x + w / 2f, cy = y + h / 2f;
+
+        // the rings of the card, opening out one after another once it has been taken hold of
+        if (t >= G_GOLD) {
+            for (int k = 0; k < 3; k++) {
+                float p = (t - G_GOLD - k * 190f) / 900f;
+                if (p <= 0 || p >= 1) continue;
+                float rad = w * (.55f + 1.5f * p), a2 = (1 - p) * (1 - p) * .85f * al;
+                ringAt(g, cx, cy, rad, rad * .42f, 0xFFD24A, a2);
+                ringAt(g, cx, cy, rad * .93f, rad * .39f, 0xFFF6D2, a2 * .6f);
+            }
+        }
+        // a red glow building behind it while it is held, and a burst when it gives
+        if (t < G_PEEL) {
+            float gp = Math.min(1f, Math.max(0f, t / (float) G_PEEL));
+            int e = (int) (4 + gp * 20), a2 = (int) (gp * gp * 110 * al);
+            g.fill(x - e, y - e, x + w + e, y + h + e, (a2 << 24) | 0x8E0A12); g.flush();
+        } else if (t < G_FLIP) {
+            float bp = (t - G_PEEL) / (float) (G_FLIP - G_PEEL);
+            int e = (int) (10 + bp * 46), a2 = (int) ((1 - bp) * 150 * al);
+            g.fill(x - e, y - e, x + w + e, y + h + e, (a2 << 24) | 0xE02030); g.flush();
+        }
+        if (t >= G_FLIP + 220 && t < G_END) {
+            float bp = (t - G_FLIP - 220) / (float) (G_END - G_FLIP - 220);
+            int e = (int) (8 + bp * 60), a2 = (int) ((1 - bp) * 150 * al);
+            g.fill(x - e, y - e, x + w + e, y + h + e, (a2 << 24) | 0xFFD24A); g.flush();
+            for (int k = 0; k < 18; k++) {   // rays of gold going out from it
+                double ang = k * Math.PI * 2 / 18 + bp * .3;
+                float d0 = w * (.5f + bp * .4f), d1 = d0 + w * (.5f * (1 - bp));
+                rayAt(g, cx, cy, ang, d0, d1, 0xFFF6D2, (1 - bp) * .55f * al);
+            }
+        }
+
+        blend();
+        g.setColor(1, 1, 1, al);
+        g.pose().pushPose();
+        g.pose().translate(cx, cy, 0);
+        float sx = 1f; boolean front = false;
+        if (t < G_FLIP) {
+            float amp = Math.min(1f, t / 500f) * (t < G_PEEL ? 1f : Math.max(0f, 1f - (t - G_PEEL) / 260f));
+            g.pose().mulPose(Axis.ZP.rotationDegrees((float) Math.sin(t * 0.07) * 3.2f * amp));
+            g.pose().translate((float) Math.sin(t * 0.11) * 2.4f * amp, (float) Math.cos(t * 0.09) * 1.3f * amp, 0);
+        } else {
+            float fp = Math.min(1f, (t - G_FLIP) / 450f);
+            sx = (float) Math.abs(Math.cos(Math.PI * fp)); front = fp >= 0.5f;
+        }
+        g.pose().scale(Math.max(0.02f, sx), 1f, 1);
+        g.pose().translate(-cx, -cy, 0);
+        blend();
+        if (front) {
+            drawFront(g, i, x, y, w, h);
+            float fl = (t - G_FLIP - 225) / 700f;
+            if (fl > 0 && fl < 1) { g.fill(x, y, x + w, y + h, (((int) ((1 - fl) * 180)) << 24) | 0xFFE8A0); g.flush(); }
+        } else {
+            g.blit(tex("back_" + backOf(path[i])), x, y, w, h, 0, 0, 240, 360, 240, 360);
+            if (t >= G_GOLD && t < G_PEEL) {   // it darkens as it is held
+                int a2 = (int) (Math.min(1f, (t - G_GOLD) / (float) (G_PEEL - G_GOLD)) * 120 * al);
+                g.fill(x, y, x + w, y + h, (a2 << 24) | 0x2A0206); g.flush();
+            }
+        }
+        g.pose().popPose();
+        g.setColor(1, 1, 1, 1);
+
+        // the chains themselves, drawn over the card: four of them closing in, then gone
+        if (t < G_PEEL) {
+            float grab = Math.min(1f, t / (float) G_GOLD);
+            float slack = (1 - grab) * w * 1.1f + (t > G_GOLD ? (float) Math.sin(t * .02) * 1.5f : 0);
+            for (int k = 0; k < 4; k++) {
+                double ang = Math.PI / 4 + k * Math.PI / 2;
+                chainTo(g, cx, cy, ang, w * .62f + slack, w * .18f, al);
+            }
+        } else if (t < G_FLIP) {   // the links fly apart
+            float bp = (t - G_PEEL) / (float) (G_FLIP - G_PEEL);
+            for (int k = 0; k < 14; k++) {
+                double ang = k * Math.PI * 2 / 14 + k;
+                float d = w * (.2f + bp * 1.1f), sz = Math.max(1f, w * .05f * (1 - bp));
+                int px = (int) (cx + Math.cos(ang) * d), py = (int) (cy + Math.sin(ang) * d * .9f + bp * bp * h * .25f);
+                g.fill(px - (int) sz, py - (int) sz, px + (int) sz, py + (int) sz,
+                       (((int) ((1 - bp) * 230 * al)) << 24) | 0x1C1A22); g.flush();
+            }
+        }
+    }
+
+    /** A thin bright ellipse, drawn as a run of short bars round it. */
+    private void ringAt(GuiGraphics g, float cx, float cy, float rx, float ry, int rgb, float a) {
+        if (a <= .004f) return;
+        int col = (((int) Math.min(255, a * 255)) << 24) | (rgb & 0xFFFFFF);
+        int n = 72;
+        for (int k = 0; k < n; k++) {
+            double ang = k * Math.PI * 2 / n;
+            int px = (int) (cx + Math.cos(ang) * rx), py = (int) (cy + Math.sin(ang) * ry);
+            g.fill(px - 1, py - 1, px + 2, py + 2, col);
+        }
+        g.flush();
+    }
+
+    /** One spoke of light, from d0 out to d1. */
+    private void rayAt(GuiGraphics g, float cx, float cy, double ang, float d0, float d1, int rgb, float a) {
+        if (a <= .004f) return;
+        int col = (((int) Math.min(255, a * 255)) << 24) | (rgb & 0xFFFFFF);
+        int steps = 14;
+        for (int k = 0; k < steps; k++) {
+            float d = d0 + (d1 - d0) * k / (float) steps;
+            int px = (int) (cx + Math.cos(ang) * d), py = (int) (cy + Math.sin(ang) * d);
+            int sz = Math.max(1, (int) (2.6f * (1 - k / (float) steps)));
+            g.fill(px - sz, py - sz, px + sz, py + sz, col);
+        }
+        g.flush();
+    }
+
+    /** A chain running in toward the card from `dist` out, along `ang`. */
+    private void chainTo(GuiGraphics g, float cx, float cy, double ang, float reach, float dist, float a) {
+        int col = (((int) Math.min(255, a * 235)) << 24) | 0x1C1A22;
+        int links = 9;
+        for (int k = 0; k < links; k++) {
+            float d = dist + (reach - dist) * k / (float) (links - 1);
+            int px = (int) (cx + Math.cos(ang) * d), py = (int) (cy + Math.sin(ang) * d);
+            int sz = (k & 1) == 0 ? 3 : 2;
+            g.fill(px - sz, py - sz, px + sz, py + sz, col);
+            g.fill(px - sz + 1, py - sz + 1, px + sz - 1, py + sz - 1, (((int) (a * 120)) << 24) | 0x3A3744);
+        }
+        g.flush();
     }
 
     /** A Great Old One that has been clicked: shake, turn gold, the gold peels away from the pathway coloured back, then the card turns over. */
