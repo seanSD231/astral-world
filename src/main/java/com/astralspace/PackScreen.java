@@ -56,7 +56,7 @@ public final class PackScreen extends Screen {
         tm.getTexture(tex("shiny_foil"));
         for (String n : new String[]{"shine_common", "shine_rare", "shine_epic", "shine_legendary", "shine_mythic"}) tm.getTexture(tex(n));
         for (int i = 0; i < path.length; i++) tm.getTexture(tex("front_" + RARITY[rarity(seq[i])]));
-        smooth(tex("pack_" + pack));   // the pouch is drawn far larger than its 564px art, so it is filtered, not blocky
+        smooth(tex("pack_" + pack));   // the opening screen draws the pouch at roughly its own size, so it is filtered rather than blocky
     }
 
     /** Turn bilinear filtering on for a texture the screen scales up. The .mcmeta asks for it, but asking here as
@@ -78,7 +78,18 @@ public final class PackScreen extends Screen {
     private boolean turned(int i) { return isGoo(i) ? gooFlipAt[i] >= 0 : flipAt[i] >= 0; }
     private boolean cardDone(int i, long now) { return isGoo(i) ? gooFlipAt[i] >= 0 && now - gooFlipAt[i] >= G_END - G_FLIP : flipAt[i] >= 0 && now - flipAt[i] >= 450; }
     private void give(int i) { if (!pack.equals("view")) net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Net.PackRevealPayload(i)); }
-    @Override public void removed() { give(-1); super.removed(); }
+    /**
+     * The pouch art is 1024 square -- four megabytes of it once the driver has it -- and there are
+     * sixty-eight of them. One is wanted for as long as this screen is up and never again after,
+     * so it goes back when the screen does; a player who opens packs all evening would otherwise
+     * leave every pouch they had touched sitting in video memory.
+     */
+    @Override
+    public void removed() {
+        give(-1);
+        try { Minecraft.getInstance().getTextureManager().release(tex("pack_" + pack)); } catch (Throwable ignored) { }
+        super.removed();
+    }
     private boolean allDone(long now) { for (int i = 0; i < flipAt.length; i++) if (!cardDone(i, now)) return false; return true; }
     /** No skipping the reveal: after the pack is torn, Esc only closes once every card has been turned over. */
     @Override public boolean shouldCloseOnEsc() { return tornAt < 0 || allDone(System.currentTimeMillis()); }

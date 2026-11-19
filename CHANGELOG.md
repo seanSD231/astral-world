@@ -2,6 +2,26 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.318
+
+- **The pack-opening screen is sharp.** The pouches were 564px but carried only about 280px of real detail
+  (halving and doubling one changed it by under one percent), and the screen draws them at 900-1200 physical
+  pixels, so everything on them was a three-times upscale of something soft -- the ring of pathway symbols and
+  the big one in the middle worst of all.
+  - All 68 are re-authored at 1024. The 22 symbols round the ring and the medallion are repainted from LOTM's
+    own art at full resolution -- the old soft ones are erased first by diffusing the panel back over them, so
+    nothing is doubled or ghosted -- and the frame, the plates and the lettering are a good doubling with a
+    light vector-trace pass.
+  - The geometry came off the art itself by correlating each symbol against it: the ring is the 22 pathways in
+    alphabetical order from the top, at radius 117 of the old 564, and the medallion is the pack's own pathway
+    at 136 on the same centre. `tools/art/pack_hires.py` does it and can be run again.
+  - Shiny pouches tint the whole ring and the medallion gold, as they always did; the Ancient One's pouch has
+    no ring and is left alone.
+  - They are written on a 256 colour palette, which these flat emblem pieces lose nothing to: truecolour at
+    this size would have put sixty megabytes of pouches in the jar instead of six.
+  - The pouch texture is released when the screen closes. Four megabytes each in video memory across 68 of
+    them is not something to leave lying about after an evening of opening packs.
+
 ## 0.2.317
 
 - The admin hologram: his own mark burns enormous in the sky behind him, chains fall out of it all round him
