@@ -1218,20 +1218,19 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             }
         }
 
-        // Shafts of light leaning across the place, out of the cloud and down past him. They used
-        // to be upright columns standing on every spot at once, which closed the scene in and lit
-        // it so flat that nothing else in it could be seen.
-        for (int i = 0; i < 16; i++) {
-            float ang = h(i, 580) * TAU, rr = R * (.4f + 3.2f * h(i, 581));
-            float lean = .42f + .5f * h(i, 582);                       // how far off upright it falls
-            float la = h(i, 583) * TAU;                                // and which way it leans
-            float x0 = gc(ang) * rr, z0 = gs(ang) * rr, y0 = top * (1.9f + .5f * h(i, 584));
-            float len = top * (1.7f + .9f * h(i, 585));
-            float k2 = .4f + .6f * (.5f + .5f * gs(t * .26f + i * 1.9f));
+        // The old pillars of light, at every distance round him -- but tipped a little off
+        // vertical instead of every one of them dropping dead straight down.
+        for (int i = 0; i < 34; i++) {
+            float ang = h(i, 580) * TAU + t * .006f, rr = R * (.45f + 3.4f * h(i, 581) * h(i, 582));
+            float k2 = .35f + .65f * (.5f + .5f * gs(t * .28f + i * 1.9f));
+            float wdt = (1.4f + 2.6f * h(i, 583)) * S;
+            float la = h(i, 584) * TAU, lean = .07f + .13f * h(i, 585);      // which way it tips, and how far
             float dx = gc(la) * lean, dz = gs(la) * lean;
-            rayBeam("beam", x0, y0, z0, dx, -1f, dz, len, (2.6f + 2.4f * h(i, 586)) * S, rgba(ADM_WARM, .10f * k2));
-            rayBeam("beam", x0, y0, z0, dx, -1f, dz, len, (.9f + .7f * h(i, 586)) * S, rgba(ADM_PALE, .14f * k2));
+            float x0 = gc(ang) * rr, z0 = gs(ang) * rr, hgt = top * 2.1f;
+            rayBeam("beam", x0, hgt, z0, dx, -1f, dz, hgt, wdt, rgba(ADM_WARM, .13f * k2));
+            rayBeam("beam", x0, hgt, z0, dx, -1f, dz, hgt, wdt * .3f, rgba(ADM_PALE, .2f * k2));
         }
+        flat("adm_rays", 0, top * 2.0f, 0, D * 1.3f, t * .01f, rgba(ADM_GOLD, .13f));
 
         int slot = (int) Math.floor(t * .5f);
         if (h(slot, 600) < .2f) {   // light breaking through, now and then
@@ -1274,13 +1273,13 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float inner = R * 2.0f;
         // a wash of shade over the whole floor, so the circles and the rings have something to be
         // bright against -- it was lit to white and nothing on it could be made out
-        flat("disc", 0, .03f, 0, R * 5.6f, 0, rgba(0x3A2608, .34f));
-        // the sea is the outer half and the grass shows through the inner half: a filled disc of
-        // either one paints over the other, so the swirl is masked to a ring (adm_sea)
-        if (gold) flat("whirl", 0, .05f, 0, R * 5.4f, t * .08f, rgba(0xFFD448, .6f));
-        else flat("adm_sea", 0, .05f, 0, R * 5.4f, t * .08f, rgba(0xFFFFFF, .7f));
-        flat("adm_circle", 0, .09f, 0, inner * 1.26f, t * .04f, rgba(ADM_PALE, .6f));   // out to where the sea starts
-        flat("adm_runes", 0, .11f, 0, inner * .8f, -t * .08f, rgba(ADM_GOLD, .55f));
+        flat("disc", 0, .03f, 0, R * 9.4f, 0, rgba(0x3A2608, .3f));
+        // the sea runs from half way out to the wall of the sky, and the circles sit on bare
+        // grass inside it: a filled disc of either paints over the other, so the swirl is a ring
+        if (gold) flat("whirl", 0, .05f, 0, R * 9.2f, t * .06f, rgba(0xFFD448, .6f));
+        else flat("adm_sea", 0, .05f, 0, R * 9.2f, t * .06f, rgba(0xFFFFFF, .7f));
+        flat("adm_circle", 0, .09f, 0, inner * 1.4f, t * .04f, rgba(ADM_PALE, .55f));
+        flat("adm_runes", 0, .11f, 0, inner * .9f, -t * .08f, rgba(ADM_GOLD, .5f));
         float c = gc(t * .04f) * R * .3f, s2 = gs(t * .04f) * R * .3f;
         eq(ResourceLocation.fromNamespaceAndPath("lotm", "textures/effect/hanged_man_symbol.png"),
            0, .13f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .8f), 0, 0, 1, 1);
@@ -1316,16 +1315,19 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      * which at this size read as a gold hoop hanging in the air -- nothing like the card.
      */
     private void admRing(float y, float rr, int rgb, float spin, float k) {
-        flat("adm_halo", 0, y, 0, rr * 2f, spin * .3f, rgba(rgb, .30f * k));
-        int n = 44;
+        flat("adm_halo", 0, y, 0, rr * 2f, spin * .3f, rgba(rgb, .22f * k));
+        int n = 76;
         for (int i = 0; i < n; i++) {
             float a = i * TAU / n + spin;
             float ph = fract(i / (float) n - t * .17f);
             float br = (float) Math.pow(Math.max(0f, gs(ph * PI)), 5) * .95f + .14f;
             float px = gc(a) * rr, pz = gs(a) * rr;
-            bb("glow", px, y, pz, rr * .17f * (.55f + br), rr * .1f * (.55f + br), 0, rgba(rgb, .34f * br * k));
-            if (br > .55f)
-                bb("spark", px, y, pz, rr * .055f, rr * .055f, t * .6f + i, rgba(ADM_PALE, (br - .55f) * 1.5f * k));
+            // small and faint: these were a fifth of the ring's radius across at .34 apiece, and
+            // seventy-odd of them overlapping burned out into one white polygon with square edges
+            bb("glow", px, y, pz, rr * .07f * (.7f + br * .6f), rr * .05f * (.7f + br * .6f), 0,
+               rgba(rgb, .11f * br * k));
+            if (br > .6f)
+                bb("spark", px, y, pz, rr * .035f, rr * .035f, t * .6f + i, rgba(ADM_PALE, (br - .6f) * 1.1f * k));
         }
     }
 
@@ -1360,7 +1362,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             torus(0, 0, 0, 2.4f * P, 2.4f * P, .8f * P, 12, 5, 0, TAU, ADM_IRON, 255); pop();
             push(); tr(ax, ay, 0); chain(6.5f * S, .6f * S, ADM_IRON); pop();
         }
-        bb("glow", 0, yB, 0, 36f * P, 44f * P, 0, rgba(ADM_WARM, .08f));
+        bb("glow", 0, yB, 0, 36f * P, 44f * P, 0, rgba(ADM_WARM, .045f));
     }
 
     /**

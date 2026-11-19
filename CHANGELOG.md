@@ -1,3 +1,8 @@
+## 0.2.328
+- Rupex's rings aren't squares any more: the lights running round them were a fifth of the ring's radius across at full strength apiece, and seventy of them overlapping burned out into one white polygon. Small and faint now, so the ring reads as a line of light.
+- The rainbow runs from half way out to the wall of the sky, so it is the outer edge; the spell circles sit on bare grass inside it.
+- The old pillars of light are back, all thirty-four of them, just tipped seven to twenty per cent off vertical instead of every one dropping dead straight down.
+
 ## 0.2.327
 - Rupex's rings are flowing light now instead of gold hoops: a soft band with a bright crest that travels round it.
 - The sky, the cross and the floor are all dimmed down, so the rings and the circles have something to read against.
