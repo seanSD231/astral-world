@@ -20,7 +20,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.goal.*;
+import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
@@ -36,12 +36,14 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.List;
 
 /**
- * The Moon's Corruption.
+ * The Moon's Corruption: a thin figure hanging in the air inside an enormous flower, under the
+ * blood moon, over a congregation that will not stop kneeling to it.
  *
- * <p>What the crimson moon makes of whatever it finds. It fights in three turns of its own moon:
- * waxing, where it is still mostly a thing with arms and hunts you down; crimson, where it pulls a
- * moon of its own up over the fight and the light off it falls on everything; and eclipse, where
- * what is left of it stops pretending and feeds.</p>
+ * <p>Everything it does comes off how it is built. The corolla is the fight: wide open it is
+ * attacking and can be hurt, folded over itself it is guarded and winding up, and the moment it
+ * throws itself open again everything standing near goes with it. The lance is the thin red line
+ * it holds. The threads it hangs from come down and pin you to the floor. The worshippers below
+ * get up when it calls them and give it back what they have.</p>
  *
  * <p>Its corruption is not a damage type but a count. Standing in its light adds to a player's
  * corruption and corruption is what hurts them -- slowly at first, and then not slowly -- and it
@@ -82,6 +84,8 @@ public class MoonCorruption extends Monster {
             SynchedEntityData.defineId(MoonCorruption.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> MOON =
             SynchedEntityData.defineId(MoonCorruption.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> OPEN =
+            SynchedEntityData.defineId(MoonCorruption.class, EntityDataSerializers.FLOAT);
 
     /** 0 waxing, 1 crimson, 2 eclipse. */
     public int phase() { return entityData.get(PHASE); }
@@ -89,6 +93,8 @@ public class MoonCorruption extends Monster {
     public int act() { return entityData.get(ACT); }
     /** How far its own moon has risen, nought to one. */
     public float moon() { return entityData.get(MOON); }
+    /** How wide the corolla is standing: nought folded shut over it, one thrown fully open. */
+    public float open() { return entityData.get(OPEN); }
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder b) {
@@ -96,6 +102,7 @@ public class MoonCorruption extends Monster {
         b.define(PHASE, 0);
         b.define(ACT, 0);
         b.define(MOON, 0f);
+        b.define(OPEN, 1f);
     }
 
     // ---- the fight ----
@@ -104,134 +111,104 @@ public class MoonCorruption extends Monster {
             Component.literal("The Moon's Corruption").withColor(0xE0384A),
             BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.NOTCHED_6);
 
-    private int howl, beam, summon, feed;
+    private int lance, bloom, threads, call, feed, fold;
 
-    public MoonCorruption(EntityType<? extends Monster> type, Level level) {
-        super(type, level);
-        this.xpReward = 250;
-        setPersistenceRequired();
-    }
-
-    @Override
-    protected void registerGoals() {
-        goalSelector.addGoal(1, new FloatGoal(this));
-        goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.15, true));
-        goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, .8));
-        goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 24f));
-        targetSelector.addGoal(1, new HurtByTargetGoal(this));
-        targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
-    }
-
-    @Override
-    public boolean removeWhenFarAway(double d) { return false; }
-
-    @Override
-    public boolean canBeAffected(MobEffectInstance e) {
-        return e.getEffect() != MobEffects.WITHER && e.getEffect() != MobEffects.POISON && super.canBeAffected(e);
-    }
-
-    @Override
-    public void startSeenByPlayer(ServerPlayer p) { super.startSeenByPlayer(p); bar.addPlayer(p); }
-
-    @Override
-    public void stopSeenByPlayer(ServerPlayer p) { super.stopSeenByPlayer(p); bar.removePlayer(p); }
-
-    @Override
-    public void tick() {
-        super.tick();
-        if (level().isClientSide) { clientTick(); return; }
-
-        bar.setProgress(getHealth() / getMaxHealth());
-        int want = getHealth() > getMaxHealth() * .66f ? 0 : (getHealth() > getMaxHealth() * .33f ? 1 : 2);
-        if (want != phase()) turn(want);
-
-        float m = moon();
-        float target = phase() == 0 ? 0f : (phase() == 1 ? .7f : 1f);
-        if (m != target) entityData.set(MOON, m + Math.signum(target - m) * Math.min(.012f, Math.abs(target - m)));
-        if (act() > 0) entityData.set(ACT, act() - 1);
-
-        if (phase() >= 1) corrupt();
-        if (--howl <= 0) howl();
-        if (phase() >= 1 && --beam <= 0) beam();
-        if (--summon <= 0) summon();
-        if (phase() >= 2 && --feed <= 0) feed();
-    }
-
-    /** A turn of its moon: it stops, the light changes, and it comes back harder. */
-    private void turn(int to) {
-        entityData.set(PHASE, to);
-        entityData.set(ACT, 40);
-        ServerLevel lv = (ServerLevel) level();
-        lv.playSound(null, blockPosition(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, 2f, to == 2 ? .6f : .8f);
-        lv.sendParticles(ParticleTypes.SCULK_SOUL, getX(), getY() + 2, getZ(), 120, 2, 2, 2, .3);
-        addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, 3, false, false));
-        var speed = getAttribute(Attributes.MOVEMENT_SPEED);
-        if (speed != null) speed.setBaseValue(.3 + to * .07);
-        heal(getMaxHealth() * .04f);
-        for (Player p : nearby(28))
-            p.displayClientMessage(Component.literal(to == 1 ? "The moon comes up." : "It stops pretending.")
-                    .withColor(0xE0384A), true);
-    }
-
-    /** Standing in its light corrupts you; the count is what does the damage, and only leaving sheds it. */
-    private void corrupt() {
-        if (tickCount % 20 != 0) return;
-        double r = phase() == 2 ? 20 : 14;
-        for (Player p : nearby(r)) {
-            if (p.isCreative() || p.isSpectator()) continue;
-            int c = Corruption.add(p, phase() == 2 ? 2 : 1);
-            if (c >= 6) p.hurt(level().damageSources().magic(), 1f + (c - 6) * .8f);
-            if (c >= 10) p.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 60, 1, false, true));
+    /** It drifts rather than walks: it keeps its distance and keeps its height. */
+    private void drift() {
+        LivingEntity t = getTarget();
+        double want = 3.2 + phase() * .3;                 // how high it rides
+        double floor = level().getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                getBlockX(), getBlockZ());
+        double lift = (floor + want - getY()) * .06;
+        Vec3 v = getDeltaMovement().scale(.86).add(0, Math.max(-.25, Math.min(.25, lift)), 0);
+        if (t != null) {
+            Vec3 to = t.position().subtract(position());
+            double d = Math.sqrt(to.x * to.x + to.z * to.z);
+            double pull = d > 9 ? .028 : (d < 5 ? -.022 : 0);    // close in, but never crowd
+            if (d > .1) v = v.add(to.x / d * pull, 0, to.z / d * pull);
+            setYRot((float) (Math.atan2(to.z, to.x) * 180 / Math.PI) - 90);
+            yBodyRot = getYRot();
         }
+        setDeltaMovement(v);
     }
 
-    /** The howl: knocks everyone back out of its reach and leaves them corrupted for it. */
-    private void howl() {
-        howl = 150 - phase() * 30;
-        entityData.set(ACT, 25);
-        ServerLevel lv = (ServerLevel) level();
-        lv.playSound(null, blockPosition(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 2.2f, .55f);
-        lv.sendParticles(ParticleTypes.SONIC_BOOM, getX(), getY() + 2.6, getZ(), 2, .4, .4, .4, 0);
-        for (Player p : nearby(11)) {
-            Vec3 away = p.position().subtract(position()).normalize().scale(1.1).add(0, .45, 0);
-            p.push(away.x, away.y, away.z);
-            p.hurt(level().damageSources().mobAttack(this), 5f + phase() * 3f);
-            Corruption.add(p, 2);
-        }
+    /** The corolla settles toward wherever it ought to be standing. */
+    private void petals(float want) {
+        float o = open();
+        if (Math.abs(o - want) < .02f) { entityData.set(OPEN, want); return; }
+        entityData.set(OPEN, o + Math.signum(want - o) * .055f);
     }
 
-    /** A shaft of its moonlight, dropped where the target is standing a moment before it lands. */
-    private void beam() {
-        beam = 110 - phase() * 25;
+    /** Folded shut it takes far less; that is the whole reason to make it open. */
+    @Override
+    public boolean hurt(DamageSource src, float amount) {
+        if (open() < .35f) amount *= .25f;
+        return super.hurt(src, amount);
+    }
+
+    /** The lance: the thin red line it carries, laid out on the floor and then run down. */
+    private void lance() {
+        lance = 120 - phase() * 22;
         LivingEntity t = getTarget();
         if (t == null) return;
-        entityData.set(ACT, 20);
+        entityData.set(ACT, 26);
         ServerLevel lv = (ServerLevel) level();
-        BlockPos at = t.blockPosition();
-        lv.sendParticles(ParticleTypes.END_ROD, at.getX() + .5, at.getY() + 6, at.getZ() + .5, 70, .4, 5, .4, .02);
-        lv.playSound(null, at, SoundEvents.BEACON_DEACTIVATE, SoundSource.HOSTILE, 1.4f, 1.5f);
-        MoonBeam.drop(lv, at, this, 26);
+        Vec3 to = t.position().subtract(position());
+        MoonBeam.lance(lv, blockPosition(), this, 9f + phase() * 4f, to.x, to.z);
+        lv.playSound(null, blockPosition(), SoundEvents.TRIDENT_RETURN, SoundSource.HOSTILE, 1.8f, .7f);
     }
 
-    /** Thralls: whatever the light has already got to. */
-    private void summon() {
-        summon = 240 - phase() * 55;
+    /**
+     * The bloom: it shuts itself, holds, and throws itself open. While it is shut it can hardly be
+     * hurt, which is the trade -- you are given a window and then told to leave.
+     */
+    private void bloom() {
+        bloom = 230 - phase() * 40;
+        fold = 50;
+        entityData.set(ACT, 40);
         ServerLevel lv = (ServerLevel) level();
-        int n = 2 + phase();
+        lv.playSound(null, blockPosition(), SoundEvents.AMETHYST_CLUSTER_PLACE, SoundSource.HOSTILE, 2f, .5f);
+        MoonBeam.bloom(lv, blockPosition(), this, 10f + phase() * 5f);
+    }
+
+    /** The threads it hangs from, come down for somebody else. */
+    private void threads() {
+        threads = 180 - phase() * 30;
+        entityData.set(ACT, 20);
+        ServerLevel lv = (ServerLevel) level();
+        lv.playSound(null, blockPosition(), SoundEvents.BEACON_POWER_SELECT, SoundSource.HOSTILE, 1.4f, .6f);
+        for (Player p : nearby(18)) {
+            if (p.isCreative() || p.isSpectator()) continue;
+            p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 70, 5, false, true));
+            p.addEffect(new MobEffectInstance(MobEffects.JUMP, 70, 200, false, false));   // pinned to the floor
+            Corruption.add(p, 2);
+            for (int k = 0; k < 16; k++)
+                lv.sendParticles(ParticleTypes.DRIPPING_OBSIDIAN_TEAR,
+                        p.getX(), p.getY() + 2.4 + k * .4, p.getZ(), 1, .25, .1, .25, 0);
+        }
+    }
+
+    /** The congregation: what is already down there, called up. */
+    private void call() {
+        call = 260 - phase() * 55;
+        ServerLevel lv = (ServerLevel) level();
+        int n = 3 + phase();
         for (int i = 0; i < n; i++) {
             double a = i * Math.PI * 2 / n + random.nextDouble();
-            EntityType<?> type = phase() >= 2 && random.nextBoolean() ? EntityType.RAVAGER
-                    : (phase() >= 1 ? EntityType.HUSK : EntityType.ZOMBIE);
+            double rr = 7 + random.nextDouble() * 5;
+            EntityType<?> type = phase() >= 2 && random.nextBoolean() ? EntityType.HUSK : EntityType.DROWNED;
             Entity e = type.create(lv);
             if (!(e instanceof Mob mob)) continue;
-            mob.moveTo(getX() + Math.cos(a) * 4, getY(), getZ() + Math.sin(a) * 4, (float) (a * 180 / Math.PI), 0);
+            mob.moveTo(getX() + Math.cos(a) * rr, getY() - 3, getZ() + Math.sin(a) * rr, (float) (a * 180 / Math.PI), 0);
             mob.finalizeSpawn(lv, lv.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.MOB_SUMMONED, null);
             mob.setPersistenceRequired();
+            mob.setCustomName(Component.literal("Worshipper").withColor(0xB0384A));
             mob.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 20 * 600, 1, false, false));
             if (getTarget() != null) mob.setTarget(getTarget());
             lv.addFreshEntity(mob);
+            lv.sendParticles(ParticleTypes.SCULK_SOUL, mob.getX(), mob.getY() + 1, mob.getZ(), 30, .4, .6, .4, .05);
         }
-        lv.playSound(null, blockPosition(), SoundEvents.WOLF_HOWL, SoundSource.HOSTILE, 2f, .6f);
+        lv.playSound(null, blockPosition(), SoundEvents.DEEPSLATE_BRICKS_BREAK, SoundSource.HOSTILE, 2f, .5f);
     }
 
     /** Eclipse only: it takes back what the corruption has been storing up. */
@@ -247,8 +224,15 @@ public class MoonCorruption extends Monster {
             got += 4 + c * 1.6f;
             lv.sendParticles(ParticleTypes.DAMAGE_INDICATOR, p.getX(), p.getY() + 1, p.getZ(), 8, .3, .5, .3, .02);
         }
+        // and what the congregation has, which is why they were called up
+        for (Mob m : level().getEntitiesOfClass(Mob.class, new AABB(blockPosition()).inflate(20),
+                x -> x.hasCustomName() && !(x instanceof MoonCorruption))) {
+            got += m.getHealth() * .5f;
+            m.discard();
+            lv.sendParticles(ParticleTypes.SOUL, m.getX(), m.getY() + 1, m.getZ(), 20, .3, .5, .3, .06);
+        }
         if (got > 0) {
-            heal(Math.min(got, getMaxHealth() * .06f));
+            heal(Math.min(got, getMaxHealth() * .07f));
             lv.playSound(null, blockPosition(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.HOSTILE, 2.4f, .7f);
         }
     }

@@ -1,3 +1,8 @@
+## 0.2.345
+- The Moon's Corruption rebuilt against what it actually is. It was a hunched beast; it is a thin figure hanging in the air at the heart of an enormous flower, arms up and open, a crown of fine spines over its head, a gown running away below it into nothing, the blood moon standing behind it with bare branches across the face of it, and the threads it hangs from going up out of a sky that is not there.
+- Its attacks come off how it is built. The corolla is the fight: thrown wide it is attacking and can be hurt, folded over itself it takes a quarter damage and is winding up, and when it throws itself open again everything standing near goes with it. The lance is the thin red line it carries, laid out along the floor and then run down. The threads come down and pin you where you stand. The congregation below gets up when it calls, and in eclipse it takes them back for the health.
+- It floats rather than walks: it keeps its height off the ground and its distance from you, closing when you back off and never crowding.
+
 ## 0.2.344
 - Build fix: SoundEvent was not imported.
 
