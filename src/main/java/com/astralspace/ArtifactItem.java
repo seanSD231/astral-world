@@ -65,7 +65,7 @@ public class ArtifactItem extends Item {
         ArtifactSets.Set set = ArtifactSets.get(p.set());
         int c = set == null ? 0xFFFFFF : set.colour();
 
-        tip.add(Component.literal("Sealed Artifact \u00b7 " + Artifacts.grade(p.rarity()))
+        tip.add(Component.literal("Sealed Artifact Fragment \u00b7 " + Artifacts.grade(p.rarity()))
                 .withStyle(ChatFormatting.DARK_AQUA)
                 .append(Component.literal("   " + stars(p.rarity())).withColor(0xFFC24A)));
         tip.add(Component.literal(slot.title).withStyle(ChatFormatting.GRAY)
@@ -81,10 +81,14 @@ public class ArtifactItem extends Item {
             tip.add(Component.empty());
             tip.add(Component.literal(set.title()).withColor(c)
                     .append(Component.literal("   " + set.file()).withStyle(ChatFormatting.DARK_GRAY)));
-            tip.add(Component.literal("  2 pieces: ").withStyle(ChatFormatting.DARK_GRAY)
+            tip.add(Component.literal("  2  ").withStyle(ChatFormatting.DARK_GRAY)
                     .append(Component.literal(set.twoLine()).withStyle(ChatFormatting.GRAY)));
-            tip.add(Component.literal("  4 pieces: ").withStyle(ChatFormatting.DARK_GRAY)
+            tip.add(Component.literal("  4  ").withStyle(ChatFormatting.DARK_GRAY)
                     .append(Component.literal(set.fourLine()).withStyle(ChatFormatting.GRAY)));
+            tip.add(Component.literal("     \u2013 " + set.fourCost()).withColor(0xC07070));
+            tip.add(Component.literal("  5  ").withStyle(ChatFormatting.DARK_GRAY)
+                    .append(Component.literal(set.fiveLine()).withStyle(ChatFormatting.GRAY)));
+            tip.add(Component.literal("     \u2013 " + set.fiveCost()).withColor(0xC07070));
             tip.add(Component.literal(set.flavour()).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         }
     }

@@ -138,19 +138,9 @@ public final class DomainScreen extends Screen {
                      x + 10, y + 19, 0xFFFFFF, false);
 
         int ly = y + 44;
-        g.drawString(font, Component.literal("TWO OF IT").withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 10, ly, 0xFFFFFF, false);
-        ly += 12;
-        for (String line : wrap(s.twoLine(), w - 24)) {
-            g.drawString(font, Component.literal(line).withStyle(ChatFormatting.GRAY), x + 10, ly, 0xFFFFFF, false);
-            ly += 10;
-        }
-        ly += 8;
-        g.drawString(font, Component.literal("FOUR OF IT \u00b7 THE INCIDENT REPEATS").withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 10, ly, 0xFFFFFF, false);
-        ly += 12;
-        for (String line : wrap(s.fourLine(), w - 24)) {
-            g.drawString(font, Component.literal(line).withColor(0xFF9ADFA8), x + 10, ly, 0xFFFFFF, false);
-            ly += 10;
-        }
+        ly = tier(g, x, ly, w, c, "TWO FRAGMENTS", s.twoLine(), null);
+        ly = tier(g, x, ly, w, c, "FOUR \u00b7 THE INCIDENT REPEATS", s.fourLine(), s.fourCost());
+        ly = tier(g, x, ly, w, c, "FIVE \u00b7 ALL OF IT", s.fiveLine(), s.fiveCost());
 
         // the depth gauge
         int dy = y + h - 64;
@@ -177,6 +167,22 @@ public final class DomainScreen extends Screen {
         g.fill(bx, by, bx + 96, by + 20, Pathways.alpha(c, hot ? .6f : .32f));
         g.renderOutline(bx, by, 96, 20, Pathways.alpha(c, .9f));
         g.drawCenteredString(font, Component.literal("Enter").withColor(0xFFFFFF), bx + 48, by + 6, 0xFFFFFF);
+    }
+
+    /** One tier: its heading, what it gives in green, and what it takes in red. */
+    private int tier(GuiGraphics g, int x, int y, int w, int c, String head, String gives, String takes) {
+        g.drawString(font, Component.literal(head).withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 10, y, 0xFFFFFF, false);
+        y += 12;
+        for (String line : wrap(gives, w - 24)) {
+            g.drawString(font, Component.literal(line).withColor(0xFF9ADFA8), x + 10, y, 0xFFFFFF, false);
+            y += 10;
+        }
+        if (takes != null)
+            for (String line : wrap("\u2013 " + takes, w - 24)) {
+                g.drawString(font, Component.literal(line).withColor(0xFFE07A7A), x + 10, y, 0xFFFFFF, false);
+                y += 10;
+            }
+        return y + 8;
     }
 
     @Override

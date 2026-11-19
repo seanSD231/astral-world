@@ -1,3 +1,9 @@
+## 0.2.356
+- Artifacts are fragments of sealed artifacts, not whole ones. A whole one would be a story to itself and far too dangerous to hand out; a fragment carries a piece of what the thing did without the thing's judgement about when to do it, which is why every tier now costs you something.
+- Three tiers. Two fragments: two stats up and a third down. Four: a mechanic, and a drawback that rides along with it. Five: an ability, as strong as the five fragments are fine, with a price set by that ability — a set of five-star pieces gives the whole of it and charges the whole price.
+- Eighteen sets. The Evernight deals forty per cent more in the dark and takes a quarter more in the light. The Storms chain to a second target and take a fifth off your health. Steam adds your armour to your blows and a quarter off your attack speed. The Red Gloves make everything first again when you finish something. The Quiet Hours leave you at a sliver instead of dead, and take a quarter off your health for good. Loss of Control crits for half again under two fifths — and you no longer mend at all.
+- Both menus show all three tiers, what each gives in green and what it takes in red, greyed until that tier is actually on you.
+
 ## 0.2.355
 - Artifacts are sealed artifacts, declassified: objects soaked in Beyonder power, graded by the Church and issued out because the vaults will not hold them all.
 - A set is a case file rather than a brand — five objects pulled out of the same incident, which resonate because they were steeped in the same event. Two of them on one person bleeds a little of the incident into them, which is a number. Four and enough of it is present to begin re-enacting itself, which is a behaviour, and only ever the shape the event originally had.

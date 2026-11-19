@@ -315,8 +315,11 @@ public final class ArtifactScreen extends Screen {
             g.drawString(font, Component.literal(set.file()).withStyle(ChatFormatting.DARK_GRAY),
                          x + w - font.width(set.file()) - 8, ly, 0xFFFFFF, false);
             ly += 12;
-            ly = setLine(g, x, ly, w, "2 pieces: " + set.twoLine(), have >= 2);
-            ly = setLine(g, x, ly, w, "4 pieces: " + set.fourLine(), have >= 4);
+            ly = setLine(g, x, ly, w, "2  " + set.twoLine(), have >= 2);
+            ly = setLine(g, x, ly, w, "4  " + set.fourLine(), have >= 4);
+            ly = cost(g, x, ly, w, set.fourCost(), have >= 4);
+            ly = setLine(g, x, ly, w, "5  " + set.fiveLine(), have >= 5);
+            ly = cost(g, x, ly, w, set.fiveCost(), have >= 5);
             ly += 4;
             for (String line : wrap(set.flavour(), w - 16)) {
                 g.drawString(font, Component.literal(line).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC),
@@ -330,6 +333,15 @@ public final class ArtifactScreen extends Screen {
             g.fill(x + 6, y + h - 16, x + 12 + font.width(e), y + h - 4, Pathways.alpha(sc, .5f));
             g.drawString(font, Component.literal(e).withColor(0xFFFFFF), x + 9, y + h - 14, 0xFFFFFF, false);
         }
+    }
+
+    /** The price of a tier, in red, and only once that tier is actually on you. */
+    private int cost(GuiGraphics g, int x, int y, int w, String s, boolean live) {
+        for (String line : wrap("\u2013 " + s, w - 22)) {
+            g.drawString(font, Component.literal(line).withColor(live ? 0xFFE07A7A : 0xFF5A4A4A), x + 16, y, 0xFFFFFF, false);
+            y += 10;
+        }
+        return y;
     }
 
     private int setLine(GuiGraphics g, int x, int y, int w, String s, boolean live) {

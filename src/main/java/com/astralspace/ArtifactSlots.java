@@ -81,7 +81,7 @@ public final class ArtifactSlots {
             double v = totals.getOrDefault(s, 0.0);
             if (s == Stat.CRIT_RATE) { rate = v; continue; }
             if (s == Stat.CRIT_DMG) { dmg = v; continue; }
-            if (s == Stat.ABILITY_POWER) v += SetEffects.alchemy(p);   // what the alchemy stacks are worth
+            if (s == Stat.ABILITY_POWER) v += SetEffects.abilityShift(p);   // what the live set effects add or take
             Holder<Attribute> h = s.attribute();
             if (h == null) continue;                       // the mod that owns it is not here
             AttributeInstance inst = p.getAttribute(h);
