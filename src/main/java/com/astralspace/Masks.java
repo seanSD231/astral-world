@@ -38,16 +38,32 @@ public final class Masks {
 
     public static String nameOf(UUID id) { return NAME.getOrDefault(id, "Masked"); }
 
-    /** Puts a mask on or takes it off, and tells everyone. */
+    /** Takes a mask off, or -- if none is on -- asks them what they want to be called behind this one. */
     public static void toggle(ServerPlayer sp, ItemStack st, int colour) {
         if (COLOUR.containsKey(sp.getUUID())) {
             clear(sp);
             sp.displayClientMessage(Component.literal("You take the mask off.").withStyle(net.minecraft.ChatFormatting.GRAY), true);
             return;
         }
-        String name = st.has(net.minecraft.core.component.DataComponents.CUSTOM_NAME)
-                ? st.getHoverName().getString() : "Masked";
+        PacketDistributor.sendToPlayer(sp, new DoorNet.MaskAsk(colour));
+    }
+
+    /**
+     * Puts the mask on under the name they chose, and tells everyone. The client asked for this, so
+     * the name is theirs to pick -- but it is checked here, and so is the mask: nothing stops a
+     * client sending this without one in hand.
+     */
+    public static void wear(ServerPlayer sp, int colour, String name) {
+        if (COLOUR.containsKey(sp.getUUID())) return;
+        if (colour < 0 || colour >= COLOURS.length) return;
+        boolean has = false;
+        var inv = sp.getInventory();
+        for (int i = 0; i < inv.getContainerSize() && !has; i++)
+            if (inv.getItem(i).getItem() instanceof Mask m && m.colour() == colour) has = true;
+        if (!has) return;
+        name = name == null ? "" : name.trim();
         if (name.length() > 24) name = name.substring(0, 24);
+        if (name.isEmpty()) name = "Masked";
         COLOUR.put(sp.getUUID(), new int[]{colour});
         NAME.put(sp.getUUID(), name);
         save(sp);

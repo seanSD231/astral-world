@@ -14,8 +14,8 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 /**
- * A mask. Right-click it to put it on: your skin disappears under a hooded robe in the mask's colour, and the name
- * over your head and in chat becomes whatever the mask is called. Rename it on an anvil to choose that name.
+ * A mask. Right-click it to put it on: you are asked what to be called, and then your skin disappears under a
+ * business suit behind a face nobody can place, with that name over your head and in chat.
  */
 public class Mask extends Item {
     private final int colour;
@@ -38,9 +38,9 @@ public class Mask extends Item {
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext ctx, List<Component> tip, net.minecraft.world.item.TooltipFlag flag) {
         tip.add(Component.literal("Right click to wear it, and again to take it off.").withStyle(ChatFormatting.AQUA));
-        tip.add(Component.literal("Your skin goes under the robe; the name over your head and in chat")
+        tip.add(Component.literal("It asks what you want to be called. Your skin goes under a suit,")
                 .withStyle(ChatFormatting.DARK_AQUA));
-        tip.add(Component.literal("becomes this mask's name. Rename it on an anvil to choose one.")
+        tip.add(Component.literal("your face under the mask, and that name goes over your head and in chat.")
                 .withStyle(ChatFormatting.DARK_AQUA));
         tip.add(Component.literal("Lose the mask and the name goes with it.").withStyle(ChatFormatting.DARK_GRAY));
     }

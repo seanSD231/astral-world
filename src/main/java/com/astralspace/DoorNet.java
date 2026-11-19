@@ -52,7 +52,27 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server to client: they put a mask on, so ask them what to be called. */
+    public record MaskAsk(int colour) implements CustomPacketPayload {
+        public static final Type<MaskAsk> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "mask_ask"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, MaskAsk> CODEC = StreamCodec.of(
+            (b, m) -> b.writeVarInt(m.colour),
+            b -> new MaskAsk(b.readVarInt()));
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    /** Client to server: the name they chose. */
+    public record MaskWear(int colour, String name) implements CustomPacketPayload {
+        public static final Type<MaskWear> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "mask_wear"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, MaskWear> CODEC = StreamCodec.of(
+            (b, m) -> { b.writeVarInt(m.colour); b.writeUtf(m.name, 32); },
+            b -> new MaskWear(b.readVarInt(), b.readUtf(32)));
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static void register(PayloadRegistrar r) {
+        r.playToClient(MaskAsk.TYPE, MaskAsk.CODEC, (p, ctx) -> ctx.enqueueWork(() -> MaskNameScreen.open(p.colour())));
+        r.playToServer(MaskWear.TYPE, MaskWear.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) Masks.wear(sp, p.colour(), p.name()); }));
         r.playToClient(World.TYPE, World.CODEC, (p, ctx) -> ctx.enqueueWork(() -> UniqWorld.add(p.kind(), p.id(), p.id2(), p.x(), p.y(), p.z(), p.x2(), p.y2(), p.z2(), p.dur())));
         r.playToClient(Fx.TYPE, Fx.CODEC, (p, ctx) -> ctx.enqueueWork(() -> WornClient.fx(p.entity(), p.kind())));
         r.playToClient(Mask.TYPE, Mask.CODEC, (p, ctx) -> ctx.enqueueWork(() -> MaskClient.set(p.id(), p.colour(), p.name())));

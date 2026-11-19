@@ -1,3 +1,8 @@
+## 0.2.336
+- Putting a mask on asks what you want to be called, there and then, instead of taking the name off the item. A mask handed round a party is a different person each time somebody wears it. The server still checks the name and that you are actually holding that mask.
+- The hooded robe is a business suit: jacket with lapels narrowing to a button, shirt and tie in the mask colour, cuffs showing at the wrist, turn-ups and polished shoes.
+- Under the mask is the same blank face on everybody -- plain features, dark hair, nothing to recognise. That is the point of it.
+
 ## 0.2.335
 - The masks are masquerade masks now. The worn one is cut lace rather than a plate with slits in it: two scrolled lobes round the eyes joined over the bridge, a fleur standing off the brow, scrolls swept back past the temples and stones set along the top. Eyes only, as those are worn.
 - The item icons are redrawn to match, each in its own glitter colour over the same dark lace.
