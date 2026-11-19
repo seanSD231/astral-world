@@ -2,6 +2,20 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.320
+
+- Fixes the build (0.2.319 took the weighed heart's model out with the scythe's), and:
+- **The Apothecary fills its sphere.** Its stars hung at 2.5 of the radius with the dome at 4 -- halfway to the
+  edge, which reads as a ball of stars in the room rather than a sky; they are out at 3.78 and there are half
+  again as many. The potions are placed by elevation as well as angle, so they hang at every height from the
+  ground to overhead and out to the dome instead of ringing the floor, and charts, leaves and crescents turn
+  high up where there was nothing.
+- **The Black Emperor's hall is a hall.** Everything stood within half a radius of the throne. The beams are out
+  at the wall, the chains come down all across the sphere at their own lengths, the spikes spread from .72 to
+  1.17, and the far dark is filled: six thrown-down thrones out past the colonnade, twenty tablets of law
+  turning at every height, the crowns of seven lesser kings hanging high, and a dust of authority through the
+  whole volume.
+
 ## 0.2.319
 
 - **Marauder 0's screens are visible.** Its dome was drawn at the end of the Seq 0 pass, which painted it over the
