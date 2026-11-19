@@ -86,7 +86,7 @@ public final class ArtifactSets {
             m(Stat.CRIT_RATE, .12, Stat.ABILITY_POWER, .10, Stat.HP_PCT, -.12),
             "Your blows mark what they land on for ten seconds. Finishing something marked hides you for two seconds and gives spirituality back.",
             "In daylight your crit rate is halved.",
-            "Hands you one of the shadow authorities, from a sense of danger up to a world of shadows.",
+            "Hands you one of the shadow authorities, from a sense of danger up to a shadow enclosure.",
             m(Stat.HP_PCT, -.18));
 
         set("storms", "sailor", "Hymn of the Storms", "Case PH-007",
@@ -118,7 +118,7 @@ public final class ArtifactSets {
             m(Stat.HP_PCT, .20, Stat.SPIRIT_REGEN, .12, Stat.SPEED_PCT, -.12),
             "Stand still two seconds to root: healing over time and a great deal of defence, until you move.",
             "While you are moving, healing on you is cut by a third.",
-            "Hands you one of the flesh and blood authorities, from mending up to immortality.",
+            "Hands you one of the flesh and blood authorities, from mending up to a cloak of it.",
             m(Stat.ATK_PCT, -.20));
 
         set("ledger", "reader", "Wisdom's Ledger", "Case BK-250",
@@ -166,7 +166,7 @@ public final class ArtifactSets {
             m(Stat.SPIRIT_REGEN, .22, Stat.COOLDOWN, .12, Stat.DEF_PCT, -.16),
             "Every twenty seconds your next blow strikes a third harder and gives a great deal of spirituality back.",
             "Between those blows you deal a tenth less.",
-            "Hands you one of the fate authorities, from prophecy up to reincarnation.",
+            "Hands you one of the fate authorities, from prophecy up to an implosion of misfortune.",
             m(Stat.HP_PCT, -.18));
 
         set("ascetic", "warrior", "The Moses Ascetic Order", "Case IN-012",
@@ -198,7 +198,7 @@ public final class ArtifactSets {
             m(Stat.HP_PCT, .18, Stat.DEF_PCT, .12, Stat.ABILITY_POWER, -.16),
             "A blow that would finish you leaves you at a sliver instead. Once every five minutes.",
             "For twenty seconds afterwards you deal two fifths less.",
-            "Hands you one of the underworld authorities, from speaking with them up to ruling them.",
+            "Hands you one of the underworld authorities, from speaking with them up to ruling their spirits.",
             m(Stat.ABILITY_POWER, -.18));
 
         set("bell", "bard", "The Sound of the Bell", "Case IN-055",
@@ -206,7 +206,7 @@ public final class ArtifactSets {
             m(Stat.ABILITY_AREA, .16, Stat.ABILITY_DUR, .16, Stat.CRIT_DMG, -.20),
             "What you hit deals a fifth less for six seconds.",
             "A fifth off your own crit rate.",
-            "Hands you one of the sound authorities, from singing up to a kingdom of light.",
+            "Hands you one of the sound authorities, from singing up to an envoy of the sun.",
             m(Stat.CRIT_DMG, -.20));
 
         set("knife", "assassin", "The Assassin's Study", "Case BK-370",

@@ -1,3 +1,8 @@
+## 0.2.360
+- No divine kingdoms and nothing that brings you back. Five of the ladders were handing out one: Divine Kingdom: World of Shadows, Kingdom of Light, Split Soul Resurrection, Fate Authority: Reincarnation and Flesh and Blood: Immortality. They are replaced with a shadow enclosure, an envoy of the sun, an underworld battlefield, an implosion of misfortune and a cloak of flesh and blood.
+- A kingdom is a place somebody else has to live in and is not a thing to hand over with a hat, and a revive given out for wearing five of anything takes the teeth out of every fight in the pack at once.
+- Two guards rather than a one-off edit: the denied list is checked when the item is actually handed over, so a ladder edited later cannot quietly let one through, and the same list is checked once at load so a mistake stops the mod in the log rather than turning up in front of a player.
+
 ## 0.2.359
 - Build fix: The Last Lamp was the one set whose five tier had not been converted, and it still had a passive where the price now goes. It has a light ladder of its own.
 

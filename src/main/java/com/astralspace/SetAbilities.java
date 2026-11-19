@@ -32,29 +32,50 @@ public final class SetAbilities {
 
     private static final String TAG = "astral_set_grant";
 
+    /**
+     * Authorities that are never handed out by this, whatever a ladder says.
+     *
+     * <p>Divine kingdoms and anything that brings a player back: a kingdom is a place somebody else
+     * has to live in and is not a thing to be given away with a hat, and a revive handed out for
+     * wearing five of anything takes the teeth out of every fight in the pack at once. The check is
+     * made when the item is handed over rather than only when the ladders are written, so a ladder
+     * edited later cannot quietly let one through.</p>
+     */
+    private static final Set<String> DENIED = Set.of(
+            "divinekingdomworldofshadows", "divinekingdomlandoftheforgotten", "divine_kingdom_thorn_paradise",
+            "envisionkingdom", "kingdomoflight", "nationofthedead",
+            "splitsoulresurrection", "fatereincarnation", "fleshandbloodimmortality");
+
     /** Set id to its five rungs, weakest first. Every id is an item in that mod. */
     private static final Map<String, String[]> LADDER = new HashMap<>();
 
     static {
-        LADDER.put("evernight", new String[]{"dangersense", "shadowarmor", "shadowtrap", "shadowsummon", "divinekingdomworldofshadows"});
+        LADDER.put("evernight", new String[]{"dangersense", "shadowarmor", "shadowtrap", "shadowsummon", "shadowenclosure"});
         LADDER.put("storms", new String[]{"enableordisablelightning", "sailorlightning", "lightningball", "lightningpillar", "oceanoflightning"});
         LADDER.put("steam", new String[]{"sonicboom", "ragingblows", "earthquake", "volcaniceruption", "calamityincarnationtornado"});
         LADDER.put("acting", new String[]{"placate", "psychologicalinvisibility", "virtualpersona", "battlehypnotism", "alteration"});
-        LADDER.put("harvest", new String[]{"envisionhealth", "fleshandbloodmend", "envisionlife", "fleshandbloodbodymodification", "fleshandbloodimmortality"});
+        LADDER.put("harvest", new String[]{"envisionhealth", "fleshandbloodmend", "envisionlife", "fleshandbloodbodymodification", "fleshandbloodcloak"});
         LADDER.put("ledger", new String[]{"symbolization", "secretkeeping", "conceptualization", "scribeabilities", "sealing"});
         LADDER.put("alchemy", new String[]{"mindreading", "manipulateemotion", "hypnosis", "mentalplague", "plaguestorm"});
         LADDER.put("fog", new String[]{"monsterdangersense", "luckchanneling", "misfortunebestowal", "probabilitymanipulationworldfortune", "cycleoffate"});
         LADDER.put("thread", new String[]{"binding", "poltergeist", "objectification", "spatialcage", "spatialseal"});
         LADDER.put("control", new String[]{"berserk", "frenzy", "bane", "mindstorm", "nightmare"});
-        LADDER.put("tarot", new String[]{"prophecy", "falseprophecy", "luckgifting", "fatedconnection", "fatereincarnation"});
+        LADDER.put("tarot", new String[]{"prophecy", "falseprophecy", "luckgifting", "fatedconnection", "misfortuneimplosion"});
         LADDER.put("ascetic", new String[]{"holyoath", "purification", "holyequipment", "justicehalo", "incarnationoforder"});
         LADDER.put("mirror", new String[]{"doormirage", "replicate", "doorlayering", "trickblackcurtain", "exile"});
         LADDER.put("gloves", new String[]{"warriordangersense", "eyeofdemonhunting", "silverrapier", "silverswordmanifestation", "dawnarmory"});
-        LADDER.put("quiet", new String[]{"spiritcommunication", "languageofthedead", "soulcontrol", "splitsoulresurrection", "sovereignofsouls"});
-        LADDER.put("bell", new String[]{"singing", "amplification", "nullification", "unshadoweddomain", "kingdomoflight"});
+        LADDER.put("quiet", new String[]{"spiritcommunication", "languageofthedead", "soulcontrol", "underworldbattlefield", "sovereignofsouls"});
+        LADDER.put("bell", new String[]{"singing", "amplification", "nullification", "unshadoweddomain", "solarenvoy"});
         LADDER.put("knife", new String[]{"sleeplessconcealment", "grazing", "shadowsubstitute", "shadowcrush", "sinbearing"});
         LADDER.put("lamp", new String[]{"holyeye", "lightofholiness", "sunhalo", "purificationhalo", "lightauthority"});
         LADDER.put("sealwax", new String[]{"createconcealedbundle", "doorconcealment", "createconcealedspace", "spatialtearing", "doorgammarayburst"});
+    }
+
+    static {
+        for (var e : LADDER.entrySet())
+            for (String id : e.getValue())
+                if (DENIED.contains(id))
+                    throw new IllegalStateException("artifact set " + e.getKey() + " would hand out " + id);
     }
 
     /** Which rung the five fragments on this player come to, nought to four. */
@@ -75,7 +96,9 @@ public final class SetAbilities {
     public static Item item(String set, int rung) {
         String[] l = LADDER.get(set);
         if (l == null) return null;
-        var rl = ResourceLocation.fromNamespaceAndPath("lotm", l[Math.max(0, Math.min(4, rung))]);
+        String id = l[Math.max(0, Math.min(4, rung))];
+        if (DENIED.contains(id)) return null;              // never, whatever the ladder says
+        var rl = ResourceLocation.fromNamespaceAndPath("lotm", id);
         return BuiltInRegistries.ITEM.getOptional(rl).orElse(null);
     }
 
