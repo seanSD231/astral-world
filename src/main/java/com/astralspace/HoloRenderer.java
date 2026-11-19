@@ -814,52 +814,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      * balance it reads as a symbol, and the stubs made it anatomical. About 2r across, centred on the origin.
      */
     /**
-     * A scythe's blade: one broad flat sheet that sweeps forward in its own plane, widest
-     * where it meets the haft and drawn to a point, with a blunt back edge above and the
-     * cutting edge below. It was ten tapered segments laid along an arc, which built a
-     * jointed bent rod and not a blade at all.
-     */
-    private void scytheBlade(float len, int bone) {
-        int n = 16, back = mix(bone, 0x6A6458, .3f); float A = 2.05f, th = .075f * S;
-        float[][] bp = new float[n + 1][], bm = new float[n + 1][], ed = new float[n + 1][];
-        for (int k = 0; k <= n; k++) {
-            float u = k / (float) n, ph = u * A;
-            float bx = gs(ph) * len, by = (1f - gc(ph)) * len * .6f;
-            float tx = gc(ph), ty = .6f * gs(ph), tl = (float) Math.sqrt(tx * tx + ty * ty);
-            float nx = -(-ty / tl), ny = -(tx / tl);                 // the way the width runs: under the back edge
-            float w = (1.22f * S) * (float) Math.pow(1f - u, .62f) + .04f * S;
-            bp[k] = v3(bx, by, th); bm[k] = v3(bx, by, -th); ed[k] = v3(bx + nx * w, by + ny * w, 0);
-        }
-        float[] below = v3(0, -len, 0), above = v3(0, len * 2f, 0), front = v3(0, 0, len);
-        for (int k = 0; k < n; k++) {
-            sq(bp[k], bp[k + 1], ed[k + 1], ed[k], below, bone, 255);          // the face, lit from above
-            sq(bm[k], ed[k], ed[k + 1], bm[k + 1], above, mix(bone, 0x9A948A, .4f), 255);
-            sq(bp[k], bm[k], bm[k + 1], bp[k + 1], front, back, 255);          // the blunt back
-        }
-    }
-
-    private void heartModel(float r, int rgb) {
-        int n = 28, rings = 6; float k = r / 15f, yc = 2.5f * k, depth = .62f * r;
-        float[][][] g = new float[rings + 1][n][];
-        for (int j = 0; j <= rings; j++) {
-            float ph = j * (PI / 2) / rings, sc = gc(ph), z = depth * gs(ph);
-            for (int i = 0; i < n; i++) {
-                float u = i * TAU / n, su = gs(u), hx = 16f * su * su * su, hy = 13f * gc(u) - 5f * gc(2 * u) - 2f * gc(3 * u) - gc(4 * u);
-                g[j][i] = v3(hx * k * sc, yc + (hy * k - yc) * sc, z);
-            }
-        }
-        float[] hint = v3(0, yc, 0);
-        for (int side = -1; side <= 1; side += 2) for (int j = 0; j < rings; j++) {
-            int col = mix(rgb, 0xFF98A0, .06f + .3f * (j + .5f) / rings);
-            for (int i = 0; i < n; i++) {
-                float[] p0 = g[j][i], p1 = g[j][(i + 1) % n], p2 = g[j + 1][(i + 1) % n], p3 = g[j + 1][i];
-                boolean cleft = Math.abs(p0[0]) < 2.2f * k && p0[1] > yc;   // the crease between the lobes sits in shadow
-                sq(v3(p0[0], p0[1], p0[2] * side), v3(p1[0], p1[1], p1[2] * side), v3(p2[0], p2[1], p2[2] * side), v3(p3[0], p3[1], p3[2] * side), hint, cleft ? mix(col, 0x400008, .45f) : col, 255);
-            }
-        }
-        sphere(-6.5f * k, 9f * k, depth * .78f, 2.6f * k, 1.7f * k, .5f * k, 4, 6, mix(rgb, 0xFFFFFF, .7f), 255);     // the sheen
-    }
-    /**
      * A feather: a quill that bends, bare at the root, with two vanes of separate barbs sweeping forward along it,
      * the outer vane narrower than the inner, a notch where the barbs have parted, and a tuft of down at the base.
      * It stands up +y from the origin, `len` long, lying in the xy plane. (It was nine stacked bars.)
@@ -1159,7 +1113,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         float hw = .3f, hl = .45f;
         // Fool Seq 1: the round table top is at .84 * (F1_S * .6) blocks, and the card used to lie under it with a
         // hole cut in the table to see it. It lies on the table now and the table is whole.
-        float y = e.goo() == 2 && !e.symbolOnly() ? .16f
+        float y = e.admin() >= 0 && !e.symbolOnly() ? .24f      // the admin scene paints its circles over the ground up to .19
+                : e.goo() == 2 && !e.symbolOnly() ? .16f
                 : !e.symbolOnly() && e.goo() < 0 && e.seq() == 1 && pi == 18 ? .84f * (HoloCardEntity.F1_S * .6f) + .02f
                 : .03f;
         float[][] p = {{-hw, -hl}, {hw, -hl}, {hw, hl}, {-hw, hl}};
@@ -1929,18 +1884,19 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int i = 0; i < 7; i++) {   // seven locks round the rim, each turning open when its moment comes
             float a = i * TAU / 7 + .3f, rr = R * .92f, ly2 = 3.2f * S, q = fract(t * .08f + i / 7f);
             float open = q > .68f ? Math.min(1f, (q - .68f) / .14f) : 0f;
+            // A keyhole of light, not a plate of metal: seven upright grey slabs floating in a ring
+            // read as pillars standing round the gate with nothing holding them up.
             push(); tr(gc(a) * rr, ly2, gs(a) * rr); rY(-a + PI / 2);
-            // an upright lock plate with a keyhole burning through it -- the round discs read as coins
-            box(0, 0, 0, .62f * S, 1.5f * S, .14f * S, metal(.5f), 255);
-            box(0, 1.5f * S, 0, .62f * S, .22f * S, .14f * S, metal(.72f), 255);
-            box(0, -1.5f * S, 0, .62f * S, .22f * S, .14f * S, metal(.72f), 255);
-            push(); tr(0, .45f * S, 0); rX(PI / 2); torus(0, 0, 0, .3f * S, .3f * S, .09f * S, 12, 4, 0, TAU, metal(.85f), 255); pop();
-            push(); tr(0, -.35f * S, 0); frustum(-.16f * S, .16f * S, .1f * S, .22f * S, 4, 1, 1, metal(.85f), 255, true); pop();
-            // the shackle above it, lifting clear as the lock gives
-            push(); tr(0, 1.72f * S + open * 1.1f * S, 0); rX(PI / 2);
-            torus(0, 0, 0, .44f * S, .44f * S, .11f * S, 14, 4, 0, PI, metal(.8f), 255); pop();
+            push(); tr(0, .5f * S, 0); rZ(PI / 2);
+            torus(0, 0, 0, .5f * S, .5f * S, .11f * S, 20, 5, 0, TAU, mix(SPECTRUM[i], 0xFFFFFF, .35f), 255); pop();
+            push(); tr(0, -.5f * S, 0); rZ(PI / 2);
+            frustum(-.55f * S, .55f * S, .13f * S, .34f * S, 4, 1, 1, mix(SPECTRUM[i], 0xFFFFFF, .35f), 255, true); pop();
+            // the shackle, lifting clear as the lock gives
+            push(); tr(0, 1.25f * S + open * 1.3f * S, 0); rX(PI / 2);
+            torus(0, 0, 0, .46f * S, .46f * S, .1f * S, 16, 4, 0, PI, mix(SPECTRUM[i], 0xFFFFFF, .5f), 255); pop();
             pop();
-            bb("glow", gc(a) * rr, ly2 + .45f * S, gs(a) * rr, 1.5f * S, 1.9f * S, 0, rgba(SPECTRUM[i], .45f + .4f * open));
+            standIn("glow", gc(a) * rr, ly2, gs(a) * rr, 4.2f * S, 4.2f * S, rgba(SPECTRUM[i], .4f + .4f * open));
+            bb("lotm:flare", gc(a) * rr, ly2, gs(a) * rr, 2.4f * S, 2.4f * S, t * .2f + i, rgba(0xFFFFFF, .5f + .4f * open));
             if (open > 0) { column("beam", gc(a) * rr, ly2, top * 1.2f, gs(a) * rr, 1.6f * S * open, rgba(SPECTRUM[i], .4f * open));
                             bb("glow", gc(a) * rr, ly2, gs(a) * rr, 7f * S * open, 7f * S * open, 0, rgba(SPECTRUM[i], .5f * open)); } }
         gooSymbols(5, CY - 1f * S, R * .5f, 2.8f * S);
@@ -2598,13 +2554,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 push(); tr(gc(a) * r2, 0, gs(a) * r2); rY(-a + PI / 2 + (h(i, 5) - .5f) * .5f); rZ((h(i, 6) - .5f) * .3f);
                 box(0, .8f * S, 0, .5f * S, .8f * S, .12f * S, 0x5C625A, 255); sphere(0, 1.6f * S, 0, .5f * S, .35f * S, .12f * S, 6, 10, 0x5C625A, 255); pop(); }
             for (int i = 0; i < 22; i++) { float p = fract(t * .2f + h(i, 7)), a = h(i, 8) * TAU, r2 = R * (.3f + .6f * h(i, 9)); bb("glow", gc(a) * r2 + gs(t + i) * S, p * top * 1.1f, gs(a) * r2, 1.4f * S, 2.2f * S, 0, rgba(P1, .6f * fd(p))); bb("mote", gc(a) * r2 + gs(t + i) * S, p * top * 1.1f, gs(a) * r2, .4f * S, .5f * S, 0, rgba(0xFFFFFF, fd(p))); }
-            // a great scythe of bone planted behind the throne, taller than the hologram
-            { int bone = 0xE8E4D4; float sh = top * .86f; push(); pushThrone(); tr(-2.6f * S, 0, -1.9f * S); rZ(.1f); rX(.05f);
-              frustum(0, sh, .14f * S, .09f * S, 8, 1, 1, 0xB8B4A4, 255, true);                                            // the haft
-              push(); tr(0, sh, 0); rZ(-1.05f); scytheBlade(6.2f * S, bone); pop();                                       // the blade, swept back off the top
-              sphere(0, sh, 0, .3f * S, .3f * S, .3f * S, 5, 8, 0xD8D4C4, 255);
-              pop(); pop();
-              bb("glow", gx(-2.6f * S, -1.9f * S), sh * .8f, gz(-2.6f * S, -1.9f * S), 5f * S, top * .7f, 0, rgba(P1, .14f)); }
             // coffins standing open in a ring outside the tombstones, each with a soul lifting out of it
             for (int i = 0; i < 7; i++) { float a = i * TAU / 7 + .55f, rr = R * 1.0f;
                 if (facingThrone(a, .75f)) continue;
@@ -2659,11 +2608,14 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         if (m) {   // seq 0: the whole sphere is the abyss: swirls and cracks across the floor out to the dome, and swirls turning in the sky
             // all of this used to run out to six and a half times the radius with the dome at 3.6,
             // so most of every swirl lay outside the dark and over the real ground
-            for (int i = 0; i < 4; i++) { float a = i * TAU / 4 + .4f, rr = R * (.45f + .75f * h(i, 231)), sz = (5f + 6f * h(i, 232)) * S; flat("whirl", (float) Math.cos(a) * rr, .1f + i * .005f, (float) Math.sin(a) * rr, sz, t * (i % 2 == 0 ? .5f : -.6f) + i, rgba(i % 2 == 0 ? 0x9A50E0 : 0xB02040, .85f)); }
-            flat("whirl", 0, .04f, 0, 2.9f * R, -t * .15f, rgba(0x4A1470, .9f)); flat("whirl", 0, .05f, 0, 2.1f * R, t * .2f, rgba(0x701028, .8f));
-            for (int i = 0; i < 5; i++) flat("crack", 0, .13f, 0, R * (1.3f + .9f * h(i, 233)), i * TAU / 5 + h(i, 234) * .3f, rgba(i % 2 == 0 ? 0xC02438 : 0x9048B0, .3f));
+            for (int i = 0; i < 4; i++) { float a = i * TAU / 4 + .4f, rr = R * (.45f + .75f * h(i, 231)), sz = (5f + 6f * h(i, 232)) * S; flat("whirl", (float) Math.cos(a) * rr, .20f + i * .005f, (float) Math.sin(a) * rr, sz, t * (i % 2 == 0 ? .5f : -.6f) + i, rgba(i % 2 == 0 ? 0x9A50E0 : 0xB02040, .85f)); }
+            // above the dome's own ground shade (y .04) and above the sigil: down at .04 and .05 the
+            // two great floor spirals were painted over by the dark and there were no ground spirals at all
+            flat("whirl", 0, .15f, 0, 2.9f * R, -t * .15f, rgba(0x6A1C9A, .95f)); flat("whirl", 0, .16f, 0, 2.1f * R, t * .2f, rgba(0x9A1838, .9f));
+            flat("whirl", 0, .17f, 0, 1.3f * R, -t * .33f, rgba(0xC040FF, .55f));
+            for (int i = 0; i < 5; i++) flat("crack", 0, .18f, 0, R * (1.3f + .9f * h(i, 233)), i * TAU / 5 + h(i, 234) * .3f, rgba(i % 2 == 0 ? 0xC02438 : 0x9048B0, .35f));
             for (int i = 0; i < 12; i++) { float a = i * TAU / 12, el = .15f + .75f * h(i, 235), sz = (10f + 8f * h(i, 236)) * S;
-                domeQuad("whirl", R * 3.52f, a, el, sz, sz, (i % 2 == 0 ? 1 : -1) * t * (.6f + .3f * h(i, 237)), rgba(i % 2 == 0 ? 0x9A50E0 : 0xB02040, .55f)); }
+                domeQuad("whirl", R * 3.34f, a, el, sz, sz, (i % 2 == 0 ? 1 : -1) * t * (.6f + .3f * h(i, 237)), rgba(i % 2 == 0 ? 0x9A50E0 : 0xB02040, .55f)); }
         }
         for (int i = 0; i < 6 * N; i++) { float a = i * TAU / (6 * N) + t * .08f, r = R * .85f;
             column("crack", (float) Math.cos(a) * r, 0, top * (.5f + .4f * h(i, 3)), (float) Math.sin(a) * r, 1.5f * S, rgba(P1, .4f)); }
@@ -2715,15 +2667,16 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 box(0, ph * .97f, 0, 1.25f * S, .07f * S, .07f * S, gold2, 255);                           // the crossbar, across the pole
                 for (int sd = -1; sd <= 1; sd += 2) sphere(sd * 1.25f * S, ph * .97f, 0, .11f * S, .11f * S, .11f * S, 4, 6, gold2, 255);
                 float bw = 1.15f, bh = ph * .052f;
-                for (int k = 0; k < 9; k++) {                                                              // the cloth, rippling in the wind
-                    float ky = ph * .95f - k * bh * 2f, wv = gs(t * 1.6f - k * .7f + i * 2.1f) * .28f * S;
+                for (int k = 0; k < 9; k++) {   // the cloth, hanging still: it was rippling, and twenty of them
+                                                // all waving at once was the busiest thing in the scene
+                    float ky = ph * .95f - k * bh * 2f, wv = gs(k * .7f + i * 2.1f) * .2f * S;
                     float wd = bw * (1f - .035f * k);
                     box(0, ky, wv, wd * S, bh, .05f * S, k % 2 == 0 ? mix(P2, 0x200804, .25f) : mix(P2, 0x401008, .15f), 255);
                     for (int sd = -1; sd <= 1; sd += 2) box(sd * wd * S, ky, wv, .055f * S, bh, .055f * S, gold2, 255);   // a hem down both edges
                 }
-                float tipY = ph * .95f - 9 * bh * 2f, tw = gs(t * 1.6f - 6.3f + i * 2.1f) * .28f * S;
+                float tipY = ph * .95f - 9 * bh * 2f, tw = gs(6.3f + i * 2.1f) * .2f * S;
                 for (int k = 0; k < 3; k++) box(0, tipY - k * bh, tw, bw * (.62f - .2f * k) * S, bh, .05f * S, gold2, 255);   // a tapered gold foot
-                push(); tr(0, ph * .62f, gs(t * 1.6f + i * 2.1f) * .28f * S + .06f * S); rX(-PI / 2);
+                push(); tr(0, ph * .62f, gs(i * 2.1f) * .2f * S + .06f * S); rX(-PI / 2);
                 flat("sun", 0, 0, 0, .78f * S, t * .1f, rgba(gold2, .95f)); pop();                         // the device on it
                 sphere(0, ph + .2f * S, 0, .18f * S, .26f * S, .18f * S, 5, 8, gold2, 255);
                 pop();
@@ -2795,6 +2748,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void error(int N) {
         float t0 = t; t = (float) Math.floor(t * 1.5f) / 1.5f;   // calmer: the stepped time is slower and the flashes are fewer, so it is easier to look at
         int PUR = 0xA050FF;
+        // Seq 0's dome goes up first. It used to be drawn at the end of errorZero, which painted it
+        // over the error windows, the clock, the worms and the binary rain -- everything in the scene.
+        if (N == 2) dome(R * 3.6f, 0x1A1430, 242);
         sigil(R);
         glitchSym(0, CY, 0, 4.2f * S, -face);
         float stp = (float) Math.floor(t * 3f);   // chromatic ghosts and dead pixels that jump with the stepped time
@@ -2864,8 +2820,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      * of the world is simply not there. Platinum and white, which is the pathway's own colour, with the purple as accent.
      */
     private void errorZero(float t0) {
-        int PLAT = 0xF2F5FA, PUR = 0xBE78FF;
-        dome(R * 3.6f, 0x1A1430, 242);   // it was all but black: a lit violet dark, so the panes and the threads read
+        int PLAT = 0xF2F5FA, PUR = 0xBE78FF;   // (the dome went up at the top of error(), before everything it used to hide)
         for (int i = 0; i < 26; i++) {   // the dome in panes, each slid out of true and flickering
             float a = h(i, 300) * TAU, el = .08f + 1.25f * h(i, 301);
             int slot = (int) Math.floor(t0 * .8f + h(i, 302) * 7);
@@ -2914,7 +2869,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
           // a column of the world that is not there. It was a solid near-black block, which just
           // read as a black cube standing in the scene; it is a lit outline round a thin violet
           // haze now, so it reads as a hole cut out of the air.
-          solid(true); box(nx, nh / 2, nz, nw2, nh / 2, nw2, 0x241844, (int) (90 * fa)); solid(false);
+          // (no translucent body: a purple rectangle standing in the scene is what it read as. The
+          //  lit outline and the frames at its top and foot are the hole.)
           for (int e2 = 0; e2 < 4; e2++) column("line", nx + ((e2 & 1) == 0 ? nw2 : -nw2), 0, nh, nz + ((e2 & 2) == 0 ? nw2 : -nw2), .16f * S, rgba(PLAT, .9f * fa));
           for (int lv = 0; lv < 2; lv++) { float ly = lv == 0 ? .12f : nh;      // a bright frame round the top and the foot of it
               for (int e2 = -1; e2 <= 1; e2 += 2) {

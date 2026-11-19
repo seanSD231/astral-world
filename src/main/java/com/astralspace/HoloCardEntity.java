@@ -117,10 +117,15 @@ public class HoloCardEntity extends Entity {
      */
     @Override
     protected AABB makeBoundingBox() {
-        if (!symbolOnly() && goo() < 0 && seq() == 1 && pathIndex() == 18) {
+        if (symbolOnly()) return super.makeBoundingBox();
+        if (goo() < 0 && seq() == 1 && pathIndex() == 18) {
             double ty = getY() + .84 * (F1_S * .6f);
             return new AABB(getX() - .42, ty - .02, getZ() - .42, getX() + .42, ty + .34, getZ() + .42);
         }
+        if (admin() >= 0)                                   // drawn at .24, over its own floor circles
+            return new AABB(getX() - .45, getY(), getZ() - .45, getX() + .45, getY() + .55, getZ() + .45);
+        if (hasThrone() && seq() == 0)                      // the throne's bottom step is a solid box .44 high
+            return new AABB(getX() - .45, getY(), getZ() - .45, getX() + .45, getY() + .6, getZ() + .45);
         return super.makeBoundingBox();
     }
 

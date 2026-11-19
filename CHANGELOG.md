@@ -2,6 +2,22 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.319
+
+- **Marauder 0's screens are visible.** Its dome was drawn at the end of the Seq 0 pass, which painted it over the
+  error windows, the clock, the worms of time and the binary rain -- the whole scene. It goes up first now. The
+  purple rectangle is gone too: the column of absence is the lit outline and its end frames, with nothing in it.
+- **The Abyss has ground spirals again.** Both great floor spirals sat at y .04 and .05, under the dome's own
+  ground shade; they are above it and a third is added. The spirals on the wall move in from 3.52 to 3.34 of the
+  radius.
+- **Hunter 0's banners hang still.** Twenty of them rippling at once was the busiest thing in the scene.
+- **Death 0 loses the scythe**, and its card is easy to pick up again: the throne's bottom step is a solid box
+  .44 high sitting right on top of the card, so the card's own box now stands .6 high and clears it.
+- **The admin card can be picked up.** It was drawn at y .03, under its own floor circles, which paint the ground
+  up to .19 -- it was buried. It sits at .24 with a box to match.
+- **Key of Light's floating grey pillars are gone.** The seven locks are keyholes of light now: a ring and a slot
+  in the lock's own colour with a shackle that lifts, instead of a grey slab hanging in the air.
+
 ## 0.2.318
 
 - **The pack-opening screen is sharp.** The pouches were 564px but carried only about 280px of real detail
