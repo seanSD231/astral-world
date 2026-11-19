@@ -270,7 +270,8 @@ public final class ArtifactScreen extends Screen {
         g.fillGradient(x, y, x + w, y + 30, Pathways.alpha(sc, .85f), Pathways.alpha(Pathways.deep(sc, .5f), .85f));
         g.drawString(font, Component.literal(trim(set == null ? p.slot().title : set.title(), w - 16)).withColor(0xFFFFFF),
                      x + 8, y + 7, 0xFFFFFF, false);
-        g.drawString(font, Component.literal(p.slot().title).withStyle(ChatFormatting.GRAY), x + 8, y + 19, 0xFFFFFF, false);
+        g.drawString(font, Component.literal(p.slot().title + "  \u00b7  " + Artifacts.grade(p.rarity()))
+                .withStyle(ChatFormatting.GRAY), x + 8, y + 19, 0xFFFFFF, false);
 
         // the main stat, big
         int my2 = y + 38;
@@ -311,6 +312,8 @@ public final class ArtifactScreen extends Screen {
             ly += 6;
             int have = ArtifactSets.counts(ArtifactSlots.clientWorn()).getOrDefault(set.id(), 0);
             g.drawString(font, Component.literal(set.title() + " (" + have + ")").withColor(sc & 0xFFFFFF), x + 8, ly, 0xFFFFFF, false);
+            g.drawString(font, Component.literal(set.file()).withStyle(ChatFormatting.DARK_GRAY),
+                         x + w - font.width(set.file()) - 8, ly, 0xFFFFFF, false);
             ly += 12;
             ly = setLine(g, x, ly, w, "2 pieces: " + set.twoLine(), have >= 2);
             ly = setLine(g, x, ly, w, "4 pieces: " + set.fourLine(), have >= 4);

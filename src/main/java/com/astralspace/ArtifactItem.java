@@ -59,15 +59,18 @@ public class ArtifactItem extends Item {
     public void appendHoverText(ItemStack st, Item.TooltipContext ctx, List<Component> tip, TooltipFlag flag) {
         Artifacts.Piece p = Artifacts.read(st);
         if (p == null) {
-            tip.add(Component.literal("An empty setting. Nothing has been bound into it.").withStyle(ChatFormatting.DARK_GRAY));
+            tip.add(Component.literal("Catalogued, and found to hold nothing.").withStyle(ChatFormatting.DARK_GRAY));
             return;
         }
         ArtifactSets.Set set = ArtifactSets.get(p.set());
         int c = set == null ? 0xFFFFFF : set.colour();
 
-        tip.add(Component.literal(slot.title).withStyle(ChatFormatting.GRAY)
+        tip.add(Component.literal("Sealed Artifact \u00b7 " + Artifacts.grade(p.rarity()))
+                .withStyle(ChatFormatting.DARK_AQUA)
                 .append(Component.literal("   " + stars(p.rarity())).withColor(0xFFC24A)));
-        tip.add(Component.literal("+" + p.level() + " / " + p.maxLevel()).withStyle(ChatFormatting.DARK_GRAY));
+        tip.add(Component.literal(slot.title).withStyle(ChatFormatting.GRAY)
+                .append(Component.literal("   attuned " + p.level() + " / " + p.maxLevel())
+                        .withStyle(ChatFormatting.DARK_GRAY)));
         tip.add(Component.empty());
         tip.add(Component.literal(p.main().line(p.mainValue())).withColor(0xFFF0C0));
         for (Artifacts.Sub s : p.subs())
@@ -76,7 +79,8 @@ public class ArtifactItem extends Item {
 
         if (set != null) {
             tip.add(Component.empty());
-            tip.add(Component.literal(set.title()).withColor(c));
+            tip.add(Component.literal(set.title()).withColor(c)
+                    .append(Component.literal("   " + set.file()).withStyle(ChatFormatting.DARK_GRAY)));
             tip.add(Component.literal("  2 pieces: ").withStyle(ChatFormatting.DARK_GRAY)
                     .append(Component.literal(set.twoLine()).withStyle(ChatFormatting.GRAY)));
             tip.add(Component.literal("  4 pieces: ").withStyle(ChatFormatting.DARK_GRAY)

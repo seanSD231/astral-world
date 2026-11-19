@@ -59,11 +59,13 @@ public final class AstralFloor {
                 public void appendHoverText(net.minecraft.world.item.ItemStack st, Item.TooltipContext c,
                                             java.util.List<net.minecraft.network.chat.Component> tip,
                                             net.minecraft.world.item.TooltipFlag f) {
-                    tip.add(net.minecraft.network.chat.Component.literal("Rerolls one artifact's sub-stats.")
+                    tip.add(net.minecraft.network.chat.Component.literal("Ground characteristic. Settles an artifact again.")
                             .withStyle(net.minecraft.ChatFormatting.AQUA));
-                    tip.add(net.minecraft.network.chat.Component.literal("Spend it from the artifact menu. The main stat,")
+                    tip.add(net.minecraft.network.chat.Component.literal("It does not make the thing stronger. It changes which")
                             .withStyle(net.minecraft.ChatFormatting.DARK_AQUA));
-                    tip.add(net.minecraft.network.chat.Component.literal("the rarity and the level are all kept.")
+                    tip.add(net.minecraft.network.chat.Component.literal("parts of the incident take to you, so the class, the")
+                            .withStyle(net.minecraft.ChatFormatting.DARK_AQUA));
+                    tip.add(net.minecraft.network.chat.Component.literal("main stat and your attunement are all untouched.")
                             .withStyle(net.minecraft.ChatFormatting.DARK_AQUA));
                 }
             });

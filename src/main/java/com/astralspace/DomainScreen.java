@@ -62,9 +62,9 @@ public final class DomainScreen extends Screen {
         }
         g.fill(0, 0, width, 2, Pathways.alpha(Pathways.pale(c, .4f), .7f));
 
-        g.drawString(font, Component.literal("DOMAIN").withColor(Pathways.pale(c, .5f) & 0xFFFFFF), padX(), padY(), 0xFFFFFF, false);
-        g.drawString(font, Component.literal("Three waves. It is cut for one set and pays that set most of the time.")
-                .withStyle(ChatFormatting.DARK_GRAY), padX() + font.width("DOMAIN") + 12, padY(), 0xFFFFFF, false);
+        g.drawString(font, Component.literal("CONTAINMENT").withColor(Pathways.pale(c, .5f) & 0xFFFFFF), padX(), padY(), 0xFFFFFF, false);
+        g.drawString(font, Component.literal("A site still running its incident. Survive the re-enactment and it gives up what it holds.")
+                .withStyle(ChatFormatting.DARK_GRAY), padX() + font.width("CONTAINMENT") + 12, padY(), 0xFFFFFF, false);
 
         list(g, mx, my, c);
         detail(g, mx, my, c);
@@ -133,18 +133,19 @@ public final class DomainScreen extends Screen {
 
         g.fillGradient(x, y, x + w, y + 32, Pathways.alpha(c, .85f), Pathways.alpha(Pathways.deep(c, .5f), .85f));
         g.drawString(font, Component.literal(s.title()).withColor(0xFFFFFF), x + 10, y + 7, 0xFFFFFF, false);
+        g.drawString(font, Component.literal(s.file()).withColor(0xFFD8D8E0), x + w - font.width(s.file()) - 10, y + 7, 0xFFFFFF, false);
         g.drawString(font, Component.literal(s.flavour()).withStyle(ChatFormatting.ITALIC, ChatFormatting.GRAY),
                      x + 10, y + 19, 0xFFFFFF, false);
 
         int ly = y + 44;
-        g.drawString(font, Component.literal("TWO PIECES").withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 10, ly, 0xFFFFFF, false);
+        g.drawString(font, Component.literal("TWO OF IT").withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 10, ly, 0xFFFFFF, false);
         ly += 12;
         for (String line : wrap(s.twoLine(), w - 24)) {
             g.drawString(font, Component.literal(line).withStyle(ChatFormatting.GRAY), x + 10, ly, 0xFFFFFF, false);
             ly += 10;
         }
         ly += 8;
-        g.drawString(font, Component.literal("FOUR PIECES").withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 10, ly, 0xFFFFFF, false);
+        g.drawString(font, Component.literal("FOUR OF IT \u00b7 THE INCIDENT REPEATS").withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 10, ly, 0xFFFFFF, false);
         ly += 12;
         for (String line : wrap(s.fourLine(), w - 24)) {
             g.drawString(font, Component.literal(line).withColor(0xFF9ADFA8), x + 10, ly, 0xFFFFFF, false);

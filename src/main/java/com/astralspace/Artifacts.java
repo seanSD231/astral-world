@@ -134,6 +134,20 @@ public final class Artifacts {
 
     // ---- what a piece is worth ----
 
+    /**
+     * The Church's own grading, which is what the stars are. A five star piece is 0-class: a thing
+     * that was supposed to have stayed buried.
+     */
+    public static String grade(int rarity) {
+        return switch (Math.max(1, Math.min(5, rarity))) {
+            case 5 -> "0-class";
+            case 4 -> "1-class";
+            case 3 -> "2-class";
+            case 2 -> "3-class";
+            default -> "4-class";
+        };
+    }
+
     /** Levels run to four a star, so a five star piece tops out at twenty. */
     public static int maxLevel(int rarity) { return Math.max(0, rarity) * 4; }
 

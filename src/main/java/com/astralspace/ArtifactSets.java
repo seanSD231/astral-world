@@ -19,11 +19,15 @@ import com.astralspace.Artifacts.Stat;
  * says. The mechanics themselves live in {@link SetEffects}; what is kept here is the name of one
  * and the line that describes it.</p>
  *
- * <p>They are named for organisations and for Beyonder practice rather than for pathways. A pathway
- * already has a card and a hologram of its own, and naming a set after one says nothing about what
- * wearing it does. A church, a school of thought or a habit of mind does: the Evernight fights in
- * the dark, Steam takes a beating and gives it back, the Acting Method only works for as long as
- * nobody has laid a finger on you.</p>
+ * <p>A set is a case file rather than a brand: five objects pulled out of the same incident, which
+ * resonate with one another because they were steeped in the same event. That is what the two
+ * halves are. Two of them on one person bleeds a little of the incident's nature into them, which
+ * is a number. Four and enough of the incident is present for it to begin re-enacting itself
+ * around the bearer, which is a behaviour -- and a behaviour it can only take the shape the event
+ * originally had. It is also why the four-piece is never just a bigger number.</p>
+ *
+ * <p>{@code file} is the Church's own designation for the incident and {@code flavour} is a line
+ * out of the file on it.</p>
  */
 public final class ArtifactSets {
     private ArtifactSets() { }
@@ -32,7 +36,7 @@ public final class ArtifactSets {
      * A set. {@code pathway} is only where its colour and its symbol come from, so the menu has
      * something to draw with; it says nothing about what the set is for.
      */
-    public record Set(String id, String pathway, String title, String flavour,
+    public record Set(String id, String pathway, String title, String file, String flavour,
                       Map<Stat, Double> two, String four, String fourText) {
         public int colour() { return Pathways.colour(pathway); }
         public String symbol() { return "sym_" + pathway; }
@@ -56,71 +60,71 @@ public final class ArtifactSets {
         return out;
     }
 
-    private static void set(String id, String pathway, String title, String flavour,
+    private static void set(String id, String pathway, String title, String file, String flavour,
                             Map<Stat, Double> two, String fourText) {
-        Set s = new Set(id, pathway, title, flavour, two, id, fourText);
+        Set s = new Set(id, pathway, title, file, flavour, two, id, fourText);
         SETS.put(id, s);
         ORDER.add(s);
     }
 
     static {
-        set("evernight", "sleepless", "Rite of the Evernight",
-            "She watches at night, and so do they.",
+        set("evernight", "sleepless", "Rite of the Evernight", "Case BK-114",
+            "Recovered from a night chapel in Backlund where the rite ran to its end with nobody left to stop it. Everything taken out of that room still prefers the dark.",
             m(Stat.CRIT_RATE, .12),
             "Your blows mark what they land on. Killing something marked gives back spirituality and hides you for two seconds.");
 
-        set("storms", "sailor", "Hymn of the Storms",
-            "Nobody argues with the weather.",
+        set("storms", "sailor", "Hymn of the Storms", "Case PH-007",
+            "Off Pritz Harbour a congregation sang the hymn through a squall and the squall answered. Eleven objects came back aboard. Four of them are still wet.",
             m(Stat.ATK_PCT, .18),
             "Every ten seconds your next blow calls lightning down on it. Standing in water halves the wait.");
 
-        set("steam", "savant", "Gearwork of Steam",
-            "Pressure is only a problem if it has nowhere to go.",
+        set("steam", "savant", "Gearwork of Steam", "Case BK-902",
+            "A boiler house that held a pressure it had no business holding, for eight days, and then did not. Nothing recovered from it will sit still under a load.",
             m(Stat.DEF_PCT, .22),
             "Being hurt builds pressure. At five your next blow vents it as a shockwave, and leaves you quick for four seconds.");
 
-        set("acting", "seer", "The Acting Method",
-            "Be the part. Nobody looks for the man under it.",
+        set("acting", "seer", "The Acting Method", "Case TN-031",
+            "A Tingen dressing room where somebody held a part for nine weeks without once breaking it. The part is still in the clothes.",
             m(Stat.CRIT_DMG, .28),
             "Eight seconds untouched and you are in the role: a third more damage, until something lands on you.");
 
-        set("harvest", "planter", "Mother's Harvest",
-            "Stand still long enough and you belong to the ground.",
+        set("harvest", "planter", "Mother's Harvest", "Case CO-046",
+            "A field that went on yielding four winters after it was salted. The men sent to dig it up were found standing in it, unhurt, and unwilling to leave.",
             m(Stat.HP_PCT, .20),
             "Stand still two seconds to root: healing over time and a great deal of defence, until you move.");
 
-        set("ledger", "reader", "Wisdom's Ledger",
-            "It is all written down, and it is all read back.",
+        set("ledger", "reader", "Wisdom's Ledger", "Case BK-250",
+            "Every page of it is a different hand and none of them repeat. The archivist who noticed that is the last entry.",
             m(Stat.SPIRIT_MAX, 220),
             "Every blow is recorded. A different kind of blow within six seconds hits a quarter harder; repeating yourself does nothing.");
 
-        set("alchemy", "apothecary", "Psychology Alchemy",
-            "A mind is a thing you can put in a bottle.",
+        set("alchemy", "apothecary", "Psychology Alchemy", "Case BY-018",
+            "A Bayam clinic where the treatment worked. Patients left better than they came, and what was taken out of them had to go somewhere.",
             m(Stat.ABILITY_POWER, .16),
             "Healing, given or taken, turns into ability power for eight seconds. It stacks.");
 
-        set("fog", "monster", "The Grey Fog",
-            "Somewhere above all of it, and quite unbothered.",
+        set("fog", "monster", "The Grey Fog", "Case 0-00",
+            "No incident site. No recovery team. The file holds four objects and the note that they were already in the vault when the vault was built.",
             m(Stat.COOLDOWN, .16),
             "Falling under half your health puts the fog round you: a step clear, and a second and a half nobody can touch you. Once a minute.");
 
-        set("thread", "mystery_pryer", "Spirit Thread",
-            "0-08. It was sealed for a reason.",
+        set("thread", "mystery_pryer", "Spirit Thread", "Case 0-08",
+            "Sealed, catalogued and buried twice. The second burial was because the first one came back up attached to something.",
             m(Stat.ABILITY_AREA, .20),
             "What you hit is threaded to what else you have hit, for six seconds. A fifth of what you deal to one is dealt to the rest.");
 
-        set("control", "criminal", "Loss of Control",
-            "It is not that you cannot stop. It is that you will not.",
+        set("control", "criminal", "Loss of Control", "Case FP-073",
+            "Whatever he was before, he was not that for long. The objects were on him when it finished and they have not calmed down since.",
             m(Stat.CRIT_RATE, .12),
             "Under two fifths of your health: half again the attack, and half the healing.");
 
-        set("tarot", "spectator", "The Tarot Club",
-            "Above the fog, under false names, trading what cannot be bought.",
+        set("tarot", "spectator", "The Tarot Club", "Case 0-19",
+            "Nobody recovered these. They arrived, one at a time, correctly addressed, from a place the Church has no name for.",
             m(Stat.SPIRIT_REGEN, .22),
             "Every twenty seconds your next blow strikes for a third more and gives you back a good deal of spirituality.");
 
-        set("ascetic", "warrior", "The Moses Ascetic Order",
-            "Faith is what is left when everything else has been taken away.",
+        set("ascetic", "warrior", "The Moses Ascetic Order", "Case IN-012",
+            "They fasted until the siege broke. It broke. Everything they were still wearing when the walls came down holds its edge best when there is nothing left.",
             m(Stat.ABILITY_RESIST, .18),
             "Below half health you take a fifth less from everything, and mend a little every second you stay there.");
     }
