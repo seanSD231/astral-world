@@ -1,3 +1,9 @@
+## 0.2.349
+- The Moon's Corruption rebuilt at the size it is meant to be. It was five blocks tall; it is sixteen, and five across, so you stand under it rather than next to it.
+- The petals are the thing now, as they are in the reference: nine of them in a fan thrown back and out behind it, each one over nine blocks long, curling along its length, deep crimson at the root through to near-white at the tip, with a shorter row in front. The gown falls out of them in fourteen long panels and tapers away below without reaching a floor. The figure in the middle of it is deliberately slight — a long dark torso, a head tipped back under a wheel of eighteen spines, and arms raised with long open fingers.
+- The blood moon behind it is thirteen blocks across with the bare tree forked over the face of it.
+- Nine hundred health, and everything it does reaches as far as it now is: corruption out to thirty blocks in eclipse, the lance thirty-four long, the bloom thirteen across, and the congregation called up further out.
+
 ## 0.2.348
 - The white square over Rupex's field was the fan of rays: a hundred-block quad with a bright core hung over the scene. Looked up at it is light through cloud; looked down on it is a sheet laid over everything. It is now drawn only from below it.
 - The field is much bigger: the swirl runs to fifteen times the scene radius and the spell circles are scaled with it.

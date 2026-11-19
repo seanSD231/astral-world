@@ -60,13 +60,13 @@ public class MoonCorruption extends Monster {
     public static final DeferredHolder<EntityType<?>, EntityType<MoonCorruption>> TYPE =
             ENTITIES.register("moon_corruption", () -> EntityType.Builder
                     .of(MoonCorruption::new, MobCategory.MONSTER)
-                    .sized(2.2f, 4.4f).fireImmune().clientTrackingRange(12).build("moon_corruption"));
+                    .sized(5.0f, 16.0f).fireImmune().clientTrackingRange(24).build("moon_corruption"));
 
     public static void register(IEventBus bus) { ENTITIES.register(bus); }
 
     public static AttributeSupplier.Builder attributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 480)
+                .add(Attributes.MAX_HEALTH, 900)
                 .add(Attributes.ATTACK_DAMAGE, 12)
                 .add(Attributes.ARMOR, 10)
                 .add(Attributes.ARMOR_TOUGHNESS, 6)
@@ -191,7 +191,7 @@ public class MoonCorruption extends Monster {
     /** Standing in its light corrupts you; the count is what does the damage, and only leaving sheds it. */
     private void corrupt() {
         if (tickCount % 20 != 0) return;
-        double r = phase() == 2 ? 20 : (phase() == 1 ? 15 : 10);
+        double r = phase() == 2 ? 30 : (phase() == 1 ? 22 : 15);
         for (Player p : nearby(r)) {
             if (p.isCreative() || p.isSpectator()) continue;
             int c = Corruption.add(p, phase() + 1);
@@ -204,7 +204,7 @@ public class MoonCorruption extends Monster {
     /** It drifts rather than walks: it keeps its distance and keeps its height. */
     private void drift() {
         LivingEntity t = getTarget();
-        double want = 3.2 + phase() * .3;                 // how high it rides
+        double want = 7.5 + phase() * .8;                 // how high it rides
         double floor = level().getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                 getBlockX(), getBlockZ());
         double lift = (floor + want - getY()) * .06;
@@ -212,7 +212,7 @@ public class MoonCorruption extends Monster {
         if (t != null) {
             Vec3 to = t.position().subtract(position());
             double d = Math.sqrt(to.x * to.x + to.z * to.z);
-            double pull = d > 9 ? .028 : (d < 5 ? -.022 : 0);    // close in, but never crowd
+            double pull = d > 20 ? .035 : (d < 11 ? -.026 : 0);  // close in, but never crowd
             if (d > .1) v = v.add(to.x / d * pull, 0, to.z / d * pull);
             setYRot((float) (Math.atan2(to.z, to.x) * 180 / Math.PI) - 90);
             yBodyRot = getYRot();
@@ -242,7 +242,7 @@ public class MoonCorruption extends Monster {
         entityData.set(ACT, 26);
         ServerLevel lv = (ServerLevel) level();
         Vec3 to = t.position().subtract(position());
-        MoonBeam.lance(lv, blockPosition(), this, 9f + phase() * 4f, to.x, to.z);
+        MoonBeam.lance(lv, blockPosition().below(6), this, 9f + phase() * 4f, to.x, to.z);
         lv.playSound(null, blockPosition(), SoundEvents.TRIDENT_RETURN, SoundSource.HOSTILE, 1.8f, .7f);
     }
 
@@ -256,7 +256,7 @@ public class MoonCorruption extends Monster {
         entityData.set(ACT, 40);
         ServerLevel lv = (ServerLevel) level();
         lv.playSound(null, blockPosition(), SoundEvents.AMETHYST_CLUSTER_PLACE, SoundSource.HOSTILE, 2f, .5f);
-        MoonBeam.bloom(lv, blockPosition(), this, 10f + phase() * 5f);
+        MoonBeam.bloom(lv, blockPosition().below(7), this, 10f + phase() * 5f);
     }
 
     /** The threads it hangs from, come down for somebody else. */
@@ -265,7 +265,7 @@ public class MoonCorruption extends Monster {
         entityData.set(ACT, 20);
         ServerLevel lv = (ServerLevel) level();
         lv.playSound(null, blockPosition(), SoundEvents.BEACON_POWER_SELECT, SoundSource.HOSTILE, 1.4f, .6f);
-        for (Player p : nearby(18)) {
+        for (Player p : nearby(26)) {
             if (p.isCreative() || p.isSpectator()) continue;
             p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 70, 5, false, true));
             p.addEffect(new MobEffectInstance(MobEffects.JUMP, 70, 200, false, false));   // pinned to the floor
@@ -283,11 +283,11 @@ public class MoonCorruption extends Monster {
         int n = 3 + phase();
         for (int i = 0; i < n; i++) {
             double a = i * Math.PI * 2 / n + random.nextDouble();
-            double rr = 7 + random.nextDouble() * 5;
+            double rr = 12 + random.nextDouble() * 8;
             EntityType<?> type = phase() >= 2 && random.nextBoolean() ? EntityType.HUSK : EntityType.DROWNED;
             Entity e = type.create(lv);
             if (!(e instanceof Mob mob)) continue;
-            mob.moveTo(getX() + Math.cos(a) * rr, getY() - 3, getZ() + Math.sin(a) * rr, (float) (a * 180 / Math.PI), 0);
+            mob.moveTo(getX() + Math.cos(a) * rr, getY() - 8, getZ() + Math.sin(a) * rr, (float) (a * 180 / Math.PI), 0);
             mob.finalizeSpawn(lv, lv.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.MOB_SUMMONED, null);
             mob.setPersistenceRequired();
             mob.setCustomName(Component.literal("Worshipper").withColor(0xB0384A));

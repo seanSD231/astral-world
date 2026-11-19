@@ -62,7 +62,7 @@ public final class MoonBeam {
         ServerLevel lv = p.lv();
         switch (p.kind()) {
             case 1 -> {
-                for (int k = 1; k <= 26; k++)
+                for (int k = 1; k <= 34; k++)
                     lv.sendParticles(ParticleTypes.DRIPPING_OBSIDIAN_TEAR,
                             p.at().getX() + .5 + p.dx() * k, p.at().getY() + .4, p.at().getZ() + .5 + p.dz() * k,
                             1, .22, .05, .22, 0);
@@ -71,7 +71,7 @@ public final class MoonBeam {
                 for (int k = 0; k < 28; k++) {
                     double a = k * Math.PI * 2 / 28;
                     lv.sendParticles(ParticleTypes.FALLING_OBSIDIAN_TEAR,
-                            p.at().getX() + .5 + Math.cos(a) * 9, p.at().getY() + .3, p.at().getZ() + .5 + Math.sin(a) * 9,
+                            p.at().getX() + .5 + Math.cos(a) * 13, p.at().getY() + .3, p.at().getZ() + .5 + Math.sin(a) * 13,
                             1, 0, 0, 0, 0);
                 }
             }
@@ -91,11 +91,11 @@ public final class MoonBeam {
         switch (p.kind()) {
             case 1 -> {   // the lance, run down the line it was laid along
                 lv.playSound(null, p.at(), SoundEvents.TRIDENT_RIPTIDE_3.value(), SoundSource.HOSTILE, 1.8f, .8f);
-                for (int k = 1; k <= 26; k++) {
+                for (int k = 1; k <= 34; k++) {
                     double x = p.at().getX() + .5 + p.dx() * k, z = p.at().getZ() + .5 + p.dz() * k;
                     lv.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, p.at().getY() + 1, z, 10, .3, .5, .3, .04);
                     for (Player t : lv.getEntitiesOfClass(Player.class,
-                            new AABB(x - 1.6, p.at().getY() - 2, z - 1.6, x + 1.6, p.at().getY() + 4, z + 1.6),
+                            new AABB(x - 2.2, p.at().getY() - 3, z - 2.2, x + 2.2, p.at().getY() + 8, z + 2.2),
                             q -> q.isAlive() && !q.isSpectator() && !q.isCreative())) {
                         t.hurt(lv.damageSources().indirectMagic(p.from(), p.from()), p.damage());
                         Corruption.add(t, 2);
@@ -107,10 +107,10 @@ public final class MoonBeam {
                 for (int k = 0; k < 90; k++) {
                     double a = k * Math.PI * 2 / 90;
                     lv.sendParticles(ParticleTypes.FALLING_OBSIDIAN_TEAR,
-                            p.at().getX() + .5 + Math.cos(a) * 9, p.at().getY() + 1.2, p.at().getZ() + .5 + Math.sin(a) * 9,
+                            p.at().getX() + .5 + Math.cos(a) * 13, p.at().getY() + 1.2, p.at().getZ() + .5 + Math.sin(a) * 13,
                             2, .4, .6, .4, .05);
                 }
-                for (Player t : lv.getEntitiesOfClass(Player.class, new AABB(p.at()).inflate(10, 5, 10),
+                for (Player t : lv.getEntitiesOfClass(Player.class, new AABB(p.at()).inflate(14, 8, 14),
                         q -> q.isAlive() && !q.isSpectator() && !q.isCreative())) {
                     t.hurt(lv.damageSources().indirectMagic(p.from(), p.from()), p.damage());
                     var away = t.position().subtract(p.at().getX() + .5, p.at().getY(), p.at().getZ() + .5).normalize();
