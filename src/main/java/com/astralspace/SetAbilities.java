@@ -53,6 +53,7 @@ public final class SetAbilities {
         LADDER.put("quiet", new String[]{"spiritcommunication", "languageofthedead", "soulcontrol", "splitsoulresurrection", "sovereignofsouls"});
         LADDER.put("bell", new String[]{"singing", "amplification", "nullification", "unshadoweddomain", "kingdomoflight"});
         LADDER.put("knife", new String[]{"sleeplessconcealment", "grazing", "shadowsubstitute", "shadowcrush", "sinbearing"});
+        LADDER.put("lamp", new String[]{"holyeye", "lightofholiness", "sunhalo", "purificationhalo", "lightauthority"});
         LADDER.put("sealwax", new String[]{"createconcealedbundle", "doorconcealment", "createconcealedspace", "spatialtearing", "doorgammarayburst"});
     }
 

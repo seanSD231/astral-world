@@ -222,8 +222,8 @@ public final class ArtifactSets {
             m(Stat.SPIRIT_MAX, 180, Stat.ABILITY_RESIST, .16, Stat.SPEED_PCT, -.10),
             "Standing in light you mend steadily and take a tenth less.",
             "In the dark you deal a quarter less.",
-            "Vigil: in light, every ten seconds one ability costs you nothing.",
-            "In the dark you take a quarter more.");
+            "Hands you one of the light authorities, from a holy eye up to a halo of purification.",
+            m(Stat.SPEED_PCT, -.18));
 
         set("sealwax", "prisoner", "The Unopened Letter", "Case 0-33",
             "It is addressed to somebody who has not been born. The seal has been tested and will not break.",

@@ -1,3 +1,6 @@
+## 0.2.359
+- Build fix: The Last Lamp was the one set whose five tier had not been converted, and it still had a passive where the price now goes. It has a light ladder of its own.
+
 ## 0.2.358
 - Five fragments of one set hand over an actual Beyonder authority out of Lord of the Mysteries. That mod keeps its abilities as items — a Scribe's whole trade is carrying other people's around — so there was nothing to invent: the ability is the real one, and it works the way it works there.
 - Which one depends on the set and on how fine the fragments are. Every set has a ladder of five, weakest first, and the rung is the average class of your five pieces: five 4-class scraps of the Storms give you the lightning toggle, five 0-class pieces give you an ocean of it. The shadow ladder runs from a sense of danger to a world of shadows; the fate ladder from prophecy to reincarnation; the underworld ladder from speaking with the dead to ruling them.
