@@ -1,3 +1,7 @@
+## 0.2.335
+- The masks are masquerade masks now. The worn one is cut lace rather than a plate with slits in it: two scrolled lobes round the eyes joined over the bridge, a fleur standing off the brow, scrolls swept back past the temples and stones set along the top. Eyes only, as those are worn.
+- The item icons are redrawn to match, each in its own glitter colour over the same dark lace.
+
 ## 0.2.334
 - The swirl band at the rim is brought back up to full strength: the source image fades out at its own edge, which is exactly where the new mask was turning it on, so the band would have come through washed out.
 
