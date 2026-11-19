@@ -18,56 +18,64 @@ import com.astralspace.Artifacts.Slot;
 import com.astralspace.Artifacts.Stat;
 
 /**
- * The artifact menu.
+ * The artifact menu: the whole screen, not a window on it.
  *
- * <p>Three columns, as the games lay it out: the five pieces down the left, whichever of them is
- * picked blown up in the middle, and everything they come to on the right. The colour of the whole
- * thing follows the pathway of the set in hand, so a Hanged Man piece turns the panel its red and a
- * Fool piece its violet, and when nothing is picked it falls back to the player's own pathway.</p>
+ * <p>A row of slot tabs along the top, every piece you own for the chosen slot laid out as a wall
+ * of tiles on the left, and the one in hand written out in full on the right -- name, slot, main
+ * stat, stars, level, sub-stats, and what its set pays at two pieces and at four. The worn piece
+ * comes first in the wall and is marked, so equipping is picking a different tile.</p>
  *
- * <p>Nothing here decides anything. Clicking sends a request and the server is what moves a piece
- * and sends the slot back, so a dropped packet leaves the menu showing what is really on.</p>
+ * <p>The colour of the whole thing follows the pathway of the set in hand, which is this mod's
+ * answer to colouring by element.</p>
  */
 public final class ArtifactScreen extends Screen {
-    private static final int W = 420, H = 232;
-    private static final ResourceLocation WHITE = ResourceLocation.withDefaultNamespace("textures/misc/white.png");
 
-    private int left, top;
-    private int picked = 0;
+    private int picked;                     // which slot tab
+    private int sel = -2;                   // -1 - ordinal for a worn piece, else an inventory index
     private float t;
     private int scroll;
-    private final List<int[]> bagHits = new ArrayList<>();     // {x, y, inventory index}
+    private final List<int[]> tiles = new ArrayList<>();    // {x, y, w, h, ref}
 
     private ArtifactScreen() { super(Component.literal("Artifacts")); }
 
     public static void open() { Minecraft.getInstance().setScreen(new ArtifactScreen()); }
 
     @Override
-    protected void init() {
-        left = (width - W) / 2;
-        top = (height - H) / 2;
-    }
-
-    @Override
     public boolean isPauseScreen() { return false; }
 
-    // ---- what is on, and what is in the bag ----
+    // ---- geometry, worked out from the window so it fills whatever it is given ----
 
-    private ItemStack[] worn() { return ArtifactSlots.clientWorn(); }
+    private int padX() { return Math.max(16, width / 22); }
+    private int padY() { return Math.max(14, height / 18); }
+    private int tabY() { return padY() + 22; }
+    private int gridX() { return padX() + 6; }
+    private int gridY() { return tabY() + 34; }
+    private int detailX() { return width - padX() - detailW(); }
+    private int detailW() { return Math.max(200, Math.min(300, width / 3)); }
+    private int gridW() { return detailX() - gridX() - 16; }
+    private int gridH() { return height - gridY() - padY() - 26; }
+    private int cell() { return 54; }
 
-    private ItemStack at(Slot s) {
-        ItemStack st = worn()[s.ordinal()];
-        return st == null ? ItemStack.EMPTY : st;
+    // ---- what is where ----
+
+    private ItemStack stackOf(int ref) {
+        var pl = Minecraft.getInstance().player;
+        if (pl == null) return ItemStack.EMPTY;
+        if (ref <= -1) {
+            int s = -ref - 1;
+            ItemStack[] w = ArtifactSlots.clientWorn();
+            return s >= 0 && s < w.length && w[s] != null ? w[s] : ItemStack.EMPTY;
+        }
+        return ref < pl.getInventory().getContainerSize() ? pl.getInventory().getItem(ref) : ItemStack.EMPTY;
     }
 
     private Slot slot() { return Slot.values()[picked]; }
 
-    /** The accent: the picked piece's pathway, or the player's own when the slot is empty. */
     private int accent() {
-        Artifacts.Piece p = Artifacts.read(at(slot()));
+        Artifacts.Piece p = Artifacts.read(stackOf(sel));
         if (p != null) {
-            ArtifactSets.Set set = ArtifactSets.get(p.set());
-            if (set != null) return set.colour();
+            ArtifactSets.Set s = ArtifactSets.get(p.set());
+            if (s != null) return s.colour();
         }
         var pl = Minecraft.getInstance().player;
         if (pl != null) try {
@@ -77,278 +85,321 @@ public final class ArtifactScreen extends Screen {
         return Pathways.GOLD;
     }
 
+    /** Every piece that fits the chosen slot: the worn one first, then the bag. */
+    private List<Integer> refs() {
+        List<Integer> out = new ArrayList<>();
+        ItemStack worn = stackOf(-1 - picked);
+        if (!worn.isEmpty()) out.add(-1 - picked);
+        var pl = Minecraft.getInstance().player;
+        if (pl != null) {
+            var inv = pl.getInventory();
+            for (int i = 0; i < inv.getContainerSize(); i++) {
+                ItemStack st = inv.getItem(i);
+                if (st.isEmpty() || !(st.getItem() instanceof ArtifactItem ai) || ai.slot() != slot()) continue;
+                if (Artifacts.read(st) == null) continue;
+                out.add(i);
+            }
+        }
+        return out;
+    }
+
     // ---- drawing ----
 
     @Override
     public void render(GuiGraphics g, int mx, int my, float pt) {
         t += pt / 20f;
-        renderBackground(g, mx, my, pt);
         int c = accent();
+        tiles.clear();
 
-        frame(g, left - 4, top - 4, W + 8, H + 8, c);
-        bagHits.clear();
-
-        drawSlots(g, mx, my, c);
-        drawDetail(g, mx, my, c);
-        drawTotals(g, c);
+        backdrop(g, c);
+        header(g, c);
+        tabs(g, mx, my, c);
+        wall(g, mx, my, c);
+        detail(g, c);
+        footer(g, c);
 
         super.render(g, mx, my, pt);
-        drawHover(g, mx, my);
+        for (int[] h : tiles)
+            if (mx >= h[0] && mx <= h[0] + h[2] && my >= h[1] && my <= h[1] + h[3]) {
+                g.renderTooltip(font, stackOf(h[4]), mx, my);
+                break;
+            }
     }
 
-    /** The shell: a dark panel washed with the pathway colour, with a lit edge and a top rule. */
-    private void frame(GuiGraphics g, int x, int y, int w, int h, int c) {
-        g.fill(x, y, x + w, y + h, 0xF00A0A0E);
-        g.fillGradient(x, y, x + w, y + h / 2, Pathways.alpha(Pathways.deep(c, .55f), .22f), 0x00000000);
-        g.fillGradient(x, y + h - 40, x + w, y + h, 0x00000000, Pathways.alpha(Pathways.deep(c, .35f), .18f));
-        g.renderOutline(x, y, w, h, Pathways.alpha(c, .55f));
-        g.fill(x + 1, y + 1, x + w - 1, y + 2, Pathways.alpha(Pathways.pale(c, .4f), .8f));
+    /** The whole window: a deep field lit from the middle, with a drift of motes over it. */
+    private void backdrop(GuiGraphics g, int c) {
+        g.fill(0, 0, width, height, 0xFF070910);
+        g.fillGradient(0, 0, width, height / 2, Pathways.alpha(Pathways.deep(c, .5f), .30f), 0x00000000);
+        g.fillGradient(0, height / 2, width, height, 0x00000000, Pathways.alpha(Pathways.deep(c, .32f), .26f));
+        for (int i = 0; i < 90; i++) {                        // a slow drift of light, so the field is not flat
+            float u = fr(i * .61803f), v = fr(i * .38196f + t * (.004f + .006f * fr(i * .137f)));
+            int x = (int) (u * width), y = (int) ((1 - v) * height);
+            int a = (int) ((40 + 70 * Math.abs(Math.sin(t * .8 + i))) * (i % 5 == 0 ? 1.4f : .8f));
+            g.fill(x, y, x + (i % 7 == 0 ? 2 : 1), y + (i % 7 == 0 ? 2 : 1), (Math.min(200, a) << 24) | (Pathways.pale(c, .5f) & 0xFFFFFF));
+        }
+        g.fill(0, 0, width, 2, Pathways.alpha(Pathways.pale(c, .4f), .7f));
+        g.fill(0, height - 2, width, height, Pathways.alpha(Pathways.deep(c, .6f), .7f));
+    }
+
+    private void header(GuiGraphics g, int c) {
         g.drawString(font, Component.literal("ARTIFACTS").withColor(Pathways.pale(c, .5f) & 0xFFFFFF),
-                x + 10, y + 8, 0xFFFFFF, false);
-        String sub = "Five worn at once · two pieces of a set, and four";
-        g.drawString(font, Component.literal(sub).withStyle(ChatFormatting.DARK_GRAY), x + 10, y + 19, 0xFFFFFF, false);
+                     padX(), padY(), 0xFFFFFF, false);
+        int n = 0;
+        for (Slot s : Slot.values()) if (!stackOf(-1 - s.ordinal()).isEmpty()) n++;
+        g.drawString(font, Component.literal(n + " / 5 worn").withStyle(ChatFormatting.DARK_GRAY),
+                     padX() + font.width("ARTIFACTS") + 12, padY(), 0xFFFFFF, false);
+        // the sets paying out right now, along the top right
+        var counts = ArtifactSets.counts(ArtifactSlots.clientWorn());
+        int x = width - padX();
+        for (var e : counts.entrySet()) {
+            ArtifactSets.Set set = ArtifactSets.get(e.getKey());
+            if (set == null || e.getValue() < 2) continue;
+            String s = set.title() + " " + (e.getValue() >= 4 ? "4" : "2");
+            x -= font.width(s) + 14;
+            g.drawString(font, Component.literal(s).withColor(set.colour() & 0xFFFFFF), x, padY(), 0xFFFFFF, false);
+        }
     }
 
-    // ---- left: the five pieces ----
-
-    private void drawSlots(GuiGraphics g, int mx, int my, int c) {
-        int x = left + 6, y = top + 26, w = 116, rh = 36;
+    /** The five slot tabs, with the worn piece's colour under each. */
+    private void tabs(GuiGraphics g, int mx, int my, int c) {
+        int w = 54, h = 26, x0 = padX(), y = tabY();
         for (Slot s : Slot.values()) {
-            int sy = y + s.ordinal() * (rh + 3);
+            int x = x0 + s.ordinal() * (w + 4);
             boolean on = s.ordinal() == picked;
-            boolean hot = mx >= x && mx <= x + w && my >= sy && my <= sy + rh;
-            ItemStack st = at(s);
-            Artifacts.Piece p = Artifacts.read(st);
+            boolean hot = mx >= x && mx <= x + w && my >= y && my <= y + h;
+            Artifacts.Piece p = Artifacts.read(stackOf(-1 - s.ordinal()));
             ArtifactSets.Set set = p == null ? null : ArtifactSets.get(p.set());
-            int sc = set == null ? 0x707078 : set.colour();
-
-            g.fill(x, sy, x + w, sy + rh, on ? 0xFF14141C : (hot ? 0xFF101018 : 0xC00C0C12));
-            if (on) {
-                g.fillGradient(x, sy, x + w, sy + rh, Pathways.alpha(sc, .26f), Pathways.alpha(sc, .05f));
-                g.fill(x, sy, x + 2, sy + rh, Pathways.alpha(Pathways.pale(sc, .3f), 1f));
-            }
-            g.renderOutline(x, sy, w, rh, Pathways.alpha(sc, on ? .7f : .25f));
-
-            // the pathway symbol behind the piece, faint, as the games show the artifact art
-            if (set != null) {
-                RenderSystem.enableBlend();
-                g.setColor(((sc >> 16 & 255) / 255f), ((sc >> 8 & 255) / 255f), ((sc & 255) / 255f), on ? .30f : .16f);
-                g.blit(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "textures/holo/" + set.symbol() + ".png"),
-                       x + w - 34, sy + 2, 0, 0, 32, 32, 32, 32);
-                g.setColor(1, 1, 1, 1);
-            }
-
-            if (st.isEmpty()) {
-                g.drawString(font, Component.literal(s.title).withStyle(ChatFormatting.DARK_GRAY), x + 8, sy + 8, 0xFFFFFF, false);
-                g.drawString(font, Component.literal("empty").withStyle(ChatFormatting.DARK_GRAY), x + 8, sy + 20, 0xFFFFFF, false);
-            } else {
-                g.renderItem(st, x + 6, sy + 10);
-                String name = set == null ? s.title : set.title();
-                g.drawString(font, Component.literal(trim(name, 84)).withColor(sc & 0xFFFFFF), x + 26, sy + 6, 0xFFFFFF, false);
-                g.drawString(font, Component.literal(stars(p.rarity())).withColor(0xFFC24A), x + 26, sy + 17, 0xFFFFFF, false);
-                g.drawString(font, Component.literal("+" + p.level()).withStyle(ChatFormatting.GRAY), x + 26, sy + 27, 0xFFFFFF, false);
-                g.drawString(font, Component.literal(p.main().line(p.mainValue())).withStyle(ChatFormatting.DARK_GRAY),
-                             x + 48, sy + 27, 0xFFFFFF, false);
-            }
+            int sc = set == null ? 0x6A6A74 : set.colour();
+            g.fill(x, y, x + w, y + h, on ? Pathways.alpha(sc, .28f) : (hot ? 0xFF13131B : 0xA00A0A12));
+            g.renderOutline(x, y, w, h, Pathways.alpha(sc, on ? 1f : .3f));
+            if (on) g.fill(x, y + h - 2, x + w, y + h, Pathways.alpha(Pathways.pale(sc, .4f), 1f));
+            g.renderItem(new ItemStack(ArtifactItem.of(s)), x + 4, y + 5);
+            g.drawString(font, Component.literal(s.title.split(" ")[0])
+                    .withColor(on ? Pathways.pale(sc, .5f) & 0xFFFFFF : 0xFF6A6A74), x + 23, y + 9, 0xFFFFFF, false);
         }
     }
 
-    // ---- middle: the piece itself ----
+    /** The wall of pieces for the chosen slot. */
+    private void wall(GuiGraphics g, int mx, int my, int c) {
+        int gx = gridX(), gy = gridY(), gw = gridW(), gh = gridH(), cs = cell();
+        g.fill(gx - 6, gy - 6, gx + gw + 6, gy + gh + 6, 0x900A0A12);
+        g.renderOutline(gx - 6, gy - 6, gw + 12, gh + 12, Pathways.alpha(c, .3f));
 
-    private void drawDetail(GuiGraphics g, int mx, int my, int c) {
-        int x = left + 128, y = top + 26, w = 148, h = H - 32;
-        g.fill(x, y, x + w, y + h, 0xC00B0B11);
-        g.renderOutline(x, y, w, h, Pathways.alpha(c, .35f));
+        int cols = Math.max(1, gw / cs);
+        List<Integer> all = refs();
+        int rows = (all.size() + cols - 1) / cols;
+        int maxScroll = Math.max(0, rows * cs - gh);
+        scroll = Math.max(0, Math.min(scroll, maxScroll));
 
-        ItemStack st = at(slot());
-        Artifacts.Piece p = Artifacts.read(st);
-        ArtifactSets.Set set = p == null ? null : ArtifactSets.get(p.set());
+        if (all.isEmpty())
+            g.drawString(font, Component.literal("Nothing for this slot yet.").withStyle(ChatFormatting.DARK_GRAY),
+                         gx + 6, gy + 8, 0xFFFFFF, false);
 
-        if (p == null) {
-            g.drawCenteredString(font, Component.literal(slot().title).withStyle(ChatFormatting.GRAY), x + w / 2, y + 10, 0xFFFFFF);
-            g.drawCenteredString(font, Component.literal("Nothing in this slot.").withStyle(ChatFormatting.DARK_GRAY), x + w / 2, y + 26, 0xFFFFFF);
-            drawBag(g, x, y + 46, w, mx, my, c);
-            return;
+        g.enableScissor(gx - 4, gy - 4, gx + gw + 4, gy + gh + 4);
+        for (int i = 0; i < all.size(); i++) {
+            int ref = all.get(i);
+            int x = gx + (i % cols) * cs, y = gy + (i / cols) * cs - scroll;
+            if (y + cs < gy - cs || y > gy + gh + cs) continue;
+            tile(g, mx, my, x, y, cs - 4, ref, ref == sel);
+            tiles.add(new int[]{x, y, cs - 4, cs - 4, ref});
         }
-        int sc = set == null ? c : set.colour();
+        g.disableScissor();
 
-        // the symbol, big and turning slowly, with the piece sitting on it
-        RenderSystem.enableBlend();
+        if (maxScroll > 0) {
+            int bh = Math.max(16, (int) (gh * (gh / (float) (rows * cs))));
+            int by = gy + (int) ((gh - bh) * (scroll / (float) maxScroll));
+            g.fill(gx + gw + 1, gy, gx + gw + 4, gy + gh, 0xFF14141C);
+            g.fill(gx + gw + 1, by, gx + gw + 4, by + bh, Pathways.alpha(c, .8f));
+        }
+    }
+
+    /** One piece as a tile: its set's colour behind it, stars under it, the level in the corner. */
+    private void tile(GuiGraphics g, int mx, int my, int x, int y, int s, int ref, boolean on) {
+        ItemStack st = stackOf(ref);
+        Artifacts.Piece p = Artifacts.read(st);
+        if (p == null) return;
+        ArtifactSets.Set set = ArtifactSets.get(p.set());
+        int sc = set == null ? 0x6A6A74 : set.colour();
+        boolean hot = mx >= x && mx <= x + s && my >= y && my <= y + s;
+
+        g.fillGradient(x, y, x + s, y + s, Pathways.alpha(Pathways.deep(sc, .55f), .85f), Pathways.alpha(Pathways.deep(sc, .25f), .95f));
+        if (on) g.fill(x, y, x + s, y + s, Pathways.alpha(sc, .3f));
+        g.renderOutline(x, y, s, s, Pathways.alpha(sc, on ? 1f : (hot ? .8f : .35f)));
+
         if (set != null) {
-            g.pose().pushPose();
-            g.pose().translate(x + w / 2f, y + 40, 0);
-            g.pose().scale(2.1f, 2.1f, 1);
-            g.setColor(((sc >> 16 & 255) / 255f), ((sc >> 8 & 255) / 255f), ((sc & 255) / 255f), .22f);
+            RenderSystem.enableBlend();
+            g.setColor(((sc >> 16 & 255) / 255f), ((sc >> 8 & 255) / 255f), ((sc & 255) / 255f), on ? .4f : .22f);
             g.blit(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "textures/holo/" + set.symbol() + ".png"),
-                   -16, -16, 0, 0, 32, 32, 32, 32);
+                   x + 2, y + 2, 0, 0, s - 4, s - 4, s - 4, s - 4);
             g.setColor(1, 1, 1, 1);
-            g.pose().popPose();
         }
         g.pose().pushPose();
-        g.pose().translate(x + w / 2f - 16, y + 24, 0);
-        g.pose().scale(2f, 2f, 1);
+        g.pose().translate(x + s / 2f - 12, y + 6, 0);
+        g.pose().scale(1.5f, 1.5f, 1);
         g.renderItem(st, 0, 0);
         g.pose().popPose();
 
-        g.drawCenteredString(font, Component.literal(trim(set == null ? slot().title : set.title(), w - 12))
-                .withColor(sc & 0xFFFFFF), x + w / 2, y + 60, 0xFFFFFF);
-        g.drawCenteredString(font, Component.literal(slot().title + "   " + stars(p.rarity()))
-                .withStyle(ChatFormatting.DARK_GRAY), x + w / 2, y + 72, 0xFFFFFF);
+        String stars = "✦".repeat(p.rarity());
+        g.drawString(font, Component.literal(stars).withColor(0xFFC24A),
+                     x + (s - font.width(stars)) / 2, y + s - 19, 0xFFFFFF, false);
+        String lv = "+" + p.level();
+        g.fill(x + 2, y + s - 10, x + 4 + font.width(lv), y + s - 1, 0xC0000000);
+        g.drawString(font, Component.literal(lv).withStyle(ChatFormatting.WHITE), x + 3, y + s - 9, 0xFFFFFF, false);
+        if (ref <= -1) {
+            g.fill(x + s - 7, y + 2, x + s - 2, y + 7, Pathways.alpha(Pathways.pale(sc, .5f), 1f));
+        }
+    }
 
-        // the level, and how far along it is
-        int bx = x + 10, bw = w - 20, by = y + 86;
-        g.fill(bx, by, bx + bw, by + 4, 0xFF18181F);
-        int fill = p.maxLevel() == 0 ? 0 : (int) (bw * (p.level() / (float) p.maxLevel()));
-        g.fillGradient(bx, by, bx + fill, by + 4, Pathways.alpha(Pathways.pale(sc, .35f), 1f), Pathways.alpha(sc, 1f));
-        g.drawString(font, Component.literal("+" + p.level()).withColor(sc & 0xFFFFFF), bx, by - 11, 0xFFFFFF, false);
-        g.drawString(font, Component.literal("/ " + p.maxLevel()).withStyle(ChatFormatting.DARK_GRAY),
-                     bx + font.width("+" + p.level()) + 3, by - 11, 0xFFFFFF, false);
+    /** The piece in hand, written out in full. */
+    private void detail(GuiGraphics g, int c) {
+        int x = detailX(), y = gridY() - 6, w = detailW(), h = gridH() + 12;
+        g.fill(x, y, x + w, y + h, 0xB0080A12);
+        g.renderOutline(x, y, w, h, Pathways.alpha(c, .35f));
 
-        // the main stat, large
-        int sy = by + 12;
-        g.fill(bx, sy, bx + bw, sy + 24, Pathways.alpha(Pathways.deep(sc, .5f), .25f));
-        g.drawString(font, Component.literal(p.main().title).withStyle(ChatFormatting.GRAY), bx + 4, sy + 4, 0xFFFFFF, false);
+        ItemStack st = stackOf(sel);
+        Artifacts.Piece p = Artifacts.read(st);
+        if (p == null) {
+            g.drawCenteredString(font, Component.literal("Pick a piece.").withStyle(ChatFormatting.DARK_GRAY),
+                                 x + w / 2, y + h / 2, 0xFFFFFF);
+            return;
+        }
+        ArtifactSets.Set set = ArtifactSets.get(p.set());
+        int sc = set == null ? c : set.colour();
+
+        // the name bar
+        g.fillGradient(x, y, x + w, y + 30, Pathways.alpha(sc, .85f), Pathways.alpha(Pathways.deep(sc, .5f), .85f));
+        g.drawString(font, Component.literal(trim(set == null ? p.slot().title : set.title(), w - 16)).withColor(0xFFFFFF),
+                     x + 8, y + 7, 0xFFFFFF, false);
+        g.drawString(font, Component.literal(p.slot().title).withStyle(ChatFormatting.GRAY), x + 8, y + 19, 0xFFFFFF, false);
+
+        // the main stat, big
+        int my2 = y + 38;
+        g.drawString(font, Component.literal(p.main().title).withStyle(ChatFormatting.GRAY), x + 8, my2, 0xFFFFFF, false);
         String mv = p.main().pct ? String.format("%.1f%%", p.mainValue() * 100) : String.format("%.0f", p.mainValue());
-        g.drawString(font, Component.literal(mv).withColor(Pathways.pale(sc, .55f) & 0xFFFFFF),
-                     bx + bw - font.width(mv) - 4, sy + 4, 0xFFFFFF, false);
+        g.pose().pushPose();
+        g.pose().translate(x + 8, my2 + 10, 0);
+        g.pose().scale(1.8f, 1.8f, 1);
+        g.drawString(font, Component.literal(mv).withColor(0xFFFFFF), 0, 0, 0xFFFFFF, false);
+        g.pose().popPose();
 
-        // the sub-stats, with a pip for every roll that went into each
-        int ly = sy + 30;
+        String stars = "✦".repeat(p.rarity());
+        g.drawString(font, Component.literal(stars).withColor(0xFFC24A), x + 8, my2 + 30, 0xFFFFFF, false);
+
+        int lvy = my2 + 42;
+        g.fill(x + 8, lvy, x + 8 + 30, lvy + 11, Pathways.alpha(Pathways.deep(sc, .6f), .9f));
+        g.drawString(font, Component.literal("+" + p.level()).withColor(0xFFFFFF), x + 11, lvy + 2, 0xFFFFFF, false);
+        int bw = w - 60;
+        g.fill(x + 44, lvy + 3, x + 44 + bw, lvy + 7, 0xFF16161E);
+        int fill = p.maxLevel() == 0 ? 0 : (int) (bw * (p.level() / (float) p.maxLevel()));
+        g.fillGradient(x + 44, lvy + 3, x + 44 + fill, lvy + 7,
+                       Pathways.alpha(Pathways.pale(sc, .35f), 1f), Pathways.alpha(sc, 1f));
+
+        int ly = lvy + 18;
         for (Artifacts.Sub s : p.subs()) {
             g.drawString(font, Component.literal("· " + s.stat().line(s.value())).withStyle(ChatFormatting.GRAY),
-                         bx + 2, ly, 0xFFFFFF, false);
+                         x + 8, ly, 0xFFFFFF, false);
             for (int k = 0; k < s.rolls(); k++)
-                g.fill(bx + bw - 4 - k * 5, ly + 2, bx + bw - 1 - k * 5, ly + 6, Pathways.alpha(sc, .85f));
+                g.fill(x + w - 10 - k * 5, ly + 2, x + w - 7 - k * 5, ly + 6, Pathways.alpha(sc, .85f));
             ly += 11;
         }
         for (int k = p.subs().size(); k < 4; k++) {
-            g.drawString(font, Component.literal("· —").withStyle(ChatFormatting.DARK_GRAY), bx + 2, ly, 0xFFFFFF, false);
+            g.drawString(font, Component.literal("· —").withStyle(ChatFormatting.DARK_GRAY), x + 8, ly, 0xFFFFFF, false);
             ly += 11;
         }
 
-        drawBag(g, x, ly + 6, w, mx, my, c);
+        if (set != null) {
+            ly += 6;
+            int have = ArtifactSets.counts(ArtifactSlots.clientWorn()).getOrDefault(set.id(), 0);
+            g.drawString(font, Component.literal(set.title() + " (" + have + ")").withColor(sc & 0xFFFFFF), x + 8, ly, 0xFFFFFF, false);
+            ly += 12;
+            ly = setLine(g, x, ly, w, "2 pieces: " + set.twoLine(), have >= 2);
+            ly = setLine(g, x, ly, w, "4 pieces: " + set.fourLine(), have >= 4);
+            ly += 4;
+            for (String line : wrap(set.flavour(), w - 16)) {
+                g.drawString(font, Component.literal(line).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC),
+                             x + 8, ly, 0xFFFFFF, false);
+                ly += 10;
+            }
+        }
+
+        if (sel <= -1) {
+            String e = "Worn";
+            g.fill(x + 6, y + h - 16, x + 12 + font.width(e), y + h - 4, Pathways.alpha(sc, .5f));
+            g.drawString(font, Component.literal(e).withColor(0xFFFFFF), x + 9, y + h - 14, 0xFFFFFF, false);
+        }
     }
 
-    /** The pieces in the bag that would fit the slot in hand, and a way to take the worn one off. */
-    private void drawBag(GuiGraphics g, int x, int y, int w, int mx, int my, int c) {
+    private int setLine(GuiGraphics g, int x, int y, int w, String s, boolean live) {
+        for (String line : wrap((live ? "✔ " : "◯ ") + s, w - 16)) {
+            g.drawString(font, Component.literal(line).withColor(live ? 0xFF7ADF8A : 0xFF5A5A64), x + 8, y, 0xFFFFFF, false);
+            y += 10;
+        }
+        return y;
+    }
+
+    /** The bar along the bottom: what can be done with what is picked. */
+    private void footer(GuiGraphics g, int c) {
+        int y = height - padY() - 18;
+        g.fill(padX(), y, width - padX(), y + 1, Pathways.alpha(c, .3f));
+        boolean has = Artifacts.read(stackOf(sel)) != null;
+        String a = sel <= -1 ? "Take off" : "Wear";
+        button(g, padX(), y + 5, 70, a, has, c);
+        button(g, padX() + 76, y + 5, 90, "Reroll (1 dust)", has && dust() > 0, c);
+        g.drawString(font, Component.literal("Dust of Enlightenment: " + dust()).withStyle(ChatFormatting.DARK_GRAY),
+                     padX() + 174, y + 9, 0xFFFFFF, false);
+        g.drawString(font, Component.literal("Levels are raised at an Artifact Altar · Esc to close")
+                .withStyle(ChatFormatting.DARK_GRAY), width - padX() - 250, y + 9, 0xFFFFFF, false);
+    }
+
+    private void button(GuiGraphics g, int x, int y, int w, String s, boolean live, int c) {
+        g.fill(x, y, x + w, y + 14, live ? Pathways.alpha(c, .3f) : 0xFF101018);
+        g.renderOutline(x, y, w, 14, Pathways.alpha(live ? c : 0x3A3A44, .9f));
+        g.drawCenteredString(font, Component.literal(s).withColor(live ? 0xFFFFFF : 0xFF5A5A64), x + w / 2, y + 3, 0xFFFFFF);
+    }
+
+    private int dust() {
         var pl = Minecraft.getInstance().player;
-        if (pl == null) return;
-        g.fill(x + 6, y, x + w - 6, y + 1, Pathways.alpha(c, .25f));
-        g.drawString(font, Component.literal("In your bag").withStyle(ChatFormatting.DARK_GRAY), x + 8, y + 5, 0xFFFFFF, false);
-
-        if (!at(slot()).isEmpty()) {
-            boolean hot = mx >= x + w - 52 && mx <= x + w - 8 && my >= y + 4 && my <= y + 14;
-            g.drawString(font, Component.literal("take off").withColor(hot ? 0xFFE08080 : 0xFF806060),
-                         x + w - 50, y + 5, 0xFFFFFF, false);
-        }
-
-        int bx = x + 8, by = y + 18, n = 0;
+        if (pl == null) return 0;
+        int n = 0;
         var inv = pl.getInventory();
-        for (int i = 0; i < inv.getContainerSize(); i++) {
-            ItemStack st = inv.getItem(i);
-            if (st.isEmpty() || !(st.getItem() instanceof ArtifactItem ai) || ai.slot() != slot()) continue;
-            if (Artifacts.read(st) == null) continue;
-            if (n >= 24) break;
-            int px = bx + (n % 7) * 19, py = by + (n / 7) * 19;
-            Artifacts.Piece p = Artifacts.read(st);
-            ArtifactSets.Set set = ArtifactSets.get(p.set());
-            int sc = set == null ? 0x606068 : set.colour();
-            boolean hot = mx >= px && mx <= px + 17 && my >= py && my <= py + 17;
-            g.fill(px, py, px + 17, py + 17, hot ? Pathways.alpha(sc, .3f) : 0xA00C0C12);
-            g.renderOutline(px, py, 17, 17, Pathways.alpha(sc, hot ? .9f : .4f));
-            g.renderItem(st, px + 1, py + 1);
-            bagHits.add(new int[]{px, py, i});
-            n++;
-        }
-        if (n == 0) g.drawString(font, Component.literal("nothing that fits").withStyle(ChatFormatting.DARK_GRAY),
-                                 bx, by + 3, 0xFFFFFF, false);
+        for (int i = 0; i < inv.getContainerSize(); i++)
+            if (inv.getItem(i).is(AstralFloor.DUST.get())) n += inv.getItem(i).getCount();
+        return n;
     }
 
-    // ---- right: what it all comes to ----
-
-    private void drawTotals(GuiGraphics g, int c) {
-        int x = left + 282, y = top + 26, w = 132, h = H - 32;
-        g.fill(x, y, x + w, y + h, 0xC00B0B11);
-        g.renderOutline(x, y, w, h, Pathways.alpha(c, .35f));
-        g.drawString(font, Component.literal("TOTAL").withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 8, y + 7, 0xFFFFFF, false);
-
-        Map<Stat, Double> totals = Artifacts.totals(worn());
-        int ly = y + 21;
-        for (Stat s : Stat.values()) {
-            double v = totals.getOrDefault(s, 0.0);
-            if (v == 0) continue;
-            if (s.lotm() && s.attribute() == null) continue;
-            g.drawString(font, Component.literal(s.title).withStyle(ChatFormatting.GRAY), x + 8, ly, 0xFFFFFF, false);
-            String val = s.pct ? String.format("%+.1f%%", v * 100) : String.format("%+.0f", v);
-            g.drawString(font, Component.literal(val).withColor(Pathways.pale(c, .5f) & 0xFFFFFF),
-                         x + w - font.width(val) - 8, ly, 0xFFFFFF, false);
-            ly += 10;
-            if (ly > y + h - 70) break;
-        }
-
-        // the sets being worn, and which half of each is paying
-        int sy = Math.max(ly + 6, y + h - 66);
-        g.fill(x + 6, sy, x + w - 6, sy + 1, Pathways.alpha(c, .25f));
-        g.drawString(font, Component.literal("SETS").withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 8, sy + 6, 0xFFFFFF, false);
-        int ry = sy + 18;
-        var counts = ArtifactSets.counts(worn());
-        if (counts.isEmpty())
-            g.drawString(font, Component.literal("none").withStyle(ChatFormatting.DARK_GRAY), x + 8, ry, 0xFFFFFF, false);
-        for (var e : counts.entrySet()) {
-            ArtifactSets.Set set = ArtifactSets.get(e.getKey());
-            if (set == null) continue;
-            int sc = set.colour(), n = e.getValue();
-            g.drawString(font, Component.literal(trim(set.title(), w - 40)).withColor(sc & 0xFFFFFF), x + 8, ry, 0xFFFFFF, false);
-            for (int k = 0; k < 4; k++)
-                g.fill(x + w - 26 + k * 5, ry + 2, x + w - 23 + k * 5, ry + 6,
-                       k < n ? Pathways.alpha(sc, .95f) : 0xFF1E1E26);
-            ry += 10;
-            if (n >= 2) { g.drawString(font, Component.literal("  2pc " + set.twoLine()).withStyle(ChatFormatting.DARK_GRAY), x + 8, ry, 0xFFFFFF, false); ry += 9; }
-            if (n >= 4) { g.drawString(font, Component.literal("  4pc " + set.fourLine()).withStyle(ChatFormatting.DARK_GRAY), x + 8, ry, 0xFFFFFF, false); ry += 9; }
-            if (ry > y + h - 10) break;
-        }
-    }
-
-    private void drawHover(GuiGraphics g, int mx, int my) {
-        for (int[] hit : bagHits) {
-            if (mx < hit[0] || mx > hit[0] + 17 || my < hit[1] || my > hit[1] + 17) continue;
-            var pl = Minecraft.getInstance().player;
-            if (pl == null) return;
-            g.renderTooltip(font, pl.getInventory().getItem(hit[2]), mx, my);
-            return;
-        }
-    }
-
-    // ---- clicks ----
+    // ---- input ----
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
-        int x = left + 6, y = top + 26, w = 116, rh = 36;
+        int w = 54, h = 26, x0 = padX(), ty = tabY();
         for (Slot s : Slot.values()) {
-            int sy = y + s.ordinal() * (rh + 3);
-            if (mx >= x && mx <= x + w && my >= sy && my <= sy + rh) {
-                picked = s.ordinal();
-                click();
-                return true;
+            int x = x0 + s.ordinal() * (w + 4);
+            if (mx >= x && mx <= x + w && my >= ty && my <= ty + h) {
+                picked = s.ordinal(); sel = -2; scroll = 0; click(); return true;
             }
         }
-        for (int[] hit : bagHits) {
-            if (mx >= hit[0] && mx <= hit[0] + 17 && my >= hit[1] && my <= hit[1] + 17) {
-                PacketDistributor.sendToServer(new DoorNet.ArtifactAct(picked, hit[2]));
-                click();
-                return true;
+        for (int[] hit : tiles)
+            if (mx >= hit[0] && mx <= hit[0] + hit[2] && my >= hit[1] && my <= hit[1] + hit[3]) {
+                sel = hit[4]; click(); return true;
             }
-        }
-        // "take off" sits at the right of the bag's heading, wherever the detail column put it
-        if (!at(slot()).isEmpty()) {
-            int dx = left + 128, dw = 148;
-            if (mx >= dx + dw - 52 && mx <= dx + dw - 8 && my >= top + 26 && my <= top + H) {
-                PacketDistributor.sendToServer(new DoorNet.ArtifactAct(picked, -1));
-                click();
-                return true;
+        int y = height - padY() - 18;
+        if (my >= y + 5 && my <= y + 19 && Artifacts.read(stackOf(sel)) != null) {
+            if (mx >= padX() && mx <= padX() + 70) {
+                PacketDistributor.sendToServer(new DoorNet.ArtifactAct(picked, sel <= -1 ? -1 : sel));
+                sel = -2; click(); return true;
+            }
+            if (mx >= padX() + 76 && mx <= padX() + 166 && dust() > 0) {
+                PacketDistributor.sendToServer(new DoorNet.ArtifactReroll(sel));
+                click(); return true;
             }
         }
         return super.mouseClicked(mx, my, button);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mx, double my, double dx, double dy) {
+        scroll -= (int) (dy * 24);
+        return true;
     }
 
     private void click() {
@@ -357,14 +408,21 @@ public final class ArtifactScreen extends Screen {
                         net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK.value(), 1.1f, .4f));
     }
 
-    @Override
-    public boolean keyPressed(int key, int scan, int mods) {
-        if (key == 265) { picked = (picked + Slot.values().length - 1) % Slot.values().length; return true; }   // up
-        if (key == 264) { picked = (picked + 1) % Slot.values().length; return true; }                          // down
-        return super.keyPressed(key, scan, mods);
-    }
-
     // ---- odds and ends ----
+
+    private static float fr(float v) { return v - (float) Math.floor(v); }
+
+    private List<String> wrap(String s, int px) {
+        List<String> out = new ArrayList<>();
+        StringBuilder line = new StringBuilder();
+        for (String word : s.split(" ")) {
+            String probe = line.isEmpty() ? word : line + " " + word;
+            if (font.width(probe) > px && !line.isEmpty()) { out.add(line.toString()); line = new StringBuilder(word); }
+            else line = new StringBuilder(probe);
+        }
+        if (!line.isEmpty()) out.add(line.toString());
+        return out;
+    }
 
     private String trim(String s, int px) {
         if (font.width(s) <= px) return s;
@@ -374,11 +432,5 @@ public final class ArtifactScreen extends Screen {
             b.append(ch);
         }
         return b + "…";
-    }
-
-    private static String stars(int n) {
-        StringBuilder b = new StringBuilder();
-        for (int i = 0; i < n; i++) b.append('✦');
-        return b.toString();
     }
 }

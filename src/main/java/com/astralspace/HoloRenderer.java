@@ -2745,8 +2745,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 float a = i * TAU / 12 + .26f, rr = R * (.62f + .12f * (i % 2));
                 if (facingThrone(a, .8f)) continue;
                 push(); tr(gc(a) * rr, 0, gs(a) * rr); rY((float) Math.atan2(-gc(a), -gs(a))); rX(.4f);
-                frustum(0, 2.1f * S, .45f * S, .34f * S, 8, 1, 1, mix(blk, P3, .18f), 255, true);
-                sphere(0, 2.35f * S, 0, .3f * S, .34f * S, .3f * S, 5, 8, mix(blk, P3, .3f), 255); pop(); }
+                // the figures standing round the seat are gone; what is left is the spike each
+                // one stood behind, so the ring still reads without a crowd in it
+                frustum(0, 1.3f * S, .22f * S, .06f * S, 6, 1, 1, mix(blk, P3, .18f), 255, true); pop(); }
             for (int sd = -1; sd <= 1; sd += 2) {   // two gilt standards where the banners hung: the cloth crowded the seat
                 pushThrone(); tr(sd * 4.4f * S, 0, -2.6f * S);
                 frustum(0, top * .82f, .16f * S, .1f * S, 8, 1, 1, blk, 255, true);

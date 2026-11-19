@@ -139,7 +139,16 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Client to server: spend a dust on this piece. */
+    public record ArtifactReroll(int ref) implements CustomPacketPayload {
+        public static final Type<ArtifactReroll> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "artifact_reroll"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, ArtifactReroll> CODEC = StreamCodec.of(
+            (b, m) -> b.writeVarInt(m.ref), b -> new ArtifactReroll(b.readVarInt()));
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static void register(PayloadRegistrar r) {
+        r.playToServer(ArtifactReroll.TYPE, ArtifactReroll.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactCommands.reroll(sp, p.ref()); }));
         r.playToClient(Corrupt.TYPE, Corrupt.CODEC, (p, ctx) -> ctx.enqueueWork(() -> Corruption.setClient(p.level())));
         r.playToClient(DomainOpen.TYPE, DomainOpen.CODEC, (p, ctx) -> ctx.enqueueWork(DomainScreen::open));
         r.playToServer(DomainEnter.TYPE, DomainEnter.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactDomain.enter(sp, p.set(), p.difficulty()); }));

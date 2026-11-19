@@ -39,6 +39,47 @@ public final class ArtifactCommands {
         if (!was.isEmpty() && !inv.add(was)) p.drop(was, false);
     }
 
+    /**
+     * Spends one Dust of Enlightenment to roll a piece's sub-stats again.
+     *
+     * <p>How many it has and how many times each has been rolled are both kept, so a piece that has
+     * been carried to twenty does not lose what was spent getting it there -- only which stats
+     * those rolls landed on and how high they came out. The main stat, the rarity and the level are
+     * untouched, because rerolling those would be rerolling the piece rather than improving it.</p>
+     */
+    public static void reroll(ServerPlayer p, int ref) {
+        var inv = p.getInventory();
+        ItemStack st;
+        Artifacts.Slot slot = null;
+        if (ref <= -1) {
+            int k = -ref - 1;
+            if (k < 0 || k >= Artifacts.Slot.values().length) return;
+            slot = Artifacts.Slot.values()[k];
+            st = ArtifactSlots.get(p, slot);
+        } else {
+            if (ref >= inv.getContainerSize()) return;
+            st = inv.getItem(ref);
+        }
+        if (st == null || st.isEmpty()) return;
+        Artifacts.Piece piece = Artifacts.read(st);
+        if (piece == null) return;
+
+        int dust = -1;
+        for (int i = 0; i < inv.getContainerSize(); i++)
+            if (inv.getItem(i).is(AstralFloor.DUST.get())) { dust = i; break; }
+        if (dust < 0) {
+            p.displayClientMessage(Component.literal("No Dust of Enlightenment.")
+                    .withStyle(net.minecraft.ChatFormatting.GRAY), true);
+            return;
+        }
+        inv.getItem(dust).shrink(1);
+        Artifacts.reroll(st, p.getRandom());
+        if (slot != null) ArtifactSlots.equip(p, slot, st); else inv.setItem(ref, st);
+        p.level().playSound(null, p.blockPosition(), net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME,
+                net.minecraft.sounds.SoundSource.PLAYERS, .8f, 1.5f);
+        p.displayClientMessage(Component.literal("Rolled again.").withColor(0xFFD24A), true);
+    }
+
     public static void register(CommandDispatcher<CommandSourceStack> d) {
         d.register(Commands.literal("artifacts").executes(c -> {
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
@@ -80,6 +121,13 @@ public final class ArtifactCommands {
                     c.getSource().sendSuccess(() -> Component.literal(s.id() + "  —  " + s.title()).withColor(s.colour()), false);
                 return 1;
             }))
+            .then(Commands.literal("dust")
+                .then(Commands.argument("n", IntegerArgumentType.integer(1, 64)).executes(c -> {
+                    ServerPlayer p = c.getSource().getPlayerOrException();
+                    ItemStack st = new ItemStack(AstralFloor.DUST.get(), IntegerArgumentType.getInteger(c, "n"));
+                    if (!p.getInventory().add(st)) p.drop(st, false);
+                    return 1;
+                })))
             .then(Commands.literal("clear").executes(c -> {
                 ServerPlayer p = c.getSource().getPlayerOrException();
                 for (var s : Artifacts.Slot.values()) {

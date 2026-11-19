@@ -1,3 +1,8 @@
+## 0.2.352
+- The artifact menu is the whole screen now rather than a window on it: a lit field with a drift of motes over it, slot tabs along the top with the worn piece's colour under each, every piece you own for the chosen slot laid out as a wall of tiles with its set's symbol behind it and its stars and level on it, and the one in hand written out in full down the right with the main stat large, the sub-stats with a pip per roll, and the set's two- and four-piece lines ticked green when they are actually paying. The sets paying out right now are listed along the top.
+- Dust of Enlightenment: rolls a piece's sub-stats again. How many it has and how many rolls have gone into each are both kept, so a piece carried to twenty does not lose what was spent getting it there — only which stats those rolls landed on and how high they came out. Spent from the menu; /artifact dust to get some.
+- The figures standing round the seat in Lawyer 0 are gone. What is left is the spike each one stood behind, so the ring still reads without a crowd in it.
+
 ## 0.2.351
 - Apothecary, both sequences: everything pushed out off the middle. The benches, the moon-phase ring, the coffins and altars, the cauldron, the flasks and the drifting charts all sit further out and over a wider spread of height, so the sphere is used rather than crowded at its centre.
 - The war banners are gone from Hunter 0. Eight poles of cloth round the rim were the busiest thing in a scene meant to read as a field of blades.

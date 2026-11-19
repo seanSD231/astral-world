@@ -270,6 +270,27 @@ public final class Artifacts {
         return st;
     }
 
+    /**
+     * Rolls a piece's sub-stats again from nothing, keeping how many it has and how many rolls have
+     * gone into each. What changes is which stats they are and how well each one landed.
+     */
+    public static void reroll(ItemStack st, net.minecraft.util.RandomSource r) {
+        Piece p = read(st);
+        if (p == null) return;
+        int[] rolls = new int[p.subs().size()];
+        for (int i = 0; i < rolls.length; i++) rolls[i] = p.subs().get(i).rolls();
+        List<Sub> fresh = new ArrayList<>();
+        for (int i = 0; i < rolls.length; i++) {
+            addSub(fresh, p.main(), p.rarity(), r);
+            if (fresh.size() <= i) break;
+            Sub s = fresh.get(i);
+            double v = s.value();
+            for (int k = 1; k < rolls[i]; k++) v += subRoll(s.stat(), p.rarity(), r);
+            fresh.set(i, new Sub(s.stat(), round(v, s.stat()), rolls[i]));
+        }
+        write(st, new Piece(p.slot(), p.set(), p.rarity(), p.level(), p.main(), p.mainValue(), fresh));
+    }
+
     // ---- adding it all up ----
 
     /** Every stat on a set of worn pieces, the set bonuses included. */

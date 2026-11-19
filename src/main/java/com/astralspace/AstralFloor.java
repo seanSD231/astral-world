@@ -52,6 +52,22 @@ public final class AstralFloor {
             BlockBehaviour.Properties.of().strength(4.0F, 12.0F).requiresCorrectToolForDrops().lightLevel(s -> 11)));
     public static final DeferredItem<Item> GATE_ITEM = ITEMS.register("domain_gate", () -> new BlockItem(GATE.get(), new Item.Properties()));
 
+    /** Rerolls an artifact's sub-stats, spent from the artifact menu. */
+    public static final DeferredItem<Item> DUST = ITEMS.register("dust_of_enlightenment",
+            () -> new Item(new Item.Properties().stacksTo(64).rarity(net.minecraft.world.item.Rarity.UNCOMMON)) {
+                @Override
+                public void appendHoverText(net.minecraft.world.item.ItemStack st, Item.TooltipContext c,
+                                            java.util.List<net.minecraft.network.chat.Component> tip,
+                                            net.minecraft.world.item.TooltipFlag f) {
+                    tip.add(net.minecraft.network.chat.Component.literal("Rerolls one artifact's sub-stats.")
+                            .withStyle(net.minecraft.ChatFormatting.AQUA));
+                    tip.add(net.minecraft.network.chat.Component.literal("Spend it from the artifact menu. The main stat,")
+                            .withStyle(net.minecraft.ChatFormatting.DARK_AQUA));
+                    tip.add(net.minecraft.network.chat.Component.literal("the rarity and the level are all kept.")
+                            .withStyle(net.minecraft.ChatFormatting.DARK_AQUA));
+                }
+            });
+
     /** Calls the Moon's Corruption up where you are standing. */
     public static final DeferredItem<Item> CRIMSON_OFFERING = ITEMS.register("crimson_offering", CrimsonOffering::new);
 
