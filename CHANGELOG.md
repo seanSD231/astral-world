@@ -1,3 +1,6 @@
+## 0.2.344
+- Build fix: SoundEvent was not imported.
+
 ## 0.2.343
 - The Moon's Corruption: a boss that fights in three turns of its own moon. Waxing, where it still has arms and hunts you down; crimson, where it pulls a moon up over the fight; and eclipse, where what is left of it stops pretending and feeds.
 - Its corruption is a count, not a damage type. Standing in its light adds to it, the count is what hurts you, and the only way it comes off is getting out of the light — so the fight is about where you stand rather than how much health you have. In eclipse it takes back everything the corruption has been storing up and heals on it.
