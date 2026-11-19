@@ -1,3 +1,9 @@
+## 0.2.332
+- The rings about him are built the way the rest of the mod builds rings of light: layered ring textures turning against each other with light going out through them, rather than geometry (a hoop of metal) or billboards (a white polygon).
+- The ground is the field again, grass and all, with the spell circle drawn on it out of the same ring textures every other card uses. No disc laid over it.
+- He hangs higher up.
+- The chains binding him use smaller links set closer together, wound tighter to his legs and chest.
+
 ## 0.2.331
 - The rings are circles again: real geometry, but drawn as a faint band of light with three bright arcs chasing each other round it and a haze outside, instead of a hoop of metal or a line of square sprites.
 - The old pillars of light are properly back. They were being drawn as a single quad when `column` drew two crossed through the shaft, so they came out half as bright and vanished edge-on; the rest of the sky is back to its old brightness too. They still lean.

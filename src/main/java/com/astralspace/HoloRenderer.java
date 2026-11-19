@@ -1184,7 +1184,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void adminScene(int a) {
         String who = Tarot.ADMIN_NAMES[Math.max(0, Math.min(Tarot.ADMIN_NAMES.length - 1, a))];
         float P = .265f * S;                     // blocks to a skin pixel
-        float yB = top * .52f;                   // the waist: his legs go up from here, his head hangs below
+        float yB = top * .70f;                   // the waist: his legs go up from here, his head hangs below
         float feet = yB + 24f * P, head = yB - 8f * P, armY = yB + 2f * P, armX = 16f * P;
 
         adminSky();
@@ -1270,19 +1270,21 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
 
     private void adminGround() {
-        float inner = R * 2.0f;
-        // a wash of shade over the whole floor, so the circles and the rings have something to be
-        // bright against -- it was lit to white and nothing on it could be made out
-        flat("disc", 0, .03f, 0, R * 9.4f, 0, rgba(0x3A2608, .3f));
-        // the sea runs from half way out to the wall of the sky, and the circles sit on bare
-        // grass inside it: a filled disc of either paints over the other, so the swirl is a ring
-        if (gold) flat("whirl", 0, .05f, 0, R * 9.2f, t * .06f, rgba(0xFFD448, .6f));
-        else flat("adm_sea", 0, .05f, 0, R * 9.2f, t * .06f, rgba(0xFFFFFF, .7f));
-        flat("adm_circle", 0, .09f, 0, inner * 1.4f, t * .04f, rgba(ADM_PALE, .55f));
-        flat("adm_runes", 0, .11f, 0, inner * .9f, -t * .08f, rgba(ADM_GOLD, .5f));
+        // The field is left as it is -- grass, no disc laid over it -- and the circles are drawn
+        // on it with the same ring textures every other card's spell circle uses.
+        if (gold) flat("whirl", 0, .04f, 0, R * 9.2f, t * .06f, rgba(0xFFD448, .55f));
+        else flat("adm_sea", 0, .04f, 0, R * 9.2f, t * .06f, rgba(0xFFFFFF, .65f));
+        flat("ring_thick", 0, .07f, 0, R * 2.3f, t * .06f, rgba(ADM_GOLD, .7f));
+        flat("ring_dash", 0, .09f, 0, R * 1.8f, -t * .18f, rgba(ADM_PALE, .8f));
+        flat("adm_runes", 0, .11f, 0, R * 1.35f, t * .09f, rgba(ADM_GOLD, .7f));
+        flat("ring", 0, .13f, 0, R * .95f, -t * .3f, rgba(ADM_PALE, .8f));
+        for (int i = 0; i < 3; i++) {   // and light going out from the middle of it
+            float pw = fract(t * .18f + i / 3f);
+            flat("ring", 0, .15f, 0, pw * R * 2.6f, 0, rgba(ADM_GOLD, fd(pw) * .8f));
+        }
         float c = gc(t * .04f) * R * .3f, s2 = gs(t * .04f) * R * .3f;
         eq(ResourceLocation.fromNamespaceAndPath("lotm", "textures/effect/hanged_man_symbol.png"),
-           0, .13f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .8f), 0, 0, 1, 1);
+           0, .17f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .8f), 0, 0, 1, 1);
     }
 
     /** The cross of light he hangs on, and the rope above him. */
@@ -1300,32 +1302,23 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      * of glow at this size is a square of light and nothing like a ring.
      */
     private void adminRings(float yB, float armY, float head, float P) {
-        admRing(armY, R * 1.22f, ADM_PALE, t * .10f, 1f);
-        admRing(armY + .55f * S, R * 1.02f, ADM_GOLD, -t * .14f, .9f);
-        admRing(head - 1.2f * S, R * .46f, ADM_PALE, t * .2f, .8f);
-        admRing(yB + 17f * P, R * .58f, ADM_GOLD, -t * .17f, .85f);
-        for (int k = 0; k < 3; k++)
-            admRing(.26f + k * .04f, R * (.52f + .34f * k), k == 1 ? ADM_PALE : ADM_GOLD,
-                    (k % 2 == 0 ? 1f : -1f) * t * .08f, .8f);
+        admRing(armY, R * 1.25f, ADM_PALE, t * .10f, 1f);
+        admRing(armY + .8f * S, R * 1.0f, ADM_GOLD, -t * .14f, .85f);
+        admRing(head - 1.2f * S, R * .5f, ADM_PALE, t * .2f, .8f);
+        admRing(yB + 17f * P, R * .6f, ADM_GOLD, -t * .17f, .85f);
     }
 
     /**
-     * A ring of light with light running round it: a soft band for the body of it, and a bright
-     * crest that travels the circumference so it flows rather than sits. It was a torus of metal,
-     * which at this size read as a gold hoop hanging in the air -- nothing like the card.
+     * A ring of light about him, built the way the rest of the mod builds them: layered ring
+     * textures turning against each other with light going out through them. Geometry made it a
+     * hoop of metal, and billboards made it a white polygon; neither of those is a ring of light.
      */
     private void admRing(float y, float rr, int rgb, float spin, float k) {
-        float th = rr * .028f;
-        push(); tr(0, y, 0); rY(spin); rX(PI / 2);
-        torus(0, 0, 0, rr, rr, th * 4.2f, 48, 5, 0, TAU, rgb, (int) (30 * k));   // the haze around it
-        torus(0, 0, 0, rr, rr, th, 72, 5, 0, TAU, rgb, (int) (110 * k));         // the band itself, faint
-        for (int q = 0; q < 3; q++) {   // bright arcs chasing each other round it
-            float a0 = fract(t * .13f + q / 3f) * TAU;
-            float br = .55f + .45f * gs(t * 1.1f + q * 2f);
-            torus(0, 0, 0, rr, rr, th * 1.8f, 16, 5, a0, a0 + TAU * .1f, ADM_PALE, (int) (225 * br * k));
-            torus(0, 0, 0, rr, rr, th * 3.4f, 16, 5, a0, a0 + TAU * .1f, rgb, (int) (70 * br * k));
-        }
-        pop();
+        flat("ring_thick", 0, y, 0, rr * 2f, spin, rgba(rgb, .5f * k));
+        flat("ring_dash", 0, y + .03f, 0, rr * 1.76f, -spin * 1.7f, rgba(ADM_PALE, .62f * k));
+        flat("ring", 0, y + .06f, 0, rr * 1.48f, spin * 2.4f, rgba(rgb, .55f * k));
+        float pw = fract(t * .3f + y * .13f);
+        flat("ring", 0, y + .09f, 0, rr * (1.2f + 1.6f * pw), 0, rgba(ADM_PALE, fd(pw) * .6f * k));
     }
 
     /**
@@ -1343,8 +1336,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         skinPart(sk, 0, 16, 4, 12, 4, -2, -18, 0, true, P, yB, 0f);         // right leg, up
         skinPart(sk, 16, 48, 4, 12, 4, 2, -18, 0, true, P, yB, 0f);         // left leg
 
-        chainWrap(yB + 10.5f * P, yB + 23f * P, 3.6f * P, 3.0f * P, 2.6f, 2.1f * P);   // the legs, roped together
-        chainWrap(yB - 7f * P, yB + 9f * P, 5.6f * P, 3.6f * P, 2.2f, 2.3f * P);       // and round the chest
+        chainWrap(yB + 10.5f * P, yB + 23f * P, 3.0f * P, 2.6f * P, 3.4f, 1.25f * P);  // the legs, roped together
+        chainWrap(yB - 7f * P, yB + 9f * P, 4.7f * P, 2.8f * P, 2.8f, 1.4f * P);       // and round the chest
 
         for (int sd = -1; sd <= 1; sd += 2) {
             // the wrist: a cuff round the arm, and the chain starting inside it rather than
@@ -1369,7 +1362,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      */
     private void chainWrap(float y0, float y1, float rx2, float rz2, float turns, float link) {
         float path = turns * TAU * (rx2 + rz2) * .5f;
-        int n = Math.max(10, Math.min(96, (int) (path / (link * .78f))));
+        int n = Math.max(10, Math.min(160, (int) (path / (link * .62f))));
         for (int i = 0; i <= n; i++) {
             float u = i / (float) n, a = u * turns * TAU;
             push(); tr(gc(a) * rx2, y0 + (y1 - y0) * u, gs(a) * rz2); rY(-a);
