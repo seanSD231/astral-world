@@ -74,9 +74,8 @@ public class HoloCardEntity extends Entity {
         var server = level().getServer();
         if (server == null) return;
         String name = Tarot.ADMIN_NAMES[Math.max(0, Math.min(Tarot.ADMIN_NAMES.length - 1, admin()))];
-        server.getProfileCache().getAsync(name, opt -> opt.ifPresent(gp -> {
-            if (isAlive()) entityData.set(SKINID, gp.getId().toString());
-        }));
+        server.getProfileCache().getAsync(name).thenAccept(opt -> opt.ifPresent(gp ->
+                server.execute(() -> { if (isAlive()) entityData.set(SKINID, gp.getId().toString()); })));
     }
     /** Index of the Great Old One this card is (0..8), or -1 for an ordinary card. */
     public int goo() { return entityData.get(GOO); }

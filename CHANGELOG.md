@@ -2,6 +2,10 @@
 
 Major changes only. Nothing from 0.1.48 onward has been tested in-game yet; every build compiled green on CI.
 
+## 0.2.323
+
+- Fixes the build: the profile cache's async lookup returns a future rather than taking a callback.
+
 ## 0.2.322
 
 - **The admin hologram's circles and rings were squares** because they were quads of light. Eight big emissive
