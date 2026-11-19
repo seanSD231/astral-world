@@ -40,6 +40,11 @@ public final class ArtifactCommands {
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> d) {
+        d.register(Commands.literal("artifacts").executes(c -> {
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+                    c.getSource().getPlayerOrException(), new DoorNet.ArtifactOpen());
+            return 1;
+        }));
         d.register(Commands.literal("artifact")
             .requires(s -> s.hasPermission(2))
             .then(Commands.literal("give")
@@ -65,6 +70,11 @@ public final class ArtifactCommands {
                         if (!p.getInventory().add(st)) p.drop(st, false);
                         return 1;
                     })))
+            .then(Commands.literal("menu").requires(s -> true).executes(c -> {
+                net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+                        c.getSource().getPlayerOrException(), new DoorNet.ArtifactOpen());
+                return 1;
+            }))
             .then(Commands.literal("sets").executes(c -> {
                 for (var s : ArtifactSets.all())
                     c.getSource().sendSuccess(() -> Component.literal(s.id() + "  —  " + s.title()).withColor(s.colour()), false);

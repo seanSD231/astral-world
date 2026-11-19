@@ -88,7 +88,15 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    /** Server to client: open the artifact menu. */
+    public record ArtifactOpen() implements CustomPacketPayload {
+        public static final Type<ArtifactOpen> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "artifact_open"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, ArtifactOpen> CODEC = StreamCodec.of((b, m) -> { }, b -> new ArtifactOpen());
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     public static void register(PayloadRegistrar r) {
+        r.playToClient(ArtifactOpen.TYPE, ArtifactOpen.CODEC, (p, ctx) -> ctx.enqueueWork(ArtifactScreen::open));
         r.playToClient(Artifact.TYPE, Artifact.CODEC, (p, ctx) -> ctx.enqueueWork(() -> ArtifactSlots.setClient(p.slot(), p.stack())));
         r.playToServer(ArtifactAct.TYPE, ArtifactAct.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactCommands.act(sp, p.slot(), p.invSlot()); }));
         r.playToClient(MaskAsk.TYPE, MaskAsk.CODEC, (p, ctx) -> ctx.enqueueWork(() -> MaskNameScreen.open(p.colour())));

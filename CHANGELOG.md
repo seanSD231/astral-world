@@ -1,3 +1,10 @@
+## 0.2.339
+- The artifact menu. Three columns, as the games lay it out: the five pieces down the left, whichever is picked blown up in the middle with its main stat, its sub-stats and a pip for every roll that went into each, and everything they come to on the right with the sets being worn and which half of each is paying.
+- The whole panel takes its colour from the pathway of the set in hand, so a Hanged Man piece turns it red and a Fool piece violet; with nothing picked it falls back to your own pathway. The pathway symbol sits behind each piece as its face.
+- Pieces in your bag that fit the chosen slot are shown under the detail, and clicking one puts it on. Nothing is decided client side: a click asks, the server moves the piece and sends the slot back.
+- Open it with K, or /artifacts.
+- The sets are keyed to the mod's own twenty-two pathway ids now, so their colours and symbols are the same ones the binder uses rather than a second hand-kept list that would drift from it.
+
 ## 0.2.338
 - Build fix: Minecraft RandomSource is not a java.util RandomGenerator.
 

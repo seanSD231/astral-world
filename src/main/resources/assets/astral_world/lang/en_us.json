@@ -101,5 +101,6 @@
   "item.astral_world.mask_azure": "Azure Mask",
   "item.astral_world.mask_verdant": "Verdant Mask",
   "item.astral_world.mask_gilded": "Gilded Mask",
-  "item.astral_world.admin_pack": "Admin Pack"
+  "item.astral_world.admin_pack": "Admin Pack",
+  "key.astral_world.artifacts": "Artifacts"
 }
