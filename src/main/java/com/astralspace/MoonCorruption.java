@@ -349,26 +349,13 @@ public class MoonCorruption extends Monster {
         lv.playSound(null, blockPosition(), SoundEvents.WITHER_DEATH, SoundSource.HOSTILE, 2f, .7f);
         lv.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, getX(), getY() + 2, getZ(), 200, 2, 2, 2, .25);
 
-        // Everyone who was in the fight gets their own, so a boss is not a race to the drop pile.
-        List<Player> share = nearby(42);
-        for (Player p : share) {
+        // Everyone who was in the fight is paid their own, so a boss is not a race to a drop pile.
+        for (Player p : nearby(42)) {
             Corruption.clear(p);
-            int n = 2 + (random.nextDouble() < .5 ? 1 : 0);
-            for (int i = 0; i < n; i++) {
-                // weighted to the Moon's own set, which is what it is: the Apothecary pathway
-                String set = random.nextDouble() < .55 ? "apothecary" : ArtifactSets.random(random).id();
-                var slot = Artifacts.Slot.values()[random.nextInt(Artifacts.Slot.values().length)];
-                int rarity = random.nextDouble() < .3 ? 5 : 4;
-                ItemStack st = Artifacts.roll(set, slot, rarity, random);
-                if (!p.getInventory().add(st)) p.drop(st, false);
-            }
+            Loot.pay(p, 90 + random.nextInt(60));
             p.displayClientMessage(Component.literal("The light goes out.").withColor(0xE0384A), false);
         }
-        if (share.isEmpty()) {
-            for (int i = 0; i < 3; i++)
-                spawnAtLocation(Artifacts.roll("apothecary",
-                        Artifacts.Slot.values()[random.nextInt(Artifacts.Slot.values().length)], 4, random));
-        }
+    }
     }
 
     @Override

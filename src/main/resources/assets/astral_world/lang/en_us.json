@@ -90,7 +90,6 @@
   "item.astral_world.chained_bow": "Bandaged Doll",
   "key.astral_world.door_eyes": "Astral artifact: use (Eyes of the Door: supernova)",
   "key.categories.astral_world": "Astral World",
-  "curios.identifier.astral_artifact": "Astral Artifact",
   "item.astral_world.shrink_shroom": "Mystic Shroom",
   "item.astral_world.slim_shroom": "Slim Shroom",
   "item.astral_world.wide_shroom": "Wide Shroom",
@@ -102,11 +101,6 @@
   "item.astral_world.mask_verdant": "Verdant Mask",
   "item.astral_world.mask_gilded": "Gilded Mask",
   "item.astral_world.admin_pack": "Admin Pack",
-  "key.astral_world.artifacts": "Artifacts",
-  "block.astral_world.artifact_altar": "Artifact Altar",
-  "block.astral_world.domain_gate": "Domain Gate",
   "item.astral_world.crimson_offering": "Crimson Offering",
-  "entity.astral_world.moon_corruption": "The Moon's Corruption",
-  "item.astral_world.dust_of_enlightenment": "Dust of Enlightenment",
-  "item.astral_world.set_ability": "Scribed Fragment"
+  "entity.astral_world.moon_corruption": "The Moon's Corruption"
 }

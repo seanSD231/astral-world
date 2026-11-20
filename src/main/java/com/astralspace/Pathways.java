@@ -3,7 +3,7 @@ package com.astralspace;
 /**
  * The colour of each pathway, in one place.
  *
- * <p>The binder has carried its own copy of this since before anything else needed it. Artifacts
+ * <p>The binder has carried its own copy of this since before anything else needed it. Other work
  * want the same colours, and a second hand-kept list would drift from the first, so new work reads
  * them from here.</p>
  */

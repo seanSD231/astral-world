@@ -232,16 +232,9 @@ public final class Ranked {
         int coins = points / PER_COIN;
         if (coins <= 0) { tell(p, PER_COIN + " RP to a coin.", ChatFormatting.GRAY); return; }
         int spent = coins * PER_COIN;
-        Item coin = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse("numismatics:spur"))
-                .orElse(BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse("minecraft:emerald")).orElse(null));
-        if (coin == null) { tell(p, "There is no money on this server to pay you in.", ChatFormatting.RED); return; }
+        if (Loot.coin() == null) { tell(p, "There is no money on this server to pay you in.", ChatFormatting.RED); return; }
         write(p, new Record(r.rating(), r.wins(), r.losses(), r.points() - spent));
-        for (int left = coins; left > 0; ) {
-            int n = Math.min(64, left);
-            ItemStack st = new ItemStack(coin, n);
-            if (!p.getInventory().add(st)) p.drop(st, false);
-            left -= n;
-        }
+        Loot.pay(p, coins);
         p.sendSystemMessage(Component.literal("Cashed " + spent + " RP for " + coins + " coins.")
                 .withStyle(ChatFormatting.GOLD));
     }

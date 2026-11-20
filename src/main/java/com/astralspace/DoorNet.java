@@ -70,66 +70,12 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
-    /** Server to client: one of the five artifact slots, so the menu can show what is on. */
-    public record Artifact(int slot, net.minecraft.world.item.ItemStack stack) implements CustomPacketPayload {
-        public static final Type<Artifact> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "artifact"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, Artifact> CODEC = StreamCodec.of(
-            (b, m) -> { b.writeVarInt(m.slot); net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(b, m.stack); },
-            b -> new Artifact(b.readVarInt(), net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(b)));
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
-    }
 
-    /** Client to server: move a piece between a slot and the bag. -1 for the slot means take it off. */
-    public record ArtifactAct(int slot, int invSlot) implements CustomPacketPayload {
-        public static final Type<ArtifactAct> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "artifact_act"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, ArtifactAct> CODEC = StreamCodec.of(
-            (b, m) -> { b.writeVarInt(m.slot); b.writeVarInt(m.invSlot); },
-            b -> new ArtifactAct(b.readVarInt(), b.readVarInt()));
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
-    }
 
-    /** Server to client: open the artifact menu. */
-    public record ArtifactOpen() implements CustomPacketPayload {
-        public static final Type<ArtifactOpen> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "artifact_open"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, ArtifactOpen> CODEC = StreamCodec.of((b, m) -> { }, b -> new ArtifactOpen());
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
-    }
 
-    /** Server to client: open the altar. */
-    public record AltarOpen() implements CustomPacketPayload {
-        public static final Type<AltarOpen> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "altar_open"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, AltarOpen> CODEC = StreamCodec.of((b, m) -> { }, b -> new AltarOpen());
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
-    }
 
-    /** Client to server: raise this piece on what is in this list. */
-    public record AltarUpgrade(int target, java.util.List<Integer> fodder) implements CustomPacketPayload {
-        public static final Type<AltarUpgrade> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "altar_upgrade"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, AltarUpgrade> CODEC = StreamCodec.of(
-            (b, m) -> { b.writeVarInt(m.target); b.writeVarInt(Math.min(64, m.fodder.size()));
-                        for (int i = 0; i < Math.min(64, m.fodder.size()); i++) b.writeVarInt(m.fodder.get(i)); },
-            b -> { int t = b.readVarInt(); int n = Math.min(64, b.readVarInt());
-                   java.util.List<Integer> f = new java.util.ArrayList<>();
-                   for (int i = 0; i < n; i++) f.add(b.readVarInt());
-                   return new AltarUpgrade(t, f); });
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
-    }
 
-    /** Server to client: pick a domain. */
-    public record DomainOpen() implements CustomPacketPayload {
-        public static final Type<DomainOpen> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "domain_open"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, DomainOpen> CODEC = StreamCodec.of((b, m) -> { }, b -> new DomainOpen());
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
-    }
 
-    /** Client to server: this set, this deep. */
-    public record DomainEnter(String set, int difficulty) implements CustomPacketPayload {
-        public static final Type<DomainEnter> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "domain_enter"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, DomainEnter> CODEC = StreamCodec.of(
-            (b, m) -> { b.writeUtf(m.set, 48); b.writeVarInt(m.difficulty); },
-            b -> new DomainEnter(b.readUtf(48), b.readVarInt()));
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
-    }
 
     /** Server to client: how far the moon has got into you. */
     public record Corrupt(int level) implements CustomPacketPayload {
@@ -139,24 +85,9 @@ public final class DoorNet {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
-    /** Client to server: spend a dust on this piece. */
-    public record ArtifactReroll(int ref) implements CustomPacketPayload {
-        public static final Type<ArtifactReroll> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "artifact_reroll"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, ArtifactReroll> CODEC = StreamCodec.of(
-            (b, m) -> b.writeVarInt(m.ref), b -> new ArtifactReroll(b.readVarInt()));
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
-    }
 
     public static void register(PayloadRegistrar r) {
-        r.playToServer(ArtifactReroll.TYPE, ArtifactReroll.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactCommands.reroll(sp, p.ref()); }));
         r.playToClient(Corrupt.TYPE, Corrupt.CODEC, (p, ctx) -> ctx.enqueueWork(() -> Corruption.setClient(p.level())));
-        r.playToClient(DomainOpen.TYPE, DomainOpen.CODEC, (p, ctx) -> ctx.enqueueWork(DomainScreen::open));
-        r.playToServer(DomainEnter.TYPE, DomainEnter.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactDomain.enter(sp, p.set(), p.difficulty()); }));
-        r.playToClient(AltarOpen.TYPE, AltarOpen.CODEC, (p, ctx) -> ctx.enqueueWork(ArtifactAltarScreen::open));
-        r.playToServer(AltarUpgrade.TYPE, AltarUpgrade.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactAltar.upgrade(sp, p.target(), p.fodder()); }));
-        r.playToClient(ArtifactOpen.TYPE, ArtifactOpen.CODEC, (p, ctx) -> ctx.enqueueWork(ArtifactScreen::open));
-        r.playToClient(Artifact.TYPE, Artifact.CODEC, (p, ctx) -> ctx.enqueueWork(() -> ArtifactSlots.setClient(p.slot(), p.stack())));
-        r.playToServer(ArtifactAct.TYPE, ArtifactAct.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactCommands.act(sp, p.slot(), p.invSlot()); }));
         r.playToClient(MaskAsk.TYPE, MaskAsk.CODEC, (p, ctx) -> ctx.enqueueWork(() -> MaskNameScreen.open(p.colour())));
         r.playToServer(MaskWear.TYPE, MaskWear.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) Masks.wear(sp, p.colour(), p.name(), p.slim() != 0); }));
         r.playToClient(World.TYPE, World.CODEC, (p, ctx) -> ctx.enqueueWork(() -> UniqWorld.add(p.kind(), p.id(), p.id2(), p.x(), p.y(), p.z(), p.x2(), p.y2(), p.z2(), p.dur())));

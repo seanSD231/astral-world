@@ -32,12 +32,10 @@ public final class DoorClient {
     private DoorClient() {}
 
     public static final KeyMapping KEY = new KeyMapping("key.astral_world.door_eyes", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "key.categories.astral_world");
-    public static final KeyMapping ARTIFACTS = new KeyMapping("key.astral_world.artifacts", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_K, "key.categories.astral_world");
     private static final ResourceLocation FACE = ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "textures/entity/door_eyes.png");
     private static final Map<UUID, Boolean> WORN = new HashMap<>();
 
     public static void init(IEventBus modBus) {
-        modBus.addListener((RegisterKeyMappingsEvent e) -> { e.register(KEY); e.register(ARTIFACTS); });
         modBus.addListener(DoorClient::addLayers);
         NeoForge.EVENT_BUS.addListener(DoorClient::tick);
         NeoForge.EVENT_BUS.addListener(NovaRender::render);
@@ -50,7 +48,6 @@ public final class DoorClient {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
         while (KEY.consumeClick()) if (mc.screen == null) PacketDistributor.sendToServer(new DoorNet.Key());
-        while (ARTIFACTS.consumeClick()) if (mc.screen == null) ArtifactScreen.open();
         WornClient.tick(mc);
         DemonessLook.tick(mc);
         if (mc.player.tickCount % 10 == 0) for (AbstractClientPlayer p : mc.level.players()) WORN.put(p.getUUID(), !DoorEyes.findEyes(p).isEmpty());

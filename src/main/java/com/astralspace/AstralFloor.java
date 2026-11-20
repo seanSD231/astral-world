@@ -42,37 +42,6 @@ public final class AstralFloor {
             BlockBehaviour.Properties.of().strength(2.0F, 6.0F).requiresCorrectToolForDrops().lightLevel(s -> 7)));
     public static final DeferredItem<Item> CABINET_ITEM = ITEMS.register("osu_cabinet", () -> new BlockItem(CABINET.get(), new Item.Properties()));
 
-    /** Where artifacts are raised. */
-    public static final DeferredBlock<Block> ALTAR = BLOCKS.register("artifact_altar", () -> new ArtifactAltarBlock(
-            BlockBehaviour.Properties.of().strength(3.0F, 9.0F).requiresCorrectToolForDrops().lightLevel(s -> 9)));
-    public static final DeferredItem<Item> ALTAR_ITEM = ITEMS.register("artifact_altar", () -> new BlockItem(ALTAR.get(), new Item.Properties()));
-
-    /** The way into a domain. */
-    public static final DeferredBlock<Block> GATE = BLOCKS.register("domain_gate", () -> new DomainGateBlock(
-            BlockBehaviour.Properties.of().strength(4.0F, 12.0F).requiresCorrectToolForDrops().lightLevel(s -> 11)));
-    public static final DeferredItem<Item> GATE_ITEM = ITEMS.register("domain_gate", () -> new BlockItem(GATE.get(), new Item.Properties()));
-
-    /** Rerolls an artifact's sub-stats, spent from the artifact menu. */
-    public static final DeferredItem<Item> DUST = ITEMS.register("dust_of_enlightenment",
-            () -> new Item(new Item.Properties().stacksTo(64).rarity(net.minecraft.world.item.Rarity.UNCOMMON)) {
-                @Override
-                public void appendHoverText(net.minecraft.world.item.ItemStack st, Item.TooltipContext c,
-                                            java.util.List<net.minecraft.network.chat.Component> tip,
-                                            net.minecraft.world.item.TooltipFlag f) {
-                    tip.add(net.minecraft.network.chat.Component.literal("Ground characteristic. Settles an artifact again.")
-                            .withStyle(net.minecraft.ChatFormatting.AQUA));
-                    tip.add(net.minecraft.network.chat.Component.literal("It does not make the thing stronger. It changes which")
-                            .withStyle(net.minecraft.ChatFormatting.DARK_AQUA));
-                    tip.add(net.minecraft.network.chat.Component.literal("parts of the incident take to you, so the class, the")
-                            .withStyle(net.minecraft.ChatFormatting.DARK_AQUA));
-                    tip.add(net.minecraft.network.chat.Component.literal("main stat and your attunement are all untouched.")
-                            .withStyle(net.minecraft.ChatFormatting.DARK_AQUA));
-                }
-            });
-
-    /** What five fragments of one set hand you: an ability to carry and spend. */
-    public static final DeferredItem<Item> SET_ABILITY = ITEMS.register("set_ability", SetAbility::new);
-
     /** Calls the Moon's Corruption up where you are standing. */
     public static final DeferredItem<Item> CRIMSON_OFFERING = ITEMS.register("crimson_offering", CrimsonOffering::new);
 
@@ -138,7 +107,7 @@ public final class AstralFloor {
         ITEMS.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); for (var k : MASKS) e.accept(k.get()); }
-            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(CABINET_ITEM.get()); e.accept(ALTAR_ITEM.get()); e.accept(GATE_ITEM.get()); }
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) e.accept(CABINET_ITEM.get());
         });
     }
 

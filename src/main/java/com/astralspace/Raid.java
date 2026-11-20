@@ -17,7 +17,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -83,7 +82,6 @@ public final class Raid {
     private static void join(ServerPlayer p, int depth) {
         if (raiding(p)) { tell(p, "You are already in one.", ChatFormatting.GRAY); return; }
         if (Duel.dueling(p)) { tell(p, "Finish your duel first.", ChatFormatting.RED); return; }
-        if (ArtifactDomain.inside(p)) { tell(p, "Not from inside a containment.", ChatFormatting.RED); return; }
         QUEUE.put(p.getUUID(), Math.max(1, Math.min(5, depth)));
         SINCE.put(p.getUUID(), System.currentTimeMillis());
         int n = 0;
@@ -271,20 +269,10 @@ public final class Raid {
      * are paid too: sitting out the last minute of a fight you helped win is punishment enough.
      */
     private static void reward(ServerPlayer p, int depth) {
-        var r = p.getRandom();
-        int count = 2 + (depth >= 3 ? 1 : 0) + (r.nextDouble() < depth * .12 ? 1 : 0);
-        for (int i = 0; i < count; i++) {
-            int rarity = Math.max(2, Math.min(5, 2 + depth / 2 + (r.nextDouble() < .4 ? 1 : 0)));
-            var slot = Artifacts.Slot.values()[r.nextInt(Artifacts.Slot.values().length)];
-            ItemStack st = Artifacts.roll(ArtifactSets.random(r).id(), slot, rarity, r);
-            if (!p.getInventory().add(st)) p.drop(st, false);
-        }
-        int dust = 1 + r.nextInt(1 + depth);
-        ItemStack d = new ItemStack(AstralFloor.DUST.get(), dust);
-        if (!p.getInventory().add(d)) p.drop(d, false);
+        int coins = 40 + depth * 55 + p.getRandom().nextInt(30);
+        Loot.pay(p, coins);
         p.level().playSound(null, p.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, .8f, 1.2f);
-        p.sendSystemMessage(Component.literal("Cleared · " + count + " fragments and " + dust + " dust")
-                .withColor(0xE0384A));
+        p.sendSystemMessage(Component.literal("Cleared \u00b7 " + coins + " coins").withColor(0xE0384A));
     }
 
     // ---- commands ----
