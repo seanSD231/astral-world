@@ -1,3 +1,6 @@
+## 0.2.366
+- Build fix: there is no polished deepslate brick.
+
 ## 0.2.365
 - Boss raids, on the same queue idea as the ladder. /raid queue <1-5> to wait, /raid for what is waiting, /raid forfeit to go home.
 - Two to four go into a sealed room with the Moon's Corruption and fourteen minutes to finish it. Four at once go in immediately; two go in after twenty-five seconds of waiting, so a quiet server still runs raids.

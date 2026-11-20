@@ -140,7 +140,7 @@ public final class Raid {
 
     private static void build(ServerLevel lv, BlockPos o, boolean up) {
         BlockState floor = up ? Blocks.POLISHED_DEEPSLATE.defaultBlockState() : Blocks.AIR.defaultBlockState();
-        BlockState rim = up ? Blocks.POLISHED_DEEPSLATE_BRICKS.defaultBlockState() : Blocks.AIR.defaultBlockState();
+        BlockState rim = up ? Blocks.DEEPSLATE_BRICKS.defaultBlockState() : Blocks.AIR.defaultBlockState();
         BlockState wall = up ? Blocks.BARRIER.defaultBlockState() : Blocks.AIR.defaultBlockState();
         BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
         for (int x = -R - 1; x <= R + 1; x++) for (int z = -R - 1; z <= R + 1; z++) {
