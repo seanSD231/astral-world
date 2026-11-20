@@ -1,3 +1,10 @@
+## 0.2.365
+- Boss raids, on the same queue idea as the ladder. /raid queue <1-5> to wait, /raid for what is waiting, /raid forfeit to go home.
+- Two to four go into a sealed room with the Moon's Corruption and fourteen minutes to finish it. Four at once go in immediately; two go in after twenty-five seconds of waiting, so a quiet server still runs raids.
+- The boss is scaled by the depth asked for and multiplied by how many went in rather than divided among them, so bringing a friend is help and not a tax on what you each take home.
+- Nobody is dropped for dying. The dead sit it out, come home with everyone else and still take their share, because a raid where one death ends your evening is a raid people stop queueing for.
+- Everybody gets their own drops: two to four fragments at two to five class by depth, and dust. The room is torn down and everything in it cleared the moment the raid ends, however it ends — cleared, timed out, forfeited, or everybody logged off.
+
 ## 0.2.364
 - Ranked duelling. /ranked queue to find a match, /ranked for your record, /ranked top for the board, /ranked cash to turn what you have won into money.
 - Elo, because it needs no seasons, no decay and no table of brackets to be fair: everyone starts at a thousand, beating somebody far below you is worth almost nothing and beating somebody far above you is worth a great deal. The K falls as a player settles — a newcomer moves fast, somebody forty games in moves slowly — so the top of the ladder does not swing on one night. Nobody falls below a hundred.
