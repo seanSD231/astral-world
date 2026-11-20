@@ -1,3 +1,12 @@
+## 0.2.372
+
+### Chains
+- Rupex was being drawn **twice**, one figure exactly on top of the other, so every chain on the card was doubled.
+- His wraps were bound to the wrong parts of him. He hangs inverted, so his head is lowest and his legs highest; the run labelled "legs" started at his chest and the run labelled "chest" started at his head. Both now sit on the part they name.
+- The wrist chains hung from a point above the cuff and ran ten blocks, far past the floor. They start inside the cuff and stop at the ground.
+- The ankle chains hung **downward** from his ankles, which are the highest part of him, so they fell the whole length of his body and lay across his chest and face. They run up to the beam, which is what he is hanging from.
+- Hanged Man 0 had the same fault: its leg wrap was set to 7P-41P, covering head and torso, and was offset in front of him. It binds the legs only now, and the diagonal runs stay on the torso instead of reaching over the legs.
+
 ## 0.2.371
 
 ### Tournaments

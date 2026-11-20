@@ -1337,8 +1337,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         skinPart(sk, 0, 16, 4, 12, 4, -2, -18, 0, true, P, yB, 0f);         // right leg, up
         skinPart(sk, 16, 48, 4, 12, 4, 2, -18, 0, true, P, yB, 0f);         // left leg
 
-        chainWrap(yB + 9f * P, yB + 27f * P, 7.4f * P, 4.2f * P, 3.8f, 1.3f * P);     // the legs, roped together and up to the beam
-        chainWrap(yB - 7f * P, yB + 9f * P, 6.4f * P, 4.4f * P, 2.8f, 1.5f * P);       // and round the chest
+        chainWrap(yB + 12.6f * P, yB + 23.4f * P, 4.6f * P, 3.0f * P, 3.2f, 1.2f * P);  // the legs only: they start at yB+12P
+        chainWrap(yB + 0.8f * P,  yB + 11.4f * P, 5.0f * P, 3.1f * P, 2.6f, 1.4f * P);  // the chest only: it ends at yB+12P
 
         for (int sd = -1; sd <= 1; sd += 2) {
             // the wrist: a cuff round the arm, and the chain starting inside it rather than
@@ -1348,12 +1348,14 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             float wx = sd * armX, wy = armY;
             push(); tr(wx, wy, 0); rZ(PI / 2);
             torus(0, 0, 0, 3.4f * P, 3.4f * P, 1.0f * P, 14, 5, 0, TAU, ADM_IRON, 255); pop();
-            push(); tr(wx, wy + 1.2f * P, 0); chain(10f * S, .8f * S, ADM_IRON); pop();
-            // the ankle, up at the top of him
+            push(); tr(wx, wy, 0); chain(wy - .3f * S, .55f * S, ADM_IRON); pop();   // wrist to the floor
+            // The ankles are the highest part of him and he hangs by them, so their chains run
+            // UP to the beam. Hung downward they fell the length of his body, which is what put
+            // the leg chain across his chest and face.
             float ax = sd * 2.2f * P, ay = feet - 1.0f * P;
             push(); tr(ax, ay, 0); rX(PI / 2);
             torus(0, 0, 0, 2.4f * P, 2.4f * P, .8f * P, 12, 5, 0, TAU, ADM_IRON, 255); pop();
-            push(); tr(ax, ay, 0); chain(6.5f * S, .6f * S, ADM_IRON); pop();
+            push(); tr(ax, R * 4.4f, 0); chain(R * 4.4f - ay, .55f * S, ADM_IRON); pop();
         }
         bb("glow", 0, yB, 0, 36f * P, 44f * P, 0, rgba(ADM_WARM, .045f));
     }
@@ -3496,14 +3498,14 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             }
             for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * 16f * P, 22f * P, 4.5f * P); rZ(sd * .12f); chain(16f * P, 1.15f * P, iron); pop(); }   // heavy chains from the wrists to the ground
             for (int sd = -1; sd <= 1; sd += 2) for (int k = 0; k < 3; k++) {   // and wound right across the body, three to a side
-                push(); tr(-sd * (3f + k * 2.6f) * P, (26f + k * 5.5f) * P, 6.5f * P); rZ(sd * (.75f + .18f * k)); chain((12f - k * 1.4f) * P, 1f * P, iron); pop(); }
+                push(); tr(-sd * (3f + k * 2.6f) * P, (20f + k * 4f) * P, 6.5f * P); rZ(sd * (.75f + .18f * k)); chain((9f - k * 1.2f) * P, 1f * P, iron); pop(); }
             for (int k = 0; k < 4; k++) {   // bands of chain passing round the beam and the body, holding it against the wood
                 push(); tr(0, (24f + k * 6f) * P, 5.2f * P); rX(PI / 2);
                 torus(0, 0, 0, (5.4f - .3f * k) * P, (3.4f - .2f * k) * P, .95f * P, 18, 5, 0, TAU, iron, 255); pop(); }
             // the legs, bound: one continuous run of links winding up them rather than a single
             // hoop at the ankles, which read as a ring floating clear of him
-            push(); tr(0, 0, 4.6f * P);
-            chainWrap(7f * P, 27f * P, 7.4f * P, 4.2f * P, 3.8f, 1.3f * P);
+            push(); tr(0, 0, 6.5f * P);
+            chainWrap(30.6f * P, 41.4f * P, 4.6f * P, 3.0f * P, 3.2f, 1.2f * P);
             pop();
             pop(); pop();
             // One great chain from the top of the cross right up to the roof of the sphere. It used to
