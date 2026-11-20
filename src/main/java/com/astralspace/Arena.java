@@ -85,6 +85,8 @@ public final class Arena {
 
     private static final class Bout {
         final Mode mode; final int slot; final UUID a, b;
+        /** Null for a ladder match. A tournament hangs its bracket off this instead. */
+        java.util.function.BiConsumer<UUID, UUID> then;
         final Map<UUID, Object> stash = new HashMap<>();
         final Map<UUID, Vec3> home = new HashMap<>();
         final Map<UUID, ResourceKey<Level>> homeDim = new HashMap<>();
@@ -140,6 +142,7 @@ public final class Arena {
 
     @SubscribeEvent
     public static void onTick(ServerTickEvent.Post e) {
+        Tournament.onTick(e.getServer());
         MinecraftServer server = e.getServer();
         if (server.getTickCount() % 20 == 0) match(server);
         if (server.getTickCount() % 10 == 0) watch(server);
@@ -204,13 +207,32 @@ public final class Arena {
         }
     }
 
+    /**
+     * Starts a bout outside the ladder and calls back with the winner when it is over. Used by the
+     * bracket, which keeps its own score and must not touch anybody's standing.
+     */
+    public static boolean exhibition(Mode m, ServerPlayer a, ServerPlayer b,
+                                     java.util.function.BiConsumer<UUID, UUID> then) {
+        if (a == b || fighting(a) || fighting(b) || Duel.dueling(a) || Duel.dueling(b)) return false;
+        if (freeSlots() == 0) return false;
+        if (m.kitted()) {                       // a bracket fighter keeps their own pathway
+            QUEUE.put(a.getUUID(), new Waiting(m, Lotm.pathwayId(a), System.currentTimeMillis()));
+            QUEUE.put(b.getUUID(), new Waiting(m, Lotm.pathwayId(b), System.currentTimeMillis()));
+        }
+        begin(a.server, m, a, b);
+        Bout bout = IN.get(a.getUUID());
+        if (bout == null) return false;
+        bout.then = then;
+        return true;
+    }
+
     private static void begin(MinecraftServer server, Mode m, ServerPlayer a, ServerPlayer b) {
         int slot = -1;
         for (int i = 0; i < SLOTS; i++) if (BUSY[i] == null) { slot = i; break; }
         if (slot < 0) return;
+        String pa = pathOf(a), pb = pathOf(b);
         QUEUE.remove(a.getUUID());
-        Waiting wb = QUEUE.remove(b.getUUID());
-        Waiting wa = null;
+        QUEUE.remove(b.getUUID());
 
         ServerLevel lv = arenaLevel(server);
         BlockPos o = origin(slot);
@@ -221,8 +243,8 @@ public final class Arena {
         IN.put(a.getUUID(), bout);
         IN.put(b.getUUID(), bout);
 
-        enter(a, bout, lv, o, -1, m, pathOf(a));
-        enter(b, bout, lv, o, 1, m, pathOf(b));
+        enter(a, bout, lv, o, -1, m, pa);
+        enter(b, bout, lv, o, 1, m, pb);
 
         Ladder ladder = Ladder.of(server);
         Component line = Component.literal(m.title + " · ")
@@ -341,6 +363,12 @@ public final class Arena {
             if (!(x instanceof ServerPlayer)) x.discard();
         build(lv, origin(bout.slot), false);
 
+        if (bout.then != null) {                      // a tournament bout: the bracket settles it
+            var then = bout.then;
+            bout.then = null;
+            then.accept(winner, winner == null ? null : bout.other(winner));
+            return;
+        }
         if (winner == null) return;
         ServerPlayer w = server.getPlayerList().getPlayer(winner);
         ServerPlayer l = server.getPlayerList().getPlayer(bout.other(winner));
@@ -355,6 +383,7 @@ public final class Arena {
 
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent e) {
+        if (e.getEntity() instanceof ServerPlayer sp) { Tournament.onLogout(sp); TourneyNet.forget(sp); }
         QUEUE.remove(e.getEntity().getUUID());
         Bout bout = IN.get(e.getEntity().getUUID());
         if (bout != null && e.getEntity() instanceof ServerPlayer sp)

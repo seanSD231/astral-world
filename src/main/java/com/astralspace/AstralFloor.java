@@ -54,6 +54,12 @@ public final class AstralFloor {
     public static final DeferredItem<Item> LEADER_BOARD_ITEM = ITEMS.register("leader_board",
             () -> new BlockItem(LEADER_BOARD.get(), new Item.Properties()));
 
+    /** The tournament altar. No recipe: an administrator places it and runs the bracket from it. */
+    public static final DeferredBlock<Block> TOURNEY_ALTAR = BLOCKS.register("tourney_altar", () -> new TourneyAltarBlock(
+            BlockBehaviour.Properties.of().strength(6.0F, 1200.0F).requiresCorrectToolForDrops().lightLevel(s -> 12)));
+    public static final DeferredItem<Item> TOURNEY_ALTAR_ITEM = ITEMS.register("tourney_altar",
+            () -> new BlockItem(TOURNEY_ALTAR.get(), new Item.Properties()));
+
     /** Calls the Moon's Corruption up where you are standing. */
     public static final DeferredItem<Item> CRIMSON_OFFERING = ITEMS.register("crimson_offering", CrimsonOffering::new);
 
@@ -119,7 +125,7 @@ public final class AstralFloor {
         ITEMS.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); for (var k : MASKS) e.accept(k.get()); }
-            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(CABINET_ITEM.get()); e.accept(ARENA_PORTAL_ITEM.get()); e.accept(LEADER_BOARD_ITEM.get()); }
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(CABINET_ITEM.get()); e.accept(ARENA_PORTAL_ITEM.get()); e.accept(LEADER_BOARD_ITEM.get()); e.accept(TOURNEY_ALTAR_ITEM.get()); }
         });
     }
 

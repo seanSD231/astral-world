@@ -1,3 +1,13 @@
+## 0.2.371
+
+### Tournaments
+- A **Tournament Altar** — no recipe, so an administrator places it where the tournament is meant to be held. Right-click it for the altar's menu.
+- The operator sets the game and the stake, opens signups, and draws the bracket when enough names are in. Everybody pays the same coin into one pot.
+- Single elimination. The draw is shuffled, byes go to the top of the sheet, and you fight whoever you were drawn against. Lose and you are out with nothing; the last one standing takes the whole pot, their own stake included.
+- Bouts borrow the ladder's four arenas and run outside the ladder, so a bracket never moves anybody's points. A fighter who is offline when their branch comes up gives it away.
+- Calling it off refunds every stake, and so does withdrawing before the draw.
+- Fixed: the Standing Board now refreshes on its own rather than only when right-clicked.
+
 ## 0.2.370
 - The Standing Board: a block that shows the top ten of one game floating over it, in that game's colour, with the first three picked out. Right-click to cycle which game it shows.
 - The lines are worked out on the server and sent with the block rather than the client asking for them, because a board in a town square is read far more often than it changes and nobody should have to open anything to look at one. It refreshes every ten seconds and only draws for anyone within thirty-six blocks.
