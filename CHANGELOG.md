@@ -1,3 +1,13 @@
+## 0.2.379
+
+### Summoning holograms
+- `/astralcards summon <card> [seq] [shiny] [symbol]` stands a hologram up where you are looking, with no card spent. Takes any pathway id, `goo_<id>` or `admin_<id>`, and suggests all of them as you type.
+
+### The sealed zone
+- **Crouch-use an admin card's hologram and it takes hold**: a sealed zone 42 blocks across that nobody walks out of. Walk at the edge and the air puts you back against it.
+- Anyone inside who is not allied to whoever sealed it takes corruption on their own pathway, every two seconds, while they stand there. LOTM's own ally list decides who is spared; operators are spared as well.
+- Crouch-use again to let go. Only an operator or the admin the card is of can seal one, and an ordinary use still takes the card back up as before.
+
 ## 0.2.378
 
 ### The admin card

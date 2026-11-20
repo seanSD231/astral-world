@@ -441,6 +441,19 @@ public final class Lotm {
         return c.getMethod("get", net.minecraft.world.level.LevelAccessor.class).invoke(null, server.overworld());
     }
 
+    /** Whether LOTM counts these two as allies. False when LOTM is not here to be asked. */
+    public static boolean areAllies(net.minecraft.server.MinecraftServer server, java.util.UUID a, java.util.UUID b) {
+        if (a == null || b == null) return false;
+        if (a.equals(b)) return true;
+        try {
+            Object data = allyData(server);
+            return (Boolean) data.getClass()
+                    .getMethod("areAllies", java.util.UUID.class, java.util.UUID.class).invoke(data, a, b);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     /** Makes two players LOTM allies. Returns true only if they were not allies before (so the caller knows to undo it later). */
     public static boolean addAlly(net.minecraft.server.MinecraftServer server, java.util.UUID a, java.util.UUID b) {
         try {

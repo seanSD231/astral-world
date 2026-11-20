@@ -34,6 +34,8 @@ public class HoloCardEntity extends Entity {
     private static final EntityDataAccessor<Integer> GOO = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> ADMIN = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> SYMBOL = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
+    /** The card standing as a sealed zone rather than a scene. */
+    private static final EntityDataAccessor<Boolean> ZONE = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.BOOLEAN);
     /** The admin's own account id, looked up on the server: their card wears their face wherever it is put down. */
     private static final EntityDataAccessor<String> SKINID = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<String> OWNERN = SynchedEntityData.defineId(HoloCardEntity.class, EntityDataSerializers.STRING);   // the one who put it down, so the scene can wear their face
@@ -89,7 +91,7 @@ public class HoloCardEntity extends Entity {
     public boolean symbolOnly() { return entityData.get(SYMBOL); }
     public void setSymbolOnly(boolean b) { entityData.set(SYMBOL, b); }
 
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); b.define(SYMBOL, false); b.define(GOO, -1); b.define(ADMIN, -1); b.define(OWNERN, ""); b.define(SKINID, ""); }
+    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(PATH, 0); b.define(SEQ, 9); b.define(SHINY, false); b.define(SYMBOL, false); b.define(GOO, -1); b.define(ADMIN, -1); b.define(OWNERN, ""); b.define(SKINID, ""); b.define(ZONE, false); }
 
     @Override protected void readAdditionalSaveData(CompoundTag t) {
         setCard(t.getString("pathway"), t.getInt("seq"), t.getBoolean("shiny"));
@@ -158,8 +160,39 @@ public class HoloCardEntity extends Entity {
     @Override public boolean shouldRenderAtSqrDistance(double d) { return d < 420.0 * 420.0; }
 
     @Override
+    /** Whether the zone is up. The client needs it to know how to draw the card. */
+    public boolean zone() { return entityData.get(ZONE); }
+
+    /** How far the sealed zone reaches. */
+    public static final double ZONE_R = 42.0;
+
+    /** Only an operator, or the admin the card is of, may seal a zone with one. */
+    private boolean maySeal(Player p) {
+        if (p.hasPermissions(2)) return true;
+        for (String n : Tarot.ADMIN_NAMES) if (n.equalsIgnoreCase(p.getGameProfile().getName())) return true;
+        return false;
+    }
+
+    @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
         if (level().isClientSide) return InteractionResult.SUCCESS;
+        if (player.isShiftKeyDown()) {           // crouch-use seals the zone instead of taking the card up
+            if (!maySeal(player)) {
+                player.displayClientMessage(Component.literal("The card will not answer you."), true);
+                return InteractionResult.CONSUME;
+            }
+            boolean on = !zone();
+            entityData.set(ZONE, on);
+            if (on) setOwner(player);
+            level().playSound(null, getX(), getY(), getZ(),
+                    on ? net.minecraft.sounds.SoundEvents.RESPAWN_ANCHOR_SET_SPAWN
+                       : net.minecraft.sounds.SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(),
+                    net.minecraft.sounds.SoundSource.PLAYERS, 1.4f, on ? .7f : 1.1f);
+            player.displayClientMessage(Component.literal(on
+                    ? "The card takes hold. Nothing walks out of it."
+                    : "The card lets go."), true);
+            return InteractionResult.CONSUME;
+        }
         if (owner != null && !owner.equals(player.getUUID()) && !player.hasPermissions(2)) {
             player.displayClientMessage(Component.literal("This card belongs to " + (ownerName.isEmpty() ? "someone else" : ownerName) + "."), true);
             return InteractionResult.CONSUME;
@@ -169,6 +202,31 @@ public class HoloCardEntity extends Entity {
         level().playSound(null, getX(), getY(), getZ(), net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_RESONATE, net.minecraft.sounds.SoundSource.PLAYERS, .7f, 1.4f);
         discard();
         return InteractionResult.CONSUME;
+    }
+
+    /**
+     * The sealed zone: nobody inside it walks out, and anyone in it who is not allied to whoever
+     * sealed it takes corruption on their own pathway while they stand there.
+     */
+    private void holdZone() {
+        if (!(level() instanceof net.minecraft.server.level.ServerLevel lv)) return;
+        for (net.minecraft.server.level.ServerPlayer p : lv.getPlayers(q -> q.distanceToSqr(this) < (ZONE_R + 24) * (ZONE_R + 24))) {
+            if (p.isCreative() || p.isSpectator()) continue;
+            double dx = p.getX() - getX(), dz = p.getZ() - getZ();
+            double d = Math.sqrt(dx * dx + dz * dz);
+            if (d > ZONE_R) {                      // walked at the wall: put them back against it
+                double k = (ZONE_R - 1.2) / Math.max(.001, d);
+                p.teleportTo(lv, getX() + dx * k, p.getY(), getZ() + dz * k, java.util.Set.of(), p.getYRot(), p.getXRot());
+                p.setDeltaMovement(p.getDeltaMovement().multiply(.2, 1, .2));
+                if (tickCount % 20 == 0) p.displayClientMessage(Component.literal("The air will not let you past."), true);
+                continue;
+            }
+            if (tickCount % 40 != 0) continue;
+            boolean friend = owner != null && (owner.equals(p.getUUID()) || Lotm.areAllies(lv.getServer(), owner, p.getUUID()));
+            if (friend || p.hasPermissions(2)) continue;
+            Object path = Lotm.pathway(p);
+            if (path != null) Lotm.addCorruptionPercent(p, path, 1.5);
+        }
     }
 
     /** Throne holograms (Death and Black Emperor, Seq 1 and 0) turn in quarter turns so their solid parts line up with the model. */
@@ -360,6 +418,7 @@ public class HoloCardEntity extends Entity {
     public void tick() {
         super.tick();
         if (!level().isClientSide && admin() >= 0 && !symbolOnly()) { adminMusic(); resolveAdminSkin(); }
+        if (!level().isClientSide && zone()) holdZone();
         if (!level().isClientSide && tickCount == 2 && hasThrone()) spawnThrone();
         if (!level().isClientSide && !symbolOnly()) {
             if (goo() < 0 && pathIndex() == 1 && seq() == 0) doorways(doorRing(), true);
