@@ -55,6 +55,21 @@ public final class Duel {
         int seqOf(UUID x) { return x.equals(a) ? seqA : seqB; }
     }
 
+    /**
+     * Who to tell when a match ends: the winner, then the loser. Ranked hangs its rating changes
+     * off this rather than reaching into the match map, so the duel itself does not have to know
+     * what ranked is or care whether it exists.
+     */
+    private static final java.util.List<java.util.function.BiConsumer<UUID, UUID>> WATCHERS = new java.util.ArrayList<>();
+
+    public static void watch(java.util.function.BiConsumer<UUID, UUID> w) { WATCHERS.add(w); }
+
+    /** Which match a player is in, as a pair of ids, or null. Used to tell a ranked match from a friendly. */
+    public static UUID opponentOf(UUID id) {
+        Match m = matches.get(id);
+        return m == null ? null : m.other(id);
+    }
+
     private static final Map<UUID, Ask> asks = new HashMap<>();      // target -> challenge
     private static final Map<UUID, Match> matches = new HashMap<>(); // both duelists -> their match
 
@@ -215,6 +230,24 @@ public final class Duel {
         return 1;
     }
 
+    /**
+     * Starts a match between two players directly, with no challenge and no reply. Everything the
+     * accept path checks is checked again here, because a caller cannot be trusted to have looked.
+     */
+    public static boolean begin(ServerPlayer a, ServerPlayer b, boolean safe) {
+        if (a == b || dueling(a) || dueling(b)) return false;
+        if (HungerGames.fighting(a) || HungerGames.fighting(b)) return false;
+        if (a.level().dimension().equals(Cosmos.COSMOS) || b.level().dimension().equals(Cosmos.COSMOS)) return false;
+        if (a.level().dimension().equals(DUEL) || b.level().dimension().equals(DUEL)) return false;
+        returns.remove(a.getUUID()); returns.remove(b.getUUID());
+        asks.remove(a.getUUID()); asks.remove(b.getUUID());
+        Match m = new Match(a.getUUID(), b.getUUID(), safe, Lotm.sequence(a), Lotm.sequence(b), freeSlot());
+        matches.put(m.a, m); matches.put(m.b, m);
+        buildArena(arenaLevel(a.server), m.slot);
+        carryToArena(a, m.slot, true); carryToArena(b, m.slot, false);
+        return true;
+    }
+
     private static int decline(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer me = ctx.getSource().getPlayerOrException();
         Ask ask = asks.remove(me.getUUID());
@@ -236,6 +269,7 @@ public final class Duel {
     private static void end(MinecraftServer server, Match m, UUID loser, String how) {
         if (m == null) return;
         matches.remove(m.a); matches.remove(m.b);
+        for (var w : WATCHERS) w.accept(m.other(loser), loser);
         ServerPlayer l = server.getPlayerList().getPlayer(loser), w = server.getPlayerList().getPlayer(m.other(loser));
         String ln = l != null ? l.getGameProfile().getName() : "?", wn = w != null ? w.getGameProfile().getName() : "?";
         Component msg = Component.literal("Duel over: " + wn + " defeated " + ln + " (" + how + ").").withStyle(ChatFormatting.GOLD);

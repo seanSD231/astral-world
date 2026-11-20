@@ -1,3 +1,11 @@
+## 0.2.364
+- Ranked duelling. /ranked queue to find a match, /ranked for your record, /ranked top for the board, /ranked cash to turn what you have won into money.
+- Elo, because it needs no seasons, no decay and no table of brackets to be fair: everyone starts at a thousand, beating somebody far below you is worth almost nothing and beating somebody far above you is worth a great deal. The K falls as a player settles — a newcomer moves fast, somebody forty games in moves slowly — so the top of the ladder does not swing on one night. Nobody falls below a hundred.
+- Eleven bands, named for the sequences: Unranked up to Sequence 0, wide at the bottom and narrow at the top, and the server is told when somebody climbs into a new one.
+- The queue pairs the two closest ratings and opens its window by fourteen points a second of waiting, so a quiet server still gets games and a busy one still gets fair ones. Ranked matches are always safe duels — putting a sequence and an inventory on a ladder you are meant to climb would stop anybody queueing twice.
+- Ranked points are not the rating. They are what the rating earned you, they never go down, and twenty of them buy a coin.
+- The duel system now takes watchers and can be started without a challenge, so ranked hangs off it without the duel having to know ranked exists.
+
 ## 0.2.363
 - Artifacts no longer carry damage or health. Attack, defence, HP and crit are gone; what they carry now is experience gain, dig speed, move speed, luck, reach, grasp, safe fall, step height and the whole Lord of the Mysteries side — max spirituality, regen, cost, ability power, area, duration, resistance and cooldown. An artifact is a thing you wear to get on with the world, and the pack has gear of its own for the fighting.
 - The Flower is always max spirituality and the Plume always experience gain; the Sands roll regen, cooldown, dig speed or cost; the Goblet rolls the ability stats; the Circlet rolls luck, experience, duration or speed. Every set's two-fragment half was remapped onto the new list.
