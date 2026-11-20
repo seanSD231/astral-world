@@ -1,3 +1,18 @@
+## 0.2.376
+
+### Bigger arenas, open sky
+- The queue arena goes from 48 blocks across to **144**, and the duel arena from 100 to **300**. Duel slots moved further apart to suit, and fighters now start near the rim rather than at a fixed 38 blocks.
+- **The barrier roofs are gone** from both. The walls still stand.
+- The queue arena is built once and left standing. It used to be demolished and raised again for every bout, which is fine for a 48 block floor and a long freeze for a 144 block one.
+
+### After a match
+- The loser was walking out on half a heart: the killing blow is cancelled, but nothing healed them afterwards. Both fighters come out at full health and fed, with fire and effects cleared.
+- Everything that is not a player is swept from a slot **before** a bout as well as after, so an ability cast as the last fight ended no longer goes off at the start of the next one, and corpses and dropped items do not greet the next pair.
+- Kitted fighters have their effects and any fire cleared on the way in, not just their inventory.
+
+### Queue
+- Walk more than **50 blocks** from where you queued, or change dimension, and you lose your place.
+
 ## 0.2.375
 
 ### A physical ladder monument

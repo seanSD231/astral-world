@@ -53,7 +53,7 @@ public final class Arena {
     private Arena() { }
 
     public static final int SLOTS = 4;
-    private static final int R = 24, HIGH = 20, Y = 90, GAP = 300;
+    private static final int R = 72, HIGH = 30, Y = 90, GAP = 300;
     private static final int TIMEOUT = 20 * 60 * 8;
 
     /** The three games. Each keeps its own standings. */
@@ -81,7 +81,11 @@ public final class Arena {
 
     // ---- who is waiting and who is fighting ----
 
-    private record Waiting(Mode mode, String pathway, long since) { }
+    /** {@code at} and {@code dim} are where they queued from: walk far enough off and they lose the place. */
+    private record Waiting(Mode mode, String pathway, long since, Vec3 at, ResourceKey<Level> dim) { }
+
+    /** How far you may wander from where you queued before the queue gives up on you. */
+    private static final double LEASH = 50.0;
 
     private static final class Bout {
         final Mode mode; final int slot; final UUID a, b;
@@ -125,7 +129,8 @@ public final class Arena {
         if (Duel.dueling(p)) { say(p, "Finish your duel first.", ChatFormatting.RED); return; }
         if (HungerGames.fighting(p)) { say(p, "Not during the hunger games.", ChatFormatting.RED); return; }
         if (Raid.raiding(p)) { say(p, "Not from inside a raid.", ChatFormatting.RED); return; }
-        QUEUE.put(p.getUUID(), new Waiting(m, pathway == null ? "" : pathway, System.currentTimeMillis()));
+        QUEUE.put(p.getUUID(), new Waiting(m, pathway == null ? "" : pathway, System.currentTimeMillis(),
+                                           p.position(), p.level().dimension()));
         Ladder l = Ladder.of(p.server);
         p.sendSystemMessage(Component.literal("Queued · " + m.title + " · " + l.points(m, p) + " points")
                 .withStyle(ChatFormatting.AQUA)
@@ -144,8 +149,28 @@ public final class Arena {
     public static void onTick(ServerTickEvent.Post e) {
         Tournament.onTick(e.getServer());
         MinecraftServer server = e.getServer();
-        if (server.getTickCount() % 20 == 0) match(server);
+        if (server.getTickCount() % 20 == 0) { leash(server); match(server); }
         if (server.getTickCount() % 10 == 0) watch(server);
+    }
+
+    /** Drops anyone who has wandered more than {@link #LEASH} blocks from where they queued. */
+    private static void leash(MinecraftServer server) {
+        if (QUEUE.isEmpty()) return;
+        var gone = new java.util.ArrayList<UUID>();
+        for (var en : QUEUE.entrySet()) {
+            ServerPlayer p = server.getPlayerList().getPlayer(en.getKey());
+            Waiting w = en.getValue();
+            if (p == null) continue;
+            if (!p.level().dimension().equals(w.dim()) || p.position().distanceTo(w.at()) > LEASH) gone.add(en.getKey());
+        }
+        for (UUID id : gone) {
+            QUEUE.remove(id);
+            ServerPlayer p = server.getPlayerList().getPlayer(id);
+            if (p != null) {
+                say(p, "You walked too far from where you queued. You are out of the queue.", ChatFormatting.YELLOW);
+                ArenaNet.sendBoard(p);
+            }
+        }
     }
 
     /**
@@ -187,6 +212,27 @@ public final class Arena {
 
     private static BlockPos origin(int slot) { return new BlockPos(slot * GAP, Y, 0); }
 
+    /**
+     * Builds a slot if it is not already standing at this size. At the old radius the arena was
+     * torn down and raised again every bout, which is affordable for a 48 block floor and is not
+     * for a 144 block one, so it stays up between matches now.
+     */
+    private static void ensure(ServerLevel lv, BlockPos o) {
+        if (!lv.getBlockState(o).isAir()
+            && !lv.getBlockState(o.offset(R - 3, 0, 0)).isAir()
+            && !lv.getBlockState(o.offset(0, 0, R - 3)).isAir()
+            && lv.getBlockState(o.above(HIGH + 1)).isAir())      // and has no lid left on it
+            return;
+        build(lv, o, true);
+    }
+
+    /** Everything in a slot that is not a player: corpses, drops, and whatever an ability left behind. */
+    private static void sweep(ServerLevel lv, int slot) {
+        for (Entity x : lv.getEntities((Entity) null,
+                new AABB(origin(slot)).inflate(R + 8, HIGH + 10, R + 8), e -> !(e instanceof ServerPlayer)))
+            x.discard();
+    }
+
     private static void build(ServerLevel lv, BlockPos o, boolean up) {
         BlockState floor = up ? Blocks.SMOOTH_STONE.defaultBlockState() : Blocks.AIR.defaultBlockState();
         BlockState rim = up ? Blocks.POLISHED_ANDESITE.defaultBlockState() : Blocks.AIR.defaultBlockState();
@@ -201,9 +247,8 @@ public final class Arena {
         for (int x = -R - 2; x <= R + 2; x++) for (int z = -R - 2; z <= R + 2; z++) {
             double d = Math.hypot(x, z);
             if (d <= R) lv.setBlock(m.set(o.getX() + x, o.getY(), o.getZ() + z), d >= R - 1.5 ? rim : floor, 2);
-            if (d > R && d <= R + 1.8)
+            if (d > R && d <= R + 1.8)   // walls only: the roof is gone
                 for (int y = 1; y <= HIGH; y++) lv.setBlock(m.set(o.getX() + x, o.getY() + y, o.getZ() + z), wall, 2);
-            if (d <= R + 1.8) lv.setBlock(m.set(o.getX() + x, o.getY() + HIGH + 1, o.getZ() + z), wall, 2);
         }
     }
 
@@ -216,8 +261,8 @@ public final class Arena {
         if (a == b || fighting(a) || fighting(b) || Duel.dueling(a) || Duel.dueling(b)) return false;
         if (freeSlots() == 0) return false;
         if (m.kitted()) {                       // a bracket fighter keeps their own pathway
-            QUEUE.put(a.getUUID(), new Waiting(m, Lotm.pathwayId(a), System.currentTimeMillis()));
-            QUEUE.put(b.getUUID(), new Waiting(m, Lotm.pathwayId(b), System.currentTimeMillis()));
+            QUEUE.put(a.getUUID(), new Waiting(m, Lotm.pathwayId(a), System.currentTimeMillis(), a.position(), a.level().dimension()));
+            QUEUE.put(b.getUUID(), new Waiting(m, Lotm.pathwayId(b), System.currentTimeMillis(), b.position(), b.level().dimension()));
         }
         begin(a.server, m, a, b);
         Bout bout = IN.get(a.getUUID());
@@ -236,7 +281,8 @@ public final class Arena {
 
         ServerLevel lv = arenaLevel(server);
         BlockPos o = origin(slot);
-        build(lv, o, true);
+        ensure(lv, o);
+        sweep(lv, slot);   // nothing from the last fight is allowed to greet the next one
 
         Bout bout = new Bout(m, slot, a.getUUID(), b.getUUID());
         BUSY[slot] = bout;
@@ -268,6 +314,8 @@ public final class Arena {
         if (m.kitted()) {
             bout.stash.put(p.getUUID(), HungerGames.setAsideAll(p));
             p.getInventory().clearContent();
+            p.removeAllEffects();
+            p.clearFire();
             if (path != null && !path.isEmpty()) Lotm.setPathwayAndSequence(p, path, m.seq);
             else Lotm.setSequence(p, m.seq);
             kit(p, m);
@@ -349,6 +397,12 @@ public final class Arena {
         for (UUID id : List.of(bout.a, bout.b)) {
             ServerPlayer p = server.getPlayerList().getPlayer(id);
             if (p == null) continue;
+            // Whoever lost was taken to the edge of death and the killing blow cancelled, so
+            // without this they walk out of the arena on half a heart.
+            p.setHealth(p.getMaxHealth());
+            p.getFoodData().setFoodLevel(20);
+            p.clearFire();
+            p.removeAllEffects();
             Object token = bout.stash.get(id);
             if (token != null) HungerGames.giveBackAll(p, token);
             else {
@@ -358,10 +412,7 @@ public final class Arena {
                     p.teleportTo(back, home.x, home.y, home.z, java.util.Set.of(), p.getYRot(), p.getXRot());
             }
         }
-        for (Entity x : lv.getEntitiesOfClass(LivingEntity.class,
-                new AABB(origin(bout.slot)).inflate(R + 4, HIGH + 4, R + 4)))
-            if (!(x instanceof ServerPlayer)) x.discard();
-        build(lv, origin(bout.slot), false);
+        sweep(lv, bout.slot);
 
         if (bout.then != null) {                      // a tournament bout: the bracket settles it
             var then = bout.then;
