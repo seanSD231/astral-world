@@ -1,0 +1,1 @@
+{"type": "minecraft:crafting_shaped", "category": "misc", "pattern": ["ODO", "EGE", "ODO"], "key": {"O": {"item": "minecraft:obsidian"}, "D": {"item": "minecraft:diamond_block"}, "E": {"item": "minecraft:ender_eye"}, "G": {"item": "minecraft:gold_block"}}, "result": {"id": "astral_world:arena_portal", "count": 1}}

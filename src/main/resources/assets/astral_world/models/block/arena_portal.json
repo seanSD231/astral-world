@@ -1,0 +1,1 @@
+{"parent": "minecraft:block/cube_bottom_top", "textures": {"top": "astral_world:block/arena_portal_top", "bottom": "astral_world:block/arena_portal_top", "side": "astral_world:block/arena_portal_side"}}

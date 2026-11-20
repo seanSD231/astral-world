@@ -102,5 +102,6 @@
   "item.astral_world.mask_gilded": "Gilded Mask",
   "item.astral_world.admin_pack": "Admin Pack",
   "item.astral_world.crimson_offering": "Crimson Offering",
-  "entity.astral_world.moon_corruption": "The Moon's Corruption"
+  "entity.astral_world.moon_corruption": "The Moon's Corruption",
+  "block.astral_world.arena_portal": "Arena Portal"
 }

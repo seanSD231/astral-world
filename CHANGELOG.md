@@ -1,3 +1,10 @@
+## 0.2.369
+- The ladder is a block now. An Arena Portal, craftable but dear — four obsidian, two diamond blocks, two ender eyes and a gold block — so a settlement can have its own rather than everybody walking to Tingen to find a fight. Right-click it for the menu.
+- Three games, each with standings of its own, because they are different games. No Restrictions walks you in with everything you own. Sequence 5 and Sequence 2 set aside everything about you at the door — inventory, health, experience, pathway and sequence — give you a kit and a pathway you picked, and give it all back at the end, so nothing you own is at stake and nothing you own can help you.
+- Four arenas, always open. When all four are busy the queue holds and the next pair goes in the moment a fight ends. Matches are made on how close two point totals are, widening by twelve a second of waiting.
+- A win is worth less than a loss costs, so a rating has to be defended rather than banked, and the amounts move with the gap between the two: beating somebody far above you is worth a great deal, and farming somebody far below you is worth almost nothing. Nobody is pushed below a hundred.
+- The standings are kept with the world rather than on each player, because a leaderboard has to know about people who are not logged in. The menu shows your points, your place and the top ten for whichever game you are looking at.
+
 ## 0.2.368
 - Build fix: the removal took a brace and a command registration out with it.
 

@@ -87,6 +87,7 @@ public final class DoorNet {
 
 
     public static void register(PayloadRegistrar r) {
+        ArenaNet.register(r);
         r.playToClient(Corrupt.TYPE, Corrupt.CODEC, (p, ctx) -> ctx.enqueueWork(() -> Corruption.setClient(p.level())));
         r.playToClient(MaskAsk.TYPE, MaskAsk.CODEC, (p, ctx) -> ctx.enqueueWork(() -> MaskNameScreen.open(p.colour())));
         r.playToServer(MaskWear.TYPE, MaskWear.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) Masks.wear(sp, p.colour(), p.name(), p.slim() != 0); }));

@@ -42,6 +42,12 @@ public final class AstralFloor {
             BlockBehaviour.Properties.of().strength(2.0F, 6.0F).requiresCorrectToolForDrops().lightLevel(s -> 7)));
     public static final DeferredItem<Item> CABINET_ITEM = ITEMS.register("osu_cabinet", () -> new BlockItem(CABINET.get(), new Item.Properties()));
 
+    /** The way into the ladder: right-click to pick a mode and queue. */
+    public static final DeferredBlock<Block> ARENA_PORTAL = BLOCKS.register("arena_portal", () -> new ArenaPortalBlock(
+            BlockBehaviour.Properties.of().strength(5.0F, 1200.0F).requiresCorrectToolForDrops().lightLevel(s -> 10)));
+    public static final DeferredItem<Item> ARENA_PORTAL_ITEM = ITEMS.register("arena_portal",
+            () -> new BlockItem(ARENA_PORTAL.get(), new Item.Properties()));
+
     /** Calls the Moon's Corruption up where you are standing. */
     public static final DeferredItem<Item> CRIMSON_OFFERING = ITEMS.register("crimson_offering", CrimsonOffering::new);
 
@@ -107,7 +113,7 @@ public final class AstralFloor {
         ITEMS.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); for (var k : MASKS) e.accept(k.get()); }
-            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) e.accept(CABINET_ITEM.get());
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(CABINET_ITEM.get()); e.accept(ARENA_PORTAL_ITEM.get()); }
         });
     }
 

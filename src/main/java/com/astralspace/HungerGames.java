@@ -856,6 +856,18 @@ public final class HungerGames {
         LOGGER.info("[hungergames] {} players, {} chests, {} caches, countdown {}s (lowest sequence {})", n, chests.size(), caches, wait / 20, lowSeq);
     }
 
+    /**
+     * Set aside everything a match has to give back -- inventory, health, food, experience, where
+     * they stood, their sequence and pathway, their curios and their attachments -- and hand back
+     * a token that puts it all back. The ranked arena uses the same machinery rather than growing
+     * a second, worse copy of it.
+     */
+    public static Object setAsideAll(ServerPlayer p) { return snapshot(p); }
+
+    public static void giveBackAll(ServerPlayer p, Object token) {
+        if (token instanceof Saved sv) restoreOne(p, sv);
+    }
+
     private static Saved snapshot(ServerPlayer p) {
         return new Saved(p.level().dimension(), p.getX(), p.getY(), p.getZ(), p.getYRot(), p.getXRot(), p.gameMode.getGameModeForPlayer(),
                 p.getInventory().save(new ListTag()), p.getHealth(), p.getFoodData().getFoodLevel(), p.getFoodData().getSaturationLevel(),
