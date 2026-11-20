@@ -47,7 +47,6 @@ public class AstralMod {
             e.put(MoonCorruption.TYPE.get(), MoonCorruption.attributes().build()));
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(Corruption::tick);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(MoonBeam::tick);
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(DoorEyes::tickBursts);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(UniqAbilities::tick);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ShadowGear::tick);

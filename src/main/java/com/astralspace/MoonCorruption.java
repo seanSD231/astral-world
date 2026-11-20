@@ -356,7 +356,6 @@ public class MoonCorruption extends Monster {
             p.displayClientMessage(Component.literal("The light goes out.").withColor(0xE0384A), false);
         }
     }
-    }
 
     @Override
     public void addAdditionalSaveData(net.minecraft.nbt.CompoundTag t) {

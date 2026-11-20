@@ -1,3 +1,6 @@
+## 0.2.368
+- Build fix: the removal took a brace and a command registration out with it.
+
 ## 0.2.367
 - The artifact system is out: the fragments, the sets, the five slots, the menu, the altar, the containment sites, the Dust of Enlightenment and the authorities they handed over. Fifteen classes and their blocks, items, models, textures and packets all gone with it.
 - What paid in fragments now pays in coin. The Moon's Corruption and the raid both hand out money instead, through one place rather than each guessing at what this server trades in: Numismatics spurs where that mod is installed, emeralds where it is not. Ranked cashing goes through the same place.
