@@ -1193,6 +1193,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         adminGround();
         adminCross(armY, feet);
         adminRings(yB, armY, head, P);
+        adminAura(yB, P);
         adminFigure(who, P, yB, armY, armX, feet);
         adminAir();
     }
@@ -1271,21 +1272,57 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
 
     private void adminGround() {
-        // The field is left as it is -- grass, no disc laid over it -- and the circles are drawn
-        // on it with the same ring textures every other card's spell circle uses.
-        if (gold) flat("whirl", 0, .10f, 0, R * 9.1f, t * .04f, rgba(0xFFD448, .5f));
-        else flat("adm_sea", 0, .10f, 0, R * 9.1f, t * .04f, rgba(0xFFFFFF, .6f));
-        flat("ring_thick", 0, .17f, 0, R * 2.6f, t * .06f, rgba(ADM_GOLD, .3f));
-        flat("ring_dash", 0, .22f, 0, R * 2.0f, -t * .18f, rgba(ADM_PALE, .34f));
-        flat("adm_runes", 0, .27f, 0, R * 1.5f, t * .09f, rgba(ADM_GOLD, .3f));
-        flat("ring", 0, .32f, 0, R * 1.0f, -t * .3f, rgba(ADM_PALE, .34f));
+        // The whole floor is the rainbow swirl, and it is laid over black rather than over the
+        // field. Drawn straight onto white it saturated to a sheet of light and the colour was
+        // only visible out at the rim; over a dark plate the swirl reads everywhere, and the
+        // black turning through it keeps it from flattening out again.
+        flat("ring_thick", 0, .06f, 0, R * 9.6f, 0, rgba(0x05040A, .96f));            // the dark plate under everything
+        flat(gold ? "whirl" : "adm_sea", 0, .09f, 0, R * 9.2f,  t * .035f, rgba(0xFFFFFF, .40f));
+        flat(gold ? "whirl" : "adm_sea", 0, .11f, 0, R * 7.1f, -t * .052f, rgba(0xFFFFFF, .30f));
+        flat(gold ? "whirl" : "adm_sea", 0, .13f, 0, R * 4.6f,  t * .080f, rgba(0xFFFFFF, .22f));
+        // black drawn back over it, turning the other way, so the colour breaks into bands
+        flat("whirl",    0, .15f, 0, R * 8.2f, -t * .030f, rgba(0x000000, .42f));
+        flat("adm_sea",  0, .17f, 0, R * 5.6f,  t * .065f, rgba(0x05030C, .38f));
+        flat("ring_dash", 0, .19f, 0, R * 6.8f, -t * .09f, rgba(0x120A1E, .45f));
+
+        flat("ring_thick", 0, .23f, 0, R * 2.6f, t * .06f, rgba(ADM_GOLD, .3f));
+        flat("ring_dash", 0, .26f, 0, R * 2.0f, -t * .18f, rgba(ADM_PALE, .3f));
+        flat("adm_runes", 0, .29f, 0, R * 1.5f, t * .09f, rgba(ADM_GOLD, .3f));
+        flat("ring", 0, .32f, 0, R * 1.0f, -t * .3f, rgba(ADM_PALE, .32f));
         for (int i = 0; i < 3; i++) {   // and light going out from the middle of it
             float pw = fract(t * .18f + i / 3f);
-            flat("ring", 0, .37f, 0, pw * R * 2.8f, 0, rgba(ADM_GOLD, fd(pw) * .3f));
+            flat("ring", 0, .37f, 0, pw * R * 2.8f, 0, rgba(ADM_GOLD, fd(pw) * .28f));
         }
         float c = gc(t * .04f) * R * .33f, s2 = gs(t * .04f) * R * .33f;
         eq(ResourceLocation.fromNamespaceAndPath("lotm", "textures/effect/hanged_man_symbol.png"),
            0, .42f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .45f), 0, 0, 1, 1);
+    }
+
+    /**
+     * What comes off him: a dark aura with red turning through it. Drawn as billboards standing
+     * at his own height rather than on the floor, so it clings to the figure and not the scene.
+     */
+    private void adminAura(float yB, float P) {
+        float mid = yB + 8f * P, h = 34f * P;
+        for (int i = 0; i < 16; i++) {
+            float a = h(i, 810) * TAU + t * (.10f + .05f * h(i, 811));
+            float rr = (3.2f + 5.4f * h(i, 812)) * P;
+            float y = mid + (h(i, 813) - .5f) * h;
+            float w = (9f + 7f * h(i, 814)) * P, puff = .55f + .45f * gs(t * .8f + i);
+            bb("glow", gc(a) * rr, y, gs(a) * rr, w, w * 1.25f, 0, rgba(0x090610, .50f * puff));
+        }
+        for (int i = 0; i < 10; i++) {   // red turning through the dark, never over it
+            float a = h(i, 820) * TAU - t * (.13f + .06f * h(i, 821));
+            float rr = (4.0f + 4.4f * h(i, 822)) * P;
+            float y = mid + (h(i, 823) - .5f) * h * .9f;
+            float w = (5.5f + 4.5f * h(i, 824)) * P, puff = .45f + .55f * gs(t * 1.1f + i * 1.7f);
+            bb("glow", gc(a) * rr, y, gs(a) * rr, w, w * 1.2f, 0, rgba(0x8E0A12, .40f * puff));
+        }
+        // and it pools at his head, which hangs lowest
+        bb("glow", 0, yB - 5f * P, 0, 26f * P, 20f * P, 0, rgba(0x0A0510, .45f));
+        bb("glow", 0, yB - 5f * P, 0, 16f * P, 13f * P, 0, rgba(0x8E0A12, .28f));
+        sprites("mote", 18, RISEM, 9f * P, mid - h * .5f, h, 1.1f * P, 0xC0202A, .8f, .10f, 931, true);
+        sprites("mote", 14, FALLM, 11f * P, mid + h * .5f, h, .9f * P, 0x1A1026, .7f, .08f, 932, false);
     }
 
     /** The cross of light he hangs on, and the rope above him. */

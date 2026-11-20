@@ -19,11 +19,11 @@ public final class AstralSounds {
         return SOUNDS.register(name, () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, name)));
     }
 
-    /** The three tracks an admin card's hologram plays, one after another, over and over. */
+    /** The tracks an admin card's hologram plays, one after another, over and over. */
     public static final List<DeferredHolder<SoundEvent, SoundEvent>> ADMIN = List.of(
-        reg("admin.track_1"), reg("admin.track_2"), reg("admin.track_3"));
+        reg("admin.track_1"), reg("admin.track_2"));
     /** How long each of them runs, in ticks, so the next one starts when the last has finished. */
-    public static final int[] ADMIN_LEN = {3544, 1636, 2684};
+    public static final int[] ADMIN_LEN = {3544, 1636};
 
     /** Seven seconds cut from the first track, at its strongest passage: the admin pack's own reveal. */
     public static final DeferredHolder<SoundEvent, SoundEvent> ADMIN_REVEAL = reg("admin.reveal");

@@ -1,3 +1,10 @@
+## 0.2.378
+
+### The admin card
+- **The whole floor is the rainbow swirl now, with black turning through it.** It was drawn straight onto the pale field, which saturated it to a sheet of white with colour only out at the rim; it sits on a dark plate now, three swirls at different sizes and speeds with two black ones counter-turning over them, so the colour reads everywhere and breaks into bands instead of flattening.
+- The figure has **a dark aura with red turning through it** — smoke standing at his own height rather than on the floor, red moving against it, pooling at his head, with embers rising and ash falling through.
+- The third soundtrack is gone. The hologram plays two tracks now.
+
 ## 0.2.377
 
 ### Money
