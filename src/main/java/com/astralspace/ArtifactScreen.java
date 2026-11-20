@@ -33,7 +33,7 @@ public final class ArtifactScreen extends Screen {
     private int picked;                     // which slot tab
     private int sel = -2;                   // -1 - ordinal for a worn piece, else an inventory index
     private float t;
-    private int scroll;
+    private int scroll, detailScroll;
     private final List<int[]> tiles = new ArrayList<>();    // {x, y, w, h, ref}
 
     private ArtifactScreen() { super(Component.literal("Artifacts")); }
@@ -250,10 +250,10 @@ public final class ArtifactScreen extends Screen {
         }
     }
 
-    /** The piece in hand, written out in full. */
+    /** The piece in hand, written out in full, clipped to the panel it is written into. */
     private void detail(GuiGraphics g, int c) {
         int x = detailX(), y = gridY() - 6, w = detailW(), h = gridH() + 12;
-        g.fill(x, y, x + w, y + h, 0xB0080A12);
+        g.fill(x, y, x + w, y + h, 0xE0080A12);
         g.renderOutline(x, y, w, h, Pathways.alpha(c, .35f));
 
         ItemStack st = stackOf(sel);
@@ -265,92 +265,82 @@ public final class ArtifactScreen extends Screen {
         }
         ArtifactSets.Set set = ArtifactSets.get(p.set());
         int sc = set == null ? c : set.colour();
+        int lh = font.lineHeight + 1;
 
-        // the name bar
-        g.fillGradient(x, y, x + w, y + 30, Pathways.alpha(sc, .85f), Pathways.alpha(Pathways.deep(sc, .5f), .85f));
+        // the head
+        int headH = lh * 2 + 10;
+        g.fillGradient(x, y, x + w, y + headH, Pathways.alpha(sc, .9f), Pathways.alpha(Pathways.deep(sc, .5f), .9f));
         g.drawString(font, Component.literal(trim(set == null ? p.slot().title : set.title(), w - 16)).withColor(0xFFFFFF),
-                     x + 8, y + 7, 0xFFFFFF, false);
-        g.drawString(font, Component.literal(p.slot().title + "  \u00b7  " + Artifacts.grade(p.rarity()))
-                .withStyle(ChatFormatting.GRAY), x + 8, y + 19, 0xFFFFFF, false);
+                     x + 8, y + 5, 0xFFFFFF, false);
+        g.drawString(font, Component.literal(trim(p.slot().title + "  \u00b7  " + Artifacts.grade(p.rarity()), w - 16))
+                .withColor(0xFFE4E4EC), x + 8, y + 5 + lh, 0xFFFFFF, false);
 
-        // the main stat, big
-        int my2 = y + 38;
-        g.drawString(font, Component.literal(p.main().title).withStyle(ChatFormatting.GRAY), x + 8, my2, 0xFFFFFF, false);
+        // the main stat, large, in a band of its own
+        int my2 = y + headH + 4, bandH = lh * 3 + 6;
+        g.fill(x + 6, my2, x + w - 6, my2 + bandH, Pathways.alpha(Pathways.deep(sc, .5f), .35f));
+        g.drawString(font, Component.literal(p.main().title).withStyle(ChatFormatting.GRAY), x + 10, my2 + 3, 0xFFFFFF, false);
         String mv = p.main().pct ? String.format("%.1f%%", p.mainValue() * 100) : String.format("%.0f", p.mainValue());
         g.pose().pushPose();
-        g.pose().translate(x + 8, my2 + 10, 0);
-        g.pose().scale(1.8f, 1.8f, 1);
+        g.pose().translate(x + 10, my2 + 3 + lh, 0);
+        g.pose().scale(1.6f, 1.6f, 1);
         g.drawString(font, Component.literal(mv).withColor(0xFFFFFF), 0, 0, 0xFFFFFF, false);
         g.pose().popPose();
-
-        String stars = "✦".repeat(p.rarity());
-        g.drawString(font, Component.literal(stars).withColor(0xFFC24A), x + 8, my2 + 30, 0xFFFFFF, false);
-
-        int lvy = my2 + 42;
-        g.fill(x + 8, lvy, x + 8 + 30, lvy + 11, Pathways.alpha(Pathways.deep(sc, .6f), .9f));
-        g.drawString(font, Component.literal("+" + p.level()).withColor(0xFFFFFF), x + 11, lvy + 2, 0xFFFFFF, false);
-        int bw = w - 60;
-        g.fill(x + 44, lvy + 3, x + 44 + bw, lvy + 7, 0xFF16161E);
+        String stars = "\u2726".repeat(p.rarity());
+        g.drawString(font, Component.literal(stars).withColor(0xFFC24A), x + w - font.width(stars) - 10, my2 + 3, 0xFFFFFF, false);
+        String lvs = "+" + p.level() + " / " + p.maxLevel();
+        g.drawString(font, Component.literal(lvs).withStyle(ChatFormatting.GRAY),
+                     x + w - font.width(lvs) - 10, my2 + 3 + lh, 0xFFFFFF, false);
+        int bx = x + 10, bw = w - 20, by = my2 + bandH - 5;
+        g.fill(bx, by, bx + bw, by + 3, 0xFF16161E);
         int fill = p.maxLevel() == 0 ? 0 : (int) (bw * (p.level() / (float) p.maxLevel()));
-        g.fillGradient(x + 44, lvy + 3, x + 44 + fill, lvy + 7,
-                       Pathways.alpha(Pathways.pale(sc, .35f), 1f), Pathways.alpha(sc, 1f));
+        g.fillGradient(bx, by, bx + fill, by + 3, Pathways.alpha(Pathways.pale(sc, .35f), 1f), Pathways.alpha(sc, 1f));
 
-        int ly = lvy + 18;
-        for (Artifacts.Sub s : p.subs()) {
-            g.drawString(font, Component.literal("· " + s.stat().line(s.value())).withStyle(ChatFormatting.GRAY),
-                         x + 8, ly, 0xFFFFFF, false);
-            for (int k = 0; k < s.rolls(); k++)
-                g.fill(x + w - 10 - k * 5, ly + 2, x + w - 7 - k * 5, ly + 6, Pathways.alpha(sc, .85f));
-            ly += 11;
-        }
-        for (int k = p.subs().size(); k < 4; k++) {
-            g.drawString(font, Component.literal("· —").withStyle(ChatFormatting.DARK_GRAY), x + 8, ly, 0xFFFFFF, false);
-            ly += 11;
-        }
-
+        // everything else, flattened to lines and clipped into whatever is left
+        int by0 = my2 + bandH + 6, bh = y + h - 6 - by0;
+        if (bh < lh) return;
+        List<Component> lines = new ArrayList<>();
+        for (Artifacts.Sub sub : p.subs())
+            lines.add(Component.literal("\u00b7 " + sub.stat().line(sub.value())
+                    + (sub.rolls() > 1 ? "  (" + sub.rolls() + ")" : "")).withStyle(ChatFormatting.GRAY));
+        for (int k = p.subs().size(); k < 4; k++)
+            lines.add(Component.literal("\u00b7 \u2014").withStyle(ChatFormatting.DARK_GRAY));
         if (set != null) {
-            ly += 6;
             int have = ArtifactSets.counts(ArtifactSlots.clientWorn()).getOrDefault(set.id(), 0);
-            g.drawString(font, Component.literal(set.title() + " (" + have + ")").withColor(sc & 0xFFFFFF), x + 8, ly, 0xFFFFFF, false);
-            g.drawString(font, Component.literal(set.file()).withStyle(ChatFormatting.DARK_GRAY),
-                         x + w - font.width(set.file()) - 8, ly, 0xFFFFFF, false);
-            ly += 12;
-            ly = setLine(g, x, ly, w, "2  " + set.twoLine(), have >= 2);
-            ly = setLine(g, x, ly, w, "4  " + set.fourLine(), have >= 4);
-            ly = cost(g, x, ly, w, set.fourCost(), have >= 4);
+            lines.add(Component.empty());
+            lines.add(Component.literal(set.title() + " (" + have + "/5)").withColor(sc & 0xFFFFFF));
+            lines.add(Component.literal(set.file()).withStyle(ChatFormatting.DARK_GRAY));
+            tierLines(lines, "2  " + set.twoLine(), null, have >= 2, w - 20);
+            tierLines(lines, "4  " + set.fourLine(), set.fourCost(), have >= 4, w - 20);
             String ab = SetAbilities.name(set.id(), SetAbilities.rung(Minecraft.getInstance().player, set.id()));
-            ly = setLine(g, x, ly, w, "5  " + (ab.isEmpty() ? set.fiveLine() : "Grants " + ab), have >= 5);
-            ly = cost(g, x, ly, w, set.fiveCost(), have >= 5);
-            ly += 4;
-            for (String line : wrap(set.flavour(), w - 16)) {
-                g.drawString(font, Component.literal(line).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC),
-                             x + 8, ly, 0xFFFFFF, false);
-                ly += 10;
-            }
+            tierLines(lines, "5  " + (ab.isEmpty() ? set.fiveLine() : "Grants " + ab), set.fiveCost(), have >= 5, w - 20);
+            for (String line : wrap(set.flavour(), w - 20))
+                lines.add(Component.literal(line).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         }
 
-        if (sel <= -1) {
-            String e = "Worn";
-            g.fill(x + 6, y + h - 16, x + 12 + font.width(e), y + h - 4, Pathways.alpha(sc, .5f));
-            g.drawString(font, Component.literal(e).withColor(0xFFFFFF), x + 9, y + h - 14, 0xFFFFFF, false);
+        int max = Math.max(0, lines.size() * lh - bh);
+        detailScroll = Math.max(0, Math.min(detailScroll, max));
+        g.enableScissor(x + 2, by0, x + w - 2, by0 + bh);
+        for (int i = 0; i < lines.size(); i++) {
+            int ly = by0 + i * lh - detailScroll;
+            if (ly + lh < by0 || ly > by0 + bh) continue;
+            g.drawString(font, lines.get(i), x + 8, ly, 0xFFFFFF, false);
+        }
+        g.disableScissor();
+        if (max > 0) {
+            int sh = Math.max(14, (int) (bh * (bh / (float) (lines.size() * lh))));
+            int sy = by0 + (int) ((bh - sh) * (detailScroll / (float) max));
+            g.fill(x + w - 5, by0, x + w - 3, by0 + bh, 0xFF14141C);
+            g.fill(x + w - 5, sy, x + w - 3, sy + sh, Pathways.alpha(sc, .8f));
         }
     }
 
-    /** The price of a tier, in red, and only once that tier is actually on you. */
-    private int cost(GuiGraphics g, int x, int y, int w, String s, boolean live) {
-        for (String line : wrap("\u2013 " + s, w - 22)) {
-            g.drawString(font, Component.literal(line).withColor(live ? 0xFFE07A7A : 0xFF5A4A4A), x + 16, y, 0xFFFFFF, false);
-            y += 10;
-        }
-        return y;
-    }
-
-    private int setLine(GuiGraphics g, int x, int y, int w, String s, boolean live) {
-        for (String line : wrap((live ? "✔ " : "◯ ") + s, w - 16)) {
-            g.drawString(font, Component.literal(line).withColor(live ? 0xFF7ADF8A : 0xFF5A5A64), x + 8, y, 0xFFFFFF, false);
-            y += 10;
-        }
-        return y;
+    /** One tier, flattened: what it gives, then what it takes, greyed until it is on you. */
+    private void tierLines(List<Component> out, String gives, String takes, boolean live, int px) {
+        for (String line : wrap(gives, px))
+            out.add(Component.literal(line).withColor(live ? 0xFF9ADFA8 : 0xFF5A6A5E));
+        if (takes != null)
+            for (String line : wrap("   \u2013 " + takes, px))
+                out.add(Component.literal(line).withColor(live ? 0xFFE07A7A : 0xFF5A4A4A));
     }
 
     /** The bar along the bottom: what can be done with what is picked. */
@@ -391,12 +381,12 @@ public final class ArtifactScreen extends Screen {
         for (Slot s : Slot.values()) {
             int x = x0 + s.ordinal() * (w + 4);
             if (mx >= x && mx <= x + w && my >= ty && my <= ty + h) {
-                picked = s.ordinal(); sel = -2; scroll = 0; click(); return true;
+                picked = s.ordinal(); sel = -2; scroll = 0; detailScroll = 0; click(); return true;
             }
         }
         for (int[] hit : tiles)
             if (mx >= hit[0] && mx <= hit[0] + hit[2] && my >= hit[1] && my <= hit[1] + hit[3]) {
-                sel = hit[4]; click(); return true;
+                sel = hit[4]; detailScroll = 0; click(); return true;
             }
         int y = height - padY() - 18;
         if (my >= y + 5 && my <= y + 19 && Artifacts.read(stackOf(sel)) != null) {
@@ -414,7 +404,8 @@ public final class ArtifactScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double dx, double dy) {
-        scroll -= (int) (dy * 24);
+        if (mx >= detailX()) detailScroll -= (int) (dy * 24);
+        else scroll -= (int) (dy * 24);
         return true;
     }
 

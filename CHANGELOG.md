@@ -1,3 +1,8 @@
+## 0.2.361
+- Both artifact panels are readable at any GUI scale. They were laid out on fixed pixel offsets with nothing clipping them, so on a large scale the description ran straight over the depth gauge and the Enter button and off the bottom of the panel.
+- The footer is now measured and reserved first — the depth row and the button get their own band — and everything else is flattened to lines, written into whatever gap is left, and clipped to it. Past the end it scrolls, with a bar, and the wheel scrolls whichever side the pointer is over.
+- Every row is sized off the font's own line height rather than a guess, the depth buttons shrink to fit the panel, the case number drops to its own line when it will not sit beside the name, and the hint along the bottom is dropped rather than overlapped when there is no room for it.
+
 ## 0.2.360
 - No divine kingdoms and nothing that brings you back. Five of the ladders were handing out one: Divine Kingdom: World of Shadows, Kingdom of Light, Split Soul Resurrection, Fate Authority: Reincarnation and Flesh and Blood: Immortality. They are replaced with a shadow enclosure, an envoy of the sun, an underworld battlefield, an implosion of misfortune and a cloak of flesh and blood.
 - A kingdom is a place somebody else has to live in and is not a thing to hand over with a hat, and a revive given out for wearing five of anything takes the teeth out of every fight in the pack at once.

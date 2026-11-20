@@ -23,7 +23,7 @@ import java.util.List;
  */
 public final class DomainScreen extends Screen {
 
-    private int picked, difficulty = 2, scroll;
+    private int picked, difficulty = 2, scroll, detailScroll;
     private float t;
     private final List<int[]> rows = new ArrayList<>();      // {x, y, w, h, index}
 
@@ -120,91 +120,113 @@ public final class DomainScreen extends Screen {
     private void detail(GuiGraphics g, int mx, int my, int c) {
         ArtifactSets.Set s = set();
         int x = listX() + listW() + 22, y = listY() - 6, w = width - padX() - x, h = listH() + 12;
-        g.fill(x, y, x + w, y + h, 0xB0080A12);
+        g.fill(x, y, x + w, y + h, 0xE0080A12);
         g.renderOutline(x, y, w, h, Pathways.alpha(c, .35f));
 
-        // the symbol, large and faint, behind the lot
+        // the symbol behind it all, faint
         RenderSystem.enableBlend();
-        g.setColor(((c >> 16 & 255) / 255f), ((c >> 8 & 255) / 255f), ((c & 255) / 255f), .13f);
-        int ss = Math.min(w - 40, 150);
-        g.blit(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "textures/holo/" + s.symbol() + ".png"),
-               x + w - ss - 14, y + 26, 0, 0, ss, ss, ss, ss);
+        g.setColor(((c >> 16 & 255) / 255f), ((c >> 8 & 255) / 255f), ((c & 255) / 255f), .10f);
+        int ss = Math.min(Math.min(w, h) - 40, 150);
+        if (ss > 16) g.blit(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "textures/holo/" + s.symbol() + ".png"),
+                            x + (w - ss) / 2, y + (h - ss) / 2, 0, 0, ss, ss, ss, ss);
         g.setColor(1, 1, 1, 1);
 
-        g.fillGradient(x, y, x + w, y + 32, Pathways.alpha(c, .85f), Pathways.alpha(Pathways.deep(c, .5f), .85f));
-        g.drawString(font, Component.literal(s.title()).withColor(0xFFFFFF), x + 10, y + 7, 0xFFFFFF, false);
-        g.drawString(font, Component.literal(s.file()).withColor(0xFFD8D8E0), x + w - font.width(s.file()) - 10, y + 7, 0xFFFFFF, false);
-        g.drawString(font, Component.literal(s.flavour()).withStyle(ChatFormatting.ITALIC, ChatFormatting.GRAY),
-                     x + 10, y + 19, 0xFFFFFF, false);
+        // the head: the name, and the case number under it when there is no room beside it
+        int lh = font.lineHeight + 1;
+        boolean wide = font.width(s.title()) + font.width(s.file()) + 26 < w;
+        int headH = 10 + lh + (wide ? 0 : lh) + lh;
+        g.fillGradient(x, y, x + w, y + headH, Pathways.alpha(c, .9f), Pathways.alpha(Pathways.deep(c, .5f), .9f));
+        g.drawString(font, Component.literal(trim(s.title(), w - 16)).withColor(0xFFFFFF), x + 8, y + 5, 0xFFFFFF, false);
+        if (wide) g.drawString(font, Component.literal(s.file()).withColor(0xFFE4E4EC),
+                               x + w - font.width(s.file()) - 8, y + 5, 0xFFFFFF, false);
+        else g.drawString(font, Component.literal(s.file()).withColor(0xFFE4E4EC), x + 8, y + 5 + lh, 0xFFFFFF, false);
+        g.drawString(font, Component.literal(trim(s.flavour(), w - 16))
+                .withStyle(ChatFormatting.ITALIC, ChatFormatting.GRAY), x + 8, y + 5 + (wide ? lh : lh * 2), 0xFFFFFF, false);
 
-        int ly = y + 44;
-        ly = tier(g, x, ly, w, c, "TWO FRAGMENTS", s.twoLine(), null);
-        ly = tier(g, x, ly, w, c, "FOUR \u00b7 THE INCIDENT REPEATS", s.fourLine(), s.fourCost());
-        ly = tier(g, x, ly, w, c, "FIVE \u00b7 ALL OF IT", s.fiveLine(), s.fiveCost());
-        String[] rungs = SetAbilities.names(s.id());
-        for (int i = 0; i < 5; i++) {
-            if (rungs[i] == null || rungs[i].isEmpty()) continue;
-            g.drawString(font, Component.literal("\u2726".repeat(i + 1)).withColor(0xFFC24A), x + 14, ly, 0xFFFFFF, false);
-            g.drawString(font, Component.literal(rungs[i]).withStyle(ChatFormatting.GRAY), x + 50, ly, 0xFFFFFF, false);
-            ly += 10;
-        }
+        // ---- the footer is laid out first and the rest is kept out of it ----
+        int footH = lh * 2 + 34;
+        int fy = y + h - footH;
+        g.fill(x + 8, fy, x + w - 8, fy + 1, Pathways.alpha(c, .3f));
 
-        // the depth gauge
-        int dy = y + h - 64;
-        g.fill(x + 10, dy - 10, x + w - 10, dy - 9, Pathways.alpha(c, .25f));
-        g.drawString(font, Component.literal("DEPTH").withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 10, dy, 0xFFFFFF, false);
+        int dyT = fy + 6;
+        g.drawString(font, Component.literal("DEPTH").withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 8, dyT, 0xFFFFFF, false);
+        int bw2 = Math.max(16, Math.min(26, (w - 24 - font.width("DEPTH")) / 5));
+        int bx0 = x + 12 + font.width("DEPTH");
         for (int i = 1; i <= 5; i++) {
-            int bx = x + 54 + (i - 1) * 26, by = dy - 4;
-            boolean on = i <= difficulty, hot = mx >= bx && mx <= bx + 22 && my >= by && my <= by + 16;
-            g.fill(bx, by, bx + 22, by + 16, on ? Pathways.alpha(c, .4f) : (hot ? 0xFF15151D : 0xA00A0A12));
-            g.renderOutline(bx, by, 22, 16, Pathways.alpha(c, on ? .9f : .28f));
-            g.drawCenteredString(font, String.valueOf(i), bx + 11, by + 4, on ? 0xFFFFFFFF : 0xFF5A5A64);
+            int bx = bx0 + (i - 1) * bw2, by = dyT - 3;
+            boolean on = i <= difficulty, hot = mx >= bx && mx <= bx + bw2 - 3 && my >= by && my <= by + lh + 5;
+            g.fill(bx, by, bx + bw2 - 3, by + lh + 5, on ? Pathways.alpha(c, .4f) : (hot ? 0xFF15151D : 0xA00A0A12));
+            g.renderOutline(bx, by, bw2 - 3, lh + 5, Pathways.alpha(c, on ? .9f : .28f));
+            g.drawCenteredString(font, String.valueOf(i), bx + (bw2 - 3) / 2, by + 3, on ? 0xFFFFFFFF : 0xFF5A5A64);
         }
         String note = switch (difficulty) {
-            case 1 -> "1 piece · up to 2✦ · zombies and skeletons";
-            case 2 -> "1 piece · up to 3✦";
-            case 3 -> "2 pieces · up to 3✦ · vindicators and witches";
-            case 4 -> "2 pieces · up to 4✦";
-            default -> "2 pieces · up to 5✦ · ravagers and evokers";
+            case 1 -> "1 piece \u00b7 up to 2\u2726";
+            case 2 -> "1 piece \u00b7 up to 3\u2726";
+            case 3 -> "2 pieces \u00b7 up to 3\u2726";
+            case 4 -> "2 pieces \u00b7 up to 4\u2726";
+            default -> "2 pieces \u00b7 up to 5\u2726";
         };
-        g.drawString(font, Component.literal(note).withStyle(ChatFormatting.DARK_GRAY), x + 10, dy + 20, 0xFFFFFF, false);
+        g.drawString(font, Component.literal(trim(note, w - 16)).withStyle(ChatFormatting.DARK_GRAY),
+                     x + 8, dyT + lh + 8, 0xFFFFFF, false);
 
-        int bx = x + w - 108, by = y + h - 28;
-        boolean hot = mx >= bx && mx <= bx + 96 && my >= by && my <= by + 20;
-        g.fill(bx, by, bx + 96, by + 20, Pathways.alpha(c, hot ? .6f : .32f));
-        g.renderOutline(bx, by, 96, 20, Pathways.alpha(c, .9f));
-        g.drawCenteredString(font, Component.literal("Enter").withColor(0xFFFFFF), bx + 48, by + 6, 0xFFFFFF);
+        int bWd = Math.min(110, w - 16), bx = x + w - bWd - 8, by = y + h - lh - 12;
+        boolean hot = mx >= bx && mx <= bx + bWd && my >= by && my <= by + lh + 8;
+        g.fill(bx, by, bx + bWd, by + lh + 8, Pathways.alpha(c, hot ? .6f : .32f));
+        g.renderOutline(bx, by, bWd, lh + 8, Pathways.alpha(c, .9f));
+        g.drawCenteredString(font, Component.literal("Enter").withColor(0xFFFFFF), bx + bWd / 2, by + 4, 0xFFFFFF);
+
+        // ---- the body, written into the gap that is left and clipped to it ----
+        int by0 = y + headH + 6, bh = fy - 8 - by0;
+        if (bh < lh) return;
+        List<Component> lines = new ArrayList<>();
+        tierLines(lines, c, "TWO FRAGMENTS", s.twoLine(), null, w - 20);
+        tierLines(lines, c, "FOUR \u00b7 THE INCIDENT REPEATS", s.fourLine(), s.fourCost(), w - 20);
+        tierLines(lines, c, "FIVE \u00b7 ALL OF IT", s.fiveLine(), s.fiveCost(), w - 20);
+        String[] rungs = SetAbilities.names(s.id());
+        for (int i = 0; i < 5; i++)
+            if (rungs[i] != null && !rungs[i].isEmpty())
+                lines.add(Component.literal("\u2726".repeat(i + 1) + "  " + rungs[i]).withStyle(ChatFormatting.GRAY));
+
+        int max = Math.max(0, lines.size() * lh - bh);
+        detailScroll = Math.max(0, Math.min(detailScroll, max));
+        g.enableScissor(x + 2, by0, x + w - 2, by0 + bh);
+        for (int i = 0; i < lines.size(); i++) {
+            int ly = by0 + i * lh - detailScroll;
+            if (ly + lh < by0 || ly > by0 + bh) continue;
+            g.drawString(font, lines.get(i), x + 10, ly, 0xFFFFFF, false);
+        }
+        g.disableScissor();
+        if (max > 0) {
+            int sh = Math.max(14, (int) (bh * (bh / (float) (lines.size() * lh))));
+            int sy = by0 + (int) ((bh - sh) * (detailScroll / (float) max));
+            g.fill(x + w - 5, by0, x + w - 3, by0 + bh, 0xFF14141C);
+            g.fill(x + w - 5, sy, x + w - 3, sy + sh, Pathways.alpha(c, .8f));
+        }
     }
 
-    /** One tier: its heading, what it gives in green, and what it takes in red. */
-    private int tier(GuiGraphics g, int x, int y, int w, int c, String head, String gives, String takes) {
-        g.drawString(font, Component.literal(head).withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 10, y, 0xFFFFFF, false);
-        y += 12;
-        for (String line : wrap(gives, w - 24)) {
-            g.drawString(font, Component.literal(line).withColor(0xFF9ADFA8), x + 10, y, 0xFFFFFF, false);
-            y += 10;
-        }
-        if (takes != null)
-            for (String line : wrap("\u2013 " + takes, w - 24)) {
-                g.drawString(font, Component.literal(line).withColor(0xFFE07A7A), x + 10, y, 0xFFFFFF, false);
-                y += 10;
-            }
-        return y + 8;
+    /** One tier, flattened into lines: heading, what it gives in green, what it takes in red. */
+    private void tierLines(List<Component> out, int c, String head, String gives, String takes, int px) {
+        out.add(Component.literal(head).withColor(Pathways.pale(c, .45f) & 0xFFFFFF));
+        for (String line : wrap(gives, px)) out.add(Component.literal(line).withColor(0xFF9ADFA8));
+        if (takes != null) for (String line : wrap("\u2013 " + takes, px)) out.add(Component.literal(line).withColor(0xFFE07A7A));
+        out.add(Component.empty());
     }
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
         for (int[] r : rows)
-            if (mx >= r[0] && mx <= r[0] + r[2] && my >= r[1] && my <= r[1] + r[3]) { picked = r[4]; click(); return true; }
+            if (mx >= r[0] && mx <= r[0] + r[2] && my >= r[1] && my <= r[1] + r[3]) { picked = r[4]; detailScroll = 0; click(); return true; }
 
         int x = listX() + listW() + 22, y = listY() - 6, w = width - padX() - x, h = listH() + 12;
-        int dy = y + h - 64;
+        int lh = font.lineHeight + 1, footH = lh * 2 + 34, fy = y + h - footH;
+        int bw2 = Math.max(16, Math.min(26, (w - 24 - font.width("DEPTH")) / 5));
+        int bx0 = x + 12 + font.width("DEPTH"), dyT = fy + 6;
         for (int i = 1; i <= 5; i++) {
-            int bx = x + 54 + (i - 1) * 26, by = dy - 4;
-            if (mx >= bx && mx <= bx + 22 && my >= by && my <= by + 16) { difficulty = i; click(); return true; }
+            int bx = bx0 + (i - 1) * bw2, by = dyT - 3;
+            if (mx >= bx && mx <= bx + bw2 - 3 && my >= by && my <= by + lh + 5) { difficulty = i; click(); return true; }
         }
-        int bx = x + w - 108, by = y + h - 28;
-        if (mx >= bx && mx <= bx + 96 && my >= by && my <= by + 20) {
+        int bWd = Math.min(110, w - 16), bx = x + w - bWd - 8, by = y + h - lh - 12;
+        if (mx >= bx && mx <= bx + bWd && my >= by && my <= by + lh + 8) {
             PacketDistributor.sendToServer(new DoorNet.DomainEnter(set().id(), difficulty));
             Minecraft.getInstance().setScreen(null);
             return true;
@@ -214,7 +236,8 @@ public final class DomainScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double dx, double dy) {
-        scroll -= (int) (dy * 24);
+        if (mx > listX() + listW()) detailScroll -= (int) (dy * 24);
+        else scroll -= (int) (dy * 24);
         return true;
     }
 
