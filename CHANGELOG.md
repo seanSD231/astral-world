@@ -1,3 +1,12 @@
+## 0.2.373
+
+### Key of Light
+- Every piece of metal is gone from the rim. The seven locks each carried a keyhole ring, a bar and a lifting shackle, and at card scale they read as a litter of hoops and arcs floating over the art. What a key opens is light, so light is all that is left: a keyhole glow and a beam when its moment comes.
+- The scene also stacked forty-six large glow billboards and seven full-height beams over the key, which is what burned the whole card out to white. Fewer, smaller and far dimmer.
+
+### Arena menu
+- The game blurbs were cut off with an ellipsis, so you could not read what you were picking. They wrap to the card now and the card grows to hold them.
+
 ## 0.2.372
 
 ### Chains

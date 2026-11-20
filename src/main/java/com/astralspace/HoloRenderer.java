@@ -1868,9 +1868,9 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         push(); tr(0, kl + 1.2f * S, 0); torus(0, 0, 0, 1.2f * S, 1.2f * S, .22f * S, 24, 6, 0, TAU, metal(.85f), 255); torus(0, 0, 0, .8f * S, .8f * S, .08f * S, 24, 4, 0, TAU, mix(P1, 0xFFFFFF, .5f), 255); pop();
         for (int k = 0; k < 3; k++) box(.7f * S, (.08f + .07f * k) * kl, 0, .7f * S, .18f * S, .13f * S, metal(.8f), 255);
         pop();
-        for (int i = 0; i < 46; i++) { float a = h(i, 71) * TAU + t * .05f, r = R * (.15f + .8f * h(i, 72)), y = 1f * S + h(i, 73) * top, tw = .6f + .4f * gs(t * 1.5f + i); bb("glow", gc(a) * r, y, gs(a) * r, 3.2f * S, 3.2f * S, 0, rgba(SPECTRUM[i % 7], .5f * tw)); bb("mote", gc(a) * r, y, gs(a) * r, .3f * S, .3f * S, 0, rgba(0xFFFFFF, tw)); }
+        for (int i = 0; i < 26; i++) { float a = h(i, 71) * TAU + t * .05f, r = R * (.15f + .8f * h(i, 72)), y = 1f * S + h(i, 73) * top, tw = .6f + .4f * gs(t * 1.5f + i); bb("glow", gc(a) * r, y, gs(a) * r, 1.9f * S, 1.9f * S, 0, rgba(SPECTRUM[i % 7], .22f * tw)); bb("mote", gc(a) * r, y, gs(a) * r, .28f * S, .28f * S, 0, rgba(0xFFFFFF, .8f * tw)); }
         for (int i = 0; i < 7; i++) { float pw = fract(t * .2f + i / 7f); flat("ring", 0, .12f + i * .01f, 0, pw * 1.8f * R, 0, rgba(SPECTRUM[i], fd(pw))); }
-        for (int k = 0; k < 7; k++) { float a = k * TAU / 7 + t * .1f; column("beam", gc(a) * R * .7f, 0, top * 1.2f, gs(a) * R * .7f, 1.0f * S, rgba(SPECTRUM[k], .35f)); }
+        for (int k = 0; k < 7; k++) { float a = k * TAU / 7 + t * .1f; column("beam", gc(a) * R * .7f, 0, top * 1.2f, gs(a) * R * .7f, .8f * S, rgba(SPECTRUM[k], .17f)); }
         for (int k = 0; k < 7; k++) sprites("spark", 10, RADIALM, R * .9f, gy, 0, .4f * S, SPECTRUM[k], 1f, .35f, 60 + k, true);
         for (int k = 0; k < 7; k++) sprites("mote", 12, RISEM, R * .8f, 0, top, .45f * S, SPECTRUM[k], 1f, .2f, 80 + k, false);
         // the door the key is for: a dark arch standing behind the gate ring, filled with white light
@@ -1881,24 +1881,16 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
           for (int k = 0; k < 7; k++) { float a = PI * (k + .5f) / 7; box(gc(a) * aw, ah + gs(a) * aw, .5f * S, .18f * S, .18f * S, .1f * S, mix(SPECTRUM[k], 0xFFFFFF, .3f), 255); }
           pop();
         }
-        for (int i = 0; i < 7; i++) {   // seven locks round the rim, each turning open when its moment comes
+        for (int i = 0; i < 7; i++) {   // seven keyholes of light round the rim, and no metal at all
             float a = i * TAU / 7 + .3f, rr = R * .92f, ly2 = 3.2f * S, q = fract(t * .08f + i / 7f);
             float open = q > .68f ? Math.min(1f, (q - .68f) / .14f) : 0f;
-            // A keyhole of light, not a plate of metal: seven upright grey slabs floating in a ring
-            // read as pillars standing round the gate with nothing holding them up.
-            push(); tr(gc(a) * rr, ly2, gs(a) * rr); rY(-a + PI / 2);
-            push(); tr(0, .5f * S, 0); rZ(PI / 2);
-            torus(0, 0, 0, .5f * S, .5f * S, .11f * S, 20, 5, 0, TAU, mix(SPECTRUM[i], 0xFFFFFF, .35f), 255); pop();
-            push(); tr(0, -.5f * S, 0); rZ(PI / 2);
-            frustum(-.55f * S, .55f * S, .13f * S, .34f * S, 4, 1, 1, mix(SPECTRUM[i], 0xFFFFFF, .35f), 255, true); pop();
-            // the shackle, lifting clear as the lock gives
-            push(); tr(0, 1.25f * S + open * 1.3f * S, 0); rX(PI / 2);
-            torus(0, 0, 0, .46f * S, .46f * S, .1f * S, 16, 4, 0, PI, mix(SPECTRUM[i], 0xFFFFFF, .5f), 255); pop();
-            pop();
-            standIn("glow", gc(a) * rr, ly2, gs(a) * rr, 4.2f * S, 4.2f * S, rgba(SPECTRUM[i], .4f + .4f * open));
-            bb("lotm:flare", gc(a) * rr, ly2, gs(a) * rr, 2.4f * S, 2.4f * S, t * .2f + i, rgba(0xFFFFFF, .5f + .4f * open));
-            if (open > 0) { column("beam", gc(a) * rr, ly2, top * 1.2f, gs(a) * rr, 1.6f * S * open, rgba(SPECTRUM[i], .4f * open));
-                            bb("glow", gc(a) * rr, ly2, gs(a) * rr, 7f * S * open, 7f * S * open, 0, rgba(SPECTRUM[i], .5f * open)); } }
+            // Every lock body, shackle and plate is gone from here. They were small metal props
+            // scattered round the rim, and at card scale they read as a litter of hoops and bars
+            // floating in front of the art. What a key opens is light, so that is all that is left.
+            standIn("glow", gc(a) * rr, ly2, gs(a) * rr, 3.4f * S, 3.4f * S, rgba(SPECTRUM[i], .26f + .3f * open));
+            if (open > 0)
+                column("beam", gc(a) * rr, ly2, top * 1.1f, gs(a) * rr, 1.2f * S * open, rgba(SPECTRUM[i], .3f * open));
+        }
         gooSymbols(5, CY - 1f * S, R * .5f, 2.8f * S);
     }
 

@@ -24,6 +24,7 @@ public final class ArenaScreen extends Screen {
     private int path = -1;                       // which pathway, for the kitted games
     private int pathScroll;
     private final List<int[]> pathHits = new ArrayList<>();
+    private final List<int[]> modeHits = new ArrayList<>();
 
     private ArenaScreen(ArenaNet.Board board) {
         super(Component.literal("Arena"));
@@ -62,23 +63,36 @@ public final class ArenaScreen extends Screen {
         super.render(g, mx, my, pt);
     }
 
-    /** The three games, as tall cards down the left. */
+    /**
+     * The three games, as tall cards down the left.
+     *
+     * <p>The blurb is wrapped to the width of the card and the card is grown to hold it. It used
+     * to be cut off with an ellipsis, which told the player nothing about the game they were
+     * picking.</p>
+     */
     private void modes(GuiGraphics g, int mx, int my, int c) {
-        int x = padX(), y = padY() + lh() + 8, w = Math.max(150, width / 4), h = lh() * 3 + 12;
+        int x = padX(), y = padY() + lh() + 8, w = Math.max(170, width / 4);
+        modeHits.clear();
         for (Arena.Mode m : Arena.Mode.values()) {
-            int my2 = y + m.ordinal() * (h + 4);
-            boolean on = m == mode, hot = mx >= x && mx <= x + w && my >= my2 && my <= my2 + h;
+            var lines = font.split(Component.literal(m.blurb), w - 16);
+            int h = lh() * (2 + Math.max(1, lines.size())) + 12;
+            boolean on = m == mode, hot = mx >= x && mx <= x + w && my >= y && my <= y + h;
             int mc = m == Arena.Mode.OPEN ? 0xFFD24A : (m == Arena.Mode.SEQ5 ? 0x6FA2FF : 0xC566E6);
-            g.fill(x, my2, x + w, my2 + h, on ? Pathways.alpha(mc, .26f) : (hot ? 0xFF13131B : 0xA00A0A12));
-            if (on) g.fill(x, my2, x + 3, my2 + h, Pathways.alpha(Pathways.pale(mc, .4f), 1f));
-            g.renderOutline(x, my2, w, h, Pathways.alpha(mc, on ? .9f : .25f));
-            g.drawString(font, Component.literal(m.title).withColor(mc & 0xFFFFFF), x + 8, my2 + 4, 0xFFFFFF, false);
-            g.drawString(font, Component.literal(trim(m.blurb, w - 16)).withStyle(ChatFormatting.DARK_GRAY),
-                         x + 8, my2 + 4 + lh(), 0xFFFFFF, false);
-            g.drawString(font, Component.literal(board.points(m) + " pts  ·  "
+            g.fill(x, y, x + w, y + h, on ? Pathways.alpha(mc, .26f) : (hot ? 0xFF13131B : 0xA00A0A12));
+            if (on) g.fill(x, y, x + 3, y + h, Pathways.alpha(Pathways.pale(mc, .4f), 1f));
+            g.renderOutline(x, y, w, h, Pathways.alpha(mc, on ? .9f : .25f));
+            g.drawString(font, Component.literal(m.title).withColor(mc & 0xFFFFFF), x + 8, y + 4, 0xFFFFFF, false);
+            int ly = y + 4 + lh();
+            for (var line : lines) {
+                g.drawString(font, line, x + 8, ly, 0xFF8A8A8A, false);
+                ly += lh();
+            }
+            g.drawString(font, Component.literal(board.points(m) + " pts  \u00B7  "
                             + (board.place(m) > 0 ? "#" + board.place(m) : "unplaced")
-                            + "  ·  " + board.waiting(m) + " waiting").withStyle(ChatFormatting.GRAY),
-                         x + 8, my2 + 4 + lh() * 2, 0xFFFFFF, false);
+                            + "  \u00B7  " + board.waiting(m) + " waiting").withStyle(ChatFormatting.GRAY),
+                         x + 8, ly, 0xFFFFFF, false);
+            modeHits.add(new int[]{x, y, w, h, m.ordinal()});
+            y += h + 4;
         }
     }
 
@@ -108,7 +122,7 @@ public final class ArenaScreen extends Screen {
 
     /** The pathway to be given, for the two kitted games. */
     private void pathways(GuiGraphics g, int mx, int my, int c) {
-        int x = padX() + Math.max(150, width / 4) + 16, y = padY() + lh() + 8;
+        int x = padX() + Math.max(170, width / 4) + 16, y = padY() + lh() + 8;
         int w = width - padX() - Math.max(170, width / 4) - x - 16;
         int h = height - y - padY() - lh() * 2 - 14;
         if (w < 80) return;
@@ -155,11 +169,12 @@ public final class ArenaScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
-        int x = padX(), y0 = padY() + lh() + 8, w = Math.max(150, width / 4), h = lh() * 3 + 12;
-        for (Arena.Mode m : Arena.Mode.values()) {
-            int my2 = y0 + m.ordinal() * (h + 4);
-            if (mx >= x && mx <= x + w && my >= my2 && my <= my2 + h) { mode = m; click(); return true; }
-        }
+        for (int[] hit : modeHits)
+            if (mx >= hit[0] && mx <= hit[0] + hit[2] && my >= hit[1] && my <= hit[1] + hit[3]) {
+                mode = Arena.Mode.values()[hit[4]];
+                click();
+                return true;
+            }
         for (int[] hit : pathHits)
             if (mx >= hit[0] && mx <= hit[0] + hit[2] && my >= hit[1] && my <= hit[1] + hit[3]) {
                 path = path == hit[4] ? -1 : hit[4];
