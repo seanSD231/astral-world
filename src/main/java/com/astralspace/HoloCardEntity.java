@@ -159,7 +159,6 @@ public class HoloCardEntity extends Entity {
     @Override public AABB getBoundingBoxForCulling() { return getBoundingBox().inflate(admin() >= 0 || goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 300 : 48, admin() >= 0 || goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 220 : 30, admin() >= 0 || goo() >= 0 || pathIndex() == 18 && seq() == 0 ? 300 : 48); }
     @Override public boolean shouldRenderAtSqrDistance(double d) { return d < 420.0 * 420.0; }
 
-    @Override
     /** Whether the zone is up. The client needs it to know how to draw the card. */
     public boolean zone() { return entityData.get(ZONE); }
 
