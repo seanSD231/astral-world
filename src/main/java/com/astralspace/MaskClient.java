@@ -2,6 +2,11 @@ package com.astralspace;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.PlayerModel;
+import net.minecraft.client.model.geom.EntityModelSet;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
@@ -16,10 +21,11 @@ import java.util.UUID;
 /**
  * Client side of the masks: who is behind one, and the hooded robe drawn over them.
  *
- * <p>The skin is not swapped (that would need the player's own texture rebuilt); instead an opaque suit is drawn a
- * fraction outside every part of the body, so nothing of the skin underneath shows through, overlay layers
- * (jacket, sleeves, hat) included. The face is the same blank one on everybody, which is the point: behind a
- * mask you are not meant to be placeable, and a stranger's own face showing under it would give them away.</p>
+ * <p>Wearing one puts you in a default skin &mdash; Steve or Alex, whichever you picked &mdash; rather than a
+ * drawn-on suit and a blank face. The whole vanilla player model is drawn again over you in that texture, a
+ * fraction outside your own so no stripe of your skin shows at any seam, overlay layers (hat, jacket, sleeves)
+ * included. Behind a mask you are not meant to be placeable, and the two faces everybody already knows say
+ * that better than an invented one.</p>
  */
 public final class MaskClient {
     private MaskClient() { }
@@ -37,7 +43,7 @@ public final class MaskClient {
         }
     }
 
-    /** Alex rather than Steve: narrower arms, and a little less of everything else. */
+    /** Alex rather than Steve. */
     static boolean slim(UUID id) { return SLIM.contains(id); }
 
     public static boolean masked(UUID id) { return COLOUR.containsKey(id); }
@@ -60,73 +66,51 @@ public final class MaskClient {
         e.setContent(Component.literal(n).withColor(trim(p.getUUID()) & 0xFFFFFF));
     }
 
-    /** A business suit over the whole body, a face nobody can place, and the mask itself over its eyes. */
+    /** The default skin over the whole body, and the mask itself over its eyes. */
     public static final class Layer extends RenderLayer<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> {
-        public Layer(RenderLayerParent<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> parent) { super(parent); }
+        private static final ResourceLocation STEVE =
+                ResourceLocation.withDefaultNamespace("textures/entity/player/wide/steve.png");
+        private static final ResourceLocation ALEX =
+                ResourceLocation.withDefaultNamespace("textures/entity/player/slim/alex.png");
+        /** How far outside the player's own model the borrowed one is drawn. */
+        private static final float OUT = 1.035f;
+
+        private final PlayerModel<AbstractClientPlayer> wide, narrow;
+
+        public Layer(RenderLayerParent<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> parent, EntityModelSet set) {
+            super(parent);
+            wide = new PlayerModel<>(set.bakeLayer(ModelLayers.PLAYER), false);
+            narrow = new PlayerModel<>(set.bakeLayer(ModelLayers.PLAYER_SLIM), true);
+        }
 
         @Override
         public void render(PoseStack pose, MultiBufferSource buf, int light, AbstractClientPlayer p, float limb, float limbAmt, float pt, float age, float headYaw, float headPitch) {
             if (!COLOUR.containsKey(p.getUUID()) || p.isInvisible() || p.isSpectator()) return;
-            int cloth = cloth(p.getUUID()), trim = trim(p.getUUID());
-            int shade = shade(cloth, .74f), deep = shade(cloth, .52f);
+            int trim = trim(p.getUUID());
             int was = UniqGfx.light;
             UniqGfx.light = light;
             PlayerModel<AbstractClientPlayer> m = getParentModel();
 
-            // The face and the mask on it. Head space: the cube runs y -8..0, z -4..4, face at -z.
-            // Every box here is cut wider than the part it hides: a player's hat, jacket and sleeve
-            // overlay layers sit a little outside the base model, and anything drawn to the base
-            // model's own size lets a stripe of their real skin through at every seam.
+            // Their skin becomes the default one. The borrowed model copies this player's pose and
+            // is drawn a fraction outside their own, so their real skin is covered everywhere
+            // rather than fighting it for the same pixels.
+            boolean sl = slim(p.getUUID());
+            PlayerModel<AbstractClientPlayer> body = sl ? narrow : wide;
+            m.copyPropertiesTo(body);
+            body.setAllVisible(true);
+            body.hat.visible = m.hat.visible;
+            pose.pushPose();
+            pose.scale(OUT, OUT, OUT);
+            pose.translate(0, -1.5f * (OUT - 1f) / OUT, 0);   // the scale is about the neck; put the feet back down
+            body.renderToBuffer(pose, buf.getBuffer(RenderType.entityCutoutNoCull(sl ? ALEX : STEVE)),
+                                light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+            pose.popPose();
+
+            // and the mask itself, over the eyes of it
             pose.pushPose();
             m.head.translateAndRotate(pose);
-            pose.pushPose(); UniqGfx.tr(pose, 0, -4f, 0); UniqGfx.box(pose, buf, 9.6f, 9.6f, 9.6f, SKIN); pose.popPose();
-            // the brow and the features under the mask: a face with nothing on it reads as broken
-            pose.pushPose(); UniqGfx.tr(pose, 0, -6.4f, -4.7f); UniqGfx.box(pose, buf, 8.4f, 1.3f, .5f, shade(SKIN, .88f)); pose.popPose();
-            for (int sd = -1; sd <= 1; sd += 2) {
-                pose.pushPose(); UniqGfx.tr(pose, sd * 2.1f, -6.5f, -4.95f); UniqGfx.box(pose, buf, 2.6f, .8f, .4f, BROW); pose.popPose();
-                pose.pushPose(); UniqGfx.tr(pose, sd * 2.1f, -5.4f, -4.95f); UniqGfx.box(pose, buf, 2.4f, 1.3f, .4f, EYE_W); pose.popPose();
-                pose.pushPose(); UniqGfx.tr(pose, sd * 1.7f, -5.4f, -5.1f); UniqGfx.box(pose, buf, 1.0f, 1.1f, .3f, EYE); pose.popPose();
-            }
-            pose.pushPose(); UniqGfx.tr(pose, 0, -4.2f, -5.2f); UniqGfx.box(pose, buf, 1.5f, 2.6f, 1.2f, shade(SKIN, .94f)); pose.popPose();   // the nose
-            pose.pushPose(); UniqGfx.tr(pose, 0, -2.2f, -4.9f); UniqGfx.box(pose, buf, 2.8f, .6f, .5f, MOUTH); pose.popPose();
-            pose.pushPose(); UniqGfx.tr(pose, 0, -1.4f, -4.8f); UniqGfx.box(pose, buf, 3.6f, 1.2f, .5f, shade(SKIN, .9f)); pose.popPose();     // the chin
-            // hair: back and sides only, and the cap kept above the brow so it leaves the face alone
-            pose.pushPose(); UniqGfx.tr(pose, 0, -8.1f, .2f); UniqGfx.box(pose, buf, 9.9f, 1.9f, 9.9f, HAIR); pose.popPose();
-            pose.pushPose(); UniqGfx.tr(pose, 0, -4.6f, 4.0f); UniqGfx.box(pose, buf, 9.9f, 7.4f, 2.0f, HAIR); pose.popPose();
-            for (int sd = -1; sd <= 1; sd += 2) {
-                pose.pushPose(); UniqGfx.tr(pose, sd * 4.6f, -5.6f, 1.0f); UniqGfx.box(pose, buf, 1.0f, 5.4f, 7.4f, HAIR); pose.popPose();
-                pose.pushPose(); UniqGfx.tr(pose, sd * 3.4f, -7.4f, -4.6f); UniqGfx.box(pose, buf, 3.0f, 1.6f, 1.0f, HAIR); pose.popPose();   // a fringe at the corners only
-            }
             masquerade(pose, buf, trim);
             pose.popPose();
-
-            // The suit: jacket, shirt and tie.
-            pose.pushPose();
-            m.body.translateAndRotate(pose);
-            pose.pushPose(); UniqGfx.tr(pose, 0, 6f, 0); UniqGfx.box(pose, buf, 9.8f, 13.6f, 5.8f, cloth); pose.popPose();
-            pose.pushPose(); UniqGfx.tr(pose, 0, 1.3f, 0); UniqGfx.box(pose, buf, 10.4f, 2.6f, 6.4f, shade); pose.popPose();         // the shoulders
-            pose.pushPose(); UniqGfx.tr(pose, 0, 4.4f, -2.8f); UniqGfx.box(pose, buf, 3.2f, 7.4f, .5f, SHIRT); pose.popPose();       // the shirt, open between the lapels
-            for (int sd = -1; sd <= 1; sd += 2) {   // the lapels, narrowing to the button
-                for (int k = 0; k < 5; k++) {
-                    float u = k / 4f;
-                    pose.pushPose();
-                    UniqGfx.tr(pose, sd * (2.9f - u * 1.0f), 1.9f + u * 5.4f, -2.85f);
-                    UniqGfx.box(pose, buf, 2.4f - u * .7f, 1.7f, .55f, shade);
-                    pose.popPose();
-                }
-            }
-            pose.pushPose(); UniqGfx.tr(pose, 0, 1.4f, -2.7f); UniqGfx.box(pose, buf, 5.2f, 1.5f, 1.2f, SHIRT); pose.popPose();      // the collar
-            pose.pushPose(); UniqGfx.tr(pose, 0, 2.5f, -3.15f); UniqGfx.box(pose, buf, 1.8f, 1.6f, .5f, trim); pose.popPose();       // the knot
-            pose.pushPose(); UniqGfx.tr(pose, 0, 6.2f, -3.1f); UniqGfx.box(pose, buf, 1.3f, 5.8f, .45f, trim); pose.popPose();       // and the tie
-            pose.pushPose(); UniqGfx.tr(pose, 0, 9.4f, -3.05f); UniqGfx.box(pose, buf, .9f, 1.4f, .4f, shade(trim, .8f)); pose.popPose();
-            pose.pushPose(); UniqGfx.tr(pose, -1.1f, 8.2f, -2.9f); UniqGfx.box(pose, buf, .7f, .7f, .5f, shade(trim, .9f)); pose.popPose();   // the button
-            pose.popPose();
-
-            boolean slim = slim(p.getUUID());
-            sleeve(pose, buf, m.rightArm, -1f, cloth, shade, slim);
-            sleeve(pose, buf, m.leftArm, 1f, cloth, shade, slim);
-            skirt(pose, buf, m.rightLeg, cloth, shade);
-            skirt(pose, buf, m.leftLeg, cloth, shade);
 
             UniqGfx.light = was;
         }
@@ -198,26 +182,6 @@ public final class MaskClient {
 
         private static final float PI = (float) Math.PI, TAU = (float) (Math.PI * 2);
 
-        /** A jacket sleeve with an inch of shirt cuff showing at the wrist, as a suit does. */
-        private void sleeve(PoseStack pose, MultiBufferSource buf, net.minecraft.client.model.geom.ModelPart arm, float side, int cloth, int shade, boolean slim) {
-            pose.pushPose();
-            arm.translateAndRotate(pose);
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 3.2f, 0); UniqGfx.box(pose, buf, slim ? 4.4f : 5.4f, 12.4f, 5.4f, cloth); pose.popPose();
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, .6f, 0); UniqGfx.box(pose, buf, slim ? 4.8f : 5.8f, 3.2f, 5.8f, shade); pose.popPose();   // the shoulder of it
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 9.8f, 0); UniqGfx.box(pose, buf, slim ? 4.2f : 5.1f, 1.6f, 5.1f, SHIRT); pose.popPose(); // the cuff
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 11.3f, 0); UniqGfx.box(pose, buf, slim ? 4.0f : 4.9f, 2.8f, 4.9f, SKIN); pose.popPose(); // and the hand
-            pose.popPose();
-        }
-
-        /** A trouser leg with a turn-up, and a polished shoe under it. */
-        private void skirt(PoseStack pose, MultiBufferSource buf, net.minecraft.client.model.geom.ModelPart leg, int cloth, int shade) {
-            pose.pushPose();
-            leg.translateAndRotate(pose);
-            pose.pushPose(); UniqGfx.tr(pose, 0, 4.6f, 0); UniqGfx.box(pose, buf, 5.5f, 10.4f, 5.5f, cloth); pose.popPose();
-            pose.pushPose(); UniqGfx.tr(pose, 0, 10f, 0); UniqGfx.box(pose, buf, 5.7f, 1.6f, 5.7f, shade); pose.popPose();          // the turn-up
-            pose.pushPose(); UniqGfx.tr(pose, 0, 11.4f, -.9f); UniqGfx.box(pose, buf, 5.6f, 2.4f, 7.0f, SHOE); pose.popPose();      // the shoe
-            pose.popPose();
-        }
 
         private static final int SKIN = 0xFFC9A086, HAIR = 0xFF2B2521, MOUTH = 0xFF7A5247,
                                  SHIRT = 0xFFF2F2F2, SHOE = 0xFF141318,

@@ -56,7 +56,7 @@ public final class DoorClient {
     private static void addLayers(EntityRenderersEvent.AddLayers e) {
         for (var skin : e.getSkins()) {
             EntityRenderer<?> r = e.getSkin(skin);
-            if (r instanceof PlayerRenderer pr) { pr.addLayer(new EyesLayer(pr)); pr.addLayer(new WornClient.Layer(pr)); pr.addLayer(new MaskClient.Layer(pr)); }
+            if (r instanceof PlayerRenderer pr) { pr.addLayer(new EyesLayer(pr)); pr.addLayer(new WornClient.Layer(pr)); pr.addLayer(new MaskClient.Layer(pr, e.getEntityModels())); }
         }
     }
 

@@ -1,3 +1,10 @@
+## 0.2.374
+
+### Masks
+- Wearing a mask now puts you in the **actual Steve or Alex skin**, not a drawn-on business suit with a generic face and the arm build of whichever you picked. The whole vanilla player model is drawn again over you in that texture, a fraction outside your own so no stripe of your real skin shows at any seam.
+- Alex comes with the slim model as well as the slim texture, so the arms match what they are painted for.
+- The masquerade mask still sits over the eyes on top of it. The suit, the invented face and the hair are gone.
+
 ## 0.2.373
 
 ### Key of Light
