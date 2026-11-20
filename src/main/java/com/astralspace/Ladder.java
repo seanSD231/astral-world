@@ -113,6 +113,34 @@ public final class Ladder extends SavedData {
     private static final SavedData.Factory<Ladder> FACTORY =
             new SavedData.Factory<>(Ladder::new, Ladder::load, null);
 
+    /**
+     * The same lines the hunger games monument reads, so a ladder can stand on one.
+     *
+     * <p>{@code H} carries the headings and the unit words, {@code R} a place on this ladder and
+     * {@code P} the leader of each of the other games, so one monument tells you where every
+     * ladder stands.</p>
+     */
+    public static String boardText(MinecraftServer server, Arena.Mode m) {
+        if (server == null) return "";
+        Ladder l = of(server);
+        StringBuilder b = new StringBuilder();
+        b.append("H|").append(m.title.toUpperCase(java.util.Locale.ROOT))
+         .append("|THE OTHER LADDERS|pt|pts|rated|FIRST\n");
+        List<Row> rows = l.standings(m);
+        for (int i = 0; i < Math.min(rows.size(), 9); i++) {
+            Row r = rows.get(i);
+            b.append("R|").append(i + 1).append('|').append(r.name()).append('|').append(r.points()).append('\n');
+        }
+        for (Arena.Mode o : Arena.Mode.values()) {
+            if (o == m) continue;
+            List<Row> or = l.standings(o);
+            if (or.isEmpty()) b.append("P|nobody yet|0|").append(o.title).append('\n');
+            else b.append("P|").append(or.get(0).name()).append('|').append(or.get(0).points())
+                  .append('|').append(o.title).append('\n');
+        }
+        return b.toString();
+    }
+
     public static Ladder of(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(FACTORY, "astral_ladder");
     }

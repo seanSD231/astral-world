@@ -250,6 +250,40 @@ public final class Ranked {
     private static boolean watching;
 
     @SubscribeEvent
+    /** Sets a ladder monument down in front of the operator, built like the hunger games one. */
+    private static int placeMonument(ServerPlayer p, String modeId) {
+        Arena.Mode m = Arena.Mode.of(modeId);
+        net.minecraft.server.level.ServerLevel lv = p.serverLevel();
+        float yaw = Math.round(p.getYRot() / 22.5f) * 22.5f;
+        net.minecraft.world.phys.Vec3 look = net.minecraft.world.phys.Vec3.directionFromRotation(0, yaw);
+        net.minecraft.core.BlockPos at = net.minecraft.core.BlockPos.containing(
+                p.getX() + look.x * 5, p.getY(), p.getZ() + look.z * 5);
+        while (at.getY() > lv.getMinBuildHeight() && lv.getBlockState(at.below()).isAir()) at = at.below();
+        HgBoard b = new HgBoard(HgBoard.TYPE.get(), lv);
+        b.setSrc(m.id);
+        b.moveTo(at.getX() + .5, at.getY(), at.getZ() + .5, yaw, 0);
+        lv.addFreshEntity(b);
+        p.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                "Monument set down for " + m.title + ". It follows the ladder by itself; /ranked board remove takes the nearest one away.")
+                .withStyle(net.minecraft.ChatFormatting.GREEN));
+        return 1;
+    }
+
+    private static int removeMonument(ServerPlayer p) {
+        HgBoard best = null;
+        for (HgBoard b : p.serverLevel().getEntitiesOfClass(HgBoard.class, p.getBoundingBox().inflate(16)))
+            if (!b.src().isEmpty() && (best == null || b.distanceToSqr(p) < best.distanceToSqr(p))) best = b;
+        if (best == null) {
+            p.sendSystemMessage(net.minecraft.network.chat.Component.literal("There is no ladder monument within 16 blocks.")
+                    .withStyle(net.minecraft.ChatFormatting.RED));
+            return 0;
+        }
+        best.discard();
+        p.sendSystemMessage(net.minecraft.network.chat.Component.literal("Monument removed.")
+                .withStyle(net.minecraft.ChatFormatting.GREEN));
+        return 1;
+    }
+
     public static void onCommands(RegisterCommandsEvent e) {
         e.getDispatcher().register(Commands.literal("ranked")
             .requires(c -> c.getEntity() instanceof ServerPlayer)
@@ -258,6 +292,12 @@ public final class Ranked {
             .then(Commands.literal("leave").executes(c -> { leave(c.getSource().getPlayerOrException()); return 1; }))
             .then(Commands.literal("stats").executes(c -> stats(c.getSource().getPlayerOrException())))
             .then(Commands.literal("top").executes(c -> top(c.getSource().getPlayerOrException())))
+            .then(Commands.literal("board").requires(c -> c.hasPermission(2))
+                .then(Commands.literal("remove").executes(c -> removeMonument(c.getSource().getPlayerOrException())))
+                .then(Commands.argument("mode", com.mojang.brigadier.arguments.StringArgumentType.word())
+                    .suggests((c, b2) -> { for (Arena.Mode m : Arena.Mode.values()) b2.suggest(m.id); return b2.buildFuture(); })
+                    .executes(c -> placeMonument(c.getSource().getPlayerOrException(),
+                            com.mojang.brigadier.arguments.StringArgumentType.getString(c, "mode")))))
             .then(Commands.literal("cash")
                 .executes(c -> { ServerPlayer p = c.getSource().getPlayerOrException(); cash(p, read(p).points()); return 1; })
                 .then(Commands.argument("rp", IntegerArgumentType.integer(1))

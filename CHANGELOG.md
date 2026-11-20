@@ -1,3 +1,11 @@
+## 0.2.375
+
+### A physical ladder monument
+- The ranked ladders can now stand on the same monument the hunger games use: the stepped plinth, the dark slab in its gold frame, the two pillars with lit braziers and the turning emblem on the pediment.
+- `/ranked board <mode>` sets one down in front of you facing you, and `/ranked board remove` takes the nearest away. Operators only.
+- The left face carries the top nine of that ladder, the leader large with their face; the right face carries the leader of each of the other two games, so one monument tells you where every ladder stands.
+- The monument's headings and unit words travel with its text now rather than being written into the renderer, so the hunger games board says "kills of tributes" and a ladder says "pts of rated" off the same code.
+
 ## 0.2.374
 
 ### Masks

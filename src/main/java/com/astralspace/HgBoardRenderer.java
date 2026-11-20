@@ -110,22 +110,29 @@ public class HgBoardRenderer extends EntityRenderer<HgBoard> {
 
         // ---- the lettering, a hair in front of the slab
         List<String[]> res = new ArrayList<>(), past = new ArrayList<>();
-        for (String ln : e.text().split("\n")) { String[] f = ln.split("\\|"); if (f.length >= 4 && f[0].equals("R")) res.add(f); else if (f.length >= 4 && f[0].equals("P")) past.add(f); }
+        // Headings and unit words: a ladder sends its own, the hunger games send none and keep these.
+        String big = "HUNGER GAMES", side = "PAST CHAMPIONS", one = "kill", many = "kills", group = "tributes", first = "CHAMPION";
+        for (String ln : e.text().split("\n")) {
+            String[] f = ln.split("\\|");
+            if (f.length >= 7 && f[0].equals("H")) { big = f[1]; side = f[2]; one = f[3]; many = f[4]; group = f[5]; first = f[6]; }
+            else if (f.length >= 4 && f[0].equals("R")) res.add(f);
+            else if (f.length >= 4 && f[0].equals("P")) past.add(f);
+        }
         ps.pushPose(); ps.translate(0, 0, .215f);
         float top = y0 + H - .22f, left = -W / 2 + .2f, mid = .55f, right = W / 2 - .2f;
-        text(ps, buf, "HUNGER GAMES", (left + mid) / 2, top, .34f, GOLD, 1);
-        text(ps, buf, "PAST CHAMPIONS", (mid + right) / 2 + .05f, top - .06f, .2f, GOLD, 1);
+        text(ps, buf, big, (left + mid) / 2, top, big.length() > 13 ? .26f : .34f, GOLD, 1);
+        text(ps, buf, side, (mid + right) / 2 + .05f, top - .06f, .2f, GOLD, 1);
         if (res.isEmpty()) {
-            text(ps, buf, "No games yet", (left + mid) / 2, top - 1.6f, .26f, DIM, 1);
-            text(ps, buf, "The first champion's name goes here", (left + mid) / 2, top - 2.0f, .13f, DIM, 1);
+            text(ps, buf, "Nobody yet", (left + mid) / 2, top - 1.6f, .26f, DIM, 1);
+            text(ps, buf, "The first name goes here", (left + mid) / 2, top - 2.0f, .13f, DIM, 1);
         } else {
             String[] w = res.get(0);
             float fy = top - .55f, fs = .95f;
             face(ps, buf, w[2], left + .05f, fy, fs);
-            text(ps, buf, "CHAMPION", left + fs + .25f, fy - .02f, .15f, DIM, 0);
+            text(ps, buf, first, left + fs + .25f, fy - .02f, .15f, DIM, 0);
             int pulse = 0xFF000000 | (255 << 16) | ((int) (190 + 40 * Math.sin(time * .1f)) << 8) | 60;
             text(ps, buf, fit(w[2], .3f, mid - left - fs - .4f), left + fs + .25f, fy - .24f, .3f, pulse, 0);
-            text(ps, buf, w[3] + (w[3].equals("1") ? " kill" : " kills") + "   of " + res.size() + " tributes", left + fs + .25f, fy - .66f, .15f, PALE, 0);
+            text(ps, buf, w[3] + (w[3].equals("1") ? " " + one : " " + many) + "   of " + res.size() + " " + group, left + fs + .25f, fy - .66f, .15f, PALE, 0);
             for (int i = 1; i < Math.min(res.size(), 9); i++) {
                 String[] r = res.get(i); float ry = fy - fs - .22f - (i - 1) * .245f;
                 text(ps, buf, "#" + r[1], left + .05f, ry, .16f, i < 3 ? GOLD : DIM, 0);
@@ -137,7 +144,7 @@ public class HgBoardRenderer extends EntityRenderer<HgBoard> {
         for (int i = 0; i < Math.min(past.size(), 6); i++) {
             String[] h = past.get(i); float ry = top - .5f - i * .52f;
             text(ps, buf, fit(h[1], .19f, right - mid - .3f), mid + .2f, ry, .19f, i == 0 ? GOLD : PALE, 0);
-            text(ps, buf, h[2] + (h[2].equals("1") ? " kill" : " kills") + " of " + h[3], mid + .2f, ry - .25f, .12f, DIM, 0);
+            text(ps, buf, h[2] + (h[2].equals("1") ? " " + one : " " + many) + " \u00B7 " + h[3], mid + .2f, ry - .25f, .12f, DIM, 0);
         }
         ps.popPose();
         ps.popPose();

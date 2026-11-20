@@ -27,6 +27,8 @@ import net.neoforged.neoforge.registries.DeferredRegister;
  */
 public class HgBoard extends Entity {
     private static final EntityDataAccessor<String> TEXT = SynchedEntityData.defineId(HgBoard.class, EntityDataSerializers.STRING);
+    /** Empty for the hunger games; otherwise the arena mode whose ladder this monument follows. */
+    private static final EntityDataAccessor<String> SRC = SynchedEntityData.defineId(HgBoard.class, EntityDataSerializers.STRING);
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, AstralMod.MOD_ID);
     public static final DeferredHolder<EntityType<?>, EntityType<HgBoard>> TYPE = ENTITIES.register("hg_board", () ->
@@ -39,9 +41,12 @@ public class HgBoard extends Entity {
     /** The lines to show; see {@link HungerGames#boardText()} for their shape. */
     public String text() { return entityData.get(TEXT); }
 
-    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(TEXT, ""); }
-    @Override protected void readAdditionalSaveData(CompoundTag t) { }
-    @Override protected void addAdditionalSaveData(CompoundTag t) { }
+    public String src() { return entityData.get(SRC); }
+    public void setSrc(String s) { entityData.set(SRC, s == null ? "" : s); }
+
+    @Override protected void defineSynchedData(SynchedEntityData.Builder b) { b.define(TEXT, ""); b.define(SRC, ""); }
+    @Override protected void readAdditionalSaveData(CompoundTag t) { setSrc(t.getString("src")); }
+    @Override protected void addAdditionalSaveData(CompoundTag t) { t.putString("src", src()); }
 
     @Override public boolean isInvulnerableTo(DamageSource s) { return true; }
     @Override public boolean isPickable() { return false; }
@@ -54,7 +59,11 @@ public class HgBoard extends Entity {
     public void tick() {
         super.tick();
         if (!level().isClientSide) {
-            if (tickCount % 40 == 1) { String now = HungerGames.boardText(); if (!now.equals(text())) entityData.set(TEXT, now); }
+            if (tickCount % 40 == 1) {
+                String src = src();
+                String now = src.isEmpty() ? HungerGames.boardText() : Ladder.boardText(level().getServer(), Arena.Mode.of(src));
+                if (!now.equals(text())) entityData.set(TEXT, now);
+            }
             return;
         }
         // the braziers on the two pillars burn, and embers drift up off them
