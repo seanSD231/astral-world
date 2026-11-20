@@ -1,3 +1,15 @@
+## 0.2.377
+
+### Money
+- **You could not pay into a tournament while plainly holding the money for it.** Numismatics money is six items, not one, and each is worth a fixed number of spurs; the count only looked at spurs, so a player carrying cogs or crowns read as penniless. Everything now counts in spur value across every denomination, pays out in the largest coins that fit, and breaks a coin and hands back the change when your small change will not cover the stake.
+
+### The portal
+- The queue block now stands a **blue portal** out of itself, three blocks tall, turned to face whoever is looking, with a brighter core and motes rising through it.
+- You right-click the portal rather than the stone: the block's interaction shape is the whole opening now. Its collision shape is still just the stone, so you walk through the portal as you should.
+
+### Pathways
+- Changing your pathway, or your game, while queued **keeps the time you have already waited**. It used to send you to the back of the line, so re-picking for Sequence 5 or Sequence 2 cost you your place.
+
 ## 0.2.376
 
 ### Bigger arenas, open sky

@@ -129,9 +129,18 @@ public final class Arena {
         if (Duel.dueling(p)) { say(p, "Finish your duel first.", ChatFormatting.RED); return; }
         if (HungerGames.fighting(p)) { say(p, "Not during the hunger games.", ChatFormatting.RED); return; }
         if (Raid.raiding(p)) { say(p, "Not from inside a raid.", ChatFormatting.RED); return; }
-        QUEUE.put(p.getUUID(), new Waiting(m, pathway == null ? "" : pathway, System.currentTimeMillis(),
+        // Re-picking keeps the time you have already waited, so you can change your pathway or
+        // your game as often as you like without going to the back of the line for it.
+        Waiting had = QUEUE.get(p.getUUID());
+        long since = had != null ? had.since() : System.currentTimeMillis();
+        QUEUE.put(p.getUUID(), new Waiting(m, pathway == null ? "" : pathway, since,
                                            p.position(), p.level().dimension()));
         Ladder l = Ladder.of(p.server);
+        if (had != null && had.mode() == m) {
+            String nice = pathway == null || pathway.isEmpty() ? "your own pathway" : pathway.replace('_', ' ');
+            say(p, "Changed to " + nice + ". You keep your place in the queue.", ChatFormatting.AQUA);
+            return;
+        }
         p.sendSystemMessage(Component.literal("Queued · " + m.title + " · " + l.points(m, p) + " points")
                 .withStyle(ChatFormatting.AQUA)
                 .append(Component.literal("   (" + queued(m) + " waiting, " + freeSlots() + " arenas free)")

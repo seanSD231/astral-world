@@ -59,7 +59,8 @@ public final class AstralClient {
         DoorClient.init(modBus);
         modBus.addListener((net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers ev) ->
             { ev.registerEntityRenderer(HoloCardEntity.TYPE.get(), HoloRenderer::new); ev.registerEntityRenderer(ThronePart.TYPE.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); ev.registerEntityRenderer(HgBoard.TYPE.get(), HgBoardRenderer::new); ev.registerEntityRenderer(MoonCorruption.TYPE.get(), MoonCorruptionRenderer::new);
-            ev.registerBlockEntityRenderer(LeaderBoard.TYPE.get(), LeaderBoard.Render::new); });
+            ev.registerBlockEntityRenderer(LeaderBoard.TYPE.get(), LeaderBoard.Render::new);
+            ev.registerBlockEntityRenderer(ArenaPortalBlock.TYPE.get(), ArenaPortalBlock.Render::new); });
         BarrierRenderer.init();
         TreeRenderer.init();
         TreeBossBar.init();

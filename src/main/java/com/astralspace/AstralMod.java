@@ -44,6 +44,7 @@ public class AstralMod {
         AstralSounds.register(modBus);
         MoonCorruption.register(modBus);
         LeaderBoard.register(modBus);
+        ArenaPortalBlock.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent e) ->
             e.put(MoonCorruption.TYPE.get(), MoonCorruption.attributes().build()));
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(Corruption::tick);
