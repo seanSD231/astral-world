@@ -1204,7 +1204,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      */
     private void adminSky() {
         float D = R * 4.6f;
-        dome(D, 0xBC7F30, 246);
+        dome(D, 0x8C5E24, 244);
 
         for (int layer = 0; layer < 3; layer++) {   // banks of cloud, mostly along the horizon
             int n = 22 - layer * 5;
@@ -1273,19 +1273,19 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void adminGround() {
         // The field is left as it is -- grass, no disc laid over it -- and the circles are drawn
         // on it with the same ring textures every other card's spell circle uses.
-        if (gold) flat("whirl", 0, .10f, 0, R * 15f, t * .04f, rgba(0xFFD448, .55f));
-        else flat("adm_sea", 0, .10f, 0, R * 15f, t * .04f, rgba(0xFFFFFF, .65f));
-        flat("ring_thick", 0, .17f, 0, R * 4.2f, t * .06f, rgba(ADM_GOLD, .7f));
-        flat("ring_dash", 0, .22f, 0, R * 3.3f, -t * .18f, rgba(ADM_PALE, .8f));
-        flat("adm_runes", 0, .27f, 0, R * 2.5f, t * .09f, rgba(ADM_GOLD, .7f));
-        flat("ring", 0, .32f, 0, R * 1.7f, -t * .3f, rgba(ADM_PALE, .8f));
+        if (gold) flat("whirl", 0, .10f, 0, R * 9.1f, t * .04f, rgba(0xFFD448, .5f));
+        else flat("adm_sea", 0, .10f, 0, R * 9.1f, t * .04f, rgba(0xFFFFFF, .6f));
+        flat("ring_thick", 0, .17f, 0, R * 2.6f, t * .06f, rgba(ADM_GOLD, .3f));
+        flat("ring_dash", 0, .22f, 0, R * 2.0f, -t * .18f, rgba(ADM_PALE, .34f));
+        flat("adm_runes", 0, .27f, 0, R * 1.5f, t * .09f, rgba(ADM_GOLD, .3f));
+        flat("ring", 0, .32f, 0, R * 1.0f, -t * .3f, rgba(ADM_PALE, .34f));
         for (int i = 0; i < 3; i++) {   // and light going out from the middle of it
             float pw = fract(t * .18f + i / 3f);
-            flat("ring", 0, .37f, 0, pw * R * 4.6f, 0, rgba(ADM_GOLD, fd(pw) * .8f));
+            flat("ring", 0, .37f, 0, pw * R * 2.8f, 0, rgba(ADM_GOLD, fd(pw) * .3f));
         }
-        float c = gc(t * .04f) * R * .55f, s2 = gs(t * .04f) * R * .55f;
+        float c = gc(t * .04f) * R * .33f, s2 = gs(t * .04f) * R * .33f;
         eq(ResourceLocation.fromNamespaceAndPath("lotm", "textures/effect/hanged_man_symbol.png"),
-           0, .42f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .8f), 0, 0, 1, 1);
+           0, .42f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .45f), 0, 0, 1, 1);
     }
 
     /** The cross of light he hangs on, and the rope above him. */
@@ -1337,16 +1337,18 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         skinPart(sk, 0, 16, 4, 12, 4, -2, -18, 0, true, P, yB, 0f);         // right leg, up
         skinPart(sk, 16, 48, 4, 12, 4, 2, -18, 0, true, P, yB, 0f);         // left leg
 
-        chainWrap(yB + 10.5f * P, yB + 23f * P, 7.4f * P, 4.2f * P, 3.4f, 1.3f * P);   // the legs, roped together
+        chainWrap(yB + 9f * P, yB + 27f * P, 7.4f * P, 4.2f * P, 3.8f, 1.3f * P);     // the legs, roped together and up to the beam
         chainWrap(yB - 7f * P, yB + 9f * P, 6.4f * P, 4.4f * P, 2.8f, 1.5f * P);       // and round the chest
 
         for (int sd = -1; sd <= 1; sd += 2) {
             // the wrist: a cuff round the arm, and the chain starting inside it rather than
             // a little below and off to one side, which left it hanging clear of him
+            // The cuff and the chain are placed from the same point as the arm itself, and the
+            // cuff is cut wide enough to swallow the limb, so the chain can never hang beside it.
             float wx = sd * armX, wy = armY;
             push(); tr(wx, wy, 0); rZ(PI / 2);
-            torus(0, 0, 0, 2.8f * P, 2.8f * P, .85f * P, 14, 5, 0, TAU, ADM_IRON, 255); pop();
-            push(); tr(wx, wy, 0); chain(10f * S, .8f * S, ADM_IRON); pop();
+            torus(0, 0, 0, 3.4f * P, 3.4f * P, 1.0f * P, 14, 5, 0, TAU, ADM_IRON, 255); pop();
+            push(); tr(wx, wy + 1.2f * P, 0); chain(10f * S, .8f * S, ADM_IRON); pop();
             // the ankle, up at the top of him
             float ax = sd * 2.2f * P, ay = feet - 1.0f * P;
             push(); tr(ax, ay, 0); rX(PI / 2);
@@ -1856,7 +1858,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     private void gooKey() {
         float gy = CY + 2.4f * S, gr = 4f * S;
         pushFace(); tr(0, gy, -1f * S);
-        ring(gr, .24f * S, metal(.7f), 255); ring(gr * .82f, .08f * S, mix(P1, 0xFFFFFF, .3f), 255);
         pop();
         float kl = 7f * S, sw = gs(t * .4f) * .08f;
         pushFace(); tr(0, .8f * S, 0); rZ(sw);
@@ -2343,7 +2344,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             sprites("drop", 40, FALLM, R, 0, top, .5f * S, 0xB01020, 1f, .35f, 77, false);
         }
         for (int i = 0; i < (m ? 14 : 12); i++) {   // the Moon's own things round the edge: vampires' coffins standing open a crack, and altars where a crimson crescent turns over moonflowers
-            int n2 = m ? 14 : 12; float a = i * TAU / n2 + .2f, r = R * 1.5f, cxp = gc(a) * r, czp = gs(a) * r; int wood = 0x2A1810, trim = mix(0xC8A040, P1, .2f), crim = 0xC01828;
+            int n2 = m ? 14 : 12; float a = i * TAU / n2 + .55f, r = R * 1.15f, cxp = gc(a) * r, czp = gs(a) * r; int wood = 0x2A1810, trim = mix(0xC8A040, P1, .2f), crim = 0xC01828;
             push(); tr(cxp, 0, czp); rY(-a + PI / 2);
             if (i % 2 == 0) {
                 rX(-.12f);
@@ -2716,7 +2717,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         sym(CY + 5.6f * S, 3.2f * S, 0);
         for (int i = 0; i < 9 * N; i++) { float a = i * TAU / (9 * N) + .1f, r = R * (.45f + .75f * h(i, 261));   // chains out of the dark, all across the sphere, not in a tight ring over the seat
             push(); tr((float) Math.cos(a) * r, top + 1f, (float) Math.sin(a) * r); chain(top + 1f - (2.5f + 5f * h(i, 262)) * S, (.5f + .5f * h(i, 263)) * S, mix(0x50545C, P1, .1f)); pop(); }
-        for (int i = 0; i < 11 * N; i++) { float a = i * TAU / (11 * N), r = R * (.72f + .45f * h(i, 264)); push(); tr((float) Math.cos(a) * r, 0, (float) Math.sin(a) * r); rY(a * 3f); rZ((h(i, 6) - .5f) * .25f); taper(0, (3.6f + 3.4f * h(i, 5)) * S, .5f * S, .5f * S, 0, 0, i % 2 == 0 ? 0x0A0A10 : mix(P3, 0x000000, .35f), 255); taper(0, (1.4f + 1.2f * h(i, 7)) * S, .34f * S, .34f * S, 0, 0, mix(P3, 0x000000, .2f), 255); pop(); }   // tall black spikes, a short one at each one's foot
+        for (int i = 0; i < 11 * N; i++) { float a = i * TAU / (11 * N) + h(i, 265) * .3f, r = R * (.95f + 1.15f * h(i, 264)); push(); tr((float) Math.cos(a) * r, 0, (float) Math.sin(a) * r); rY(a * 3f); rZ((h(i, 6) - .5f) * .25f); taper(0, (3.6f + 3.4f * h(i, 5)) * S, .5f * S, .5f * S, 0, 0, i % 2 == 0 ? 0x0A0A10 : mix(P3, 0x000000, .35f), 255); taper(0, (1.4f + 1.2f * h(i, 7)) * S, .34f * S, .34f * S, 0, 0, mix(P3, 0x000000, .2f), 255); pop(); }   // tall black spikes, a short one at each one's foot
         if (m) {   // space bends round the throne: expanding warped rings, stepped tears across the sky and a jitter that comes and goes
             for (int i = 0; i < 4; i++) { float pw = fract(t * .18f + i / 4f), rr = pw * R * 1.6f; push(); tr(0, CY + 1f * S, 0); rX(PI / 2 + (float) Math.sin(t + i) * .25f); rZ(t * .2f + i); torus(0, 0, 0, rr, rr * (.85f + .15f * (float) Math.sin(t * 2f + i)), .08f * S, 28, 3, 0, TAU, mix(P1, 0xFFFFFF, .3f), (int) (200 * (1 - pw))); pop(); }
             float stp = (float) Math.floor(t * 5f); boolean tear = fract(t * .23f) < .3f;
@@ -2772,8 +2773,6 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
                 float a = t * .02f * (i % 2 == 0 ? 1 : -1) + i * TAU / 20, el = .1f + 1.15f * h(i, 271);
                 float d = R * (1.3f + 1.9f * h(i, 272)), r = d * gc(el), y = top * .25f + gs(el) * d;
                 push(); tr(gc(a) * r, y, gs(a) * r); rY(-a + PI / 2 + t * .1f); rZ((h(i, 273) - .5f) * .5f);
-                box(0, 0, 0, (1.3f + .8f * h(i, 274)) * S, (2.0f + 1.3f * h(i, 274)) * S, .12f * S, 0x2A2A34, 255);
-                for (int k = 0; k < 4; k++) box(0, (k - 1.5f) * .55f * S, .14f * S, (.9f + .5f * h(i, 274)) * S, .06f * S, .02f * S, mix(P1, 0xFFFFFF, .3f), 255);
                 pop();
                 bb("glow", gc(a) * r, y, gs(a) * r, 5f * S, 5f * S, 0, rgba(P1, .14f)); }
             for (int i = 0; i < 7; i++) {   // the crowns of lesser kings, hanging high and turning
@@ -3504,7 +3503,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             // the legs, bound: one continuous run of links winding up them rather than a single
             // hoop at the ankles, which read as a ring floating clear of him
             push(); tr(0, 0, 4.6f * P);
-            chainWrap(8f * P, 26f * P, 5.6f * P, 3.6f * P, 3.2f, 1.5f * P);
+            chainWrap(7f * P, 27f * P, 7.4f * P, 4.2f * P, 3.8f, 1.3f * P);
             pop();
             pop(); pop();
             // One great chain from the top of the cross right up to the roof of the sphere. It used to

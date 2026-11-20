@@ -1,3 +1,12 @@
+## 0.2.362
+- The duel arena is a hundred blocks across, and it clears its whole volume before building. That was the barrier: an arena built at a smaller radius left its old invisible walls standing where the new floor now goes, and the build never wrote over them. Duellists start further apart and the slots are further from each other.
+- Rupex's field: the swirl was running out to a hundred and twenty-seven blocks with the sky wall at seventy-eight, so all of it was outside the dome and none of it was on the floor. It is back inside, the spell circles are a third of the size and a third of the brightness, and the sky no longer washes the grass gold.
+- The wrist chains are placed from the same point as the arm and the cuff is cut wide enough to swallow it, so a chain can no longer hang beside the limb. The leg wrap reaches up to the beam.
+- The Hanged Man's legs get Rupex's wrap exactly.
+- The Key of Light's gate ring and its two dozen spokes are gone.
+- Lawyer 0 loses the black paper slabs, and its spikes are spread from under three quarters of the radius out to twice it instead of crowding one band.
+- The Apothecary's altars and coffins moved in off the benches they were clipping through.
+
 ## 0.2.361
 - Both artifact panels are readable at any GUI scale. They were laid out on fixed pixel offsets with nothing clipping them, so on a large scale the description ran straight over the depth gauge and the Enter button and off the bottom of the panel.
 - The footer is now measured and reserved first — the depth row and the button get their own band — and everything else is flattened to lines, written into whatever gap is left, and clipped to it. Past the end it scrolls, with a bar, and the wheel scrolls whichever side the pointer is over.
