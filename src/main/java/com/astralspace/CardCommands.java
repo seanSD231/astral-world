@@ -50,7 +50,7 @@ public final class CardCommands {
                             .then(Commands.argument("symbol", com.mojang.brigadier.arguments.BoolArgumentType.bool())
                                 .executes(c -> summon(c, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "seq"),
                                                       com.mojang.brigadier.arguments.BoolArgumentType.getBool(c, "shiny"),
-                                                      com.mojang.brigadier.arguments.BoolArgumentType.getBool(c, "symbol"))))))));
+                                                      com.mojang.brigadier.arguments.BoolArgumentType.getBool(c, "symbol")))))))));
     }
 
     /**
