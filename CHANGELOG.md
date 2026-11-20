@@ -1,3 +1,9 @@
+## 0.2.363
+- Artifacts no longer carry damage or health. Attack, defence, HP and crit are gone; what they carry now is experience gain, dig speed, move speed, luck, reach, grasp, safe fall, step height and the whole Lord of the Mysteries side — max spirituality, regen, cost, ability power, area, duration, resistance and cooldown. An artifact is a thing you wear to get on with the world, and the pack has gear of its own for the fighting.
+- The Flower is always max spirituality and the Plume always experience gain; the Sands roll regen, cooldown, dig speed or cost; the Goblet rolls the ability stats; the Circlet rolls luck, experience, duration or speed. Every set's two-fragment half was remapped onto the new list.
+- Experience gain has no attribute anywhere, so it is kept per player and paid out when an orb is picked up.
+- The mask asks whether you are Steve or Alex when you put it on, and the suit is cut to match: narrower sleeves, cuffs and hands for Alex.
+
 ## 0.2.362
 - The duel arena is a hundred blocks across, and it clears its whole volume before building. That was the barrier: an arena built at a smaller radius left its old invisible walls standing where the new floor now goes, and the build never wrote over them. Duellists start further apart and the slots are further from each other.
 - Rupex's field: the swirl was running out to a hundred and twenty-seven blocks with the sky wall at seventy-eight, so all of it was outside the dome and none of it was on the floor. It is back inside, the spell circles are a third of the size and a third of the brightness, and the sky no longer washes the grass gold.

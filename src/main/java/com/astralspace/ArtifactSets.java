@@ -83,51 +83,51 @@ public final class ArtifactSets {
     static {
         set("evernight", "sleepless", "Rite of the Evernight", "Case BK-114",
             "Recovered from a night chapel in Backlund where the rite ran to its end with nobody left to stop it. Everything taken out of that room still prefers the dark.",
-            m(Stat.CRIT_RATE, .12, Stat.ABILITY_POWER, .10, Stat.HP_PCT, -.12),
+            m(Stat.LUCK, 2.0, Stat.ABILITY_POWER, .10, Stat.SPIRIT_REGEN, -.12),
             "Your blows mark what they land on for ten seconds. Finishing something marked hides you for two seconds and gives spirituality back.",
             "In daylight your crit rate is halved.",
             "Hands you one of the shadow authorities, from a sense of danger up to a shadow enclosure.",
-            m(Stat.HP_PCT, -.18));
+            m(Stat.SPIRIT_REGEN, -.18));
 
         set("storms", "sailor", "Hymn of the Storms", "Case PH-007",
             "Off Pritz Harbour a congregation sang the hymn through a squall and the squall answered. Eleven objects came back aboard. Four of them are still wet.",
-            m(Stat.ATK_PCT, .18, Stat.SPEED_PCT, .08, Stat.ABILITY_RESIST, -.14),
+            m(Stat.ABILITY_POWER, .18, Stat.MOVE_SPEED, .08, Stat.ABILITY_RESIST, -.14),
             "Every ten seconds your next blow calls lightning down on it. Being wet halves the wait.",
             "The bolt finds you too, for a tenth of what it deals.",
             "Hands you one of the lightning authorities, from a spark up to an ocean of it.",
-            m(Stat.DEF_PCT, -.20));
+            m(Stat.ABILITY_RESIST, -.20));
 
         set("steam", "savant", "Gearwork of Steam", "Case BK-902",
             "A boiler house that held a pressure it had no business holding, for eight days, and then did not. Nothing recovered from it will sit still under a load.",
-            m(Stat.DEF_PCT, .22, Stat.HP_PCT, .10, Stat.SPEED_PCT, -.12),
+            m(Stat.ABILITY_RESIST, .22, Stat.SPIRIT_REGEN, .10, Stat.MOVE_SPEED, -.12),
             "Being hurt builds pressure. At five your next blow vents it as a shockwave and leaves you quick for four seconds.",
             "While it is at five and unvented you take 15% more.",
             "Hands you one of the force authorities, from a sonic boom up to a calamity.",
-            m(Stat.SPEED_PCT, -.18));
+            m(Stat.MOVE_SPEED, -.18));
 
         set("acting", "seer", "The Acting Method", "Case TN-031",
             "A Tingen dressing room where somebody held a part for nine weeks without once breaking it. The part is still in the clothes.",
-            m(Stat.CRIT_DMG, .28, Stat.ABILITY_DUR, .12, Stat.DEF_PCT, -.18),
+            m(Stat.DIG_SPEED, .28, Stat.ABILITY_DUR, .12, Stat.ABILITY_RESIST, -.18),
             "Eight seconds untouched and you are in the role: a third more damage, until something lands on you.",
             "For four seconds after it breaks you deal a fifth less.",
             "Hands you one of the persona authorities, from placating up to alteration.",
-            m(Stat.DEF_PCT, -.18));
+            m(Stat.ABILITY_RESIST, -.18));
 
         set("harvest", "planter", "Mother's Harvest", "Case CO-046",
             "A field that went on yielding four winters after it was salted. The men sent to dig it up were found standing in it, unhurt, and unwilling to leave.",
-            m(Stat.HP_PCT, .20, Stat.SPIRIT_REGEN, .12, Stat.SPEED_PCT, -.12),
+            m(Stat.SPIRIT_REGEN, .20, Stat.SPIRIT_REGEN, .12, Stat.MOVE_SPEED, -.12),
             "Stand still two seconds to root: healing over time and a great deal of defence, until you move.",
             "While you are moving, healing on you is cut by a third.",
             "Hands you one of the flesh and blood authorities, from mending up to a cloak of it.",
-            m(Stat.ATK_PCT, -.20));
+            m(Stat.ABILITY_POWER, -.20));
 
         set("ledger", "reader", "Wisdom's Ledger", "Case BK-250",
             "Every page of it is a different hand and none of them repeat. The archivist who noticed that is the last entry.",
-            m(Stat.SPIRIT_MAX, 220, Stat.ABILITY_POWER, .12, Stat.CRIT_RATE, -.08),
+            m(Stat.SPIRIT_MAX, 220, Stat.ABILITY_POWER, .12, Stat.LUCK, -1.3),
             "A different kind of blow within six seconds of the last hits a quarter harder.",
             "Repeating yourself inside six seconds hits a fifth softer.",
             "Hands you one of the written authorities, from symbolisation up to sealing.",
-            m(Stat.CRIT_RATE, -.12));
+            m(Stat.LUCK, -2.0));
 
         set("alchemy", "apothecary", "Psychology Alchemy", "Case BY-018",
             "A Bayam clinic where the treatment worked. Patients left better than they came, and what was taken out of them had to go somewhere.",
@@ -139,23 +139,23 @@ public final class ArtifactSets {
 
         set("fog", "monster", "The Grey Fog", "Case 0-00",
             "No incident site. No recovery team. The file holds four objects and the note that they were already in the vault when the vault was built.",
-            m(Stat.COOLDOWN, .16, Stat.ABILITY_AREA, .12, Stat.ATK_PCT, -.14),
+            m(Stat.COOLDOWN, .16, Stat.ABILITY_AREA, .12, Stat.ABILITY_POWER, -.14),
             "Falling under half your health puts the fog round you: a step clear, and a second and a half nobody can touch you. Once a minute.",
             "For five seconds afterwards you deal a third less.",
             "Hands you one of the fortune authorities, from a sense of danger up to the cycle of fate.",
-            m(Stat.ATK_PCT, -.18));
+            m(Stat.ABILITY_POWER, -.18));
 
         set("thread", "mystery_pryer", "Spirit Thread", "Case 0-08",
             "Sealed, catalogued and buried twice. The second burial was because the first one came back up attached to something.",
-            m(Stat.ABILITY_AREA, .20, Stat.CRIT_RATE, .08, Stat.HP_PCT, -.14),
+            m(Stat.ABILITY_AREA, .20, Stat.LUCK, 1.3, Stat.SPIRIT_REGEN, -.14),
             "What you hit is threaded to what else you have hit for six seconds. A fifth of what you deal to one is dealt to the rest.",
             "While the threads are live you take a tenth more.",
             "Hands you one of the binding authorities, from binding up to a spatial seal.",
-            m(Stat.SPEED_PCT, -.20));
+            m(Stat.MOVE_SPEED, -.20));
 
         set("control", "criminal", "Loss of Control", "Case FP-073",
             "Whatever he was before, he was not that for long. The objects were on him when it finished and they have not calmed down since.",
-            m(Stat.CRIT_RATE, .12, Stat.ATK_PCT, .14, Stat.ABILITY_RESIST, -.20),
+            m(Stat.LUCK, 2.0, Stat.ABILITY_POWER, .14, Stat.ABILITY_RESIST, -.20),
             "Under two fifths of your health you deal half again as much.",
             "All healing on you is halved, always.",
             "Hands you one of the frenzy authorities, from berserk up to nightmare.",
@@ -163,39 +163,39 @@ public final class ArtifactSets {
 
         set("tarot", "spectator", "The Tarot Club", "Case 0-19",
             "Nobody recovered these. They arrived, one at a time, correctly addressed, from a place the Church has no name for.",
-            m(Stat.SPIRIT_REGEN, .22, Stat.COOLDOWN, .12, Stat.DEF_PCT, -.16),
+            m(Stat.SPIRIT_REGEN, .22, Stat.COOLDOWN, .12, Stat.ABILITY_RESIST, -.16),
             "Every twenty seconds your next blow strikes a third harder and gives a great deal of spirituality back.",
             "Between those blows you deal a tenth less.",
             "Hands you one of the fate authorities, from prophecy up to an implosion of misfortune.",
-            m(Stat.HP_PCT, -.18));
+            m(Stat.SPIRIT_REGEN, -.18));
 
         set("ascetic", "warrior", "The Moses Ascetic Order", "Case IN-012",
             "They fasted until the siege broke. It broke. Everything they were still wearing when the walls came down holds its edge best when there is nothing left.",
-            m(Stat.ABILITY_RESIST, .18, Stat.DEF_PCT, .14, Stat.ATK_PCT, -.16),
+            m(Stat.ABILITY_RESIST, .18, Stat.ABILITY_RESIST, .14, Stat.ABILITY_POWER, -.16),
             "Below half health you take a fifth less from everything, and mend a little every second you stay there.",
             "Above half health you deal a sixth less.",
             "Hands you one of the holy authorities, from an oath up to the incarnation of order.",
-            m(Stat.ATK_PCT, -.18));
+            m(Stat.ABILITY_POWER, -.18));
 
         set("mirror", "lawyer", "The Mirror Sea", "Case 0-21",
             "Taken from a drawing room with one mirror in it and two sets of footprints leading away.",
-            m(Stat.ABILITY_POWER, .16, Stat.CRIT_DMG, .14, Stat.SPEED_PCT, -.12),
+            m(Stat.ABILITY_POWER, .16, Stat.DIG_SPEED, .14, Stat.MOVE_SPEED, -.12),
             "Every fifteen seconds your next blow is copied onto something else nearby for three quarters.",
             "The copy is dealt to you as well, at a tenth.",
             "Hands you one of the door authorities, from a mirage up to exile.",
-            m(Stat.HP_PCT, -.16));
+            m(Stat.SPIRIT_REGEN, -.16));
 
         set("gloves", "hunter", "The Red Gloves", "Case LO-088",
             "A hunting party of six went out. The gloves came back. The file does not say how.",
-            m(Stat.ATK_PCT, .16, Stat.CRIT_RATE, .09, Stat.HP_PCT, -.12),
+            m(Stat.ABILITY_POWER, .16, Stat.LUCK, 1.5, Stat.SPIRIT_REGEN, -.12),
             "The first blow you land on anything hits half again as hard.",
             "Every blow after that on the same thing softens, to a third less.",
             "Hands you one of the twilight authorities, from a sense of danger up to the dawn armoury.",
-            m(Stat.DEF_PCT, -.18));
+            m(Stat.ABILITY_RESIST, -.18));
 
         set("quiet", "corpse_collector", "The Quiet Hours", "Case TN-004",
             "An undertaker's back room where the work was done properly and the clients did not always stay down.",
-            m(Stat.HP_PCT, .18, Stat.DEF_PCT, .12, Stat.ABILITY_POWER, -.16),
+            m(Stat.SPIRIT_REGEN, .18, Stat.ABILITY_RESIST, .12, Stat.ABILITY_POWER, -.16),
             "A blow that would finish you leaves you at a sliver instead. Once every five minutes.",
             "For twenty seconds afterwards you deal two fifths less.",
             "Hands you one of the underworld authorities, from speaking with them up to ruling their spirits.",
@@ -203,35 +203,35 @@ public final class ArtifactSets {
 
         set("bell", "bard", "The Sound of the Bell", "Case IN-055",
             "It was rung once, at the wrong hour, and the town below it agreed about something for a week.",
-            m(Stat.ABILITY_AREA, .16, Stat.ABILITY_DUR, .16, Stat.CRIT_DMG, -.20),
+            m(Stat.ABILITY_AREA, .16, Stat.ABILITY_DUR, .16, Stat.DIG_SPEED, -.20),
             "What you hit deals a fifth less for six seconds.",
             "A fifth off your own crit rate.",
             "Hands you one of the sound authorities, from singing up to an envoy of the sun.",
-            m(Stat.CRIT_DMG, -.20));
+            m(Stat.DIG_SPEED, -.20));
 
         set("knife", "assassin", "The Assassin's Study", "Case BK-370",
             "Nothing in the room was out of place, which was how they knew.",
-            m(Stat.CRIT_DMG, .26, Stat.SPEED_PCT, .09, Stat.DEF_PCT, -.20),
+            m(Stat.DIG_SPEED, .26, Stat.MOVE_SPEED, .09, Stat.ABILITY_RESIST, -.20),
             "Striking something that has not yet seen you hits three fifths harder.",
             "Anything that is looking at you hits you a fifth harder.",
             "Hands you one of the concealment authorities, from hiding up to the bearing of sins.",
-            m(Stat.HP_PCT, -.20));
+            m(Stat.SPIRIT_REGEN, -.20));
 
         set("lamp", "arbiter", "The Last Lamp", "Case LO-140",
             "The lamp was still burning. It had been burning for nine years and there was nothing in it.",
-            m(Stat.SPIRIT_MAX, 180, Stat.ABILITY_RESIST, .16, Stat.SPEED_PCT, -.10),
+            m(Stat.SPIRIT_MAX, 180, Stat.ABILITY_RESIST, .16, Stat.MOVE_SPEED, -.10),
             "Standing in light you mend steadily and take a tenth less.",
             "In the dark you deal a quarter less.",
             "Hands you one of the light authorities, from a holy eye up to a halo of purification.",
-            m(Stat.SPEED_PCT, -.18));
+            m(Stat.MOVE_SPEED, -.18));
 
         set("sealwax", "prisoner", "The Unopened Letter", "Case 0-33",
             "It is addressed to somebody who has not been born. The seal has been tested and will not break.",
-            m(Stat.SPIRIT_MAX, 200, Stat.COOLDOWN, .14, Stat.CRIT_RATE, -.10),
+            m(Stat.SPIRIT_MAX, 200, Stat.COOLDOWN, .14, Stat.LUCK, -1.7),
             "Going ten seconds without striking anything makes your next blow land for double.",
             "Every blow you land cuts your ability power a twentieth, to a fifth, until you stop again.",
             "Hands you one of the sealed authorities, from a concealed bundle up to a gamma ray burst.",
-            m(Stat.DEF_PCT, -.18));
+            m(Stat.ABILITY_RESIST, -.18));
     }
 
     public static Set get(String id) { return SETS.get(id); }

@@ -27,10 +27,18 @@ public final class MaskClient {
     private static final Map<UUID, Integer> COLOUR = new HashMap<>();
     private static final Map<UUID, String> NAME = new HashMap<>();
 
-    public static void set(UUID id, int colour, String name) {
-        if (colour < 0) { COLOUR.remove(id); NAME.remove(id); }
-        else { COLOUR.put(id, colour); NAME.put(id, name); }
+    private static final java.util.Set<UUID> SLIM = new java.util.HashSet<>();
+
+    public static void set(UUID id, int colour, String name, boolean slim) {
+        if (colour < 0) { COLOUR.remove(id); NAME.remove(id); SLIM.remove(id); }
+        else {
+            COLOUR.put(id, colour); NAME.put(id, name);
+            if (slim) SLIM.add(id); else SLIM.remove(id);
+        }
     }
+
+    /** Alex rather than Steve: narrower arms, and a little less of everything else. */
+    static boolean slim(UUID id) { return SLIM.contains(id); }
 
     public static boolean masked(UUID id) { return COLOUR.containsKey(id); }
 
@@ -114,8 +122,9 @@ public final class MaskClient {
             pose.pushPose(); UniqGfx.tr(pose, -1.1f, 8.2f, -2.9f); UniqGfx.box(pose, buf, .7f, .7f, .5f, shade(trim, .9f)); pose.popPose();   // the button
             pose.popPose();
 
-            sleeve(pose, buf, m.rightArm, -1f, cloth, shade);
-            sleeve(pose, buf, m.leftArm, 1f, cloth, shade);
+            boolean slim = slim(p.getUUID());
+            sleeve(pose, buf, m.rightArm, -1f, cloth, shade, slim);
+            sleeve(pose, buf, m.leftArm, 1f, cloth, shade, slim);
             skirt(pose, buf, m.rightLeg, cloth, shade);
             skirt(pose, buf, m.leftLeg, cloth, shade);
 
@@ -190,13 +199,13 @@ public final class MaskClient {
         private static final float PI = (float) Math.PI, TAU = (float) (Math.PI * 2);
 
         /** A jacket sleeve with an inch of shirt cuff showing at the wrist, as a suit does. */
-        private void sleeve(PoseStack pose, MultiBufferSource buf, net.minecraft.client.model.geom.ModelPart arm, float side, int cloth, int shade) {
+        private void sleeve(PoseStack pose, MultiBufferSource buf, net.minecraft.client.model.geom.ModelPart arm, float side, int cloth, int shade, boolean slim) {
             pose.pushPose();
             arm.translateAndRotate(pose);
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 3.2f, 0); UniqGfx.box(pose, buf, 5.4f, 12.4f, 5.4f, cloth); pose.popPose();
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, .6f, 0); UniqGfx.box(pose, buf, 5.8f, 3.2f, 5.8f, shade); pose.popPose();   // the shoulder of it
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 9.8f, 0); UniqGfx.box(pose, buf, 5.1f, 1.6f, 5.1f, SHIRT); pose.popPose(); // the cuff
-            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 11.3f, 0); UniqGfx.box(pose, buf, 4.9f, 2.8f, 4.9f, SKIN); pose.popPose(); // and the hand
+            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 3.2f, 0); UniqGfx.box(pose, buf, slim ? 4.4f : 5.4f, 12.4f, 5.4f, cloth); pose.popPose();
+            pose.pushPose(); UniqGfx.tr(pose, side * .2f, .6f, 0); UniqGfx.box(pose, buf, slim ? 4.8f : 5.8f, 3.2f, 5.8f, shade); pose.popPose();   // the shoulder of it
+            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 9.8f, 0); UniqGfx.box(pose, buf, slim ? 4.2f : 5.1f, 1.6f, 5.1f, SHIRT); pose.popPose(); // the cuff
+            pose.pushPose(); UniqGfx.tr(pose, side * .2f, 11.3f, 0); UniqGfx.box(pose, buf, slim ? 4.0f : 4.9f, 2.8f, 4.9f, SKIN); pose.popPose(); // and the hand
             pose.popPose();
         }
 

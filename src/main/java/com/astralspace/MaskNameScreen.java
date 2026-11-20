@@ -16,7 +16,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public final class MaskNameScreen extends Screen {
     private final int colour;
     private EditBox box;
-    private boolean sent;
+    private boolean sent, slim;
 
     private MaskNameScreen(int colour) {
         super(Component.literal("Behind the mask"));
@@ -35,16 +35,27 @@ public final class MaskNameScreen extends Screen {
         box.setHint(Component.literal("Masked"));
         addRenderableWidget(box);
         setInitialFocus(box);
+        addRenderableWidget(Button.builder(Component.literal(shape()), b -> { slim = !slim; rebuild(); })
+                .bounds(cx - 92, cy + 18, 184, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Put it on"), b -> send())
-                .bounds(cx - 92, cy + 20, 90, 20).build());
+                .bounds(cx - 92, cy + 42, 90, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Never mind"), b -> onClose())
-                .bounds(cx + 2, cy + 20, 90, 20).build());
+                .bounds(cx + 2, cy + 42, 90, 20).build());
+    }
+
+    private String shape() { return slim ? "Build: Alex (slim arms)" : "Build: Steve (classic arms)"; }
+
+    /** The shape button has to say what it now says, so the screen is laid out again. */
+    private void rebuild() {
+        String was = box == null ? "" : box.getValue();
+        rebuildWidgets();
+        if (box != null) box.setValue(was);
     }
 
     private void send() {
         if (sent) return;
         sent = true;
-        PacketDistributor.sendToServer(new DoorNet.MaskWear(colour, box.getValue()));
+        PacketDistributor.sendToServer(new DoorNet.MaskWear(colour, box.getValue(), slim ? 1 : 0));
         Minecraft.getInstance().setScreen(null);
     }
 
@@ -59,8 +70,8 @@ public final class MaskNameScreen extends Screen {
         renderBackground(g, mx, my, pt);
         int cx = width / 2, cy = height / 2;
         int c = Masks.TRIM[Math.max(0, Math.min(Masks.TRIM.length - 1, colour))];
-        g.fill(cx - 104, cy - 46, cx + 104, cy + 50, 0xD0101016);
-        g.renderOutline(cx - 104, cy - 46, 208, 96, (c & 0xFFFFFF) | 0xA0000000);
+        g.fill(cx - 104, cy - 46, cx + 104, cy + 72, 0xD0101016);
+        g.renderOutline(cx - 104, cy - 46, 208, 118, (c & 0xFFFFFF) | 0xA0000000);
         g.drawCenteredString(font, "Who are you tonight?", cx, cy - 36, c & 0xFFFFFF);
         g.drawCenteredString(font, "This is the name everyone will see.", cx, cy - 24, 0xFF9A9AA6);
         super.render(g, mx, my, pt);

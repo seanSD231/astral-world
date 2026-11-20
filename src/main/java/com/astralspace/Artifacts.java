@@ -52,27 +52,29 @@ public final class Artifacts {
     /**
      * A stat an artifact can carry. {@code attr} names the attribute it moves; a {@code lotm:} one
      * is only there when that mod is. {@code pct} stats are a share of the base value, flat ones are
-     * added outright. CRIT_RATE and CRIT_DMG have no attribute anywhere, so they are held here and
-     * read back out when a blow lands.
+     * added outright. EXP_MULT has no attribute anywhere, so it is kept on the player and read
+     * back when experience is picked up.
      */
     public enum Stat {
-        HP_FLAT       ("HP",              "minecraft:generic.max_health",  false, 1,  120,  1.00),
-        ATK_FLAT      ("ATK",             "minecraft:generic.attack_damage", false, 1,   8,  1.00),
-        DEF_FLAT      ("DEF",             "minecraft:generic.armor",       false, 1,   6,  0.90),
-        HP_PCT        ("HP",              "minecraft:generic.max_health",  true,  2,  .07,  1.00),
-        ATK_PCT       ("ATK",             "minecraft:generic.attack_damage", true, 2,  .07,  1.00),
-        DEF_PCT       ("DEF",             "minecraft:generic.armor",       true,  2,  .09,  0.90),
-        CRIT_RATE     ("CRIT Rate",       "",                              true,  2,  .05,  0.60),
-        CRIT_DMG      ("CRIT DMG",        "",                              true,  2,  .10,  0.60),
-        SPEED_PCT     ("Move Speed",      "minecraft:generic.movement_speed", true, 2, .04, 0.50),
-        SPIRIT_MAX    ("Max Spirituality", "lotm:max_spirituality",        false, 0,  90,  0.80),
-        SPIRIT_REGEN  ("Spirituality Regen", "lotm:spirituality_regen",    true,  2,  .09, 0.70),
-        SPIRIT_COST   ("Spirituality Cost", "lotm:spirituality_cost",      true,  2, -.05, 0.45),
-        ABILITY_POWER ("Ability Power",   "lotm:ability_power",            true,  2,  .07, 0.75),
-        ABILITY_AREA  ("Ability Area",    "lotm:ability_area",             true,  2,  .08, 0.45),
-        ABILITY_DUR   ("Ability Duration", "lotm:ability_duration",        true,  2,  .08, 0.45),
-        ABILITY_RESIST("Ability Resist",  "lotm:ability_resistance",       true,  2,  .06, 0.55),
-        COOLDOWN      ("Cooldown Reduction", "lotm:cooldown_reduction",    true,  2,  .05, 0.50);
+        // Nothing here is damage or health. An artifact is a thing you wear to get on with the
+        // world -- to dig, to range, to carry more spirituality and spend it better -- not a stat
+        // stick, and the pack has gear of its own for the fighting.
+        EXP_MULT      ("EXP Gain",        "",                                   true,  2,  .12,  1.00),
+        DIG_SPEED     ("Dig Speed",       "minecraft:player.block_break_speed", true,  2,  .10,  1.00),
+        MOVE_SPEED    ("Move Speed",      "minecraft:generic.movement_speed",   true,  2,  .05,  0.90),
+        LUCK          ("Luck",            "minecraft:generic.luck",             false, 1,  1.2,  0.80),
+        REACH         ("Reach",           "minecraft:player.block_interaction_range", false, 1, .55, 0.60),
+        GRASP         ("Grasp",           "minecraft:player.entity_interaction_range", false, 1, .45, 0.55),
+        SAFE_FALL     ("Safe Fall",       "minecraft:generic.safe_fall_distance", false, 1, 1.6, 0.50),
+        STEP          ("Step Height",     "minecraft:generic.step_height",      false, 2,  .18,  0.40),
+        SPIRIT_MAX    ("Max Spirituality", "lotm:max_spirituality",             false, 0,  90,  1.00),
+        SPIRIT_REGEN  ("Spirituality Regen", "lotm:spirituality_regen",         true,  2,  .09, 1.00),
+        SPIRIT_COST   ("Spirituality Cost", "lotm:spirituality_cost",           true,  2, -.05, 0.70),
+        ABILITY_POWER ("Ability Power",   "lotm:ability_power",                 true,  2,  .07, 0.90),
+        ABILITY_AREA  ("Ability Area",    "lotm:ability_area",                  true,  2,  .08, 0.70),
+        ABILITY_DUR   ("Ability Duration", "lotm:ability_duration",             true,  2,  .08, 0.70),
+        ABILITY_RESIST("Ability Resist",  "lotm:ability_resistance",            true,  2,  .06, 0.80),
+        COOLDOWN      ("Cooldown Reduction", "lotm:cooldown_reduction",         true,  2,  .05, 0.80);
 
         public final String title;
         /** The attribute this moves, empty when the stat is settled here instead. */
@@ -117,18 +119,18 @@ public final class Artifacts {
 
         public static Stat of(String name) {
             for (Stat s : values()) if (s.name().equals(name)) return s;
-            return HP_FLAT;
+            return SPIRIT_MAX;
         }
     }
 
-    /** The main stat each slot may roll. A Flower is always flat HP and a Plume always flat ATK. */
+    /** The main stat each slot may roll. A Flower is always spirituality and a Plume always study. */
     public static Stat[] mains(Slot slot) {
         return switch (slot) {
-            case FLOWER -> new Stat[]{Stat.HP_FLAT};
-            case PLUME -> new Stat[]{Stat.ATK_FLAT};
-            case SANDS -> new Stat[]{Stat.HP_PCT, Stat.ATK_PCT, Stat.DEF_PCT, Stat.SPIRIT_REGEN, Stat.COOLDOWN};
-            case GOBLET -> new Stat[]{Stat.HP_PCT, Stat.ATK_PCT, Stat.DEF_PCT, Stat.ABILITY_POWER, Stat.ABILITY_RESIST};
-            case CIRCLET -> new Stat[]{Stat.HP_PCT, Stat.ATK_PCT, Stat.DEF_PCT, Stat.CRIT_RATE, Stat.CRIT_DMG, Stat.ABILITY_AREA};
+            case FLOWER -> new Stat[]{Stat.SPIRIT_MAX};
+            case PLUME -> new Stat[]{Stat.EXP_MULT};
+            case SANDS -> new Stat[]{Stat.SPIRIT_REGEN, Stat.COOLDOWN, Stat.DIG_SPEED, Stat.SPIRIT_COST};
+            case GOBLET -> new Stat[]{Stat.ABILITY_POWER, Stat.ABILITY_RESIST, Stat.ABILITY_AREA};
+            case CIRCLET -> new Stat[]{Stat.LUCK, Stat.EXP_MULT, Stat.ABILITY_DUR, Stat.MOVE_SPEED};
         };
     }
 

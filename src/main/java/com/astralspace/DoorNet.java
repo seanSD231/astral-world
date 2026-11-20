@@ -44,11 +44,11 @@ public final class DoorNet {
     }
 
     /** Server to client: who is behind a mask, in what colour, under what name. Colour -1 means the mask came off. */
-    public record Mask(java.util.UUID id, int colour, String name) implements CustomPacketPayload {
+    public record Mask(java.util.UUID id, int colour, String name, int slim) implements CustomPacketPayload {
         public static final Type<Mask> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "mask"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Mask> CODEC = StreamCodec.of(
-            (b, m) -> { b.writeUUID(m.id); b.writeVarInt(m.colour); b.writeUtf(m.name, 32); },
-            b -> new Mask(b.readUUID(), b.readVarInt(), b.readUtf(32)));
+            (b, m) -> { b.writeUUID(m.id); b.writeVarInt(m.colour); b.writeUtf(m.name, 32); b.writeVarInt(m.slim); },
+            b -> new Mask(b.readUUID(), b.readVarInt(), b.readUtf(32), b.readVarInt()));
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
@@ -62,11 +62,11 @@ public final class DoorNet {
     }
 
     /** Client to server: the name they chose. */
-    public record MaskWear(int colour, String name) implements CustomPacketPayload {
+    public record MaskWear(int colour, String name, int slim) implements CustomPacketPayload {
         public static final Type<MaskWear> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(AstralMod.MOD_ID, "mask_wear"));
         public static final StreamCodec<RegistryFriendlyByteBuf, MaskWear> CODEC = StreamCodec.of(
-            (b, m) -> { b.writeVarInt(m.colour); b.writeUtf(m.name, 32); },
-            b -> new MaskWear(b.readVarInt(), b.readUtf(32)));
+            (b, m) -> { b.writeVarInt(m.colour); b.writeUtf(m.name, 32); b.writeVarInt(m.slim); },
+            b -> new MaskWear(b.readVarInt(), b.readUtf(32), b.readVarInt()));
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
@@ -158,10 +158,10 @@ public final class DoorNet {
         r.playToClient(Artifact.TYPE, Artifact.CODEC, (p, ctx) -> ctx.enqueueWork(() -> ArtifactSlots.setClient(p.slot(), p.stack())));
         r.playToServer(ArtifactAct.TYPE, ArtifactAct.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) ArtifactCommands.act(sp, p.slot(), p.invSlot()); }));
         r.playToClient(MaskAsk.TYPE, MaskAsk.CODEC, (p, ctx) -> ctx.enqueueWork(() -> MaskNameScreen.open(p.colour())));
-        r.playToServer(MaskWear.TYPE, MaskWear.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) Masks.wear(sp, p.colour(), p.name()); }));
+        r.playToServer(MaskWear.TYPE, MaskWear.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) Masks.wear(sp, p.colour(), p.name(), p.slim() != 0); }));
         r.playToClient(World.TYPE, World.CODEC, (p, ctx) -> ctx.enqueueWork(() -> UniqWorld.add(p.kind(), p.id(), p.id2(), p.x(), p.y(), p.z(), p.x2(), p.y2(), p.z2(), p.dur())));
         r.playToClient(Fx.TYPE, Fx.CODEC, (p, ctx) -> ctx.enqueueWork(() -> WornClient.fx(p.entity(), p.kind())));
-        r.playToClient(Mask.TYPE, Mask.CODEC, (p, ctx) -> ctx.enqueueWork(() -> MaskClient.set(p.id(), p.colour(), p.name())));
+        r.playToClient(Mask.TYPE, Mask.CODEC, (p, ctx) -> ctx.enqueueWork(() -> MaskClient.set(p.id(), p.colour(), p.name(), p.slim() != 0)));
         r.playToClient(Nova.TYPE, Nova.CODEC, (p, ctx) -> ctx.enqueueWork(() -> NovaRender.add(p.x(), p.y(), p.z(), p.scale())));
         r.playToServer(Key.TYPE, Key.CODEC, (p, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) WornUniq.press(sp); }));
     }

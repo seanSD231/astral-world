@@ -54,7 +54,7 @@ public class AstralMod {
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onLogout);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onRespawn);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onDimension);
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onHurt);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArtifactSlots::onXp);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(SetEffects::onDeal);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(SetEffects::onTake);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(SetEffects::onHeal);

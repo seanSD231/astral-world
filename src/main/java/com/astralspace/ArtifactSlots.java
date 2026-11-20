@@ -47,9 +47,8 @@ public final class ArtifactSlots {
 
     public static ItemStack get(Player p, Slot s) { return worn(p)[s.ordinal()]; }
 
-    /** The crit rate and crit damage a player's artifacts are worth right now. */
-    public static double critRate(Player p) { double[] c = CRIT.get(p.getUUID()); return c == null ? 0 : c[0]; }
-    public static double critDamage(Player p) { double[] c = CRIT.get(p.getUUID()); return c == null ? 0 : c[1]; }
+    /** The extra share of experience a player's artifacts are worth right now. */
+    public static double expBonus(Player p) { double[] c = CRIT.get(p.getUUID()); return c == null ? 0 : c[0]; }
 
     // ---- putting pieces in and taking them out ----
 
@@ -76,11 +75,10 @@ public final class ArtifactSlots {
     /** Works out everything the worn pieces come to and puts it on the player. */
     public static void apply(Player p) {
         Map<Stat, Double> totals = Artifacts.totals(worn(p));
-        double rate = 0, dmg = 0;
+        double exp = 0;
         for (Stat s : Stat.values()) {
             double v = totals.getOrDefault(s, 0.0);
-            if (s == Stat.CRIT_RATE) { rate = v; continue; }
-            if (s == Stat.CRIT_DMG) { dmg = v; continue; }
+            if (s == Stat.EXP_MULT) { exp = v; continue; }   // no attribute anywhere: kept here
             if (s == Stat.ABILITY_POWER) v += SetEffects.abilityShift(p);   // what the live set effects add or take
             Holder<Attribute> h = s.attribute();
             if (h == null) continue;                       // the mod that owns it is not here
@@ -90,7 +88,7 @@ public final class ArtifactSlots {
             inst.removeModifier(id);
             if (v != 0) inst.addTransientModifier(new AttributeModifier(id, v, Artifacts.op(s)));
         }
-        CRIT.put(p.getUUID(), new double[]{rate, dmg});
+        CRIT.put(p.getUUID(), new double[]{exp, 0});
         if (p instanceof ServerPlayer sp) SetAbilities.sync(sp);
         // Raising max health does not raise what is in the bar, and lowering it can leave a player
         // standing above their own maximum, which the game will not tidy up on its own.
@@ -170,20 +168,13 @@ public final class ArtifactSlots {
         if (e.getEntity() instanceof ServerPlayer sp) { apply(sp); sync(sp); }
     }
 
-    /**
-     * Crits. The roll is ours, so it is rolled on the server where the attacker's own pieces are
-     * known, and the blow is multiplied rather than replaced so whatever else the game had already
-     * decided about it still counts.
-     */
-    public static void onHurt(net.neoforged.neoforge.event.entity.living.LivingDamageEvent.Pre e) {
-        if (!(e.getSource().getEntity() instanceof ServerPlayer sp)) return;
-        double rate = critRate(sp);
-        if (rate <= 0) return;
-        if (sp.getRandom().nextDouble() >= Math.min(1.0, rate)) return;
-        float mult = 1f + (float) (0.5 + critDamage(sp));
-        e.setNewDamage(e.getNewDamage() * mult);
-        sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
-                net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_CRIT, net.minecraft.sounds.SoundSource.PLAYERS, .6f, 1.4f);
+    /** Experience picked up, raised by whatever the artifacts are worth. */
+    public static void onXp(net.neoforged.neoforge.event.entity.player.PlayerXpEvent.PickupXp e) {
+        if (!(e.getEntity() instanceof ServerPlayer p)) return;
+        double k = expBonus(p);
+        if (k <= 0) return;
+        int extra = (int) Math.floor(e.getOrb().getValue() * k);
+        if (extra > 0) p.giveExperiencePoints(extra);
     }
 
     // ---- the client's copy, for the menu ----

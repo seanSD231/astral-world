@@ -31,6 +31,7 @@ public final class Masks {
     private static final String TAG = "astral_mask";
     private static final Map<UUID, int[]> COLOUR = new HashMap<>();     // uuid -> {colour}
     private static final Map<UUID, String> NAME = new HashMap<>();
+    private static final java.util.Set<UUID> SLIM = new java.util.HashSet<>();   // Alex rather than Steve
 
     public static boolean masked(UUID id) { return COLOUR.containsKey(id); }
 
@@ -53,7 +54,7 @@ public final class Masks {
      * the name is theirs to pick -- but it is checked here, and so is the mask: nothing stops a
      * client sending this without one in hand.
      */
-    public static void wear(ServerPlayer sp, int colour, String name) {
+    public static void wear(ServerPlayer sp, int colour, String name, boolean slim) {
         if (COLOUR.containsKey(sp.getUUID())) return;
         if (colour < 0 || colour >= COLOURS.length) return;
         boolean has = false;
@@ -66,6 +67,7 @@ public final class Masks {
         if (name.isEmpty()) name = "Masked";
         COLOUR.put(sp.getUUID(), new int[]{colour});
         NAME.put(sp.getUUID(), name);
+        if (slim) SLIM.add(sp.getUUID()); else SLIM.remove(sp.getUUID());
         save(sp);
         broadcast(sp);
         sp.displayClientMessage(Component.literal("You are " + name + " now.").withStyle(net.minecraft.ChatFormatting.AQUA), true);
@@ -74,6 +76,7 @@ public final class Masks {
     private static void clear(ServerPlayer sp) {
         COLOUR.remove(sp.getUUID());
         NAME.remove(sp.getUUID());
+        SLIM.remove(sp.getUUID());
         save(sp);
         broadcast(sp);
     }
@@ -84,6 +87,7 @@ public final class Masks {
             CompoundTag t = new CompoundTag();
             t.putInt("c", colourOf(sp.getUUID()));
             t.putString("n", nameOf(sp.getUUID()));
+            t.putBoolean("s", SLIM.contains(sp.getUUID()));
             root.put(TAG, t);
         } else {
             root.remove(TAG);
@@ -91,7 +95,7 @@ public final class Masks {
     }
 
     private static void broadcast(ServerPlayer sp) {
-        var p = new DoorNet.Mask(sp.getUUID(), colourOf(sp.getUUID()), nameOf(sp.getUUID()));
+        var p = new DoorNet.Mask(sp.getUUID(), colourOf(sp.getUUID()), nameOf(sp.getUUID()), SLIM.contains(sp.getUUID()) ? 1 : 0);
         for (ServerPlayer other : sp.server.getPlayerList().getPlayers()) PacketDistributor.sendToPlayer(other, p);
     }
 
@@ -103,8 +107,9 @@ public final class Masks {
             CompoundTag t = root.getCompound(TAG);
             COLOUR.put(sp.getUUID(), new int[]{t.getInt("c")});
             NAME.put(sp.getUUID(), t.getString("n"));
+            if (t.getBoolean("s")) SLIM.add(sp.getUUID());
         }
-        for (UUID id : COLOUR.keySet()) PacketDistributor.sendToPlayer(sp, new DoorNet.Mask(id, colourOf(id), nameOf(id)));
+        for (UUID id : COLOUR.keySet()) PacketDistributor.sendToPlayer(sp, new DoorNet.Mask(id, colourOf(id), nameOf(id), SLIM.contains(id) ? 1 : 0));
         if (COLOUR.containsKey(sp.getUUID())) broadcast(sp);
     }
 
@@ -137,6 +142,6 @@ public final class Masks {
 
     /** Gone is gone: the map lets go, and the saved tag brings the mask back next time they log in. */
     public static void onLogout(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent e) {
-        if (e.getEntity() instanceof ServerPlayer sp) { COLOUR.remove(sp.getUUID()); NAME.remove(sp.getUUID()); }
+        if (e.getEntity() instanceof ServerPlayer sp) { COLOUR.remove(sp.getUUID()); NAME.remove(sp.getUUID()); SLIM.remove(sp.getUUID()); }
     }
 }
