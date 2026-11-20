@@ -1,3 +1,8 @@
+## 0.2.370
+- The Standing Board: a block that shows the top ten of one game floating over it, in that game's colour, with the first three picked out. Right-click to cycle which game it shows.
+- The lines are worked out on the server and sent with the block rather than the client asking for them, because a board in a town square is read far more often than it changes and nobody should have to open anything to look at one. It refreshes every ten seconds and only draws for anyone within thirty-six blocks.
+- Crafted from a portal with gold, quartz and obsidian, so a board is something you put up after you already have somewhere to fight.
+
 ## 0.2.369
 - The ladder is a block now. An Arena Portal, craftable but dear — four obsidian, two diamond blocks, two ender eyes and a gold block — so a settlement can have its own rather than everybody walking to Tingen to find a fight. Right-click it for the menu.
 - Three games, each with standings of its own, because they are different games. No Restrictions walks you in with everything you own. Sequence 5 and Sequence 2 set aside everything about you at the door — inventory, health, experience, pathway and sequence — give you a kit and a pathway you picked, and give it all back at the end, so nothing you own is at stake and nothing you own can help you.

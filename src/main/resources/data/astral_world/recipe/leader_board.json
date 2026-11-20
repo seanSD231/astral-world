@@ -1,0 +1,1 @@
+{"type": "minecraft:crafting_shaped", "category": "misc", "pattern": ["GGG", "QPQ", "OOO"], "key": {"G": {"item": "minecraft:gold_ingot"}, "Q": {"item": "minecraft:quartz_block"}, "P": {"item": "astral_world:arena_portal"}, "O": {"item": "minecraft:obsidian"}}, "result": {"id": "astral_world:leader_board", "count": 1}}
