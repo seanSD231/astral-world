@@ -1,3 +1,11 @@
+## 0.2.402
+
+### The packs are the hand-made art again
+- All 69 restored from `cc6a5df`, the last build before they were redrawn from scratch: the original painted pouches at 1024 with their lettering set at full resolution.
+- **This was my mistake and it is worth naming.** When the packs were called blurry I rewrote all of them from nothing, and the thing that was actually wrong was only the resolution. The admin pack escaped because it is built by darkening one of the originals rather than being drawn, which is exactly why it looked a class above everything else: it *was* the old art, and the other sixty-nine were mine.
+- Restoring them answers the shiny as well. **The original shiny pouch is gold and black** &mdash; gold drapery, gold gems, a black medallion &mdash; and the grey-and-everything one was something my version invented.
+- The admin pouch is left exactly as it is, and the silhouette patch from the last build is no longer needed: the originals were always this shape.
+
 ## 0.2.401
 
 ### Packs
