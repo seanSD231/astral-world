@@ -1,3 +1,10 @@
+## 0.2.393
+
+### Three drops reworked, per Rupex
+- **Spiritual Cloth** replaces the Gilded Folio. Not a book at all: a torn hanging rag with soul running in the weave, pale cloth with the threads lit teal and a little of it coming off the edges.
+- **Sovereign Skull** replaces the Shackled Skull. The chain is gone. A plain skeleton skull with blue light burning in the sockets, and a little of it escaping over the crown.
+- **Vengeful Spirit** replaces the Shrine Core. The last one is a knight's spirit, so it is the helm it kept: a crested great helm in translucent teal with the visor slit lit, trailing off into vapour below. Drawn so it does not read as the Drowned Wisp &mdash; that one is a bare flame, this one has a shape it refuses to give up.
+
 ## 0.2.392
 
 ### The rainbow sea

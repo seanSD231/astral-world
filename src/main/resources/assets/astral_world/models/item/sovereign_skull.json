@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "astral_world:item/gilded_folio"
+    "layer0": "astral_world:item/sovereign_skull"
   }
 }

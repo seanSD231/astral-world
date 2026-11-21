@@ -56,22 +56,22 @@ public final class Trophies {
     public static final DeferredItem<Item> DROWNED_WISP = keepsake("drowned_wisp",
             "It drifts toward water, whoever is holding it.", ChatFormatting.AQUA, Rarity.UNCOMMON);
 
-    /** The red scholar: the book it would not put down. */
-    public static final DeferredItem<Item> GILDED_FOLIO = keepsake("gilded_folio",
-            "The same four lines, on every page of it.", ChatFormatting.GOLD, Rarity.RARE);
+    /** The red scholar: not the book, the cloth, with soul still running in the weave. */
+    public static final DeferredItem<Item> SPIRITUAL_CLOTH = keepsake("spiritual_cloth",
+            "Warm, and it was never worn by anything living.", ChatFormatting.AQUA, Rarity.RARE);
 
-    /** The thing on the end of the chain, with the chain still through it. */
-    public static final DeferredItem<Item> SHACKLED_SKULL = keepsake("shackled_skull",
-            "Whatever it was chained to, it is not finished with.", ChatFormatting.WHITE, Rarity.RARE);
+    /** The skull lord: the skull itself, and the light still in its sockets. */
+    public static final DeferredItem<Item> SOVEREIGN_SKULL = keepsake("sovereign_skull",
+            "The light in it has not gone out, and will not.", ChatFormatting.BLUE, Rarity.RARE);
 
-    /** The walker: the carved stone it carried for a body. */
-    public static final DeferredItem<Item> SHRINE_CORE = keepsake("shrine_core",
-            "A shrine went walking, and something was living in it.", ChatFormatting.AQUA, Rarity.EPIC);
+    /** The walking knight: what was left of it, and it is not done. */
+    public static final DeferredItem<Item> VENGEFUL_SPIRIT = keepsake("vengeful_spirit",
+            "It kept the helm. It did not keep the man.", ChatFormatting.AQUA, Rarity.EPIC);
 
     /** Every drop, in the order the mobs were shown. */
     public static final List<DeferredItem<Item>> ALL = List.of(
             MEDUSA_BELL, MUTATED_HEART, DEPRAVED_EYE, DROWNED_WISP,
-            GILDED_FOLIO, SHACKLED_SKULL, SHRINE_CORE);
+            SPIRITUAL_CLOTH, SOVEREIGN_SKULL, VENGEFUL_SPIRIT);
 
     /** Touched so the static fields above are initialised while the registers are still open. */
     public static void touch() { }

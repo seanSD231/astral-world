@@ -105,11 +105,11 @@
   "entity.astral_world.moon_corruption": "The Moon's Corruption",
   "block.astral_world.arena_portal": "Arena Portal",
   "block.astral_world.leader_board": "Standing Board",
-  "item.astral_world.gilded_folio": "Gilded Folio",
   "item.astral_world.depraved_eye": "Depraved Eye",
   "item.astral_world.drowned_wisp": "Drowned Wisp",
-  "item.astral_world.shackled_skull": "Shackled Skull",
-  "item.astral_world.shrine_core": "Shrine Core",
   "item.astral_world.medusa_bell": "Medusa Bell",
-  "item.astral_world.mutated_heart": "Mutated Heart"
+  "item.astral_world.mutated_heart": "Mutated Heart",
+  "item.astral_world.spiritual_cloth": "Spiritual Cloth",
+  "item.astral_world.sovereign_skull": "Sovereign Skull",
+  "item.astral_world.vengeful_spirit": "Vengeful Spirit"
 }
