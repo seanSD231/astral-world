@@ -1,3 +1,10 @@
+## 0.2.392
+
+### The rainbow sea
+- Authored a **thin-film sheet** for it, 1024px, instead of tinting the old swirl down and hoping. It is built the way an oil slick actually works: a phase field dragged about by two rounds of domain warp so it marbles instead of ringing, with the colour read off a twelve-stop cyclic palette that runs pink into coral, gold, mint, cyan, periwinkle and violet and never passes through a pure green.
+- It is laid on with **ordinary blending**, so it comes out exactly as drawn. Through the emissive path it could only add light to what was under it, which is why every previous attempt went to white no matter how far the alpha came down. Only a ten percent sheen pass over the top is allowed to glow.
+- Three turns of it at different sizes and speeds, with black counter-swirls breaking it into arms the way it breaks on water.
+
 ## 0.2.391
 
 ### The admin card

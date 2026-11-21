@@ -1305,16 +1305,20 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         flatSolid("whirl", 0, .04f, 0, R * 11.0f, 0, rgba(0x05040A, 1f));              // the plate the rest sits on
         flatSolid("ring_thick", 0, .05f, 0, R * 11.0f, 0, rgba(0x040308, 1f));
 
-        flat(gold ? "whirl" : "adm_sea", 0, .08f, 0, R * 9.2f,  t * .035f, rgba(0x6A4A8C, .34f));
-        flat(gold ? "whirl" : "adm_sea", 0, .10f, 0, R * 6.6f, -t * .055f, rgba(0x4C3A78, .26f));
+        // The sea itself. This is a thin-film sheet authored for it rather than the old swirl
+        // tinted down: the colour is already right in the texture, so it is laid on with ordinary
+        // blending and comes out exactly as drawn. Put through the emissive path it only ever
+        // added light and went straight to white, which is what it kept doing before.
+        flatSolid("oilslick", 0, .07f, 0, R * 9.6f,  t * .020f, rgba(0xFFFFFF, 1f));
+        flatSolid("oilslick", 0, .09f, 0, R * 6.4f, -t * .034f, rgba(0xFFFFFF, .42f));
+        flatSolid("oilslick", 0, .11f, 0, R * 3.6f,  t * .055f, rgba(0xFFFFFF, .30f));
 
-        // black turning back through it, solid, so the colour breaks into bands of dark
-        flatSolid("whirl",     0, .12f, 0, R * 8.4f, -t * .028f, rgba(0x05030C, .72f));
-        flatSolid("adm_sea",   0, .14f, 0, R * 5.8f,  t * .060f, rgba(0x070410, .62f));
-        flatSolid("ring_dash", 0, .16f, 0, R * 7.2f, -t * .085f, rgba(0x0A0616, .60f));
+        // black turning back through it, so the sheet breaks into arms the way it does on water
+        flatSolid("whirl",     0, .13f, 0, R * 8.4f, -t * .024f, rgba(0x04030A, .66f));
+        flatSolid("ring_dash", 0, .15f, 0, R * 7.2f, -t * .070f, rgba(0x070414, .40f));
 
-        // and only a little colour back on top of the dark, so it reads as a swirl and not a lamp
-        flat("adm_sea", 0, .18f, 0, R * 7.8f, t * .042f, rgba(0x55407A, .22f));
+        // and the faintest sheen over the top, which is the only part that is allowed to glow
+        flat("oilslick", 0, .17f, 0, R * 9.6f, t * .020f, rgba(0xFFFFFF, .10f));
 
         flat("ring_thick", 0, .23f, 0, R * 2.6f, t * .06f, rgba(ADM_GOLD, .22f));
         flat("ring_dash", 0, .26f, 0, R * 2.0f, -t * .18f, rgba(ADM_PALE, .22f));
