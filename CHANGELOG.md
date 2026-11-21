@@ -1,3 +1,9 @@
+## 0.2.399
+
+### The ladder board
+- **Wide like the games' board, and nothing like it to look at.** No gold, no fire, no pediment: a low slate bench of two steps, a pale quartz wall sunk into it, a square blackstone pylon at each end with a **cold lantern** on top instead of a brazier, and a flat lintel straight across. In place of the games' turning emblem, a bar of light slides slowly along that lintel.
+- Now that it is wide the standing is in **two columns** again &mdash; the ladder itself on the left with the leader's face large, the other two games down the right &mdash; rather than the single tall list the stele needed.
+
 ## 0.2.398
 
 ### Masks

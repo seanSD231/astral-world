@@ -80,32 +80,35 @@ public class HgBoardRenderer extends EntityRenderer<HgBoard> {
         BlockState deep = Blocks.POLISHED_DEEPSLATE.defaultBlockState();
         BlockState tile = Blocks.DEEPSLATE_TILES.defaultBlockState();
         BlockState face = Blocks.SMOOTH_QUARTZ.defaultBlockState();
-        BlockState iron = Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+        BlockState dark = Blocks.POLISHED_BLACKSTONE.defaultBlockState();
         BlockState lamp = Blocks.SEA_LANTERN.defaultBlockState();
-        BlockState chain = Blocks.CHAIN.defaultBlockState();
+        BlockState bar  = Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState();
 
-        float W = 3.3f, y0 = 1.0f, H = 6.2f;
-        // a square base, stepped in
-        blk(ps, buf, tile, 0, 0f,   0, W + 1.5f, .35f, 2.2f, light);
-        blk(ps, buf, deep, 0, .35f, 0, W + 0.9f, .30f, 1.7f, light);
-        blk(ps, buf, tile, 0, .65f, 0, W + 0.4f, .35f, 1.3f, light);
-        // the shaft, tiled so the stone keeps its grain
-        for (int ix = 0; ix < 3; ix++) for (int iy = 0; iy < 6; iy++)
-            blk(ps, buf, face, -1.1f + ix * 1.1f, y0 + iy, 0, 1.1f, 1f, .36f, light);
-        // a dark rail down each edge, and a lintel top and bottom
-        for (int sd = -1; sd <= 1; sd += 2) blk(ps, buf, iron, sd * (W / 2f + .12f), y0, 0, .3f, H, .5f, light);
-        blk(ps, buf, deep, 0, y0 - .18f, 0, W + .7f, .2f, .56f, light);
-        blk(ps, buf, deep, 0, y0 + H,    0, W + .7f, .25f, .56f, light);
-        // the head: a lantern slung under a short chain, no fire
-        blk(ps, buf, tile, 0, y0 + H + .25f, 0, 1.9f, .3f, .5f, light);
-        blk(ps, buf, chain, 0, y0 + H + .55f, 0, .22f, .55f, .22f, light);
-        blk(ps, buf, lamp, 0, y0 + H + 1.10f, 0, .78f, .78f, .78f, FULL);
-        // and a slowly turning mark above it
-        ps.pushPose();
-        ps.translate(0, y0 + H + 2.0f + (float) Math.sin(time * .07f) * .05f, 0);
-        ps.mulPose(Axis.YP.rotationDegrees(time * 1.4f));
-        blk(ps, buf, lamp, 0, -.17f, 0, .34f, .34f, .34f, FULL);
-        ps.popPose();
+        // Wide like the games' board, and nothing like it to look at: no gold, no fire, no
+        // pediment. A low slate bench, a pale quartz wall sunk into it, two square pylons with
+        // cold lanterns on them, and a flat lintel straight across the top.
+        float W = 6.4f, y0 = .95f, H = 4.1f;
+        blk(ps, buf, tile, 0, 0f,   0, W + 2.4f, .30f, 2.4f, light);        // the bench, two low steps
+        blk(ps, buf, dark, 0, .30f, 0, W + 1.6f, .30f, 1.9f, light);
+        blk(ps, buf, tile, 0, .60f, 0, W + 1.0f, .35f, 1.5f, light);
+
+        for (int ix = 0; ix < 6; ix++) for (int iy = 0; iy < 4; iy++)      // the wall
+            blk(ps, buf, face, -W / 2f + .53f + ix * 1.06f, y0 + iy * 1.03f, 0, 1.06f, 1.03f, .34f, light);
+        blk(ps, buf, dark, 0, y0 - .16f, 0, W + .5f, .18f, .52f, light);   // sill
+        blk(ps, buf, deep, 0, y0 + H,    0, W + 1.1f, .34f, .58f, light);  // the lintel, flat across
+        blk(ps, buf, bar,  0, y0 + H + .34f, 0, W + .6f, .14f, .46f, light);
+
+        for (int sd = -1; sd <= 1; sd += 2) {                              // a pylon at each end
+            float px = sd * (W / 2f + .52f);
+            blk(ps, buf, dark, px, .60f, 0, .9f, H + .55f, .9f, light);
+            blk(ps, buf, bar,  px, .60f, 0, 1.0f, .22f, 1.0f, light);
+            blk(ps, buf, bar,  px, y0 + H - .1f, 0, 1.0f, .22f, 1.0f, light);
+            blk(ps, buf, lamp, px, y0 + H + .32f, 0, .62f, .62f, .62f, FULL);   // cold light, not fire
+            blk(ps, buf, dark, px, y0 + H + .94f, 0, .34f, .30f, .34f, light);
+        }
+        // a slow bar of light sliding along the lintel, in place of the games' turning emblem
+        float slide = (float) Math.sin(time * .035f) * (W / 2f);
+        blk(ps, buf, lamp, slide, y0 + H + .18f, .30f, .5f, .14f, .12f, FULL);
 
         // ---- one column of names
         List<String[]> res = new ArrayList<>(), other = new ArrayList<>();
@@ -117,29 +120,31 @@ public class HgBoardRenderer extends EntityRenderer<HgBoard> {
             else if (f.length >= 4 && f[0].equals("P")) other.add(f);
         }
         ps.pushPose(); ps.translate(0, 0, .19f);
-        float left = -W / 2f + .22f, right = W / 2f - .22f, top = y0 + H - .3f;
-        text(ps, buf, big, 0, top, big.length() > 12 ? .24f : .30f, DIM_T, 1);
+        float left = -W / 2f + .3f, mid = .5f, right = W / 2f - .3f, top = y0 + H - .45f;
+        text(ps, buf, big, (left + mid) / 2f, top, big.length() > 14 ? .26f : .32f, DIM_T, 1);
+        text(ps, buf, "THE OTHER LADDERS", (mid + right) / 2f + .1f, top - .04f, .17f, DIM_T, 1);
         if (res.isEmpty()) {
-            text(ps, buf, "No one has fought yet", 0, top - .9f, .18f, DIM_T, 1);
+            text(ps, buf, "No one has fought yet", (left + mid) / 2f, top - 1.1f, .22f, DIM_T, 1);
         } else {
             String[] w = res.get(0);
-            face(ps, buf, w[2], left, top - .55f, .78f);
-            text(ps, buf, first, left + .95f, top - .60f, .13f, DIM_T, 0);
-            text(ps, buf, fit(w[2], .26f, right - left - 1.05f), left + .95f, top - .80f, .26f, INK_T, 0);
-            text(ps, buf, w[3] + " " + (w[3].equals("1") ? one : many), left + .95f, top - 1.14f, .15f, DIM_T, 0);
+            face(ps, buf, w[2], left + .34f, top - .72f, .92f);
+            text(ps, buf, first, left + 1.0f, top - .60f, .14f, DIM_T, 0);
+            text(ps, buf, fit(w[2], .30f, mid - left - 1.15f), left + 1.0f, top - .86f, .30f, INK_T, 0);
+            text(ps, buf, w[3] + " " + (w[3].equals("1") ? one : many), left + 1.0f, top - 1.22f, .16f, DIM_T, 0);
             for (int i = 1; i < Math.min(res.size(), 9); i++) {
-                String[] r = res.get(i);
-                float ry = top - 1.75f - (i - 1) * .30f;
-                text(ps, buf, "#" + r[1], left, ry, .17f, i < 3 ? INK_T : DIM_T, 0);
-                text(ps, buf, fit(r[2], .17f, right - left - 1.25f), left + .45f, ry, .17f, INK_T, 0);
-                text(ps, buf, r[3], right, ry, .17f, DIM_T, 2);
+                String[] rrow = res.get(i);
+                float ry = top - 1.80f - (i - 1) * .30f;
+                text(ps, buf, "#" + rrow[1], left, ry, .17f, i < 3 ? INK_T : DIM_T, 0);
+                text(ps, buf, fit(rrow[2], .17f, mid - left - .95f), left + .45f, ry, .17f, INK_T, 0);
+                text(ps, buf, rrow[3], mid - .1f, ry, .17f, DIM_T, 2);
             }
         }
-        float oy = y0 + .55f;
         for (int i = 0; i < Math.min(other.size(), 2); i++) {
-            String[] h = other.get(i);
-            text(ps, buf, fit(h[3], .13f, W - .5f), left, oy - i * .34f, .13f, DIM_T, 0);
-            text(ps, buf, fit(h[1], .15f, W - .5f) + "  " + h[2], left, oy - i * .34f - .17f, .15f, INK_T, 0);
+            String[] hrow = other.get(i);
+            float oy = top - .75f - i * .95f;
+            text(ps, buf, fit(hrow[3], .17f, right - mid - .2f), mid + .2f, oy, .17f, DIM_T, 0);
+            text(ps, buf, fit(hrow[1], .23f, right - mid - .2f), mid + .2f, oy - .30f, .23f, INK_T, 0);
+            text(ps, buf, hrow[2] + " " + many, mid + .2f, oy - .58f, .15f, DIM_T, 0);
         }
         ps.popPose();
     }
