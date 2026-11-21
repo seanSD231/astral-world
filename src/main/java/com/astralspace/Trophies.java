@@ -41,11 +41,11 @@ public final class Trophies {
     }
 
     /** The jellyfish that walks upright: the bell off the top of it, glass-clear and still cold. */
-    public static final DeferredItem<Item> RIMEGLASS_BELL = keepsake("rimeglass_bell",
+    public static final DeferredItem<Item> MEDUSA_BELL = keepsake("medusa_bell",
             "Still full of the water it drifted in.", ChatFormatting.AQUA, Rarity.UNCOMMON);
 
     /** The red flesh thing: the one part of it that was ever properly alive, and it grew. */
-    public static final DeferredItem<Item> CLOTTED_HEART = keepsake("clotted_heart",
+    public static final DeferredItem<Item> MUTATED_HEART = keepsake("mutated_heart",
             "It has more chambers than it ought to.", ChatFormatting.DARK_RED, Rarity.UNCOMMON);
 
     /** The iron knight: what was behind the visor, and it was never a lens. */
@@ -70,7 +70,7 @@ public final class Trophies {
 
     /** Every drop, in the order the mobs were shown. */
     public static final List<DeferredItem<Item>> ALL = List.of(
-            RIMEGLASS_BELL, CLOTTED_HEART, DEPRAVED_EYE, DROWNED_WISP,
+            MEDUSA_BELL, MUTATED_HEART, DEPRAVED_EYE, DROWNED_WISP,
             GILDED_FOLIO, SHACKLED_SKULL, SHRINE_CORE);
 
     /** Touched so the static fields above are initialised while the registers are still open. */

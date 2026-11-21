@@ -1,3 +1,12 @@
+## 0.2.390
+
+### Naming and art
+- **Medusa Bell**, renamed from Rimeglass Bell. Medusa is the jellyfish itself, so the name says what it came off.
+- **Mutated Heart**, renamed from Clotted Heart.
+- The **Gilded Folio** is drawn as a closed book seen front on: a banded spine down one side, page edges down the other, a gilt panel on the face and a clasp. The open-book angle never read as a book at sixteen pixels; a closed one does at a glance.
+- The **Shackled Skull** is rebuilt on a square cranium with deep set sockets, a proper brow and a jaw with teeth, and three clear chain links out of the crown instead of a crowd of thin curves.
+- The **Shrine Core** is drawn front on rather than from a corner: a wide eaved roof, a finial, a slatted window with the teal light behind it, a sill and a base. The isometric version was mud at this size.
+
 ## 0.2.389
 
 ### The drops, corrected again
