@@ -1,0 +1,2 @@
+{ "parent": "minecraft:block/cube_bottom_top",
+  "textures": { "top": "astral_world:block/dream_stone_top", "bottom": "astral_world:block/dream_stone_side", "side": "astral_world:block/dream_stone_side" } }

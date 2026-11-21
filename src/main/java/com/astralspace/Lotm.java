@@ -441,6 +441,56 @@ public final class Lotm {
         return c.getMethod("get", net.minecraft.world.level.LevelAccessor.class).invoke(null, server.overworld());
     }
 
+    // ---------------------------------------------------------------- dreams
+
+    /** Opens LOTM's own Dream Shaping menu for this player, the one its ability opens on sneak-use. */
+    public static boolean dreamMenu(ServerPlayer p) {
+        try {
+            Class<?> c = Class.forName("net.swimmingtuna.lotm.pathway.sleepless.abilities.SleeplessDreamShaping");
+            Object ability = c.getMethod("ability").invoke(null);
+            c.getMethod("interceptedUse", ServerPlayer.class).invoke(ability, p);
+            return true;
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not open the dream menu: {}", String.valueOf(t.getCause() != null ? t.getCause() : t));
+            return false;
+        }
+    }
+
+    /**
+     * Casts Dream Shaping, as {@code caster}, at one target, the way the ability itself would.
+     * Which dream it is comes from what that player has selected in the menu.
+     */
+    public static boolean castDreamOn(ServerPlayer caster, net.minecraft.world.entity.Entity target) {
+        try {
+            Class<?> ac = Class.forName("net.swimmingtuna.lotm.pathway.sleepless.abilities.SleeplessDreamShaping");
+            Object ability = ac.getMethod("ability").invoke(null);
+            Class<?> simple = Class.forName("net.swimmingtuna.lotm.item.BeyonderAbilities$SimpleAbilityItem");
+            Class<?> srcC = Class.forName("net.swimmingtuna.lotm.ability.AbilityCaster$CastSource");
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            Object src = Enum.valueOf((Class) srcC, "BLOCK_INTERACT");
+            Method m = Class.forName("net.swimmingtuna.lotm.ability.AbilityCaster").getMethod("cast",
+                    net.minecraft.world.entity.LivingEntity.class, simple, srcC,
+                    net.minecraft.world.InteractionHand.class,
+                    net.minecraft.world.entity.Entity.class,
+                    net.minecraft.world.phys.BlockHitResult.class);
+            m.invoke(null, caster, ability, src, net.minecraft.world.InteractionHand.MAIN_HAND, target, null);
+            return true;
+        } catch (Throwable t) {
+            LOGGER.warn("[astral] could not cast the dream: {}", String.valueOf(t.getCause() != null ? t.getCause() : t));
+            return false;
+        }
+    }
+
+    /** Whether LOTM has this player in a dream right now. */
+    public static boolean isDreaming(ServerPlayer p) {
+        try {
+            return (Boolean) Class.forName("net.swimmingtuna.lotm.ability.dream.Dreams")
+                    .getMethod("isDreaming", net.minecraft.world.entity.Entity.class).invoke(null, p);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     /** Whether LOTM counts these two as allies. False when LOTM is not here to be asked. */
     public static boolean areAllies(net.minecraft.server.MinecraftServer server, java.util.UUID a, java.util.UUID b) {
         if (a == null || b == null) return false;

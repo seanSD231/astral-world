@@ -1,3 +1,11 @@
+## 0.2.380
+
+### The Dreaming Stone
+- Darkness's Dream Shaping, laid in the ground and pointed at a crowd instead of at one sleeper. No recipe; an operator places it and only an operator can work it.
+- **Crouch-use opens LOTM's own shaping menu** &mdash; the ability's menu itself, reached through its own code, not a copy of it &mdash; so a dream is built, picked and edited exactly as it always was.
+- An empty-handed use then casts whatever is selected at **every player within 48 blocks**, one at a time, with whoever used the stone as the caster.
+- Use it holding anything to turn **keeping items** on and off. While a sleeper is under, the stone remembers what they carry; the moment they wake it hands back anything the waking took off them. Nothing of the dream's own rules has to be unpicked for it.
+
 ## 0.2.379
 
 ### Summoning holograms
