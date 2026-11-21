@@ -127,10 +127,12 @@ public final class AstralFloor {
     private AstralFloor() {}
 
     public static void register(IEventBus modBus) {
+        Trophies.touch();   // its items register on ours
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         modBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(SMITER.get()); for (var u : UNIQUENESSES) e.accept(u.get()); for (var k : MASKS) e.accept(k.get()); }
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.INGREDIENTS) { for (var d : Trophies.ALL) e.accept(d.get()); }
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(CABINET_ITEM.get()); e.accept(ARENA_PORTAL_ITEM.get()); e.accept(LEADER_BOARD_ITEM.get()); e.accept(TOURNEY_ALTAR_ITEM.get()); e.accept(DREAM_STONE_ITEM.get()); }
         });
     }

@@ -1,3 +1,16 @@
+## 0.2.387
+
+### Seven drops
+- One item for each of the seven, each the part that was doing the work rather than a generic token. All stack to 16, carry a line of flavour, and sit under Ingredients in creative.
+- **Rimeglass Shard** &mdash; the glass spirit. A pane of it, violet through green, lit from inside.
+- **Clotted Heart** &mdash; the red flesh thing. The one part of it that was ever properly alive.
+- **Sentinel's Eye** &mdash; the iron knight. The red lens its single eye burned behind, still in its ring.
+- **Spectral Silk** &mdash; the drowned spider. A skein of the thread it hung itself from, loose ends and all.
+- **Gilded Folio** &mdash; the red scholar. One leaf out of the book it would not put down.
+- **Pale Vertebra** &mdash; the spire. One bone out of the column that came up through the ground.
+- **Walker's Lantern** &mdash; the walking lantern. The light it carried where a head should be.
+- Nothing has a use of its own yet; they are drops and materials, so what they are for is still open.
+
 ## 0.2.386
 
 ### Reading a chest out
