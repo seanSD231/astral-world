@@ -1,3 +1,15 @@
+## 0.2.382
+
+### The admin card
+- **The floor is actually dark now.** The swirl quads are emissive: they only ever add light, so every black layer I put over them last time added precisely nothing and the ground stayed a sheet of colour. Anything meant to darken goes through ordinary blending instead, so the black plate and the black counter-swirls bite, and the colour that is left is kept dim enough never to reach white.
+- The aura is drawn **after** him rather than before, so it is no longer buried behind his own skin, and it is twice as dense, opaque smoke instead of glow, with far more red in it.
+- The chains each run a link further into what they hang from, so they close on him instead of stopping short.
+- The wrist and ankle cuffs are turned upright, round the limb, rather than lying flat across it.
+- The loose chains that hung out of the cloud are gone: at that distance they were two stray lines beside him with nothing on either end.
+
+### Key of Light
+- The door behind the key is white.
+
 ## 0.2.381
 
 ### Crash on startup

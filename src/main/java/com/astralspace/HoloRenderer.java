@@ -181,6 +181,19 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         }
         quad(tex, x, y, z, c, 0, s, -s, 0, c, argb);
     }
+    /**
+     * A flat quad drawn with ordinary blending rather than emissive.
+     *
+     * <p>Emissive quads add light and cannot take any away, so black drawn that way is simply
+     * nothing. Anything meant to darken what is under it has to come through here.</p>
+     */
+    private void flatSolid(String tex, float x, float y, float z, float size, float rot, int argb) {
+        float c = (float) Math.cos(rot) * size / 2, s = (float) Math.sin(rot) * size / 2;
+        eqSolid = true;
+        eq(tex(tex), x, y, z, c, 0, s, -s, 0, c, argb, 0, 0, 1, 1);
+        eqSolid = false;
+    }
+
     /** Upright quad turned around Y by yaw. */
     private void stand(String tex, float x, float y, float z, float w, float hgt, float yaw, int argb) {
         float c = (float) Math.cos(yaw) * w / 2, s = (float) Math.sin(yaw) * w / 2;
@@ -1193,8 +1206,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         adminGround();
         adminCross(armY, feet);
         adminRings(yB, armY, head, P);
-        adminAura(yB, P);
         adminFigure(who, P, yB, armY, armX, feet);
+        adminAura(yB, P);   // after him, so it is not buried behind his own skin
         adminAir();
     }
 
@@ -1272,30 +1285,35 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
     }
 
     private void adminGround() {
-        // The whole floor is the rainbow swirl, and it is laid over black rather than over the
-        // field. Drawn straight onto white it saturated to a sheet of light and the colour was
-        // only visible out at the rim; over a dark plate the swirl reads everywhere, and the
-        // black turning through it keeps it from flattening out again.
-        flat("ring_thick", 0, .06f, 0, R * 9.6f, 0, rgba(0x05040A, .96f));            // the dark plate under everything
-        flat(gold ? "whirl" : "adm_sea", 0, .09f, 0, R * 9.2f,  t * .035f, rgba(0xFFFFFF, .40f));
-        flat(gold ? "whirl" : "adm_sea", 0, .11f, 0, R * 7.1f, -t * .052f, rgba(0xFFFFFF, .30f));
-        flat(gold ? "whirl" : "adm_sea", 0, .13f, 0, R * 4.6f,  t * .080f, rgba(0xFFFFFF, .22f));
-        // black drawn back over it, turning the other way, so the colour breaks into bands
-        flat("whirl",    0, .15f, 0, R * 8.2f, -t * .030f, rgba(0x000000, .42f));
-        flat("adm_sea",  0, .17f, 0, R * 5.6f,  t * .065f, rgba(0x05030C, .38f));
-        flat("ring_dash", 0, .19f, 0, R * 6.8f, -t * .09f, rgba(0x120A1E, .45f));
+        // Black first, and drawn solid. The swirl is emissive: it only ever adds light, so the
+        // black laid over it last time added nothing at all and the floor stayed a sheet of
+        // colour. Everything that darkens goes through flatSolid; everything that glows is kept
+        // dim enough that it never reaches white.
+        flatSolid("whirl", 0, .04f, 0, R * 11.0f, 0, rgba(0x05040A, 1f));              // the plate the rest sits on
+        flatSolid("ring_thick", 0, .05f, 0, R * 11.0f, 0, rgba(0x040308, 1f));
 
-        flat("ring_thick", 0, .23f, 0, R * 2.6f, t * .06f, rgba(ADM_GOLD, .3f));
-        flat("ring_dash", 0, .26f, 0, R * 2.0f, -t * .18f, rgba(ADM_PALE, .3f));
-        flat("adm_runes", 0, .29f, 0, R * 1.5f, t * .09f, rgba(ADM_GOLD, .3f));
-        flat("ring", 0, .32f, 0, R * 1.0f, -t * .3f, rgba(ADM_PALE, .32f));
-        for (int i = 0; i < 3; i++) {   // and light going out from the middle of it
+        flat(gold ? "whirl" : "adm_sea", 0, .08f, 0, R * 9.2f,  t * .035f, rgba(0x6A4A8C, .34f));
+        flat(gold ? "whirl" : "adm_sea", 0, .10f, 0, R * 6.6f, -t * .055f, rgba(0x4C3A78, .26f));
+
+        // black turning back through it, solid, so the colour breaks into bands of dark
+        flatSolid("whirl",     0, .12f, 0, R * 8.4f, -t * .028f, rgba(0x05030C, .72f));
+        flatSolid("adm_sea",   0, .14f, 0, R * 5.8f,  t * .060f, rgba(0x070410, .62f));
+        flatSolid("ring_dash", 0, .16f, 0, R * 7.2f, -t * .085f, rgba(0x0A0616, .60f));
+
+        // and only a little colour back on top of the dark, so it reads as a swirl and not a lamp
+        flat("adm_sea", 0, .18f, 0, R * 7.8f, t * .042f, rgba(0x55407A, .22f));
+
+        flat("ring_thick", 0, .23f, 0, R * 2.6f, t * .06f, rgba(ADM_GOLD, .22f));
+        flat("ring_dash", 0, .26f, 0, R * 2.0f, -t * .18f, rgba(ADM_PALE, .22f));
+        flat("adm_runes", 0, .29f, 0, R * 1.5f, t * .09f, rgba(ADM_GOLD, .22f));
+        flat("ring", 0, .32f, 0, R * 1.0f, -t * .3f, rgba(ADM_PALE, .24f));
+        for (int i = 0; i < 3; i++) {
             float pw = fract(t * .18f + i / 3f);
-            flat("ring", 0, .37f, 0, pw * R * 2.8f, 0, rgba(ADM_GOLD, fd(pw) * .28f));
+            flat("ring", 0, .37f, 0, pw * R * 2.8f, 0, rgba(ADM_GOLD, fd(pw) * .2f));
         }
         float c = gc(t * .04f) * R * .33f, s2 = gs(t * .04f) * R * .33f;
         eq(ResourceLocation.fromNamespaceAndPath("lotm", "textures/effect/hanged_man_symbol.png"),
-           0, .42f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .45f), 0, 0, 1, 1);
+           0, .42f, 0, c, 0, s2, -s2, 0, c, rgba(ADM_PALE, .4f), 0, 0, 1, 1);
     }
 
     /**
@@ -1304,23 +1322,23 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      */
     private void adminAura(float yB, float P) {
         float mid = yB + 8f * P, h = 34f * P;
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < 30; i++) {
             float a = h(i, 810) * TAU + t * (.10f + .05f * h(i, 811));
             float rr = (3.2f + 5.4f * h(i, 812)) * P;
             float y = mid + (h(i, 813) - .5f) * h;
             float w = (9f + 7f * h(i, 814)) * P, puff = .55f + .45f * gs(t * .8f + i);
-            bb("glow", gc(a) * rr, y, gs(a) * rr, w, w * 1.25f, 0, rgba(0x090610, .50f * puff));
+            bb("smoke", gc(a) * rr, y, gs(a) * rr, w, w * 1.25f, 0, rgba(0x05030A, .92f * puff));
         }
-        for (int i = 0; i < 10; i++) {   // red turning through the dark, never over it
+        for (int i = 0; i < 18; i++) {   // red turning through the dark, never over it
             float a = h(i, 820) * TAU - t * (.13f + .06f * h(i, 821));
             float rr = (4.0f + 4.4f * h(i, 822)) * P;
             float y = mid + (h(i, 823) - .5f) * h * .9f;
             float w = (5.5f + 4.5f * h(i, 824)) * P, puff = .45f + .55f * gs(t * 1.1f + i * 1.7f);
-            bb("glow", gc(a) * rr, y, gs(a) * rr, w, w * 1.2f, 0, rgba(0x8E0A12, .40f * puff));
+            bb("smoke", gc(a) * rr, y, gs(a) * rr, w, w * 1.2f, 0, rgba(0xB00C16, .70f * puff));
         }
         // and it pools at his head, which hangs lowest
-        bb("glow", 0, yB - 5f * P, 0, 26f * P, 20f * P, 0, rgba(0x0A0510, .45f));
-        bb("glow", 0, yB - 5f * P, 0, 16f * P, 13f * P, 0, rgba(0x8E0A12, .28f));
+        bb("smoke", 0, yB - 5f * P, 0, 30f * P, 23f * P, 0, rgba(0x05030A, .88f));
+        bb("smoke", 0, yB - 5f * P, 0, 18f * P, 15f * P, 0, rgba(0xB00C16, .55f));
         sprites("mote", 18, RISEM, 9f * P, mid - h * .5f, h, 1.1f * P, 0xC0202A, .8f, .10f, 931, true);
         sprites("mote", 14, FALLM, 11f * P, mid + h * .5f, h, .9f * P, 0x1A1026, .7f, .08f, 932, false);
     }
@@ -1331,7 +1349,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         column("beam", 0, .1f, top * 2.0f, 0, .8f * S, rgba(ADM_PALE, .3f));
         stand2("streak", 0, armY, 0, R * 2.4f, 2.6f * S, 0, rgba(ADM_GOLD, .17f));
         stand2("streak", 0, armY, 0, R * 2.4f, .9f * S, 0, rgba(ADM_PALE, .28f));
-        push(); tr(0, R * 4.4f, 0); chain(R * 4.4f - feet, .9f * S, ADM_IRON); pop();
+        push(); tr(0, R * 4.4f, 0); chain(R * 4.4f - feet + .9f * S, .9f * S, ADM_IRON); pop();   // a link past the ankle, so it closes on him
     }
 
     /**
@@ -1383,16 +1401,16 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             // The cuff and the chain are placed from the same point as the arm itself, and the
             // cuff is cut wide enough to swallow the limb, so the chain can never hang beside it.
             float wx = sd * armX, wy = armY;
-            push(); tr(wx, wy, 0); rZ(PI / 2);
+            push(); tr(wx, wy, 0); rZ(PI / 2); rX(PI / 2);
             torus(0, 0, 0, 3.4f * P, 3.4f * P, 1.0f * P, 14, 5, 0, TAU, ADM_IRON, 255); pop();
-            push(); tr(wx, wy, 0); chain(wy - .3f * S, .55f * S, ADM_IRON); pop();   // wrist to the floor
+            push(); tr(wx, wy, 0); chain(wy + .25f * S, .55f * S, ADM_IRON); pop();   // wrist to the floor, a link into it
             // The ankles are the highest part of him and he hangs by them, so their chains run
             // UP to the beam. Hung downward they fell the length of his body, which is what put
             // the leg chain across his chest and face.
             float ax = sd * 2.2f * P, ay = feet - 1.0f * P;
-            push(); tr(ax, ay, 0); rX(PI / 2);
+            push(); tr(ax, ay, 0); rX(PI / 2); rY(PI / 2);
             torus(0, 0, 0, 2.4f * P, 2.4f * P, .8f * P, 12, 5, 0, TAU, ADM_IRON, 255); pop();
-            push(); tr(ax, R * 4.4f, 0); chain(R * 4.4f - ay, .55f * S, ADM_IRON); pop();
+            push(); tr(ax, R * 4.4f, 0); chain(R * 4.4f - ay + .55f * S, .55f * S, ADM_IRON); pop();
         }
         bb("glow", 0, yB, 0, 36f * P, 44f * P, 0, rgba(ADM_WARM, .045f));
     }
@@ -1419,12 +1437,8 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         sprites("spark", 60, RISEM, R * 1.3f, 0, top * 1.6f, .45f * S, ADM_WARM, 1f, .12f, 900, true);
         sprites("mote", 44, FALLM, R * 1.6f, 0, top * 1.7f, .28f * S, ADM_PALE, .5f, .07f, 901, false);
         sprites("petal", 20, SPIRALM, R * 1.1f, 0, top * 1.3f, .5f * S, ADM_GOLD, .8f, .14f, 903, true);
-        for (int i = 0; i < 10; i++) {   // chains out of the cloud itself, hanging the whole way down into the light
-            float ang = i * TAU / 10 + .25f, rr = R * (.85f + 1.5f * h(i, 740));
-            float topY = R * 4.3f, len = topY - top * (.15f + .5f * h(i, 741));
-            push(); tr(gc(ang) * rr, topY, gs(ang) * rr); rZ(gs(t * .3f + i) * .025f);
-            chain(len, (.42f + .2f * h(i, 742)) * S, ADM_IRON); pop();
-        }
+        // The chains that hung out of the cloud are gone: at this distance they were two stray
+        // lines beside him with nothing on either end of them.
         cardBeam(ADM_GOLD);
     }
 
@@ -1911,7 +1925,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         for (int k = 0; k < 7; k++) sprites("spark", 10, RADIALM, R * .9f, gy, 0, .4f * S, SPECTRUM[k], 1f, .35f, 60 + k, true);
         for (int k = 0; k < 7; k++) sprites("mote", 12, RISEM, R * .8f, 0, top, .45f * S, SPECTRUM[k], 1f, .2f, 80 + k, false);
         // the door the key is for: a dark arch standing behind the gate ring, filled with white light
-        { int st2 = 0x24242E; float aw = 4.4f * S, ah = 9.5f * S, az = -3.6f * S;
+        { int st2 = 0xF4F2EC; float aw = 4.4f * S, ah = 9.5f * S, az = -3.6f * S;
           pushFace(); tr(0, 0, az);
           for (int sd = -1; sd <= 1; sd += 2) { push(); tr(sd * aw, 0, 0); frustum(0, ah, .62f * S, .5f * S, 10, 1, 1, st2, 255, true); pop(); }
           push(); tr(0, ah, 0); torus(0, 0, 0, aw, aw, .55f * S, 20, 5, 0, PI, st2, 255); pop();
