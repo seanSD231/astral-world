@@ -1,3 +1,8 @@
+## 0.2.381
+
+### Crash on startup
+- **Fixed a crash at mod loading.** When the ladder monument command went in, its two helper methods were inserted directly under `@SubscribeEvent`, which belonged to the command registration below them. The annotation landed on `placeMonument` instead, NeoForge refused it as an event handler that takes two non-event arguments, and the whole mod's automatic subscribers failed to register. Nothing else in the log was ours.
+
 ## 0.2.380
 
 ### The Dreaming Stone

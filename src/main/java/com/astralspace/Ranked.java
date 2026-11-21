@@ -249,7 +249,6 @@ public final class Ranked {
 
     private static boolean watching;
 
-    @SubscribeEvent
     /** Sets a ladder monument down in front of the operator, built like the hunger games one. */
     private static int placeMonument(ServerPlayer p, String modeId) {
         Arena.Mode m = Arena.Mode.of(modeId);
@@ -284,6 +283,7 @@ public final class Ranked {
         return 1;
     }
 
+    @SubscribeEvent
     public static void onCommands(RegisterCommandsEvent e) {
         e.getDispatcher().register(Commands.literal("ranked")
             .requires(c -> c.getEntity() instanceof ServerPlayer)
