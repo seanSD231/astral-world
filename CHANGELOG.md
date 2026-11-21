@@ -1,3 +1,10 @@
+## 0.2.396
+
+### Three more
+- **Fractured Wisp**, renamed from Drowned Wisp, and nothing about water anywhere on it. A crack runs the whole height of the flame with the two halves pulled slightly apart, shards coming off the break, and the line under it reads "Something was split off it, and it has not closed."
+- **Undead Essence** replaces the Sovereign Skull: a stoppered bottle with dark green settling over dark blue and a pale white wisp rising through both, light down the glass. The cube model and its bone texture are gone with it.
+- **Vengeful Spirit** is redrawn after the sprite you sent &mdash; a hunched, ragged wraith, near-black with two bright eyes and a lit jaw, fraying off at the bottom &mdash; but in the walker's own colours: dark teal rather than that one's palette, with pale catches off its grey body.
+
 ## 0.2.395
 
 ### Sovereign Skull

@@ -52,17 +52,17 @@ public final class Trophies {
     public static final DeferredItem<Item> DEPRAVED_EYE = keepsake("depraved_eye",
             "A man's eye, and it has seen too much to shut.", ChatFormatting.RED, Rarity.RARE);
 
-    /** The drowned spirit: the light left over when it finally let go. */
-    public static final DeferredItem<Item> DROWNED_WISP = keepsake("drowned_wisp",
-            "It drifts toward water, whoever is holding it.", ChatFormatting.AQUA, Rarity.UNCOMMON);
+    /** The spirit: the light left over when it let go, and it did not come away whole. */
+    public static final DeferredItem<Item> FRACTURED_WISP = keepsake("fractured_wisp",
+            "Something was split off it, and it has not closed.", ChatFormatting.AQUA, Rarity.UNCOMMON);
 
     /** The red scholar: not the book, the cloth, with soul still running in the weave. */
     public static final DeferredItem<Item> SPIRITUAL_CLOTH = keepsake("spiritual_cloth",
             "Warm, and it was never worn by anything living.", ChatFormatting.AQUA, Rarity.RARE);
 
-    /** The skull lord: the skull itself, and the light still in its sockets. */
-    public static final DeferredItem<Item> SOVEREIGN_SKULL = keepsake("sovereign_skull",
-            "The light in it has not gone out, and will not.", ChatFormatting.BLUE, Rarity.RARE);
+    /** The skull lord: what was keeping it upright, bottled. */
+    public static final DeferredItem<Item> UNDEAD_ESSENCE = keepsake("undead_essence",
+            "It settles when the bottle is still, and not before.", ChatFormatting.BLUE, Rarity.RARE);
 
     /** The walking knight: what was left of it, and it is not done. */
     public static final DeferredItem<Item> VENGEFUL_SPIRIT = keepsake("vengeful_spirit",
@@ -70,8 +70,8 @@ public final class Trophies {
 
     /** Every drop, in the order the mobs were shown. */
     public static final List<DeferredItem<Item>> ALL = List.of(
-            MEDUSA_BELL, MUTATED_HEART, DEPRAVED_EYE, DROWNED_WISP,
-            SPIRITUAL_CLOTH, SOVEREIGN_SKULL, VENGEFUL_SPIRIT);
+            MEDUSA_BELL, MUTATED_HEART, DEPRAVED_EYE, FRACTURED_WISP,
+            SPIRITUAL_CLOTH, UNDEAD_ESSENCE, VENGEFUL_SPIRIT);
 
     /** Touched so the static fields above are initialised while the registers are still open. */
     public static void touch() { }
