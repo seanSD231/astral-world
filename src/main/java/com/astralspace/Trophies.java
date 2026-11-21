@@ -44,34 +44,34 @@ public final class Trophies {
     public static final DeferredItem<Item> RIMEGLASS_SHARD = keepsake("rimeglass_shard",
             "Cold long after the rest of it melted.", ChatFormatting.AQUA, Rarity.UNCOMMON);
 
-    /** The red flesh thing: the one part of it that was ever properly alive. */
-    public static final DeferredItem<Item> CLOTTED_HEART = keepsake("clotted_heart",
-            "It beats when nothing is watching it.", ChatFormatting.DARK_RED, Rarity.UNCOMMON);
+    /** The jellyfish that walks upright: the bell off the top of it, swollen out of all shape. */
+    public static final DeferredItem<Item> MUTATED_BELL = keepsake("mutated_bell",
+            "Still full of the water it drowned in.", ChatFormatting.DARK_RED, Rarity.UNCOMMON);
 
-    /** The iron knight: the lens its one eye burned behind. */
-    public static final DeferredItem<Item> SENTINEL_EYE = keepsake("sentinel_eye",
-            "Still warm, and still pointed at you.", ChatFormatting.RED, Rarity.RARE);
+    /** The iron knight: what was behind the visor, and it was never a lens. */
+    public static final DeferredItem<Item> DEPRAVED_EYE = keepsake("depraved_eye",
+            "A man's eye, and it has seen too much to shut.", ChatFormatting.RED, Rarity.RARE);
 
-    /** The drowned spider: a skein of the thread it hung itself from. */
-    public static final DeferredItem<Item> SPECTRAL_SILK = keepsake("spectral_silk",
-            "Weighs nothing. Holds anything.", ChatFormatting.AQUA, Rarity.UNCOMMON);
+    /** The drowned spirit: the light left over when it finally let go. */
+    public static final DeferredItem<Item> DROWNED_WISP = keepsake("drowned_wisp",
+            "It drifts toward water, whoever is holding it.", ChatFormatting.AQUA, Rarity.UNCOMMON);
 
-    /** The red scholar: one leaf out of the book it would not put down. */
+    /** The red scholar: the book it would not put down. */
     public static final DeferredItem<Item> GILDED_FOLIO = keepsake("gilded_folio",
             "The same four lines, on every page of it.", ChatFormatting.GOLD, Rarity.RARE);
 
-    /** The pale spire: one bone out of the column that came up through the ground. */
-    public static final DeferredItem<Item> PALE_VERTEBRA = keepsake("pale_vertebra",
-            "Part of something far longer, still down there.", ChatFormatting.WHITE, Rarity.RARE);
+    /** The pale column: one link out of the chain that came up through the ground. */
+    public static final DeferredItem<Item> SEVERED_LINK = keepsake("severed_link",
+            "Cut at both ends. The rest is still down there.", ChatFormatting.WHITE, Rarity.RARE);
 
-    /** The walking lantern: the light it carried where a head should be. */
-    public static final DeferredItem<Item> WALKERS_LANTERN = keepsake("walkers_lantern",
-            "It was looking for something. It has not stopped.", ChatFormatting.AQUA, Rarity.EPIC);
+    /** The walker: one of the blades it stood on. */
+    public static final DeferredItem<Item> STRIDER_TALON = keepsake("strider_talon",
+            "It walked on these. It did not need the ground.", ChatFormatting.AQUA, Rarity.EPIC);
 
     /** Every drop, in the order the mobs were shown. */
     public static final List<DeferredItem<Item>> ALL = List.of(
-            RIMEGLASS_SHARD, CLOTTED_HEART, SENTINEL_EYE, SPECTRAL_SILK,
-            GILDED_FOLIO, PALE_VERTEBRA, WALKERS_LANTERN);
+            RIMEGLASS_SHARD, MUTATED_BELL, DEPRAVED_EYE, DROWNED_WISP,
+            GILDED_FOLIO, SEVERED_LINK, STRIDER_TALON);
 
     /** Touched so the static fields above are initialised while the registers are still open. */
     public static void touch() { }

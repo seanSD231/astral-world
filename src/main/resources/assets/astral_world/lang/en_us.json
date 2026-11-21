@@ -106,10 +106,10 @@
   "block.astral_world.arena_portal": "Arena Portal",
   "block.astral_world.leader_board": "Standing Board",
   "item.astral_world.rimeglass_shard": "Rimeglass Shard",
-  "item.astral_world.clotted_heart": "Clotted Heart",
-  "item.astral_world.sentinel_eye": "Sentinel's Eye",
-  "item.astral_world.spectral_silk": "Spectral Silk",
   "item.astral_world.gilded_folio": "Gilded Folio",
-  "item.astral_world.pale_vertebra": "Pale Vertebra",
-  "item.astral_world.walkers_lantern": "Walker's Lantern"
+  "item.astral_world.mutated_bell": "Mutated Bell",
+  "item.astral_world.depraved_eye": "Depraved Eye",
+  "item.astral_world.drowned_wisp": "Drowned Wisp",
+  "item.astral_world.severed_link": "Severed Link",
+  "item.astral_world.strider_talon": "Strider's Talon"
 }

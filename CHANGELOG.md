@@ -1,3 +1,14 @@
+## 0.2.388
+
+### The drops, corrected
+- **Mutated Bell** replaces the Clotted Heart. The second one is a jellyfish that walks upright, so the drop is the bell off the top of it: swollen lopsided, a lump growing out of one side, two mismatched eyespots, tendrils under the rim and brine still dripping off them.
+- **Depraved Eye** replaces the Sentinel's Eye. A plain human eye, bloodshot and torn out by the stalk, rather than a lens in an iron ring.
+- **Drowned Wisp** replaces the Spectral Silk. The fourth is a spirit, not a spider, so there is no web anywhere in it: a teal soul-flame with a white core and motes coming off it.
+- **Severed Link** replaces the Pale Vertebra. That column is a chain, not a spine &mdash; so it is one white link, cut at both ends, the cuts left as raw bright metal.
+- **Strider's Talon** replaces the Walker's Lantern. Nothing to do with lanterns: it is one of the long teal blades the walker stood on, snapped off at the socket.
+- The **Gilded Folio** is rebuilt as a proper open book &mdash; two boards, a red spine, ruled leaves curving away on both sides, gilt edges and a ribbon &mdash; instead of the flat card it was.
+- The Rimeglass Shard is unchanged.
+
 ## 0.2.387
 
 ### Seven drops
