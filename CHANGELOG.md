@@ -1,3 +1,14 @@
+## 0.2.383
+
+### Masks
+- **Fixed: the skin never changed.** The default skin was being drawn on a second model baked by the layer, and that model never appeared in game &mdash; all you saw was the mask, a black shape on your own face. It is drawn on the player's own model now, which is already posed for the frame, so it lines up by construction and cannot fail to show. It carries the hat and jacket layers with it, so you get the full 3D skin rather than a flat repaint.
+
+### The sealed zone
+- Crouch-use only seals a zone **with an empty hand**. Crouching with a card in hand lays a pathway symbol down, which is the card item's own doing, and it was winning the race every time.
+
+### The Dreaming Stone
+- **Crouch-use opens the menu instead of cycling the options.** `interceptedUse` turned out to be the plain-use path, which only steps through which dream is selected; the menu is opened by the server sending the shaping packet with a context built from the player's own snapshot, which is what the stone does now.
+
 ## 0.2.382
 
 ### The admin card

@@ -175,7 +175,9 @@ public class HoloCardEntity extends Entity {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
         if (level().isClientSide) return InteractionResult.SUCCESS;
-        if (player.isShiftKeyDown()) {           // crouch-use seals the zone instead of taking the card up
+        // Crouch-use with a card in hand lays a symbol down, which is the item's own doing and
+        // got in the way of this; the seal is empty-handed crouch-use only.
+        if (player.isShiftKeyDown() && player.getItemInHand(hand).isEmpty()) {
             if (!maySeal(player)) {
                 player.displayClientMessage(Component.literal("The card will not answer you."), true);
                 return InteractionResult.CONSUME;

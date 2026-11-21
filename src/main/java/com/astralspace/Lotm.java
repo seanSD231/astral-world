@@ -443,12 +443,35 @@ public final class Lotm {
 
     // ---------------------------------------------------------------- dreams
 
-    /** Opens LOTM's own Dream Shaping menu for this player, the one its ability opens on sneak-use. */
+    /**
+     * Opens LOTM's own Dream Shaping menu for this player.
+     *
+     * <p>Not through {@code interceptedUse}: that is the plain-use path and it only cycles which
+     * dream is selected. The menu is opened by the server sending {@code OpenShapingMenuS2C} with
+     * a context built from the player's own snapshot, which is what this does.</p>
+     */
     public static boolean dreamMenu(ServerPlayer p) {
         try {
-            Class<?> c = Class.forName("net.swimmingtuna.lotm.pathway.sleepless.abilities.SleeplessDreamShaping");
-            Object ability = c.getMethod("ability").invoke(null);
-            c.getMethod("interceptedUse", ServerPlayer.class).invoke(ability, p);
+            Class<?> ac = Class.forName("net.swimmingtuna.lotm.pathway.sleepless.abilities.SleeplessDreamShaping");
+            Object ability = ac.getMethod("ability").invoke(null);
+            Class<?> simple = Class.forName("net.swimmingtuna.lotm.item.BeyonderAbilities$SimpleAbilityItem");
+            Object snap = Class.forName("net.swimmingtuna.lotm.ability.Snapshot")
+                    .getMethod("of", net.minecraft.world.entity.LivingEntity.class, simple)
+                    .invoke(null, p, ability);
+            String selected;
+            try {
+                selected = (String) Class.forName("net.swimmingtuna.lotm.pathway.sleepless.shaping.ShapedDreams")
+                        .getMethod("selected", net.minecraft.world.entity.LivingEntity.class).invoke(null, p);
+            } catch (Throwable ignored) { selected = null; }
+            Class<?> ctxC = Class.forName("net.swimmingtuna.lotm.pathway.sleepless.shaping.ShapingContext");
+            if (selected == null || selected.isEmpty())
+                selected = (String) ctxC.getField("DEFAULT_SELECTED").get(null);
+            Object ctx = ac.getMethod("context", Class.forName("net.swimmingtuna.lotm.ability.Snapshot"), String.class)
+                    .invoke(ability, snap, selected);
+            Class<?> payloadC = Class.forName("net.swimmingtuna.lotm.network.sleepless.ShapingPayloads$OpenShapingMenuS2C");
+            Object payload = payloadC.getConstructor(ctxC).newInstance(ctx);
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p,
+                    (net.minecraft.network.protocol.common.custom.CustomPacketPayload) payload);
             return true;
         } catch (Throwable t) {
             LOGGER.warn("[astral] could not open the dream menu: {}", String.valueOf(t.getCause() != null ? t.getCause() : t));

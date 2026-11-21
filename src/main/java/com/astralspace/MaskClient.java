@@ -3,7 +3,6 @@ package com.astralspace;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.EntityModelSet;
-import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
@@ -73,14 +72,10 @@ public final class MaskClient {
         private static final ResourceLocation ALEX =
                 ResourceLocation.withDefaultNamespace("textures/entity/player/slim/alex.png");
         /** How far outside the player's own model the borrowed one is drawn. */
-        private static final float OUT = 1.035f;
-
-        private final PlayerModel<AbstractClientPlayer> wide, narrow;
+        private static final float OUT = 1.04f;
 
         public Layer(RenderLayerParent<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> parent, EntityModelSet set) {
             super(parent);
-            wide = new PlayerModel<>(set.bakeLayer(ModelLayers.PLAYER), false);
-            narrow = new PlayerModel<>(set.bakeLayer(ModelLayers.PLAYER_SLIM), true);
         }
 
         @Override
@@ -91,19 +86,20 @@ public final class MaskClient {
             UniqGfx.light = light;
             PlayerModel<AbstractClientPlayer> m = getParentModel();
 
-            // Their skin becomes the default one. The borrowed model copies this player's pose and
-            // is drawn a fraction outside their own, so their real skin is covered everywhere
-            // rather than fighting it for the same pixels.
+            // Their skin becomes the default one.
+            //
+            // Drawn on the player's OWN model rather than a second one baked here: a separately
+            // baked model never appeared in game, and the parent is already posed for this frame,
+            // so re-rendering it in the default texture a fraction larger is both simpler and
+            // certain to line up. It carries the hat and jacket layers with it, so the result is
+            // the full 3D skin and not a flat repaint.
             boolean sl = slim(p.getUUID());
-            PlayerModel<AbstractClientPlayer> body = sl ? narrow : wide;
-            m.copyPropertiesTo(body);
-            body.setAllVisible(true);
-            body.hat.visible = m.hat.visible;
+            m.setAllVisible(true);
             pose.pushPose();
             pose.scale(OUT, OUT, OUT);
             pose.translate(0, -1.5f * (OUT - 1f) / OUT, 0);   // the scale is about the neck; put the feet back down
-            body.renderToBuffer(pose, buf.getBuffer(RenderType.entityCutoutNoCull(sl ? ALEX : STEVE)),
-                                light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+            m.renderToBuffer(pose, buf.getBuffer(RenderType.entityTranslucent(sl ? ALEX : STEVE)),
+                             light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             pose.popPose();
 
             // and the mask itself, over the eyes of it
