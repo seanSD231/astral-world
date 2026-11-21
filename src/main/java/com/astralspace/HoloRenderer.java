@@ -1323,32 +1323,36 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      * at his own height rather than on the floor, so it clings to the figure and not the scene.
      */
     private void adminAura(float yB, float P) {
-        float mid = yB + 8f * P, h = 34f * P;
-        // a solid shroud first: without something dark behind it the red had nothing to read against
-        for (int i = 0; i < 11; i++) {
-            float a = i * TAU / 11 + t * .05f;
-            bbSolid("smoke", gc(a) * 5.5f * P, mid + (h * .5f) * (i % 3 - 1) * .4f, gs(a) * 5.5f * P,
-                    30f * P, 34f * P, 0, rgba(0x010002, .88f));
+        float mid = yB + 8f * P, h = 44f * P;
+        // A shroud he stands in front of, not a haze around him. Black on a dark floor is almost
+        // nothing to look at, so it is the size of it and the hard edge against the gold rays
+        // behind that make it read at all.
+        for (int i = 0; i < 5; i++)
+            bbSolid("smoke", 0, mid + (i - 2) * h * .22f, -2f * P, 54f * P, 30f * P, 0, rgba(0x000000, .96f));
+        for (int i = 0; i < 14; i++) {
+            float a = i * TAU / 14 + t * .05f;
+            bbSolid("smoke", gc(a) * 7.5f * P, mid + (h * .5f) * ((i % 3) - 1) * .5f, gs(a) * 7.5f * P,
+                    44f * P, 48f * P, 0, rgba(0x000000, .94f));
         }
         for (int i = 0; i < 44; i++) {
             float a = h(i, 810) * TAU + t * (.10f + .05f * h(i, 811));
-            float rr = (3.2f + 5.4f * h(i, 812)) * P;
+            float rr = (3.0f + 9.5f * h(i, 812)) * P;
             float y = mid + (h(i, 813) - .5f) * h;
-            float w = (9f + 7f * h(i, 814)) * P, puff = .55f + .45f * gs(t * .8f + i);
+            float w = (20f + 16f * h(i, 814)) * P, puff = .62f + .38f * gs(t * .8f + i);
             bbSolid("smoke", gc(a) * rr, y, gs(a) * rr, w, w * 1.25f, 0, rgba(0x020103, .96f * puff));
         }
         for (int i = 0; i < 9; i++) {   // only a little red, turning through the dark
             float a = h(i, 820) * TAU - t * (.13f + .06f * h(i, 821));
             float rr = (4.0f + 4.4f * h(i, 822)) * P;
             float y = mid + (h(i, 823) - .5f) * h * .9f;
-            float w = (5.5f + 4.5f * h(i, 824)) * P, puff = .45f + .55f * gs(t * 1.1f + i * 1.7f);
+            float w = (7f + 6f * h(i, 824)) * P, puff = .45f + .55f * gs(t * 1.1f + i * 1.7f);
             bb("smoke", gc(a) * rr, y, gs(a) * rr, w * .62f, w * .74f, 0, rgba(0xC01018, .50f * puff));
         }
         // and it pools at his head, which hangs lowest
         bbSolid("smoke", 0, yB - 5f * P, 0, 38f * P, 30f * P, 0, rgba(0x010002, .96f));
         bb("smoke", 0, yB - 5f * P, 0, 13f * P, 11f * P, 0, rgba(0xC01018, .42f));
-        sprites("mote", 18, RISEM, 9f * P, mid - h * .5f, h, 1.1f * P, 0xC0202A, .8f, .10f, 931, true);
-        sprites("mote", 14, FALLM, 11f * P, mid + h * .5f, h, .9f * P, 0x1A1026, .7f, .08f, 932, false);
+        sprites("mote", 34, RISEM, 13f * P, mid - h * .5f, h, 1.6f * P, 0xE01824, .95f, .12f, 931, true);
+        sprites("mote", 26, FALLM, 15f * P, mid + h * .5f, h, 1.3f * P, 0x120610, .85f, .09f, 932, false);
     }
 
     /** The cross of light he hangs on, and the rope above him. */

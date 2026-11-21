@@ -1,3 +1,12 @@
+## 0.2.400
+
+### Packs
+- **Fixed the opening screen.** It was sampling the pack texture at 564 pixels when the art has been 1024 since they were re-authored, so it took the top-left corner of the pouch and stretched it square over the whole screen. At the true size the pouch is the rectangle it is drawn as, about two thirds as wide as it is tall, the same shape as the pack item in your hand. The tear line, the mouth and the torn flaps all scale off the same number, so they come right with it.
+
+### The aura
+- **Made to be seen.** Black on a dark floor is almost nothing to look at, so it is the size of it and the hard edge against the gold rays behind that do the work: a wall of five solid black sheets stood behind him to put him in silhouette, fourteen puffs round him at well over twice the width, reaching half again as high, and pure black rather than nearly black.
+- Twice as many embers, bigger and hotter, rising through it, and more ash falling the other way.
+
 ## 0.2.399
 
 ### The ladder board

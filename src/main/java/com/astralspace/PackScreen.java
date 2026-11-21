@@ -19,7 +19,15 @@ public final class PackScreen extends Screen {
     private static final String[] RARITY = {"common", "uncommon", "rare", "epic", "legendary", "mythic"};
     private static final int[] RCOL = {0xAAAAB4, 0x6EDC78, 0x5ABEFF, 0xAA5AE6, 0xFFBE3C, 0xFF6EC8};
     private static final int MYTHIC_FRAMES = 40, MYTHIC_MS = 150;
-    private static final int PT = 564;   // the pack textures are 564 square (they were 188, which was a blur at the size the pack is drawn)
+    /**
+     * The pack textures are 1024 square, and the pouch inside that square is a rectangle about
+     * two thirds as wide as it is tall, exactly as the pack item is drawn.
+     *
+     * <p>This said 564 from when they were authored at that size. Against a 1024 image it took
+     * the top-left 564 pixels and stretched them over the whole screen, so what you saw was a
+     * corner of the pack blown up square instead of the pack.</p>
+     */
+    private static final int PT = 1024;
 
     private final String pack;
     private final String[] path;
