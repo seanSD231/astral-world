@@ -58,6 +58,13 @@ public final class ArenaPortalBlock extends Block implements EntityBlock {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState st, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        // The stone is just the foot of it. Clicking the stone does nothing; the opening above it
+        // is what you use.
+        if (hit.getLocation().y - pos.getY() < 0.64) {
+            if (!level.isClientSide && player instanceof ServerPlayer sp)
+                sp.displayClientMessage(net.minecraft.network.chat.Component.literal("Use the opening, not the stone."), true);
+            return InteractionResult.CONSUME;
+        }
         if (!level.isClientSide && player instanceof ServerPlayer sp) ArenaNet.sendBoard(sp);
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
@@ -87,19 +94,32 @@ public final class ArenaPortalBlock extends Block implements EntityBlock {
      * The opening: a sheet of blue standing out of the stone, turned to face whoever is looking,
      * with a brighter core and a run of motes rising through it.
      */
+    /**
+     * The opening: an oval of blue standing out of the stone, turned to face whoever is looking.
+     *
+     * <p>Drawn as one sheet of horizontal strips rather than a stack of nested panes. The panes
+     * were three quads and a run of motes all sharing the same space, which fought each other for
+     * depth and read as a flickering glass box. A single run of strips cannot fight itself.</p>
+     *
+     * <p>{@code RenderType.lightning()} takes position and colour and nothing else; the old code
+     * also fed it texture coordinates, light and normals, which is the other half of why it looked
+     * the way it did.</p>
+     */
     public static final class Render implements BlockEntityRenderer<Tile> {
-        private static final int EDGE = 0x2E6BFF, CORE = 0x9FD0FF;
+        private static final int ROWS = 26;
+        private static final float HW = .62f, Y0 = .05f, Y1 = 2.25f;
 
         public Render(BlockEntityRendererProvider.Context ctx) { }
 
-        private static void quad(VertexConsumer vc, Matrix4f m, float hw, float y0, float y1,
-                                 int rgb, float a, float uy) {
+        private static void strip(VertexConsumer vc, Matrix4f m,
+                                  float wl, float yl, float wu, float yu, int rgb, float a) {
             int r = (rgb >> 16) & 0xFF, g = (rgb >> 8) & 0xFF, b = rgb & 0xFF;
             int al = (int) (Math.max(0, Math.min(1, a)) * 255);
-            vc.addVertex(m, -hw, y0, 0).setColor(r, g, b, al).setUv(0, uy).setLight(0x00F000F0).setNormal(0, 0, 1);
-            vc.addVertex(m,  hw, y0, 0).setColor(r, g, b, al).setUv(1, uy).setLight(0x00F000F0).setNormal(0, 0, 1);
-            vc.addVertex(m,  hw, y1, 0).setColor(r, g, b, al).setUv(1, uy + .5f).setLight(0x00F000F0).setNormal(0, 0, 1);
-            vc.addVertex(m, -hw, y1, 0).setColor(r, g, b, al).setUv(0, uy + .5f).setLight(0x00F000F0).setNormal(0, 0, 1);
+            if (al <= 2) return;
+            vc.addVertex(m, -wl, yl, 0).setColor(r, g, b, al);
+            vc.addVertex(m,  wl, yl, 0).setColor(r, g, b, al);
+            vc.addVertex(m,  wu, yu, 0).setColor(r, g, b, al);
+            vc.addVertex(m, -wu, yu, 0).setColor(r, g, b, al);
         }
 
         @Override
@@ -107,39 +127,45 @@ public final class ArenaPortalBlock extends Block implements EntityBlock {
             if (tile.getLevel() == null) return;
             float t = (tile.getLevel().getGameTime() + pt) * .05f;
             var cam = net.minecraft.client.Minecraft.getInstance().gameRenderer.getMainCamera();
-
-            pose.pushPose();
-            pose.translate(.5, .62, .5);
-            // turned to the viewer, so it reads as an opening from wherever you stand
             double dx = cam.getPosition().x - (tile.getBlockPos().getX() + .5);
             double dz = cam.getPosition().z - (tile.getBlockPos().getZ() + .5);
-            pose.mulPose(com.mojang.math.Axis.YP.rotation((float) Math.atan2(dx, dz)));
 
-            VertexConsumer vc = buf.getBuffer(RenderType.lightning());
-            Matrix4f m = pose.last().pose();
-            float sway = (float) Math.sin(t * 1.3f) * .03f;
-            // three sheets, narrowing and brightening inward, so it has depth rather than being one flat pane
-            quad(vc, m, .62f + sway, .02f, 2.18f, EDGE, .42f, 0);
-            quad(vc, m, .46f - sway, .10f, 2.06f, EDGE, .46f, 0);
-            quad(vc, m, .27f + sway * .5f, .22f, 1.90f, CORE, .55f, 0);
-            pose.popPose();
-
-            // motes rising through the opening
             pose.pushPose();
             pose.translate(.5, 0, .5);
             pose.mulPose(com.mojang.math.Axis.YP.rotation((float) Math.atan2(dx, dz)));
-            Matrix4f mm = pose.last().pose();
-            for (int i = 0; i < 7; i++) {
-                float q = (float) (((t * .35f) + i / 7f) % 1.0);
-                float mx = (float) Math.sin(i * 2.4f + t) * .34f;
-                float y = .08f + q * 2.0f, s = .035f * (1f - q * .4f);
-                quad(vc, mm, s, y, y + s * 2f, CORE, .75f * (1f - q), 0);
-                pose.pushPose();
-                pose.translate(mx, 0, 0);
-                pose.popPose();
+            VertexConsumer vc = buf.getBuffer(RenderType.lightning());
+            Matrix4f m = pose.last().pose();
+
+            float cy = (Y0 + Y1) * .5f, hy = (Y1 - Y0) * .5f;
+            float prevW = 0, prevY = Y0;
+            for (int i = 0; i <= ROWS; i++) {
+                float u = i / (float) ROWS;
+                float y = Y0 + u * (Y1 - Y0);
+                float k = (y - cy) / hy;
+                float w = HW * (float) Math.sqrt(Math.max(0, 1 - k * k));
+                // a slow ripple across the face of it, so the opening is never a flat shape
+                w *= 1f + .05f * (float) Math.sin(t * 2.1f + u * 7.5f);
+                if (i > 0) {
+                    float mid = (u + (i - 1) / (float) ROWS) * .5f;
+                    float edge = Math.abs(mid - .5f) * 2f;                 // 0 in the middle, 1 at the ends
+                    float shimmer = .5f + .5f * (float) Math.sin(t * 3f - mid * 9f);
+                    strip(vc, m, prevW, prevY, w, y, EDGE, .30f + .22f * edge);
+                    strip(vc, m, prevW * .55f, prevY, w * .55f, y, CORE, .16f + .26f * shimmer);
+                }
+                prevW = w; prevY = y;
+            }
+            // a bright seam up the middle
+            for (int i = 0; i < ROWS; i++) {
+                float u0 = i / (float) ROWS, u1 = (i + 1) / (float) ROWS;
+                float y0 = Y0 + u0 * (Y1 - Y0), y1 = Y0 + u1 * (Y1 - Y0);
+                float f = (float) Math.sin(Math.PI * u0);
+                float w = .055f * f * (1f + .3f * (float) Math.sin(t * 4f + u0 * 11f));
+                strip(vc, m, w, y0, w, y1, 0xDCEEFF, .50f * f);
             }
             pose.popPose();
         }
+
+        private static final int EDGE = 0x2E6BFF, CORE = 0x7FC2FF;
 
         @Override public boolean shouldRenderOffScreen(Tile t) { return false; }
         @Override public int getViewDistance() { return 96; }

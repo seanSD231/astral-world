@@ -58,7 +58,7 @@ public final class ArenaScreen extends Screen {
 
         modes(g, mx, my, c);
         standing(g, c);
-        if (mode.kitted()) pathways(g, mx, my, c);
+        pathways(g, mx, my, c);
         buttons(g, mx, my, c);
         super.render(g, mx, my, pt);
     }
@@ -129,8 +129,12 @@ public final class ArenaScreen extends Screen {
         g.fill(x, y, x + w, y + h, 0xC00A0C14);
         g.renderOutline(x, y, w, h, Pathways.alpha(c, .35f));
         g.drawString(font, Component.literal("PATHWAY").withColor(Pathways.pale(c, .45f) & 0xFFFFFF), x + 8, y + 5, 0xFFFFFF, false);
-        g.drawString(font, Component.literal("Left blank, you fight on your own.").withStyle(ChatFormatting.DARK_GRAY),
+        g.drawString(font, Component.literal(mode.kitted()
+                        ? "Pick one, or leave it blank to fight on your own. You may change it while you wait."
+                        : "No Restrictions uses your own pathway. Pick Sequence 5 or 2 to choose one.")
+                        .withStyle(ChatFormatting.DARK_GRAY),
                      x + 8, y + 5 + lh(), 0xFFFFFF, false);
+        if (!mode.kitted()) return;   // the panel still shows, so it is plain the choice exists
 
         int top = y + 6 + lh() * 2 + 4, bh = h - (top - y) - 6;
         int rows = Math.max(1, bh / lh());

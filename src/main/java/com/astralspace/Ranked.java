@@ -249,6 +249,33 @@ public final class Ranked {
 
     private static boolean watching;
 
+    /** Changes the pathway you will fight on in the kitted games, without losing your place. */
+    private static int setQueuePathway(ServerPlayer p, String id) {
+        Arena.Mode m = Arena.queuedMode(p);
+        if (m == null) {
+            p.sendSystemMessage(net.minecraft.network.chat.Component.literal("You are not in the queue.")
+                    .withStyle(net.minecraft.ChatFormatting.GRAY));
+            return 0;
+        }
+        if (!m.kitted()) {
+            p.sendSystemMessage(net.minecraft.network.chat.Component.literal(m.title + " uses your own pathway.")
+                    .withStyle(net.minecraft.ChatFormatting.GRAY));
+            return 0;
+        }
+        String want = "own".equalsIgnoreCase(id) ? "" : id;
+        if (!want.isEmpty()) {
+            boolean known = false;
+            for (String q : Lotm.PATH_IDS) if (q.equals(want)) known = true;
+            if (!known) {
+                p.sendSystemMessage(net.minecraft.network.chat.Component.literal("No pathway called " + id + ".")
+                        .withStyle(net.minecraft.ChatFormatting.RED));
+                return 0;
+            }
+        }
+        Arena.join(p, m, want);   // join keeps the time already waited
+        return 1;
+    }
+
     /** Sets a ladder monument down in front of the operator, built like the hunger games one. */
     private static int placeMonument(ServerPlayer p, String modeId) {
         Arena.Mode m = Arena.Mode.of(modeId);
@@ -292,6 +319,11 @@ public final class Ranked {
             .then(Commands.literal("leave").executes(c -> { leave(c.getSource().getPlayerOrException()); return 1; }))
             .then(Commands.literal("stats").executes(c -> stats(c.getSource().getPlayerOrException())))
             .then(Commands.literal("top").executes(c -> top(c.getSource().getPlayerOrException())))
+            .then(Commands.literal("pathway")
+                .then(Commands.argument("id", com.mojang.brigadier.arguments.StringArgumentType.word())
+                    .suggests((c, b2) -> { b2.suggest("own"); for (String id : Lotm.PATH_IDS) b2.suggest(id); return b2.buildFuture(); })
+                    .executes(c -> setQueuePathway(c.getSource().getPlayerOrException(),
+                            com.mojang.brigadier.arguments.StringArgumentType.getString(c, "id")))))
             .then(Commands.literal("board").requires(c -> c.hasPermission(2))
                 .then(Commands.literal("remove").executes(c -> removeMonument(c.getSource().getPlayerOrException())))
                 .then(Commands.argument("mode", com.mojang.brigadier.arguments.StringArgumentType.word())

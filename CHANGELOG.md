@@ -1,3 +1,14 @@
+## 0.2.384
+
+### The portal
+- **Rebuilt.** It was three nested panes and a run of motes all sharing the same space, fighting each other for depth, which is why it flickered in and out of itself and read as a glass box. It is one sheet of horizontal strips in the shape of an oval now, with a rippling edge, a shimmer across the face and a bright seam up the middle. A single run of strips cannot fight itself.
+- The other half of it: the quads were drawn with a render type that takes position and colour and nothing else, while being fed texture coordinates, light and normals as well.
+- **The stone no longer answers a click.** Only the opening above it does; clicking the stone says so.
+
+### Pathways for the arena
+- The pathway panel is **always shown**, not only once you have picked a kitted game. Hidden on the default game, it looked as though there were no way to choose one at all; it now says plainly that No Restrictions uses your own and that Sequence 5 and 2 let you pick.
+- `/ranked pathway <id>` changes it from anywhere while you wait, `own` for your own, and it keeps the time you have already queued.
+
 ## 0.2.383
 
 ### Masks
