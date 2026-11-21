@@ -1,3 +1,21 @@
+## 0.2.397
+
+### Money
+- **Tournaments take the server's own coins.** LOTM has gold, silver and bronze and each knows what it is worth; the count was looking at Numismatics spurs, which nobody here has ever held, so everyone read as penniless. LOTM's own denominations are asked for first now and only fall back to Numismatics, then emeralds, where it is absent.
+
+### The admin card
+- **The sea turns one way.** Three sheets at three speeds with a black pass turning against them is what made it crawl, tear and look like it was going backwards. One direction, fewer passes.
+- **The spell circle is off the floor.** The sea is the floor; the rings only ever sat on it like a sticker.
+- **The chains are back in the sky**, fourteen of them, hung far apart and long enough to run the height of the hall rather than stopping in mid air.
+- **Twenty-six light rays** instead of seven, spread right out to the walls instead of crowding the middle, each breathing at its own rate.
+- The aura is **black now, with only a little red**: nearly pure black smoke, half again as much of it, a denser shroud behind him, and the red cut to a third and kept small so it reads as embers in it rather than a red cloud.
+
+### Drops
+- **Vengeful Spirit** is the bright blue-teal of the mob instead of near-black.
+
+### The seal
+- **Only Rupex_123 can seal a card.** Operators cannot, and are no longer spared the corruption inside one: an operator can hand themselves the card, so letting the permission carry it would put the seal in anybody's hands.
+
 ## 0.2.396
 
 ### Three more

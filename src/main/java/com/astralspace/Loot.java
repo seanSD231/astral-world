@@ -28,18 +28,43 @@ public final class Loot {
     /** A coin and what it is worth in the smallest unit, smallest first. */
     private record Coin(Item item, int value) { }
 
-    /** Numismatics' denominations, smallest first. */
+    /** Numismatics' denominations, smallest first. Only used where LOTM is absent. */
     private static final String[][] NUMIS = {
         {"numismatics:spur", "1"}, {"numismatics:bevel", "8"}, {"numismatics:sprocket", "16"},
         {"numismatics:cog", "64"}, {"numismatics:crown", "512"}, {"numismatics:sun", "4096"},
     };
+
+    /**
+     * LOTM's own coins, taken from the mod rather than guessed at.
+     *
+     * <p>{@code CoinUtil.denominations()} hands back its coin items and each one knows what it is
+     * worth, so the bronze, silver and gold the server already uses are the money here. This is
+     * the whole of why a tournament would not take an entry fee: it was counting Numismatics
+     * spurs, and nobody on this server has ever held one.</p>
+     */
+    private static List<Coin> lotmCoins() {
+        List<Coin> found = new ArrayList<>();
+        try {
+            Object list = Class.forName("net.swimmingtuna.lotm.util.CoinUtil")
+                    .getMethod("denominations").invoke(null);
+            Class<?> ci = Class.forName("net.swimmingtuna.lotm.item.OtherItems.CoinItem");
+            var getValue = ci.getMethod("getValue");
+            for (Object o : (List<?>) list)
+                if (o instanceof Item it) found.add(new Coin(it, (Integer) getValue.invoke(o)));
+            found.sort((a, b) -> Integer.compare(a.value(), b.value()));
+        } catch (Throwable ignored) {
+            return List.of();
+        }
+        return found;
+    }
 
     private static List<Coin> coins;
 
     /** The denominations this server actually has, smallest first. */
     private static List<Coin> coins() {
         if (coins != null) return coins;
-        List<Coin> found = new ArrayList<>();
+        List<Coin> found = new ArrayList<>(lotmCoins());     // the server's own money comes first
+        if (!found.isEmpty()) { coins = found; return coins; }
         for (String[] row : NUMIS)
             BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(row[0]))
                     .ifPresent(i -> found.add(new Coin(i, Integer.parseInt(row[1]))));

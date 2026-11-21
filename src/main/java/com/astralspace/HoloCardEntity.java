@@ -165,10 +165,13 @@ public class HoloCardEntity extends Entity {
     /** How far the sealed zone reaches. */
     public static final double ZONE_R = 42.0;
 
-    /** Only an operator, or the admin the card is of, may seal a zone with one. */
+    /**
+     * Only the admin the card is of may seal a zone with it. Not operators: an operator can give
+     * themselves the card, so letting the permission do it would put the seal in anybody's hands.
+     */
     private boolean maySeal(Player p) {
-        if (p.hasPermissions(2)) return true;
-        for (String n : Tarot.ADMIN_NAMES) if (n.equalsIgnoreCase(p.getGameProfile().getName())) return true;
+        for (String n : Tarot.ADMIN_NAMES)
+            if (n.equalsIgnoreCase(p.getGameProfile().getName())) return true;
         return false;
     }
 
@@ -224,7 +227,7 @@ public class HoloCardEntity extends Entity {
             }
             if (tickCount % 40 != 0) continue;
             boolean friend = owner != null && (owner.equals(p.getUUID()) || Lotm.areAllies(lv.getServer(), owner, p.getUUID()));
-            if (friend || p.hasPermissions(2)) continue;
+            if (friend) continue;   // an operator standing in it is corrupted like anybody else
             Object path = Lotm.pathway(p);
             if (path != null) Lotm.addCorruptionPercent(p, path, 1.5);
         }
