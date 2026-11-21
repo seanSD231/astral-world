@@ -1,3 +1,16 @@
+## 0.2.398
+
+### Masks
+- Drawn far enough outside the player to clear a **3D skin**. Those put geometry a good way past the vanilla box, so at the old margin their horns, hair and coat tails came straight through the mask.
+- Every overlay layer is forced on &mdash; hat, jacket, both sleeves, both trouser legs &mdash; so what you get is the 3D skin rather than the flat inner one.
+
+### The Dreaming Stone
+- **It answers the click itself now, whatever is in your hand.** Holding the Dream Shaping ability, LOTM's own use fired first and stepped the selection on, which is why right-click and shift-right-click both only changed the mode. Shift-use, or use while holding the ability, opens the menu; use with anything else still toggles keeping items.
+
+### The portal
+- **The stone answers a click again.** Refusing it meant that aiming low did nothing at all, which read as the portal being dead; the whole column, opening and stone, opens the menu.
+- Redrawn after the openings in the shot: a standing egg-shaped oval, nearly three blocks tall, wider low and drawn in at the crown, with a soft rim, a hot white core and light thrown down onto its own stone. Rows are drawn once bottom to top so nothing overlaps anything else and there is nothing left to flicker.
+
 ## 0.2.397
 
 ### Money

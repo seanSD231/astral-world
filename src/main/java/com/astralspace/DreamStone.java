@@ -86,7 +86,7 @@ public final class DreamStone {
             if (sp.isShiftKeyDown()) {                       // the ability's own menu, not a copy of it
                 if (!Lotm.dreamMenu(sp))
                     sp.displayClientMessage(Component.literal("The dream would not open.").withStyle(ChatFormatting.RED), true);
-                return InteractionResult.CONSUME;
+                return InteractionResult.SUCCESS;
             }
             tile.castAround(sp);
             return InteractionResult.CONSUME;
@@ -100,6 +100,13 @@ public final class DreamStone {
                 return net.minecraft.world.ItemInteractionResult.CONSUME;
             if (!(level.getBlockEntity(pos) instanceof Tile tile))
                 return net.minecraft.world.ItemInteractionResult.CONSUME;
+            // Holding the ability, LOTM's own use fired first and stepped the selection on.
+            // The block answers the click itself now, whatever is in the hand.
+            if (sp.isShiftKeyDown() || held.getDescriptionId().contains("dreamshaping")) {
+                if (!Lotm.dreamMenu(sp))
+                    sp.displayClientMessage(Component.literal("The dream would not open.").withStyle(ChatFormatting.RED), true);
+                return net.minecraft.world.ItemInteractionResult.sidedSuccess(false);
+            }
             tile.keep = !tile.keep;
             tile.setChanged();
             sp.displayClientMessage(Component.literal(tile.keep

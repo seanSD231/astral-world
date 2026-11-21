@@ -72,7 +72,13 @@ public final class MaskClient {
         private static final ResourceLocation ALEX =
                 ResourceLocation.withDefaultNamespace("textures/entity/player/slim/alex.png");
         /** How far outside the player's own model the borrowed one is drawn. */
-        private static final float OUT = 1.04f;
+        /**
+         * How far outside the player's own model the borrowed one is drawn.
+         *
+         * <p>Wide enough to clear a 3D skin: those put geometry a good way past the vanilla box,
+         * and at 1.04 their horns, hair and coat tails came straight through the mask.</p>
+         */
+        private static final float OUT = 1.12f;
 
         public Layer(RenderLayerParent<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> parent, EntityModelSet set) {
             super(parent);
@@ -95,6 +101,12 @@ public final class MaskClient {
             // the full 3D skin and not a flat repaint.
             boolean sl = slim(p.getUUID());
             m.setAllVisible(true);
+            m.hat.visible = true;          // the overlay layers are what make it read as a 3D skin
+            m.jacket.visible = true;
+            m.leftSleeve.visible = true;
+            m.rightSleeve.visible = true;
+            m.leftPants.visible = true;
+            m.rightPants.visible = true;
             pose.pushPose();
             pose.scale(OUT, OUT, OUT);
             pose.translate(0, -1.5f * (OUT - 1f) / OUT, 0);   // the scale is about the neck; put the feet back down

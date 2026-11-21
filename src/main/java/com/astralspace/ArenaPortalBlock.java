@@ -43,7 +43,7 @@ public final class ArenaPortalBlock extends Block implements EntityBlock {
     /** The stone itself. */
     private static final VoxelShape STONE = Block.box(0, 0, 0, 16, 10, 16);
     /** The stone and the opening above it: what a click has to land on. */
-    private static final VoxelShape WHOLE = Block.box(1, 0, 1, 15, 46, 15);
+    private static final VoxelShape WHOLE = Block.box(0, 0, 0, 16, 50, 16);
 
     public ArenaPortalBlock(Properties p) { super(p); }
 
@@ -58,13 +58,8 @@ public final class ArenaPortalBlock extends Block implements EntityBlock {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState st, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        // The stone is just the foot of it. Clicking the stone does nothing; the opening above it
-        // is what you use.
-        if (hit.getLocation().y - pos.getY() < 0.64) {
-            if (!level.isClientSide && player instanceof ServerPlayer sp)
-                sp.displayClientMessage(net.minecraft.network.chat.Component.literal("Use the opening, not the stone."), true);
-            return InteractionResult.CONSUME;
-        }
+        // The opening and the stone both answer now. Refusing the stone only meant that aiming
+        // low did nothing at all, which read as the portal being dead.
         if (!level.isClientSide && player instanceof ServerPlayer sp) ArenaNet.sendBoard(sp);
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
@@ -106,8 +101,8 @@ public final class ArenaPortalBlock extends Block implements EntityBlock {
      * the way it did.</p>
      */
     public static final class Render implements BlockEntityRenderer<Tile> {
-        private static final int ROWS = 26;
-        private static final float HW = .62f, Y0 = .05f, Y1 = 2.25f;
+        private static final int ROWS = 30;
+        private static final float HW = .74f, Y0 = .04f, Y1 = 2.95f;
 
         public Render(BlockEntityRendererProvider.Context ctx) { }
 
@@ -136,32 +131,30 @@ public final class ArenaPortalBlock extends Block implements EntityBlock {
             VertexConsumer vc = buf.getBuffer(RenderType.lightning());
             Matrix4f m = pose.last().pose();
 
+            // A standing oval with a hot core and a soft rim, after the openings in the shot.
+            // Rows are drawn once, bottom to top, so nothing overlaps anything else and there is
+            // nothing left to flicker.
             float cy = (Y0 + Y1) * .5f, hy = (Y1 - Y0) * .5f;
             float prevW = 0, prevY = Y0;
             for (int i = 0; i <= ROWS; i++) {
                 float u = i / (float) ROWS;
-                float y = Y0 + u * (Y1 - Y0);
-                float k = (y - cy) / hy;
-                float w = HW * (float) Math.sqrt(Math.max(0, 1 - k * k));
-                // a slow ripple across the face of it, so the opening is never a flat shape
-                w *= 1f + .05f * (float) Math.sin(t * 2.1f + u * 7.5f);
+                float yv = Y0 + u * (Y1 - Y0);
+                float k = (yv - cy) / hy;
+                // an egg rather than an ellipse: wider low, drawn in at the crown
+                float w = HW * (float) Math.pow(Math.max(0, 1 - k * k), 0.62) * (1f - .12f * k);
+                w *= 1f + .035f * (float) Math.sin(t * 1.7f + u * 6f);
                 if (i > 0) {
                     float mid = (u + (i - 1) / (float) ROWS) * .5f;
-                    float edge = Math.abs(mid - .5f) * 2f;                 // 0 in the middle, 1 at the ends
-                    float shimmer = .5f + .5f * (float) Math.sin(t * 3f - mid * 9f);
-                    strip(vc, m, prevW, prevY, w, y, EDGE, .30f + .22f * edge);
-                    strip(vc, m, prevW * .55f, prevY, w * .55f, y, CORE, .16f + .26f * shimmer);
+                    float edge = Math.abs(mid - .5f) * 2f;
+                    strip(vc, m, prevW, prevY, w, yv, EDGE, .26f + .30f * edge);        // the rim
+                    strip(vc, m, prevW * .70f, prevY, w * .70f, yv, CORE, .20f);
+                    float hot = (float) Math.pow(1f - edge, 2.2);
+                    strip(vc, m, prevW * .34f, prevY, w * .34f, yv, 0xEAF6FF, .18f + .40f * hot);
                 }
-                prevW = w; prevY = y;
+                prevW = w; prevY = yv;
             }
-            // a bright seam up the middle
-            for (int i = 0; i < ROWS; i++) {
-                float u0 = i / (float) ROWS, u1 = (i + 1) / (float) ROWS;
-                float y0 = Y0 + u0 * (Y1 - Y0), y1 = Y0 + u1 * (Y1 - Y0);
-                float f = (float) Math.sin(Math.PI * u0);
-                float w = .055f * f * (1f + .3f * (float) Math.sin(t * 4f + u0 * 11f));
-                strip(vc, m, w, y0, w, y1, 0xDCEEFF, .50f * f);
-            }
+            // and the light it throws down onto its own stone
+            strip(vc, m, HW * .9f, .02f, HW * .5f, .30f, CORE, .22f);
             pose.popPose();
         }
 
