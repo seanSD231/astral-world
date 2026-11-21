@@ -1,3 +1,10 @@
+## 0.2.394
+
+### Three redrawn
+- **Sovereign Skull** is built as a skull first and lit second. The sockets read as goggles before because they were two bright panes sitting side by side with a gap between; they are deep hollows now, with a brow shadow across the top of each, bone at the floor of them, a nasal cavity between and a proper jaw and teeth under it. The blue sits inside the hollow and is dimmest at the rim.
+- **Spiritual Cloth** keeps the scholar's own red and gold: deep red with a lit fold and a shaded one, a gold hem along the torn top, gold down both torn edges, gold thread through the weave and the soul running pale gold down the middle.
+- **Vengeful Spirit** is a **great helm** now, upright, with a sight slit right across it, a reinforcing bar down the face, breath holes and a tapered chin going to vapour. The sallet shape I had was wide and flat and read as a saucer.
+
 ## 0.2.393
 
 ### Three drops reworked, per Rupex
