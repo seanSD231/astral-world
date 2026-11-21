@@ -100,8 +100,9 @@ public final class DumpItems {
         LOG.info("---- end {} ----", where);
 
         // and in chat: click it to put the whole list on the clipboard without leaving the game
+        final int items = total;
         ctx.getSource().sendSuccess(() -> Component.literal(
-                counts.size() + " kinds, " + total + " items — written to the log. ")
+                counts.size() + " kinds, " + items + " items — written to the log. ")
                 .withStyle(ChatFormatting.GREEN)
                 .append(Component.literal("[copy the ids]")
                     .withStyle(st -> st.withColor(ChatFormatting.AQUA)
