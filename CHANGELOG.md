@@ -1,3 +1,10 @@
+## 0.2.385
+
+### The ladder gets its own monument
+- It no longer borrows the hunger games board. Where that one is a wide gold-framed slab between two braziers, the ladder is a **single tall stele of deepslate**: a narrow shaft with a quartz face, a dark rail down each edge, a lantern slung under a short chain at the head instead of fire, and a slow turning mark above it.
+- The standing reads as **one column** rather than two halves, which is what a ladder is: the leader at the top with their face, then the places under them, and the other games' leaders along the foot.
+- Dark ink on pale quartz, against the games' gold on black.
+
 ## 0.2.384
 
 ### The portal

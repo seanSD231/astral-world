@@ -69,14 +69,95 @@ public class HgBoardRenderer extends EntityRenderer<HgBoard> {
         }
     }
 
+    /**
+     * The ladder's own monument, and nothing like the games'. Where that one is a wide gold-framed
+     * slab between two braziers, this is a single tall stele of deepslate: a narrow shaft with a
+     * quartz face, a dark iron rail down each edge, a lantern at the head instead of fire, and the
+     * standing read as one column rather than two. A ladder is a line of names, so it is built as
+     * one.
+     */
+    private void ladderStone(PoseStack ps, MultiBufferSource buf, HgBoard e, int light, float time) {
+        BlockState deep = Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+        BlockState tile = Blocks.DEEPSLATE_TILES.defaultBlockState();
+        BlockState face = Blocks.SMOOTH_QUARTZ.defaultBlockState();
+        BlockState iron = Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+        BlockState lamp = Blocks.SEA_LANTERN.defaultBlockState();
+        BlockState chain = Blocks.CHAIN.defaultBlockState();
+
+        float W = 3.3f, y0 = 1.0f, H = 6.2f;
+        // a square base, stepped in
+        blk(ps, buf, tile, 0, 0f,   0, W + 1.5f, .35f, 2.2f, light);
+        blk(ps, buf, deep, 0, .35f, 0, W + 0.9f, .30f, 1.7f, light);
+        blk(ps, buf, tile, 0, .65f, 0, W + 0.4f, .35f, 1.3f, light);
+        // the shaft, tiled so the stone keeps its grain
+        for (int ix = 0; ix < 3; ix++) for (int iy = 0; iy < 6; iy++)
+            blk(ps, buf, face, -1.1f + ix * 1.1f, y0 + iy, 0, 1.1f, 1f, .36f, light);
+        // a dark rail down each edge, and a lintel top and bottom
+        for (int sd = -1; sd <= 1; sd += 2) blk(ps, buf, iron, sd * (W / 2f + .12f), y0, 0, .3f, H, .5f, light);
+        blk(ps, buf, deep, 0, y0 - .18f, 0, W + .7f, .2f, .56f, light);
+        blk(ps, buf, deep, 0, y0 + H,    0, W + .7f, .25f, .56f, light);
+        // the head: a lantern slung under a short chain, no fire
+        blk(ps, buf, tile, 0, y0 + H + .25f, 0, 1.9f, .3f, .5f, light);
+        blk(ps, buf, chain, 0, y0 + H + .55f, 0, .22f, .55f, .22f, light);
+        blk(ps, buf, lamp, 0, y0 + H + 1.10f, 0, .78f, .78f, .78f, FULL);
+        // and a slowly turning mark above it
+        ps.pushPose();
+        ps.translate(0, y0 + H + 2.0f + (float) Math.sin(time * .07f) * .05f, 0);
+        ps.mulPose(Axis.YP.rotationDegrees(time * 1.4f));
+        blk(ps, buf, lamp, 0, -.17f, 0, .34f, .34f, .34f, FULL);
+        ps.popPose();
+
+        // ---- one column of names
+        List<String[]> res = new ArrayList<>(), other = new ArrayList<>();
+        String big = "LADDER", one = "pt", many = "pts", first = "FIRST";
+        for (String ln : e.text().split("\n")) {
+            String[] f = ln.split("\\|");
+            if (f.length >= 7 && f[0].equals("H")) { big = f[1]; one = f[3]; many = f[4]; first = f[6]; }
+            else if (f.length >= 4 && f[0].equals("R")) res.add(f);
+            else if (f.length >= 4 && f[0].equals("P")) other.add(f);
+        }
+        ps.pushPose(); ps.translate(0, 0, .19f);
+        float left = -W / 2f + .22f, right = W / 2f - .22f, top = y0 + H - .3f;
+        text(ps, buf, big, 0, top, big.length() > 12 ? .24f : .30f, DIM_T, 1);
+        if (res.isEmpty()) {
+            text(ps, buf, "No one has fought yet", 0, top - .9f, .18f, DIM_T, 1);
+        } else {
+            String[] w = res.get(0);
+            face(ps, buf, w[2], left, top - .55f, .78f);
+            text(ps, buf, first, left + .95f, top - .60f, .13f, DIM_T, 0);
+            text(ps, buf, fit(w[2], .26f, right - left - 1.05f), left + .95f, top - .80f, .26f, INK_T, 0);
+            text(ps, buf, w[3] + " " + (w[3].equals("1") ? one : many), left + .95f, top - 1.14f, .15f, DIM_T, 0);
+            for (int i = 1; i < Math.min(res.size(), 9); i++) {
+                String[] r = res.get(i);
+                float ry = top - 1.75f - (i - 1) * .30f;
+                text(ps, buf, "#" + r[1], left, ry, .17f, i < 3 ? INK_T : DIM_T, 0);
+                text(ps, buf, fit(r[2], .17f, right - left - 1.25f), left + .45f, ry, .17f, INK_T, 0);
+                text(ps, buf, r[3], right, ry, .17f, DIM_T, 2);
+            }
+        }
+        float oy = y0 + .55f;
+        for (int i = 0; i < Math.min(other.size(), 2); i++) {
+            String[] h = other.get(i);
+            text(ps, buf, fit(h[3], .13f, W - .5f), left, oy - i * .34f, .13f, DIM_T, 0);
+            text(ps, buf, fit(h[1], .15f, W - .5f) + "  " + h[2], left, oy - i * .34f - .17f, .15f, INK_T, 0);
+        }
+        ps.popPose();
+    }
+
+    /** Ink for the quartz face: dark, where the games' board is gold on black. */
+    private static final int INK_T = 0xFF14161C, DIM_T = 0xFF4A5260;
+
     @Override
     public void render(HgBoard e, float yaw, float pt, PoseStack ps, MultiBufferSource buf, int light) {
         BlockState dark = Blocks.POLISHED_BLACKSTONE.defaultBlockState(), brick = Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState(),
             gold = Blocks.GOLD_BLOCK.defaultBlockState(), gilt = Blocks.GILDED_BLACKSTONE.defaultBlockState(),
             chis = Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState(), slabSt = Blocks.SMOOTH_BASALT.defaultBlockState(), fire = Blocks.CAMPFIRE.defaultBlockState();
         float time = e.tickCount + pt;
+        boolean ladder = !e.src().isEmpty();
         ps.pushPose();
         ps.mulPose(Axis.YP.rotationDegrees(180 - e.getYRot()));
+
+        if (ladder) { ladderStone(ps, buf, e, light, time); ps.popPose(); super.render(e, yaw, pt, ps, buf, light); return; }
 
         // the plinth: three steps
         blk(ps, buf, brick, 0, 0f, 0, 8.2f, .3f, 2.4f, light);
