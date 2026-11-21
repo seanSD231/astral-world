@@ -93,17 +93,19 @@ public final class DreamStone {
         }
 
         @Override
-        protected InteractionResult useItemOn(ItemStack held, BlockState st, Level level, BlockPos pos,
+        protected net.minecraft.world.ItemInteractionResult useItemOn(ItemStack held, BlockState st, Level level, BlockPos pos,
                                               Player player, net.minecraft.world.InteractionHand hand, BlockHitResult hit) {
-            if (level.isClientSide) return InteractionResult.SUCCESS;
-            if (!(player instanceof ServerPlayer sp) || !sp.hasPermissions(2)) return InteractionResult.CONSUME;
-            if (!(level.getBlockEntity(pos) instanceof Tile tile)) return InteractionResult.CONSUME;
+            if (level.isClientSide) return net.minecraft.world.ItemInteractionResult.SUCCESS;
+            if (!(player instanceof ServerPlayer sp) || !sp.hasPermissions(2))
+                return net.minecraft.world.ItemInteractionResult.CONSUME;
+            if (!(level.getBlockEntity(pos) instanceof Tile tile))
+                return net.minecraft.world.ItemInteractionResult.CONSUME;
             tile.keep = !tile.keep;
             tile.setChanged();
             sp.displayClientMessage(Component.literal(tile.keep
                     ? "They will keep what they find in the dream."
                     : "What they find in the dream stays there.").withStyle(ChatFormatting.AQUA), true);
-            return InteractionResult.CONSUME;
+            return net.minecraft.world.ItemInteractionResult.CONSUME;
         }
     }
 
