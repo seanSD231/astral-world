@@ -1,3 +1,11 @@
+## 0.2.395
+
+### Sovereign Skull
+- Built the way a skeleton skull actually is. Two things were wrong before: it was drawn at a true 16x16, where vanilla's face is an 8x8 patch shown two screen pixels to the texel, and it was a **flat sprite**, where vanilla's skull is a cube. Fine detail in a style that has none, on the wrong kind of model.
+- It is an 8x8 face doubled up now, mottled bone the way vanilla's is, with square sockets, a nose and a tooth band, and it sits on a **proper cube model** with bone on the other five sides. So it turns in the hand, sits on the ground as a skull and wears on the head.
+- The sockets are blue instead of black, dark at the top and inner edge with the light brightest in the hollow, and a little of it escaping over the brow.
+- I drew it rather than copying Mojang's file: shipping their texture inside the mod would be redistributing their art.
+
 ## 0.2.394
 
 ### Three redrawn
