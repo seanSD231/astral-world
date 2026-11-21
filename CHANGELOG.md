@@ -1,3 +1,11 @@
+## 0.2.386
+
+### Reading a chest out
+- `/astralitems` writes the item ids of whatever container you are looking at into the log, ready to copy. Give it coordinates instead if you would rather not stand in front of it.
+- Each distinct item is listed once with how many there are, and then once more as a single comma-separated line, which is the line you actually want when pasting into a config or a recipe.
+- The chat line it replies with is clickable: **[copy the ids]** puts that comma-separated list straight on your clipboard without leaving the game.
+- It reads anything with slots, not only chests &mdash; barrels, shulker boxes, hoppers, and modded containers too. Double chests are read whole, both halves at once. Operators only.
+
 ## 0.2.385
 
 ### The ladder gets its own monument
