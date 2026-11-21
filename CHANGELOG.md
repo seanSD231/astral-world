@@ -1,3 +1,10 @@
+## 0.2.401
+
+### Packs
+- **The 69 ordinary packs are pouches again, not squares.** The admin pack's art is a rounded rectangle 688 wide on its 1024 canvas; every other pack filled the whole square, because the script that re-authored them drew to the edges. So the admin one opened correctly and the rest opened as a square slab.
+- Rather than redraw them, each one now wears **the admin pouch's own alpha** as its silhouette, so all seventy match exactly, rounded top and bottom included. Nothing of the art is lost: the widest thing on a pack face reaches x 180 to 844, inside the pouch's 168 to 845.
+- Correcting what the last entry claimed: the opening screen's 564 was **not** a bug. That number is handed to the blit as the texture's own width as well as the width to read, so it works out to the whole image whatever the real size. It now reads 1024 because that is the truth, but it changed nothing.
+
 ## 0.2.400
 
 ### Packs
