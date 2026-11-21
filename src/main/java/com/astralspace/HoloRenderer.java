@@ -174,6 +174,19 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
         quad(tex, x, y, z, (rx * c + ux * s) * hx, (ry * c + uy * s) * hx, (rz * c + uz * s) * hx,
              (-rx * s + ux * c) * hy, (-ry * s + uy * c) * hy, (-rz * s + uz * c) * hy, argb);
     }
+    /**
+     * A billboard drawn with ordinary blending rather than emissive.
+     *
+     * <p>{@link #bb} goes through the emissive path, which only ever adds light: black drawn that
+     * way is nothing at all, which is why the dark half of the aura could not be seen. Anything
+     * meant to darken what is behind it comes through here.</p>
+     */
+    private void bbSolid(String tex, float x, float y, float z, float w, float hgt, float rot, int argb) {
+        eqSolid = true;
+        bb(tex, x, y, z, w, hgt, rot, argb);
+        eqSolid = false;
+    }
+
     private void flat(String tex, float x, float y, float z, float size, float rot, int argb) {
         float c = (float) Math.cos(rot) * size / 2, s = (float) Math.sin(rot) * size / 2;
         if (gold && y > .5f && (tex.startsWith("ring") || tex.equals("whirl"))) {   // shiny: a ring in the air is backed by the same ring in black, a little wider
@@ -1322,12 +1335,18 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
      */
     private void adminAura(float yB, float P) {
         float mid = yB + 8f * P, h = 34f * P;
+        // a solid shroud first: without something dark behind it the red had nothing to read against
+        for (int i = 0; i < 7; i++) {
+            float a = i * TAU / 7 + t * .05f;
+            bbSolid("smoke", gc(a) * 5.5f * P, mid + (h * .5f) * (i % 3 - 1) * .4f, gs(a) * 5.5f * P,
+                    30f * P, 34f * P, 0, rgba(0x06030C, .62f));
+        }
         for (int i = 0; i < 30; i++) {
             float a = h(i, 810) * TAU + t * (.10f + .05f * h(i, 811));
             float rr = (3.2f + 5.4f * h(i, 812)) * P;
             float y = mid + (h(i, 813) - .5f) * h;
             float w = (9f + 7f * h(i, 814)) * P, puff = .55f + .45f * gs(t * .8f + i);
-            bb("smoke", gc(a) * rr, y, gs(a) * rr, w, w * 1.25f, 0, rgba(0x05030A, .92f * puff));
+            bbSolid("smoke", gc(a) * rr, y, gs(a) * rr, w, w * 1.25f, 0, rgba(0x05030A, .86f * puff));
         }
         for (int i = 0; i < 18; i++) {   // red turning through the dark, never over it
             float a = h(i, 820) * TAU - t * (.13f + .06f * h(i, 821));
@@ -1337,7 +1356,7 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             bb("smoke", gc(a) * rr, y, gs(a) * rr, w, w * 1.2f, 0, rgba(0xB00C16, .70f * puff));
         }
         // and it pools at his head, which hangs lowest
-        bb("smoke", 0, yB - 5f * P, 0, 30f * P, 23f * P, 0, rgba(0x05030A, .88f));
+        bbSolid("smoke", 0, yB - 5f * P, 0, 32f * P, 25f * P, 0, rgba(0x05030A, .90f));
         bb("smoke", 0, yB - 5f * P, 0, 18f * P, 15f * P, 0, rgba(0xB00C16, .55f));
         sprites("mote", 18, RISEM, 9f * P, mid - h * .5f, h, 1.1f * P, 0xC0202A, .8f, .10f, 931, true);
         sprites("mote", 14, FALLM, 11f * P, mid + h * .5f, h, .9f * P, 0x1A1026, .7f, .08f, 932, false);
@@ -1400,19 +1419,21 @@ public class HoloRenderer extends EntityRenderer<HoloCardEntity> {
             // a little below and off to one side, which left it hanging clear of him
             // The cuff and the chain are placed from the same point as the arm itself, and the
             // cuff is cut wide enough to swallow the limb, so the chain can never hang beside it.
+            // pushFace, not push: these are model primitives, and without the card's own facing
+            // on the matrix they stay where they are while everything drawn as quads turns.
             float wx = sd * armX, wy = armY;
-            push(); tr(wx, wy, 0); rZ(PI / 2); rX(PI / 2);
+            pushFace(); tr(wx, wy, 0); rZ(PI / 2); rX(PI / 2);
             torus(0, 0, 0, 3.4f * P, 3.4f * P, 1.0f * P, 14, 5, 0, TAU, ADM_IRON, 255); pop();
-            push(); tr(wx, wy, 0); chain(wy + .25f * S, .55f * S, ADM_IRON); pop();   // wrist to the floor, a link into it
+            pushFace(); tr(wx, wy, 0); chain(wy + .25f * S, .55f * S, ADM_IRON); pop();   // wrist to the floor, a link into it
             // The ankles are the highest part of him and he hangs by them, so their chains run
             // UP to the beam. Hung downward they fell the length of his body, which is what put
             // the leg chain across his chest and face.
             float ax = sd * 2.2f * P, ay = feet - 1.0f * P;
-            push(); tr(ax, ay, 0); rX(PI / 2); rY(PI / 2);
+            pushFace(); tr(ax, ay, 0); rX(PI / 2); rY(PI / 2);
             torus(0, 0, 0, 2.4f * P, 2.4f * P, .8f * P, 12, 5, 0, TAU, ADM_IRON, 255); pop();
-            push(); tr(ax, R * 4.4f, 0); chain(R * 4.4f - ay + .55f * S, .55f * S, ADM_IRON); pop();
+            pushFace(); tr(ax, R * 4.4f, 0); chain(R * 4.4f - ay + .55f * S, .55f * S, ADM_IRON); pop();
         }
-        bb("glow", 0, yB, 0, 36f * P, 44f * P, 0, rgba(ADM_WARM, .045f));
+        bb("glow", 0, yB, 0, 36f * P, 44f * P, 0, rgba(ADM_WARM, .02f));
     }
 
     /**

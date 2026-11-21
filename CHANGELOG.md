@@ -1,3 +1,10 @@
+## 0.2.391
+
+### The admin card
+- **The arm shackles turn with the card now.** They are model primitives, and the model matrix does not carry the card's facing unless `pushFace` puts it there; his body is drawn as quads, which take the facing from somewhere else entirely. So he turned and his cuffs did not. Both cuffs and all four of their chains are drawn in the card's own frame now.
+- **The dark half of the aura can be seen.** Billboards go through the same emissive path as the floor did, which only ever adds light, so black drawn that way was nothing at all and only the red was ever showing. The smoke is drawn with ordinary blending now, with a solid shroud behind him for the red to read against, and the red is left emissive so it still burns.
+- The warm wash laid over him was most of what made him look bleached, and it is down to a fifth of what it was.
+
 ## 0.2.390
 
 ### Naming and art
