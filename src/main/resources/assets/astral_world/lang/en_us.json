@@ -105,11 +105,11 @@
   "entity.astral_world.moon_corruption": "The Moon's Corruption",
   "block.astral_world.arena_portal": "Arena Portal",
   "block.astral_world.leader_board": "Standing Board",
-  "item.astral_world.rimeglass_shard": "Rimeglass Shard",
   "item.astral_world.gilded_folio": "Gilded Folio",
-  "item.astral_world.mutated_bell": "Mutated Bell",
   "item.astral_world.depraved_eye": "Depraved Eye",
   "item.astral_world.drowned_wisp": "Drowned Wisp",
-  "item.astral_world.severed_link": "Severed Link",
-  "item.astral_world.strider_talon": "Strider's Talon"
+  "item.astral_world.rimeglass_bell": "Rimeglass Bell",
+  "item.astral_world.clotted_heart": "Clotted Heart",
+  "item.astral_world.shackled_skull": "Shackled Skull",
+  "item.astral_world.shrine_core": "Shrine Core"
 }

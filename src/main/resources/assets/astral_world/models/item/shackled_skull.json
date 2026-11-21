@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "astral_world:item/mutated_bell"
+    "layer0": "astral_world:item/shackled_skull"
   }
 }

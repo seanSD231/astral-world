@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "astral_world:item/rimeglass_shard"
+    "layer0": "astral_world:item/rimeglass_bell"
   }
 }

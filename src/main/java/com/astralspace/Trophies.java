@@ -40,13 +40,13 @@ public final class Trophies {
                 () -> new Keepsake(new Item.Properties().rarity(rarity).stacksTo(16), tale, tint));
     }
 
-    /** The glass spirit: a pane of it, still cold, still faintly lit from inside. */
-    public static final DeferredItem<Item> RIMEGLASS_SHARD = keepsake("rimeglass_shard",
-            "Cold long after the rest of it melted.", ChatFormatting.AQUA, Rarity.UNCOMMON);
+    /** The jellyfish that walks upright: the bell off the top of it, glass-clear and still cold. */
+    public static final DeferredItem<Item> RIMEGLASS_BELL = keepsake("rimeglass_bell",
+            "Still full of the water it drifted in.", ChatFormatting.AQUA, Rarity.UNCOMMON);
 
-    /** The jellyfish that walks upright: the bell off the top of it, swollen out of all shape. */
-    public static final DeferredItem<Item> MUTATED_BELL = keepsake("mutated_bell",
-            "Still full of the water it drowned in.", ChatFormatting.DARK_RED, Rarity.UNCOMMON);
+    /** The red flesh thing: the one part of it that was ever properly alive, and it grew. */
+    public static final DeferredItem<Item> CLOTTED_HEART = keepsake("clotted_heart",
+            "It has more chambers than it ought to.", ChatFormatting.DARK_RED, Rarity.UNCOMMON);
 
     /** The iron knight: what was behind the visor, and it was never a lens. */
     public static final DeferredItem<Item> DEPRAVED_EYE = keepsake("depraved_eye",
@@ -60,18 +60,18 @@ public final class Trophies {
     public static final DeferredItem<Item> GILDED_FOLIO = keepsake("gilded_folio",
             "The same four lines, on every page of it.", ChatFormatting.GOLD, Rarity.RARE);
 
-    /** The pale column: one link out of the chain that came up through the ground. */
-    public static final DeferredItem<Item> SEVERED_LINK = keepsake("severed_link",
-            "Cut at both ends. The rest is still down there.", ChatFormatting.WHITE, Rarity.RARE);
+    /** The thing on the end of the chain, with the chain still through it. */
+    public static final DeferredItem<Item> SHACKLED_SKULL = keepsake("shackled_skull",
+            "Whatever it was chained to, it is not finished with.", ChatFormatting.WHITE, Rarity.RARE);
 
-    /** The walker: one of the blades it stood on. */
-    public static final DeferredItem<Item> STRIDER_TALON = keepsake("strider_talon",
-            "It walked on these. It did not need the ground.", ChatFormatting.AQUA, Rarity.EPIC);
+    /** The walker: the carved stone it carried for a body. */
+    public static final DeferredItem<Item> SHRINE_CORE = keepsake("shrine_core",
+            "A shrine went walking, and something was living in it.", ChatFormatting.AQUA, Rarity.EPIC);
 
     /** Every drop, in the order the mobs were shown. */
     public static final List<DeferredItem<Item>> ALL = List.of(
-            RIMEGLASS_SHARD, MUTATED_BELL, DEPRAVED_EYE, DROWNED_WISP,
-            GILDED_FOLIO, SEVERED_LINK, STRIDER_TALON);
+            RIMEGLASS_BELL, CLOTTED_HEART, DEPRAVED_EYE, DROWNED_WISP,
+            GILDED_FOLIO, SHACKLED_SKULL, SHRINE_CORE);
 
     /** Touched so the static fields above are initialised while the registers are still open. */
     public static void touch() { }

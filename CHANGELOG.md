@@ -1,3 +1,11 @@
+## 0.2.389
+
+### The drops, corrected again
+- I had the first two the wrong way round. The **glass spirit is the jellyfish**, so the bell moves onto it: **Rimeglass Bell**, violet through mint, glass-clear with facets, tendrils and a cold drip off them. That is the water drop.
+- The second one goes back to being a **Clotted Heart**, and a far more mutated one: a second chamber budding out of one side, a third underneath, tumours over the surface and extra vessels running off to nowhere.
+- **Shackled Skull** replaces the Severed Link. A plain link said nothing; this is the skull off the end of that chain with the chain still through it, running out of the crown and past the jaw.
+- **Shrine Core** replaces the Strider's Talon. The walker is carrying a carved stone shrine for a body, so the drop is that: slatted grey stone seen from a corner, a spire on top and the teal light that lived inside it.
+
 ## 0.2.388
 
 ### The drops, corrected
